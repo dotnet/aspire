@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -38,15 +40,79 @@ public static class ConnectionStringBuilderExtensions
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression connectionStringExpression)
     {
         var cs = new ConnectionStringResource(name, connectionStringExpression);
-        return builder.AddResource(cs)
-                      .WithReferenceRelationship(connectionStringExpression)
-                      .WithInitialState(new CustomResourceSnapshot
-                      {
-                          ResourceType = "ConnectionString",
-                          // TODO: We'll hide this until we come up with a sane representation of these in the dashboard
-                          IsHidden = true,
-                          Properties = []
-                      });
+
+        var rb = builder.AddResource(cs);
+
+        // Wait for any referenced resources in the connection string.
+        // We only look at top level resources with the assumption that they are transitive themselves.
+        var tasks = new List<Task>();
+        var resourceNames = new HashSet<string>(StringComparers.ResourceName);
+
+        foreach (var value in cs.ConnectionStringExpression.ValueProviders)
+        {
+            if (value is IResourceWithoutLifetime)
+            {
+                // We cannot wait for resources without a lifetime.
+                continue;
+            }
+
+            if (value is IResource resource)
+            {
+                if (resourceNames.Add(resource.Name))
+                {
+                    // Wait for the resource.
+                    rb.WaitForStart(builder.CreateResourceBuilder(resource));
+                }
+            }
+            else if (value is IValueWithReferences valueWithReferences)
+            {
+                foreach (var innerRef in valueWithReferences.References.OfType<IResource>())
+                {
+                    if (resourceNames.Add(innerRef.Name))
+                    {
+                        // Wait for the inner resource.
+                        rb.WaitForStart(builder.CreateResourceBuilder(innerRef));
+                    }
+                }
+            }
+        }
+
+        return rb.WithReferenceRelationship(connectionStringExpression)
+                 .WithInitialState(new CustomResourceSnapshot
+                 {
+                     ResourceType = KnownResourceTypes.ConnectionString,
+                     State = KnownResourceStates.NotStarted,
+                     Properties = []
+                 })
+                 .OnInitializeResource(async (r, @evt, ct) =>
+                 {
+                     try
+                     {
+                         // This is where waiting happens
+                         await @evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(r, @evt.Services), ct).ConfigureAwait(false);
+
+                         // Publish the update with the connection string value and the state as running.
+                         // This will allow health checks to start running.
+                         await evt.Notifications.PublishUpdateAsync(r, s => s with
+                         {
+                             State = KnownResourceStates.Running
+                         }).ConfigureAwait(false);
+
+                         // Publish the connection string available event for other resources that may depend on this resource.
+                         await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
+                                         .ConfigureAwait(false);
+                     }
+                     catch (Exception ex)
+                     {
+                         evt.Logger.LogError(ex, "Failed to resolve connection string for resource '{ResourceName}'", r.Name);
+
+                         // If we fail to resolve the connection string, we set the state to failed.
+                         await evt.Notifications.PublishUpdateAsync(r, s => s with
+                         {
+                             State = KnownResourceStates.FailedToStart
+                         }).ConfigureAwait(false);
+                     }
+                 });
     }
 
     /// <summary>

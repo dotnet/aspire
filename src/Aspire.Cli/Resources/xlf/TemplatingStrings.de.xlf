@@ -3,38 +3,48 @@
   <file datatype="xml" source-language="en" target-language="de" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire-App-Host</target>
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Leere Aspire-App</target>
+        <source>AppHost and service defaults</source>
+        <target state="translated">AppHost und Dienststandardwerte</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire-Testprojekt (MSTest)</target>
+        <source>MSTest</source>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire-Testprojekt (NUnit)</target>
+        <source>NUnit</source>
+        <target state="translated">NUnit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">React (Vite) und FastAPI-Starter</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Standardwerte für den Aspire-Dienst</target>
+        <source>Service defaults</source>
+        <target state="translated">Dienststandardwerte</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Empty AppHost</source>
+        <target state="translated">Leerer AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire Starter-App</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Blazor und Minimal API-Starter</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire-Testprojekt (xUnit)</target>
+        <source>xUnit</source>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -46,6 +56,11 @@
         <source>An error occurred while trusting the certificates: {0}</source>
         <target state="translated">Fehler beim Einstufen der Zertifikate als vertrauenswürdig: {0}</target>
         <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">NuGet.config für die ausgewählten Kanäle erstellen?</target>
+        <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
@@ -62,9 +77,14 @@
         <target state="translated">Geben Sie die zu verwendende xUnit.net-Version ein.</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">Die neuesten Vorlagen werden abgerufen...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="translated">Vorlagen werden abgerufen...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="translated">Integrationstests</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -80,6 +100,16 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">Keine</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">Die NuGet.config für den ausgewählten Paketkanal wurde erstellt.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="translated">Das neue Projekt kann nicht erstellt werden, da vorhandene Dateien im Ausgabeordner überschrieben werden würden. Bitte entfernen oder verschieben Sie die Dateien, die zu Konflikten führen, oder wählen Sie einen anderen Speicherort.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

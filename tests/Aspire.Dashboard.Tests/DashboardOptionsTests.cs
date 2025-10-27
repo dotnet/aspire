@@ -1,9 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Claims;
+using System.Text.Json;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
+using OpenIdConnectOptions = Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions;
 
 namespace Aspire.Dashboard.Tests;
 
@@ -245,6 +252,20 @@ public sealed class DashboardOptionsTests
         Assert.Equal("Failed to parse OTLP HTTP endpoint URL 'invalid'.", result.FailureMessage);
     }
 
+    [Fact]
+    public async Task OtlpOptions_SuppressUnsecuredMessage_LegacyName()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey, "true"),
+        ]));
+        var options = app.Services.GetService<IOptionsMonitor<DashboardOptions>>()!;
+
+        Assert.True(options.CurrentValue.Otlp.SuppressUnsecuredMessage);
+    }
+
     #endregion
 
     #region OpenIDConnect options
@@ -273,6 +294,169 @@ public sealed class DashboardOptionsTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("OpenID Connect claim type for username not configured. Specify a Dashboard:Frontend:OpenIdConnect:UsernameClaimType value.", result.FailureMessage);
+    }
+
+    [Fact]
+    public async Task OpenIdConnectOptions_ClaimActions_MapJsonKeyTestAsync()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new("Authentication:Schemes:OpenIdConnect:Authority", "https://id.aspire.dev/"),
+            new("Authentication:Schemes:OpenIdConnect:ClientId", "aspire-dashboard"),
+            new("Dashboard:Frontend:AuthMode", "OpenIdConnect"),
+            new("Dashboard:Frontend:OpenIdConnect:ClaimActions:0:ClaimType", "role"),
+            new("Dashboard:Frontend:OpenIdConnect:ClaimActions:0:JsonKey", "role"),
+            new("Dashboard:Frontend:OpenIdConnect:RequiredClaimType", "role")
+        ]));
+        var openIdConnectAuthOptions = app.Services.GetService<IOptionsMonitor<OpenIdConnectOptions>>()?.Get(OpenIdConnectDefaults.AuthenticationScheme);
+        Assert.NotNull(openIdConnectAuthOptions);
+        Assert.NotEmpty(openIdConnectAuthOptions.ClaimActions);
+        var claimAction = openIdConnectAuthOptions.ClaimActions.FirstOrDefault(x => x.ClaimType == "role");
+        Assert.NotNull(claimAction);
+        Assert.Equal("role", claimAction.ClaimType);
+        var jsonElement = JsonDocument.Parse("""
+                           {
+                             "role": ["admin", "test"]
+                           }
+                           """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        claimAction.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("role", "admin"));
+        Assert.True(claimIdentity.HasClaim("role", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapJsonKeyTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "role",
+            JsonKey = "role"
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == ClaimValueTypes.String);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "role": ["admin", "test"]
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("role", "admin"));
+        Assert.True(claimIdentity.HasClaim("role", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapUniqueJsonKeyTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "name",
+            JsonKey = "name",
+            IsUnique = true
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == ClaimValueTypes.String);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "name": "test"
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity(
+        [
+            new Claim("name", "test")
+        ]);
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.Single(claimIdentity.Claims);
+        Assert.True(claimIdentity.HasClaim("name", "test"));
+
+        var emptyClaimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, emptyClaimIdentity, "test");
+        Assert.Single(emptyClaimIdentity.Claims);
+        Assert.True(emptyClaimIdentity.HasClaim("name", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapJsonSubKeyTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "name",
+            JsonKey = "profile",
+            SubKey = "name"
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == ClaimValueTypes.String);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "profile": {
+                                                 "name": "test"
+                                               }
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity(
+        [
+            new Claim("name", "test")
+        ]);
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("name", "test"));
+
+        var emptyClaimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, emptyClaimIdentity, "test");
+        Assert.Single(emptyClaimIdentity.Claims);
+        Assert.True(emptyClaimIdentity.HasClaim("name", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapJsonKey_ValueTypeTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "sub",
+            JsonKey = "userId",
+            ValueType = ClaimValueTypes.Integer,
+            IsUnique = true
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == claimAction.ValueType);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "userId": "1"
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.NotEmpty(claimIdentity.Claims);
+        Assert.True(claimIdentity.HasClaim("sub", "1"));
     }
 
     #endregion

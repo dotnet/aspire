@@ -62,13 +62,16 @@ public class BrowserSecurityHeadersMiddlewareTests
         Assert.Contains(expectedContent, httpContext.Response.Headers.ContentSecurityPolicy.ToString());
     }
 
-    [Fact]
-    public async Task InvokeAsync_Otlp_NotAdded()
+    [Theory]
+    [InlineData(ConnectionType.OtlpGrpc)]
+    [InlineData(ConnectionType.OtlpHttp)]
+    [InlineData(ConnectionType.Mcp)]
+    public async Task InvokeAsync_Otlp_NotAdded(ConnectionType connectionType)
     {
         // Arrange
         var middleware = CreateMiddleware(environmentName: "Production");
         var httpContext = new DefaultHttpContext();
-        httpContext.Features.Set<IConnectionTypeFeature>(new TestConnectionTypeFeature { ConnectionTypes = [ConnectionType.Otlp] });
+        httpContext.Features.Set<IConnectionTypeFeature>(new TestConnectionTypeFeature { ConnectionTypes = [connectionType] });
 
         // Act
         await middleware.InvokeAsync(httpContext).DefaultTimeout();

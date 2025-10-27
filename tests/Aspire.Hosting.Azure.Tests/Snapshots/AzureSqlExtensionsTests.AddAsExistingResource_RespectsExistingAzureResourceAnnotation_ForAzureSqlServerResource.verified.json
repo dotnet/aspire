@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_sql_name": "{existing-sql-name.value}",
+    "existing_sql_rg": "{existing-sql-rg.value}"
+  }
+}

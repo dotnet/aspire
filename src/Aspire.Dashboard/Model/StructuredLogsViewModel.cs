@@ -10,23 +10,24 @@ namespace Aspire.Dashboard.Model;
 public class StructuredLogsViewModel
 {
     private readonly TelemetryRepository _telemetryRepository;
-    private readonly List<TelemetryFilter> _filters = new();
+    private readonly List<FieldTelemetryFilter> _filters = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
-    private ApplicationKey? _applicationKey;
+    private ResourceKey? _resourceKey;
     private string _filterText = string.Empty;
     private int _logsStartIndex;
     private int _logsCount;
     private LogLevel? _logLevel;
+    private bool _currentDataHasErrors;
 
     public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
     {
         _telemetryRepository = telemetryRepository;
     }
 
-    public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
+    public ResourceKey? ResourceKey { get => _resourceKey; set => SetValue(ref _resourceKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
-    public IReadOnlyList<TelemetryFilter> Filters => _filters;
+    public IReadOnlyList<FieldTelemetryFilter> Filters => _filters;
 
     public void ClearFilters()
     {
@@ -34,7 +35,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public void AddFilter(TelemetryFilter filter)
+    public void AddFilter(FieldTelemetryFilter filter)
     {
         // Don't add duplicate filters.
         foreach (var existingFilter in _filters)
@@ -49,7 +50,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public bool RemoveFilter(TelemetryFilter filter)
+    public bool RemoveFilter(FieldTelemetryFilter filter)
     {
         if (_filters.Remove(filter))
         {
@@ -79,27 +80,56 @@ public class StructuredLogsViewModel
         var logs = _logs;
         if (logs == null)
         {
-            var filters = Filters.ToList();
-            if (!string.IsNullOrWhiteSpace(FilterText))
-            {
-                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
-            }
-            // If the log level is set and it is not the bottom level, which has no effect, then add a filter.
-            if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
-            {
-                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
-            }
+            var filters = GetFilters();
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext
             {
-                ApplicationKey = ApplicationKey,
+                ResourceKey = ResourceKey,
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters
             });
+
+            _currentDataHasErrors = logs.Items.Any(i => i.Severity >= Microsoft.Extensions.Logging.LogLevel.Error);
         }
 
         return logs;
+    }
+
+    public List<TelemetryFilter> GetFilters()
+    {
+        var filters = Filters.Cast<TelemetryFilter>().ToList();;
+        if (!string.IsNullOrWhiteSpace(FilterText))
+        {
+            filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
+        }
+        // If the log level is set and it is not the bottom level, which has no effect, then add a filter.
+        if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
+        {
+            filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
+        }
+
+        return filters;
+    }
+
+    // First check if there were any errors in already available data. Avoid fetching data again.
+    public bool HasErrors() => _currentDataHasErrors || GetErrorLogs(count: 0).TotalItemCount > 0;
+
+    public PagedResult<OtlpLogEntry> GetErrorLogs(int count)
+    {
+        var filters = GetFilters();
+        filters.RemoveAll(f => f is FieldTelemetryFilter fieldFilter && fieldFilter.Field == nameof(OtlpLogEntry.Severity));
+        filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = Microsoft.Extensions.Logging.LogLevel.Error.ToString() });
+
+        var errorLogs = _telemetryRepository.GetLogs(new GetLogsContext
+        {
+            ResourceKey = ResourceKey,
+            StartIndex = 0,
+            Count = count,
+            Filters = filters
+        });
+
+        return errorLogs;
     }
 
     public void ClearData()

@@ -37,9 +37,24 @@
         <target state="translated">Klucz konfiguracji do usunięcia.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DeleteCommand_PromptForGlobal">
+        <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</source>
+        <target state="translated">Usunąć wartość konfiguracji z globalnego pliku $HOME/.aspire/settings.json zamiast z pliku ustawień lokalnych?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_PromptForKey">
+        <source>Which config value do you want to delete?</source>
+        <target state="translated">Którą wartość konfiguracji chcesz usunąć?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Manage configuration settings.</source>
         <target state="translated">Zarządzaj ustawieniami konfiguracji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionActionPrompt">
+        <source>What do you want to do?</source>
+        <target state="translated">Co chcesz zrobić?</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_Description">
@@ -50,6 +65,11 @@
       <trans-unit id="GetCommand_KeyArgumentDescription">
         <source>The configuration key to retrieve.</source>
         <target state="translated">Klucz konfiguracji do pobrania.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_PromptForKey">
+        <source>Which configuration key do you want to retrieve?</source>
+        <target state="translated">Który klucz konfiguracji chcesz pobrać?</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -75,6 +95,31 @@
       <trans-unit id="SetCommand_KeyArgumentDescription">
         <source>The configuration key to set.</source>
         <target state="translated">Klucz konfiguracji do ustawienia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal">
+        <source>Where do you want to set the configuration value?</source>
+        <target state="translated">Gdzie chcesz ustawić wartość konfiguracji?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal_GlobalOption">
+        <source>Globally ($HOME/.aspire/settings.json)</source>
+        <target state="translated">Globalnie ($HOME/.aspire/settings.json)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal_LocalOption">
+        <source>Locally</source>
+        <target state="translated">Lokalnie</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForKey">
+        <source>Which configuration key do you want to set?</source>
+        <target state="translated">Który klucz konfiguracji chcesz ustawić?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForValue">
+        <source>What value do you want to set?</source>
+        <target state="translated">Którą wartość chcesz ustawić?</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">

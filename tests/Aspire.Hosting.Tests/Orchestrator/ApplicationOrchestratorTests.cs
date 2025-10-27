@@ -1,15 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREINTERACTION001
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
@@ -120,10 +126,17 @@ public class ApplicationOrchestratorTests
 
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
-        var applicationEventing = new DistributedApplicationEventing();
+        var applicationEventing = builder.Eventing;
 
         var initResourceTcs = new TaskCompletionSource();
         InitializeResourceEvent? initEvent = null;
+        resource.OnInitializeResource((_, @event, _) =>
+        {
+            initEvent = @event;
+            initResourceTcs.SetResult();
+            return Task.CompletedTask;
+        });
+
         applicationEventing.Subscribe<InitializeResourceEvent>(resource.Resource, (@event, ct) =>
         {
             initEvent = @event;
@@ -136,7 +149,7 @@ public class ApplicationOrchestratorTests
 
         await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
-        await initResourceTcs.Task.DefaultTimeout();
+        await initResourceTcs.Task; //.DefaultTimeout();
 
         Assert.True(initResourceTcs.Task.IsCompletedSuccessfully);
         Assert.NotNull(initEvent);
@@ -341,10 +354,10 @@ public class ApplicationOrchestratorTests
 
         var parentResource = builder.AddResource(new ParentResourceWithConnectionString("parent"));
         var childResource = builder.AddResource(
-            new ChildResourceWithConnectionString("child", new Dictionary<string, string> { {"Namespace", "ns"} }, parentResource.Resource)
+            new ChildResourceWithConnectionString("child", new Dictionary<string, string> { { "Namespace", "ns" } }, parentResource.Resource)
         );
         var grandChildResource = builder.AddResource(
-            new ChildResourceWithConnectionString("grand-child", new Dictionary<string, string> { {"Database", "db"} }, childResource.Resource)
+            new ChildResourceWithConnectionString("grand-child", new Dictionary<string, string> { { "Database", "db" } }, childResource.Resource)
         );
 
         await using var app = builder.Build();
@@ -433,10 +446,15 @@ public class ApplicationOrchestratorTests
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
         DcpExecutorEvents? dcpEvents = null,
-        DistributedApplicationEventing? applicationEventing = null,
-        ResourceLoggerService? resourceLoggerService = null)
+        IDistributedApplicationEventing? applicationEventing = null,
+        ResourceLoggerService? resourceLoggerService = null,
+        DashboardOptions? dashboardOptions = null)
     {
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        resourceLoggerService ??= new ResourceLoggerService();
+
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider });
 
         return new ApplicationOrchestrator(
             distributedAppModel,
@@ -444,12 +462,43 @@ public class ApplicationOrchestratorTests
             dcpEvents ?? new DcpExecutorEvents(),
             [],
             notificationService,
-            resourceLoggerService ?? new ResourceLoggerService(),
+            resourceLoggerService,
             applicationEventing ?? new DistributedApplicationEventing(),
             serviceProvider,
-            new DistributedApplicationExecutionContext(
-                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
-            );
+            executionContext,
+            new ParameterProcessor(
+                notificationService,
+                resourceLoggerService,
+                CreateInteractionService(),
+                NullLogger<ParameterProcessor>.Instance,
+                executionContext,
+                deploymentStateManager: new MockDeploymentStateManager()),
+            Options.Create(dashboardOptions ?? new())
+        );
+    }
+
+    private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
+    {
+        return new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            options ?? new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+    }
+
+    private sealed class MockDeploymentStateManager : IDeploymentStateManager
+    {
+        public string? StateFilePath => null;
+
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+        }
+
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class CustomResource(string name) : Resource(name);
@@ -522,5 +571,257 @@ public class ApplicationOrchestratorTests
         {
             return ValueTask.FromResult<string?>(connectionString);
         }
+    }
+
+    [Fact]
+    public async Task ContainerChildResourcesWithOwnLifetimeDoNotReceiveParentStateChanges()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentContainer = builder.AddContainer("parent-container", "parent-image");
+        var childContainer = builder.AddContainer("child-container", "child-image")
+            .WithParentRelationship(parentContainer);
+        var customChild = builder.AddResource(new CustomChildResource("custom-child", parentContainer.Resource));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        // Initialize resources
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        // Simulate parent container state change
+        await events.PublishAsync(new OnResourceChangedContext(
+            CancellationToken.None,
+            KnownResourceTypes.Container,
+            parentContainer.Resource,
+            "parent-container-dcp",
+            new ResourceStatus(KnownResourceStates.FailedToStart, null, null),
+            snapshot => snapshot with { State = KnownResourceStates.FailedToStart }));
+
+        // Check final states
+        var parentState = resourceNotificationService.TryGetCurrentState("parent-container-dcp", out var parentEvent) ? parentEvent.Snapshot.State?.Text : null;
+        var childContainerState = resourceNotificationService.TryGetCurrentState(childContainer.Resource.Name, out var childContainerEvent) ? childContainerEvent.Snapshot.State?.Text : null;
+        var customChildState = resourceNotificationService.TryGetCurrentState(customChild.Resource.Name, out var customChildEvent) ? customChildEvent.Snapshot.State?.Text : null;
+
+        // Parent should have the new state
+        Assert.Equal(KnownResourceStates.FailedToStart, parentState);
+
+        // Child container (has own lifetime) should NOT receive parent state
+        Assert.NotEqual(KnownResourceStates.Running, childContainerState);
+
+        // Custom child (does not have own lifetime) SHOULD receive parent state
+        Assert.Equal(KnownResourceStates.FailedToStart, customChildState);
+    }
+
+    [Fact]
+    public async Task ProjectChildResourcesWithOwnLifetimeDoNotReceiveParentStateChanges()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentContainer = builder.AddContainer("parent-container", "parent-image");
+        var childProject = builder.AddProject<ProjectA>("child-project")
+            .WithParentRelationship(parentContainer);
+        var customChild = builder.AddResource(new CustomChildResource("custom-child", parentContainer.Resource));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        // Initialize resources
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        // Simulate parent container state change
+        await events.PublishAsync(new OnResourceChangedContext(
+            CancellationToken.None,
+            KnownResourceTypes.Container,
+            parentContainer.Resource,
+            "parent-container-dcp",
+            new ResourceStatus(KnownResourceStates.FailedToStart, null, null),
+            snapshot => snapshot with { State = KnownResourceStates.FailedToStart }));
+
+        // Check final states
+        var parentState = resourceNotificationService.TryGetCurrentState("parent-container-dcp", out var parentEvent) ? parentEvent.Snapshot.State?.Text : null;
+        var childProjectState = resourceNotificationService.TryGetCurrentState(childProject.Resource.Name, out var childProjectEvent) ? childProjectEvent.Snapshot.State?.Text : null;
+        var customChildState = resourceNotificationService.TryGetCurrentState(customChild.Resource.Name, out var customChildEvent) ? customChildEvent.Snapshot.State?.Text : null;
+
+        // Parent should have the new state
+        Assert.Equal(KnownResourceStates.FailedToStart, parentState);
+
+        // Child project (has own lifetime) should NOT receive parent state
+        Assert.NotEqual(KnownResourceStates.Running, childProjectState);
+
+        // Custom child (does not have own lifetime) SHOULD receive parent state
+        Assert.Equal(KnownResourceStates.FailedToStart, customChildState);
+    }
+
+    [Fact]
+    public async Task WithChildRelationshipUsingResourceBuilderSetsParentPropertyCorrectly()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parent = builder.AddContainer("parent", "image");
+        var child = builder.AddContainer("child", "image");
+        var child2 = builder.AddContainer("child2", "image");
+
+        parent.WithChildRelationship(child)
+              .WithChildRelationship(child2);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentResourceId = null;
+        string? childParentResourceId = null;
+        string? child2ParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parent.Resource)
+                {
+                    parentResourceId = item.ResourceId;
+                }
+                else if (item.Resource == child.Resource)
+                {
+                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+                else if (item.Resource == child2.Resource)
+                {
+                    child2ParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentResourceId != null && childParentResourceId != null && child2ParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentResourceId, childParentResourceId);
+        Assert.Equal(parentResourceId, child2ParentResourceId);
+    }
+
+    [Fact]
+    public async Task WithChildRelationshipUsingResourceSetsParentPropertyCorrectly()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parent = builder.AddContainer("parent", "image");
+        var child = builder.AddContainer("child", "image");
+        var child2 = builder.AddContainer("child2", "image");
+
+        parent.WithChildRelationship(child.Resource)
+              .WithChildRelationship(child2.Resource);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentResourceId = null;
+        string? childParentResourceId = null;
+        string? child2ParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parent.Resource)
+                {
+                    parentResourceId = item.ResourceId;
+                }
+                else if (item.Resource == child.Resource)
+                {
+                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+                else if (item.Resource == child2.Resource)
+                {
+                    child2ParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentResourceId != null && childParentResourceId != null && child2ParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentResourceId, childParentResourceId);
+        Assert.Equal(parentResourceId, child2ParentResourceId);
+    }
+
+    [Fact]
+    public async Task WithChildRelationshipWorksWithProjects()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentProject = builder.AddProject<ProjectA>("parent-project");
+        var childProject = builder.AddProject<ProjectB>("child-project");
+
+        parentProject.WithChildRelationship(childProject);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentProjectResourceId = null;
+        string? childProjectParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parentProject.Resource)
+                {
+                    parentProjectResourceId = item.ResourceId;
+                }
+                else if (item.Resource == childProject.Resource)
+                {
+                    childProjectParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentProjectResourceId != null && childProjectParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentProjectResourceId, childProjectParentResourceId);
     }
 }

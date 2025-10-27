@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YARP Static Files Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007acc;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .api-demo {
+            margin-top: 30px;
+        }
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        #api-result {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            min-height: 50px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 YARP Static Files Demo</h1>
+        
+        <div class="info">
+            <strong>Welcome!</strong> This static HTML page is served directly by YARP from the container's wwwroot folder.
+            YARP can serve both static files and proxy API requests to backend services.
+        </div>
+
+        <h2>How it works</h2>
+        <ul>
+            <li>Static files (HTML, CSS, JS) are served directly from YARP</li>
+            <li>API requests are proxied to backend services</li>
+            <li>This enables single-page applications and hybrid scenarios</li>
+        </ul>
+
+        <div class="api-demo">
+            <h2>API Integration Demo</h2>
+            <p>Try calling the backend API through YARP:</p>
+            <button onclick="callBackendApi()">Call /api/weatherforecast</button>
+            <button onclick="callFrontendApi()">Call Frontend Service</button>
+            <div id="api-result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function callBackendApi() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/weatherforecast');
+                const data = await response.json();
+                resultDiv.textContent = 'Backend API Response:\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = 'Error calling backend API: ' + error.message;
+            }
+        }
+
+        async function callFrontendApi() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/');
+                const data = await response.text();
+                resultDiv.textContent = 'Frontend Service Response:\n' + data.substring(0, 200) + '...';
+            } catch (error) {
+                resultDiv.textContent = 'Error calling frontend service: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -17,6 +17,11 @@
         <target state="translated">在 '{0}' 中指定了 AppHost 檔案，但在 '{1}' 中不存在。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">找不到可建置的應用程式主機，但可能有無法建置的應用程式主機。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion 為 null</target>
@@ -35,6 +40,11 @@
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
         <target state="translated">開發人員憑證可能未完全受信任 (信任結束代碼為: {0})。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="translated">單一檔案 AppHost 尚不支援此命令。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -69,17 +79,22 @@
       </trans-unit>
       <trans-unit id="ExtensionIncompatibleWithCli">
         <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
-        <target state="new">Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</target>
+        <target state="translated">Aspire 延伸模組與 CLI 不相容。該延伸模組必須更新為支援 {0} 功能的版本。</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionTokenMustBeSet">
         <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
-        <target state="new">The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</target>
+        <target state="translated">如果已設定 ASPIRE_EXTENSION_ENDPOINT，則必須設定 Aspire 延伸模組權杖。請確定已設定 ASPIRE_EXTENSION_TOKEN</target>
         <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
         <source>Failed to parse template version from stdout.</source>
         <target state="translated">無法從 stdout 剖析範本版本。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">無法透過快取來擷取所有 Aspire 套件。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
@@ -99,7 +114,12 @@
       </trans-unit>
       <trans-unit id="InvalidSocketPath">
         <source>The provided extension socket path needs two valid parts.</source>
-        <target state="new">The provided extension socket path needs two valid parts.</target>
+        <target state="translated">提供的延伸模組通訊端路徑需要兩個有效的部分。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="translated">Aspire CLI 需要 .NET SDK 版本 {0} 或更新版本。已偵測到: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -114,7 +134,7 @@
       </trans-unit>
       <trans-unit id="NoSelectionMade">
         <source>Input was required for prompt '{0}' but not provided.</source>
-        <target state="new">Input was required for prompt '{0}' but not provided.</target>
+        <target state="translated">提示 '{0}' 需要輸入，但未提供。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
@@ -127,14 +147,24 @@
         <target state="translated">專案檔案不存在。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">無法建置: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">專案檔案不是 Aspire 應用程式主機專案。</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="translated">專案檔案不是 Aspire AppHost 專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">專案不是 Aspire 應用程式主機專案。</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="translated">該專案不包含 Aspire AppHost。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="translated">未啟用單一檔案 AppHost 功能。若要使用 .cs AppHost 檔案，請使用設定啟用此功能。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

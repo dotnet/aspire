@@ -1,0 +1,174 @@
+name: 'Check Changed Files'
+description: |
+  Check if all changed files in a PR match provided regex patterns.
+
+  This action compares changed files in a pull request against one or more regex patterns
+  and determines if all changed files match at least one of the provided patterns.
+
+  Inputs:
+  - patterns: List of regex patterns (multiline string) to match against changed file paths
+
+  Outputs:
+  - only_changed: Boolean indicating if all changed files matched the patterns
+  - no_changes: Boolean indicating if there were no changed files in the PR
+  - changed_files: JSON array of all changed files in the PR
+  - matched_files: JSON array of files that matched at least one pattern
+  - unmatched_files: JSON array of files that didn't match any pattern
+inputs:
+  patterns:
+    description: 'List of regex patterns to match against changed files'
+    required: true
+
+outputs:
+  only_changed:
+    description: 'True if all changed files match the provided patterns, false otherwise'
+    value: ${{ steps.check_files.outputs.only_changed }}
+  no_changes:
+    description: 'True if there were no changed files in the PR, false otherwise'
+    value: ${{ steps.check_files.outputs.no_changes }}
+  changed_files:
+    description: 'List of changed files'
+    value: ${{ steps.check_files.outputs.changed_files }}
+  matched_files:
+    description: 'List of changed files that matched the patterns'
+    value: ${{ steps.check_files.outputs.matched_files }}
+  unmatched_files:
+    description: 'List of changed files that did not match any pattern'
+    value: ${{ steps.check_files.outputs.unmatched_files }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check changed files against patterns
+      id: check_files
+      shell: bash
+      run: |
+        set -ex
+
+        # Only support pull request events
+        if [ "${{ github.event_name }}" != "pull_request" ]; then
+          echo "Error: This action only supports pull_request events, got: ${{ github.event_name }}"
+          exit 1
+        fi
+
+        # Check if jq is available
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "Error: jq is required but not installed"
+          exit 1
+        fi
+
+        # Read patterns from input (multiline string)
+        PATTERNS_INPUT="${{ inputs.patterns }}"
+
+        # Validate patterns input
+        if [ -z "$PATTERNS_INPUT" ]; then
+          echo "Error: patterns input is required"
+          exit 1
+        fi
+
+        # Get list of changed files for pull requests
+        BASE_REF="${{ github.event.pull_request.base.sha }}"
+        HEAD_REF="${{ github.event.pull_request.head.sha }}"
+        if ! CHANGED_FILES=$(git diff --name-only "$BASE_REF".."$HEAD_REF" 2>/dev/null); then
+          echo "Error: Failed to get changed files. Base ref: $BASE_REF HEAD ref: $HEAD_REF"
+          exit 1
+        fi
+
+        echo "Changed files:"
+        echo "$CHANGED_FILES"
+
+        # Convert patterns to array and filter out empty lines
+        PATTERNS=()
+        while IFS= read -r pattern; do
+          # Remove leading/trailing whitespace
+          pattern=$(echo "$pattern" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          # Skip empty patterns
+          if [ -n "$pattern" ]; then
+            PATTERNS+=("$pattern")
+          fi
+        done <<< "$PATTERNS_INPUT"
+
+        # Check if we have any valid patterns
+        if [ ${#PATTERNS[@]} -eq 0 ]; then
+          echo "Error: No valid patterns provided"
+          exit 1
+        fi
+
+        # Initialize arrays
+        MATCHED_FILES=()
+        UNMATCHED_FILES=()
+
+        # Handle the case where there are no changed files
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "No files changed in this PR"
+          ONLY_CHANGED="true"  # No files changed - treat as success
+          NO_CHANGES="true"
+        else
+          # Check each changed file against patterns
+          while IFS= read -r file; do
+            if [ -z "$file" ]; then
+              continue
+            fi
+
+            MATCHED=false
+            for pattern in "${PATTERNS[@]}"; do
+              # Use safe regex matching with error handling
+              if [[ "$file" =~ $pattern ]] 2>/dev/null; then
+                MATCHED=true
+                break
+              fi
+            done
+
+            if [ "$MATCHED" = true ]; then
+              MATCHED_FILES+=("$file")
+            else
+              UNMATCHED_FILES+=("$file")
+            fi
+          done <<< "$CHANGED_FILES"
+
+          # Determine if only matched files changed
+          if [ ${#UNMATCHED_FILES[@]} -eq 0 ]; then
+            ONLY_CHANGED="true"  # All changed files matched
+          else
+            ONLY_CHANGED="false"  # Some files didn't match
+          fi
+          NO_CHANGES="false"
+        fi
+
+        # Convert arrays to JSON for output (handle empty arrays safely)
+        if [ -z "$CHANGED_FILES" ]; then
+          CHANGED_FILES_JSON="[]"
+        else
+          CHANGED_FILES_JSON=$(printf '%s\n' "$CHANGED_FILES" | jq -R . | jq -s .)
+        fi
+
+        if [ ${#MATCHED_FILES[@]} -eq 0 ]; then
+          MATCHED_FILES_JSON="[]"
+        else
+          MATCHED_FILES_JSON=$(printf '%s\n' "${MATCHED_FILES[@]}" | jq -R . | jq -s .)
+        fi
+
+        if [ ${#UNMATCHED_FILES[@]} -eq 0 ]; then
+          UNMATCHED_FILES_JSON="[]"
+        else
+          UNMATCHED_FILES_JSON=$(printf '%s\n' "${UNMATCHED_FILES[@]}" | jq -R . | jq -s .)
+        fi
+
+        # Set outputs with proper escaping
+        {
+          echo "only_changed=$ONLY_CHANGED"
+          echo "no_changes=$NO_CHANGES"
+          echo "changed_files<<EOF"
+          echo "$CHANGED_FILES_JSON"
+          echo "EOF"
+          echo "matched_files<<EOF"
+          echo "$MATCHED_FILES_JSON"
+          echo "EOF"
+          echo "unmatched_files<<EOF"
+          echo "$UNMATCHED_FILES_JSON"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
+
+        echo "Only changed matching files: $ONLY_CHANGED"
+        echo "Matched files: ${MATCHED_FILES[*]}"
+        echo "Unmatched files: ${UNMATCHED_FILES[*]}"

@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Azure.Core;
 using Azure.Security.KeyVault.Secrets;
@@ -78,22 +81,25 @@ public class AzureBicepProvisionerTests
     public void BicepProvisioner_CanBeInstantiated()
     {
         // Test that BicepProvisioner can be instantiated with required dependencies
-        
+
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
         var services = builder.Services.BuildServiceProvider();
-        
+
         var bicepExecutor = new TestBicepCliExecutor();
         var secretClientProvider = new TestSecretClientProvider();
         var tokenCredentialProvider = new TestTokenCredentialProvider();
-        
+
         // Act
         var provisioner = new BicepProvisioner(
             services.GetRequiredService<ResourceNotificationService>(),
             services.GetRequiredService<ResourceLoggerService>(),
             bicepExecutor,
-            secretClientProvider);
-        
+            secretClientProvider,
+            services.GetRequiredService<IDeploymentStateManager>(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
         // Assert
         Assert.NotNull(provisioner);
     }
@@ -102,13 +108,13 @@ public class AzureBicepProvisionerTests
     public async Task BicepCliExecutor_CompilesBicepToArm()
     {
         // Test the mock bicep executor behavior
-        
+
         // Arrange
         var bicepExecutor = new TestBicepCliExecutor();
-        
+
         // Act
         var result = await bicepExecutor.CompileBicepToArmAsync("test.bicep", CancellationToken.None);
-        
+
         // Assert
         Assert.True(bicepExecutor.CompileBicepToArmAsyncCalled);
         Assert.Equal("test.bicep", bicepExecutor.LastCompiledPath);
@@ -120,14 +126,14 @@ public class AzureBicepProvisionerTests
     public void SecretClientProvider_CreatesSecretClient()
     {
         // Test the mock secret client provider behavior
-        
+
         // Arrange
         var secretClientProvider = new TestSecretClientProvider();
         var vaultUri = new Uri("https://test.vault.azure.net/");
-        
+
         // Act
         var client = secretClientProvider.GetSecretClient(vaultUri);
-        
+
         // Assert
         Assert.True(secretClientProvider.GetSecretClientCalled);
         // Client will be null in our mock, but the call was tracked
@@ -138,15 +144,15 @@ public class AzureBicepProvisionerTests
     public void TestTokenCredential_ProvidesAccessToken()
     {
         // Test the mock token credential behavior
-        
+
         // Arrange
         var tokenProvider = new TestTokenCredentialProvider();
         var credential = tokenProvider.TokenCredential;
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
-        
+
         // Act
         var token = credential.GetToken(requestContext, CancellationToken.None);
-        
+
         // Assert
         Assert.Equal("mock-token", token.Token);
         Assert.True(token.ExpiresOn > DateTimeOffset.UtcNow);
@@ -156,15 +162,15 @@ public class AzureBicepProvisionerTests
     public async Task TestTokenCredential_ProvidesAccessTokenAsync()
     {
         // Test the mock token credential async behavior
-        
+
         // Arrange
         var provider = new TestTokenCredentialProvider();
         var credential = provider.TokenCredential;
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
-        
+
         // Act
         var token = await credential.GetTokenAsync(requestContext, CancellationToken.None);
-        
+
         // Assert
         Assert.Equal("mock-token", token.Token);
         Assert.True(token.ExpiresOn > DateTimeOffset.UtcNow);
@@ -176,10 +182,10 @@ public class AzureBicepProvisionerTests
 
         private sealed class MockTokenCredential : TokenCredential
         {
-            public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
+            public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
                 new("mock-token", DateTimeOffset.UtcNow.AddHours(1));
 
-            public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
+            public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
                 ValueTask.FromResult(new AccessToken("mock-token", DateTimeOffset.UtcNow.AddHours(1)));
         }
     }
@@ -207,6 +213,21 @@ public class AzureBicepProvisionerTests
             GetSecretClientCalled = true;
             // Return null - this will fail in actual secret operations but allows testing the call
             return null!;
+        }
+    }
+
+    private sealed class MockDeploymentStateManager : IDeploymentStateManager
+    {
+        public string? StateFilePath => null;
+
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+        }
+
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 }

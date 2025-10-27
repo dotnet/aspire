@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../MessageStrings.resx">
+    <body>
+      <trans-unit id="AuthenticationExpiredNotification">
+        <source>Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.</source>
+        <target state="translated">開発トンネル認証の有効期限が切れました。開発トンネル リソースを再起動して再認証してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AuthenticationRequiredNotification">
+        <source>Dev tunnels requires authentication to continue:</source>
+        <target state="translated">開発トンネルを続行するには、認証が必要です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelHealthy">
+        <source>Dev tunnel '{0}' is active with {1} host connections and {2} ports.</source>
+        <target state="translated">開発トンネル '{0}' は、{1} 個のホスト接続と {2} 個のポートでアクティブです。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortHealthy">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' is active.</source>
+        <target state="translated">開発トンネル '{1}' の開発トンネル ポート '{0}' がアクティブです。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_Error">
+        <source>Failed to check port '{0}' on dev tunnel '{1}': {2}</source>
+        <target state="translated">開発トンネル '{1}' のポート '{0}' を確認できませんでした: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_StatusUnknown">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' status is not known.</source>
+        <target state="translated">開発トンネル '{1}' の開発トンネル ポート '{0}' の状態が不明です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_Error">
+        <source>Failed to check dev tunnel '{0}': {1}</source>
+        <target state="translated">開発トンネル '{0}' を確認できませんでした: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_NoActiveHostConnections">
+        <source>Dev tunnel '{0}' has no active host connections.</source>
+        <target state="translated">開発トンネル '{0}' にアクティブなホスト接続がありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_PortInactive">
+        <source>Dev tunnel '{0}' port '{1}' is not active.</source>
+        <target state="translated">開発トンネル '{0}' のポート '{1}' はアクティブではありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliVersionNotSupported">
+        <source>The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</source>
+        <target state="translated">インストールされている devtunnel CLI バージョン {0} はサポートされていません。バージョン {1} 以上が必要です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallationInstructions">
+        <source>Installation instructions</source>
+        <target state="translated">インストール手順</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithGitHub">
+        <source>Login with GitHub</source>
+        <target state="translated">GitHub でログイン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithMicrosoft">
+        <source>Login with Microsoft</source>
+        <target state="translated">Microsoft でログインする</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotification">
+        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
+        <target state="translated">必要なコマンド '{0}' が PATH または指定された場所に見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithLink">
+        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
+        <target state="translated">必要なコマンド '{0}' が見つかりませんでした。詳細については、インストール手順を参照してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithValidation">
+        <source>{0} See installation instructions for more details.</source>
+        <target state="translated">{0} 詳細については、インストール手順を参照してください。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

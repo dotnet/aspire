@@ -72,11 +72,11 @@ internal sealed class YarpJsonConfigGeneratorBuilder : IYarpJsonConfigGeneratorB
         }
         else
         {
-            if (_clusterConfigs.Count == 0 || _routeConfigs.Count == 0)
-            {
-                // TODO: build dynamically the config file if none provided.
-                throw new DistributedApplicationException($"No configuration provided for YARP instance");
-            }
+            //if (_clusterConfigs.Count == 0 || _routeConfigs.Count == 0)
+            //{
+            //    // TODO: build dynamically the config file if none provided.
+            //    throw new DistributedApplicationException($"No configuration provided for YARP instance");
+            //}
 
             // Ideally the json generation should be done in YARP directly,
             // keep it in Aspire for now

@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../UpdateCommandStrings.resx">
+    <body>
+      <trans-unit id="AddedFeedFormat">
+        <source>Added: {0}</source>
+        <target state="translated">Přidáno: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeAppHost">
+        <source>Analyze App Host</source>
+        <target state="translated">Analyzovat hostitele aplikací</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeAppHostSdk">
+        <source>Analyze App Host SDK</source>
+        <target state="translated">Analyzovat sadu SDK hostitele aplikací</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeProjectFormat">
+        <source>Analyze project: {0}</source>
+        <target state="translated">Analyzovat projekt: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzingProjectStatus">
+        <source>Analyzing project...</source>
+        <target state="translated">Analyzuje se projekt…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplyChangesToNuGetConfig">
+        <source>Apply these changes to NuGet.config?</source>
+        <target state="translated">Chcete tyto změny použít v souboru NuGet.config?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CentralPackageManagementNotSupported">
+        <source>Central package management is currently not supported by 'aspire update'.</source>
+        <target state="translated">Centrální správa balíčků není v současné době přes aspire update podporována.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Nepovedlo se najít element PackageVersion pro: {0} v: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindRootProjectElementFormat">
+        <source>Could not find root &lt;Project&gt; element in {0}</source>
+        <target state="translated">V {0} se nepovedlo najít kořenový element &lt;Project&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindSdkElementFormat">
+        <source>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</source>
+        <target state="translated">Nepovedlo se najít element &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; v {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Update integrations in the Aspire project. (Preview)</source>
+        <target state="translated">Aktualizujte integrace v projektu Aspire. (Preview)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExecutingUpdateStepFormat">
+        <source>Executing: {0}</source>
+        <target state="translated">Spouští se: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedDiscoverNuGetConfig">
+        <source>Failed to discover NuGet.config files.</source>
+        <target state="translated">Nepodařilo se zjistit soubory NuGet.config.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedFetchItemsAndPropertiesFormat">
+        <source>Failed to fetch items and properties for project: {0}</source>
+        <target state="translated">Nepovedlo se načíst položky a vlastnosti pro projekt: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedUpdatePackageReferenceFormat">
+        <source>Failed to update package reference for {0} in project {1}.</source>
+        <target state="translated">Nepodařilo se aktualizovat odkaz na balíček pro {0} v projektu {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingAddedFormat">
+        <source>   Mapping: {0} (added)</source>
+        <target state="translated">   Mapování: {0} (přidáno)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRemovedFormat">
+        <source>   Mapping: {0} (removed)</source>
+        <target state="translated">   Mapování: {0} (odebráno)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRetainedFormat">
+        <source>   Mapping: {0}</source>
+        <target state="translated">   Mapování: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoChangesDetectedInNuGetConfig">
+        <source>No changes detected in NuGet.config</source>
+        <target state="translated">V souboru NuGet.config se nezjistily žádné změny.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoPackageFoundFormat">
+        <source>No package found with ID '{0}' in channel '{1}'.</source>
+        <target state="translated">V kanálu {1} nebyl nalezen žádný balíček s ID {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageReferenceNoIdentity">
+        <source>Package reference does not have Identity.</source>
+        <target state="translated">Odkaz na balíček nemá identitu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageReferenceNoVersion">
+        <source>Package reference does not have Version.</source>
+        <target state="translated">Odkaz na balíček nemá verzi.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PerformUpdatesPrompt">
+        <source>Perform updates?</source>
+        <target state="translated">Provést aktualizace?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Cesta k souboru projektu Aspire AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectReferenceNoFullPath">
+        <source>Project reference does not have FullPath.</source>
+        <target state="translated">Odkaz na projekt nemá FullPath.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectUpToDateMessage">
+        <source>Project is up to date! (no updates necessary)</source>
+        <target state="translated">Projekt je aktuální! (nejsou potřeba žádné aktualizace)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedFeedFormat">
+        <source>Removed: {0}</source>
+        <target state="translated">Odebráno: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RetainedFeedFormat">
+        <source>Retained: {0}</source>
+        <target state="translated">Zachováno: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectChannelPrompt">
+        <source>Select a channel:</source>
+        <target state="translated">Vyberte kanál:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnxpectedCodePath">
+        <source>Unexpected code path.</source>
+        <target state="translated">Neočekávaná cesta kódu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatePackageFormat">
+        <source>Update package {0} from {1} to {2}</source>
+        <target state="translated">Aktualizovat balíček {0} z {1} na {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateSuccessfulMessage">
+        <source>Update successful!</source>
+        <target state="translated">Aktualizace proběhla úspěšně!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhichDirectoryNuGetConfigPrompt">
+        <source>Which directory for NuGet.config file?</source>
+        <target state="translated">Který adresář pro soubor NuGet.config?</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

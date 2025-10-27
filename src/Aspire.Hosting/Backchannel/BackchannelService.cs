@@ -11,10 +11,16 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
+internal sealed class BackchannelService(
+    ILogger<BackchannelService> logger,
+    IConfiguration configuration,
+    AppHostRpcTarget appHostRpcTarget,
+    IDistributedApplicationEventing eventing,
+    IServiceProvider serviceProvider)
+    : BackgroundService
 {
     private JsonRpc? _rpc;
-    
+
     public bool IsBackchannelExpected => configuration.GetValue<string>(KnownConfigNames.UnixSocketPath) is {};
 
     private readonly TaskCompletionSource _backchannelConnectedTcs = new();
@@ -50,7 +56,7 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
             var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
             _rpc = rpc;
 
-            // NOTE: The DistributedApplicationRunner will await this TCS
+            // NOTE: The PipelineExecutor will await this TCS
             //       when a backchannel is expected, and will not stop
             //       the application itself - it will instead wait for
             //       the CLI to stop the application explicitly.

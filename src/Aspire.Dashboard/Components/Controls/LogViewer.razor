@@ -1,5 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
@@ -9,11 +10,12 @@
 
 @implements IAsyncDisposable
 
-<div class="log-overflow console-overflow continuous-scroll-overflow">
-    <div class="log-container console-container" id="logContainer">
+@* Console logs always have a dark background. Set data-theme="dark" so dark theme accent colors are used *@
+<div class="log-overflow console-overflow continuous-scroll-overflow" data-theme="dark">
+    <div class="@GetLogContainerClass()" id="logContainer">
         @if (LogEntries is { } logEntries)
         {
-            <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="200" TItem="LogEntry">
+            <Virtualize @ref="VirtualizeRef" ItemsProvider="@GetItems" ItemSize="20" OverscanCount="200" TItem="LogEntry">
                 @if (context.Pause is { } pause)
                 {
                     // If this is a previous pause but no logs were obtained during the pause, we don't need to show anything.
@@ -26,7 +28,24 @@
                         <div class="log-line-row console-line-row">
                             <div class="log-line-area" role="log">
                                 <span class="log-line-number"></span>
-                                <span class="log-content log-pause">@pause.GetDisplayText(Loc, TimeProvider)</span>
+                                <span class="log-content log-pause">
+                                    @{
+                                        var hasPrefix = false;
+                                    }
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorVariableByKey(resourcePrefix);">@resourcePrefix</span>
+                                    }
+                                    @if (DisplayPrefix(ref hasPrefix))
+                                    {
+                                        @s_spaceMarkup
+                                    }
+                                    @pause.GetDisplayText(Loc, TimeProvider)
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -43,15 +62,33 @@
                                     }
                                     @if (ShowTimestamp && context.Timestamp is { } timestamp)
                                     {
-                                        hasPrefix = true;
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
                                         <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
+                                    }
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorVariableByKey(resourcePrefix);">@resourcePrefix</span>
                                     }
                                     @if (context.Type == LogEntryType.Error)
                                     {
-                                        hasPrefix = true;
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
                                         <fluent-badge appearance="accent">stderr</fluent-badge>
                                     }
-                                    @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
+                                    @if (DisplayPrefix(ref hasPrefix))
+                                    {
+                                        @s_spaceMarkup
+                                    }
+                                    @((MarkupString)(context.Content ?? string.Empty))
                                 </span>
                             </span>
                         </div>
@@ -61,3 +98,16 @@
         }
     </div>
 </div>
+
+@code {
+    public bool DisplayPrefix(ref bool hasPrefix)
+    {
+        if (hasPrefix)
+        {
+            return true;
+        }
+
+        hasPrefix = true;
+        return false;
+    }
+}

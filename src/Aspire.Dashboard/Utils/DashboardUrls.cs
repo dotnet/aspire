@@ -82,7 +82,7 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null)
+    public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null, long? logEntryId = null)
     {
         var url = $"/{StructuredLogsBasePath}";
         if (resource != null)
@@ -108,16 +108,24 @@ internal static class DashboardUrls
         {
             url = QueryHelpers.AddQueryString(url, "spanId", spanId);
         }
+        if (logEntryId != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "logEntryId", logEntryId.Value.ToString(CultureInfo.InvariantCulture));
+        }
 
         return url;
     }
 
-    public static string TracesUrl(string? resource = null, string? filters = null)
+    public static string TracesUrl(string? resource = null, string? type = null, string? filters = null)
     {
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (type != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "type", type);
         }
         if (filters != null)
         {

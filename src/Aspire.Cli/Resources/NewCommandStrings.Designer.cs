@@ -81,8 +81,16 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string EnterTheOutputPath {
+        public static string UsePrereleaseTemplates {
             get {
+                return ResourceManager.GetString("UsePrereleaseTemplates", resourceCulture);
+            }
+        }
+        
+        public static string EnterTheOutputPath
+        {
+            get
+            {
                 return ResourceManager.GetString("EnterTheOutputPath", resourceCulture);
             }
         }
@@ -102,6 +110,12 @@ namespace Aspire.Cli.Resources {
         public static string SelectAProjectTemplate {
             get {
                 return ResourceManager.GetString("SelectAProjectTemplate", resourceCulture);
+            }
+        }
+        
+        public static string PromptToUsePrereleaseTemplates {
+            get {
+                return ResourceManager.GetString("PromptToUsePrereleaseTemplates", resourceCulture);
             }
         }
     }

@@ -2,6 +2,26 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../Resources.resx">
     <body>
+      <trans-unit id="HealthCheckStatusJustNowFormat">
+        <source>{0} (just now)</source>
+        <target state="translated">{0} (gerade eben)</target>
+        <note>{0} is the health status like "Unhealthy"</note>
+      </trans-unit>
+      <trans-unit id="HealthCheckStatusWithTimeFormat">
+        <source>{0} ({1} ago)</source>
+        <target state="translated">{0} (vor {1})</target>
+        <note>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</note>
+      </trans-unit>
+      <trans-unit id="HealthCheckStatusWithTimeTooltipFormat">
+        <source>{0} (last run at {1})</source>
+        <target state="translated">{0} (letzte Ausführung um {1})</target>
+        <note>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</note>
+      </trans-unit>
+      <trans-unit id="ResourceActionCommandsText">
+        <source>Commands</source>
+        <target state="translated">Befehle</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceActionConsoleLogsText">
         <source>Console logs</source>
         <target state="translated">Konsolenprotokolle</target>
@@ -20,6 +40,11 @@
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">Überwachungen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionUrlsText">
+        <source>URLs</source>
+        <target state="translated">URLs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
@@ -142,9 +167,19 @@
         <target state="translated">Integritätsstatus</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="translated">Wert</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">Projektpfad</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="translated">Profil starten</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
@@ -246,6 +281,16 @@
         <source>URLs</source>
         <target state="translated">URLs</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} Ressourcen&lt;/strong&gt; werden angezeigt</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} Ressource&lt;/strong&gt; wird angezeigt</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>

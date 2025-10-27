@@ -5,15 +5,18 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
@@ -165,7 +168,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             WebApplicationBuilder? localBuilder = null;
 
             // Act
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -198,7 +201,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -281,6 +284,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
             });
 
+        var aiContextProvider = app.Services.GetRequiredService<IAIContextProvider>();
+
         // Act
         await app.StartAsync().DefaultTimeout();
 
@@ -293,6 +298,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
         Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
+
+        Assert.True(aiContextProvider.Enabled, "AI enabled because debug session is present.");
     }
 
     [Fact]
@@ -340,6 +347,85 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest()).ResponseAsync.DefaultTimeout();
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync().DefaultTimeout();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_BrowserAndOtlpGrpcAndMcpEndpointSame_Https_EndPointPortsAssigned()
+    {
+        // Arrange
+        DashboardWebApplication? app = null;
+        try
+        {
+            await ServerRetryHelper.BindPortWithRetry(async port =>
+            {
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                    additionalConfiguration: initialData =>
+                    {
+                        initialData[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardMcpUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                    });
+
+                // Act
+                await app.StartAsync().DefaultTimeout();
+            }, NullLogger.Instance);
+
+            // Assert
+            Assert.NotNull(app);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+
+            // Check browser access
+            using var browserHttpClient = new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    return true;
+                }
+            })
+            {
+                BaseAddress = new Uri($"https://{app.FrontendSingleEndPointAccessor().EndPoint}")
+            };
+            var request = new HttpRequestMessage(HttpMethod.Get, "/");
+            var response = await browserHttpClient.SendAsync(request).DefaultTimeout();
+            response.EnsureSuccessStatusCode();
+
+            // Check OTLP service
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendSingleEndPointAccessor().EndPoint}", testOutputHelper);
+            var client = new LogsService.LogsServiceClient(channel);
+            var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest()).ResponseAsync.DefaultTimeout();
+            Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+
+            // Check MCP service
+            using var mcpHttpClient = new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    return true;
+                }
+            })
+            {
+                BaseAddress = new Uri($"https://{app.McpEndPointAccessor().EndPoint}")
+            };
+            var mcpRequest = McpServiceTests.CreateListToolsRequest();
+
+            var responseMessage = await mcpHttpClient.SendAsync(mcpRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
+            responseMessage.EnsureSuccessStatusCode();
+
+            var responseData = await McpServiceTests.GetDataFromSseResponseAsync(responseMessage);
+
+            var jsonResponse = JsonNode.Parse(responseData!)!;
+            var tools = jsonResponse["result"]!["tools"]!.AsArray();
+
+            Assert.NotEmpty(tools);
         }
         finally
         {
@@ -425,7 +511,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceHttpEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient()
@@ -446,7 +532,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
 
             Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
-            Assert.False(responseMessage.Headers.Contains("content-security-policy"));
+            Assert.True(responseMessage.Headers.Contains("content-security-policy"));
             Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
         }
         finally
@@ -594,7 +680,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync().DefaultTimeout();
 
         // Assert
-        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
         Assert.Collection(l,
             w =>
             {
@@ -624,6 +710,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             w =>
             {
                 Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
 
@@ -674,7 +765,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.NotNull(testSink);
-        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
         Assert.Collection(l,
             w =>
             {
@@ -706,6 +797,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             w =>
             {
                 Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
 
@@ -754,6 +850,68 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task Configuration_ForwardedHeaders_OverrideDefaults(bool enableForwardedHeaders)
+    {
+        // Forwarded values we try to inject.
+        const string forwardedHost = "example.com";
+        const string forwardedProto = "https";
+
+        var (capturedHost, capturedProto, endpointString) =
+            await ExecuteForwardedHeadersScenarioAsync(enableForwardedHeaders, forwardedHost, forwardedProto);
+
+        if (enableForwardedHeaders)
+        {
+            Assert.Equal(forwardedHost, capturedHost);
+            Assert.Equal(forwardedProto, capturedProto);
+        }
+        else
+        {
+            // Expect original endpoint host:port and original scheme (http) when disabled.
+            Assert.Equal(endpointString, capturedHost);
+            Assert.Equal("http", capturedProto);
+        }
+    }
+
+    private async Task<(string? Host, string? Proto, string EndpointString)> ExecuteForwardedHeadersScenarioAsync(
+        bool enable,
+        string forwardedHost,
+        string forwardedProto)
+    {
+        var filter = new HostAndProtocolLoggerFilter();
+        var value = enable ? bool.TrueString : bool.FalseString;
+        var key = DashboardConfigNames.ForwardedHeaders.ConfigKey;
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                // Explicitly set in config too (mirrors production precedence expectations).
+                data[key] = value;
+            },
+            preConfigureBuilder: builder =>
+            {
+                builder.Services.TryAddEnumerable(
+                    ServiceDescriptor.Transient<IStartupFilter, HostAndProtocolLoggerFilter>(_ => filter));
+            },
+            clearLogFilterRules: false);
+
+        await app.StartAsync().DefaultTimeout();
+
+        var endpoint = app.FrontendSingleEndPointAccessor().EndPoint; // IPEndPoint
+        var endpointString = endpoint.ToString(); // "host:port"
+
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpointString}") };
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Add("X-Forwarded-Host", forwardedHost);
+        request.Headers.Add("X-Forwarded-Proto", forwardedProto);
+
+        var response = await client.SendAsync(request).DefaultTimeout();
+        response.EnsureSuccessStatusCode();
+
+        return (filter.Host, filter.Proto, endpointString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [InlineData(null)]
     public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
     {
@@ -782,14 +940,42 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(typeof(ConsoleLoggerProvider), loggerProviderTypes);
     }
 
-    private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Configuration_DisableAI_EnsureValueSetOnOptions(bool? value)
+    {
+        // Arrange & Act
+        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardAIDisabledName.ConfigKey] = value?.ToString().ToLower();
+
+                // Set debug session values so that AIContextProvider.Enabled has those values.
+                data[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
+                data[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
+                data[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
+                data[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+            });
+
+        var aiContextProvider = app.Services.GetRequiredService<IAIContextProvider>();
+
+        // Assert
+        Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.AI.Disabled);
+        Assert.Equal(!(value ?? false), aiContextProvider.Enabled);
+    }
+
+    private static void AssertIPv4OrIPv6Endpoint(Func<ResolvedEndpointInfo> endPointAccessor)
     {
         // Check that the address is IPv4 or IPv6 any.
         var ipEndPoint = endPointAccessor().EndPoint;
         Assert.True(ipEndPoint.Address.Equals(IPAddress.Any) || ipEndPoint.Address.Equals(IPAddress.IPv6Any), "Endpoint address should be IPv4 or IPv6.");
     }
 
-    private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
+    private static void AssertDynamicIPEndpoint(Func<ResolvedEndpointInfo> endPointAccessor)
     {
         // Check that the specified dynamic port of 0 is overridden with the actual port number.
         var ipEndPoint = endPointAccessor().EndPoint;
@@ -802,5 +988,26 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await File.WriteAllTextAsync(browserTokenConfigFile, browserToken);
 
         return browserTokenConfigFile;
+    }
+
+    public sealed class HostAndProtocolLoggerFilter : IStartupFilter
+    {
+        public string? Host { get; private set; }
+        public string? Proto { get; private set; }
+
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        {
+            return app =>
+            {
+                app.Use(async (ctx, nxt) =>
+                {
+                    await nxt();
+                    Host = ctx.Request.Host.Value;
+                    Proto = ctx.Request.Scheme;
+                });
+
+                next(app);
+            };
+        }
     }
 }

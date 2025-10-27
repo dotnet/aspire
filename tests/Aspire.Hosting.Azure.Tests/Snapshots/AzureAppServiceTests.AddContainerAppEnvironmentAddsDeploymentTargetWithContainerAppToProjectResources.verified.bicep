@@ -13,12 +13,19 @@ param api_containerimage string
 
 param api_containerport string
 
+param env_outputs_azure_app_service_dashboard_uri string
+
+param env_outputs_azure_website_contributor_managed_identity_id string
+
+param env_outputs_azure_website_contributor_managed_identity_principal_id string
+
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
     image: api_containerimage
     isMain: true
+    targetPort: api_containerport
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
@@ -30,10 +37,15 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   properties: {
     serverFarmId: env_outputs_planid
     siteConfig: {
+      numberOfWorkers: 30
       linuxFxVersion: 'SITECONTAINERS'
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: env_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
+        {
+          name: 'WEBSITES_PORT'
+          value: api_containerport
+        }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
           value: 'true'
@@ -54,6 +66,34 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'HTTP_PORTS'
           value: api_containerport
         }
+        {
+          name: 'ASPIRE_ENVIRONMENT_NAME'
+          value: 'env'
+        }
+        {
+          name: 'OTEL_SERVICE_NAME'
+          value: 'api'
+        }
+        {
+          name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
+          value: 'grpc'
+        }
+        {
+          name: 'OTEL_EXPORTER_OTLP_ENDPOINT'
+          value: 'http://localhost:6001'
+        }
+        {
+          name: 'WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR'
+          value: 'true'
+        }
+        {
+          name: 'OTEL_COLLECTOR_URL'
+          value: env_outputs_azure_app_service_dashboard_uri
+        }
+        {
+          name: 'OTEL_CLIENT_ID'
+          value: env_outputs_azure_container_registry_managed_identity_client_id
+        }
       ]
       webSocketsEnabled: true
     }
@@ -64,4 +104,14 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       '${env_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
+}
+
+resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
+  properties: {
+    principalId: env_outputs_azure_website_contributor_managed_identity_principal_id
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
+    principalType: 'ServicePrincipal'
+  }
+  scope: webapp
 }

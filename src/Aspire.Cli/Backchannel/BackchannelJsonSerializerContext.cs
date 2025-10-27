@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Cli.Commands;
 using Spectre.Console;
 using StreamJsonRpc;
 using StreamJsonRpc.Reflection;
@@ -23,7 +24,15 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
 [JsonSerializable(typeof(RequestId))]
 [JsonSerializable(typeof(IEnumerable<DisplayLineState>))]
+[JsonSerializable(typeof(PublishingPromptInputAnswer[]))]
 [JsonSerializable(typeof(ValidationResult))]
+[JsonSerializable(typeof(IAsyncEnumerable<CommandOutput>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<CommandOutput>))]
+[JsonSerializable(typeof(EnvVar))]
+[JsonSerializable(typeof(List<EnvVar>))]
+[JsonSerializable(typeof(List<string>))]
+[JsonSerializable(typeof(bool?))]
+[JsonSerializable(typeof(AppHostProjectSearchResultPoco))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]

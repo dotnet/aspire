@@ -74,6 +74,18 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireServiceDefaults_Description", resourceCulture);
             }
         }
+
+        public static string AspirePyStarter_Description {
+            get {
+                return ResourceManager.GetString("AspirePyStarter_Description", resourceCulture);
+            }
+        }
+        
+        public static string AspireAppHostSingleFile_Description {
+            get {
+                return ResourceManager.GetString("AspireAppHostSingleFile_Description", resourceCulture);
+            }
+        }
         
         public static string AspireMSTest_Description {
             get {
@@ -92,9 +104,19 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireXUnit_Description", resourceCulture);
             }
         }
+
+        public static string IntegrationTestsTemplate_Description
+        {
+            get
+            {
+                return ResourceManager.GetString("IntegrationTestsTemplate_Description", resourceCulture);
+            }
+        }
         
-        public static string UseRedisCache_Prompt {
-            get {
+        public static string UseRedisCache_Prompt
+        {
+            get
+            {
                 return ResourceManager.GetString("UseRedisCache_Prompt", resourceCulture);
             }
         }
@@ -177,9 +199,9 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string GettingLatestTemplates {
+        public static string GettingTemplates {
             get {
-                return ResourceManager.GetString("GettingLatestTemplates", resourceCulture);
+                return ResourceManager.GetString("GettingTemplates", resourceCulture);
             }
         }
         
@@ -228,6 +250,24 @@ namespace Aspire.Cli.Resources {
         public static string NoTemplateVersionsFound {
             get {
                 return ResourceManager.GetString("NoTemplateVersionsFound", resourceCulture);
+            }
+        }
+        
+        public static string ProjectAlreadyExists {
+            get {
+                return ResourceManager.GetString("ProjectAlreadyExists", resourceCulture);
+            }
+        }
+
+        public static string CreateNugetConfigConfirmation {
+            get {
+                return ResourceManager.GetString("CreateNugetConfigConfirmation", resourceCulture);
+            }
+        }
+
+        public static string NuGetConfigCreatedConfirmationMessage {
+            get {
+                return ResourceManager.GetString("NuGetConfigCreatedConfirmationMessage", resourceCulture);
             }
         }
     }

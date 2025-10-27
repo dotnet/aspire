@@ -1,0 +1,112 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../InteractionStrings.resx">
+    <body>
+      <trans-unit id="ContainerRuntimeDockerAdvice">
+        <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
+        <target state="translated">Verifique se o Docker está em execução e se o daemon do Docker está acessível. Se o modo de Economia de Recursos estiver habilitado, os contêineres poderão não ser executados.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeGenericAdvice">
+        <source>Ensure that the container runtime is running.</source>
+        <target state="translated">Verifique se o runtime do contêiner está em execução.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeLinkText">
+        <source>Learn more</source>
+        <target state="translated">Saiba mais</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">Não foi possível encontrar o runtime do contêiner. Consulte https://aka.ms/dotnet/aspire/containers para obter mais detalhes sobre runtimes de contêiner com suporte.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container runtime not installed</source>
+        <target state="translated">Tempo de execução do contêiner não instalado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimePodmanAdvice">
+        <source>Ensure that Podman is running.</source>
+        <target state="translated">Verifique se o Podman está em execução.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeUnhealthyMessage">
+        <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
+        <target state="translated">O runtime do contêiner "{0}" foi encontrado, mas parece não estar íntegro. </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeUnhealthyTitle">
+        <source>Container runtime unhealthy</source>
+        <target state="translated">Tempo de execução do contêiner não íntegro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersBarMessage">
+        <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
+        <target state="translated">Há parâmetros não resolvidos que precisam ser definidos. Insira valores para eles.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersBarPrimaryButtonText">
+        <source>Enter values</source>
+        <target state="translated">Inserir valores</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersBarTitle">
+        <source>Unresolved parameters</source>
+        <target state="translated">Parâmetros não resolvidos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessage">
+        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
+        <target state="translated">Insira valores para os parâmetros não resolvidos. Os parâmetros podem ser salvos em [segredos do usuário](https://learn.microsoft.com/aspnet/core/security/app-secrets) para uso futuro.</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="new">Please provide values for the unresolved parameters.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsParameterPlaceholder">
+        <source>Enter value for {0}</source>
+        <target state="translated">Inserir valor para {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsPrimaryButtonText">
+        <source>Save</source>
+        <target state="translated">Salvar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsRememberLabel">
+        <source>Save to user secrets</source>
+        <target state="translated">Salvar nos segredos do usuário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsTitle">
+        <source>Set unresolved parameters</source>
+        <target state="translated">Definir parâmetros não resolvidos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckLinkText">
+        <source>Upgrade instructions</source>
+        <target state="translated">Instruções de atualização</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckMessage">
+        <source>Aspire {0} is available.</source>
+        <target state="translated">O Aspire {0} está disponível.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckPrimaryButtonText">
+        <source>Ignore</source>
+        <target state="translated">Ignorar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckTitle">
+        <source>Update now</source>
+        <target state="translated">Atualize agora</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

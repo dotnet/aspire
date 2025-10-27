@@ -6,7 +6,8 @@ using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Exec;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,10 +20,9 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    PublishingActivityProgressReporter activityReporter,
+    PipelineActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options
-    )
+    DistributedApplicationOptions options)
 {
     private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
 
@@ -80,7 +80,7 @@ internal class AppHostRpcTarget(
 
             if (!resourceEvent.Resource.TryGetEndpoints(out var endpoints))
             {
-                logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
+                logger.LogTrace("Resource {ResourceName} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
 
@@ -110,18 +110,6 @@ internal class AppHostRpcTarget(
         return Task.CompletedTask;
     }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        logger.LogTrace("Received ping from CLI with timestamp: {Timestamp}", timestamp);
-        return Task.FromResult(timestamp);
-    }
-
-    public Task<DashboardUrlsState> GetDashboardUrlsAsync()
-    {
-        return GetDashboardUrlsAsync(CancellationToken.None);
-    }
-
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         if (!options.DashboardEnabled)
@@ -133,9 +121,24 @@ internal class AppHostRpcTarget(
         // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
         // endpoint for the resource is available and the dashboard is ready to be used. This helps
         // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
-        await resourceNotificationService.WaitForResourceHealthyAsync(
-            KnownResourceNames.AspireDashboard,
-            cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await resourceNotificationService.WaitForResourceHealthyAsync(
+                KnownResourceNames.AspireDashboard,
+                WaitBehavior.StopOnResourceUnavailable,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (DistributedApplicationException ex)
+        {
+            logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
+
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = false,
+                BaseUrlWithLoginToken = null,
+                CodespacesUrlWithLoginToken = null
+            };
+        }
 
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
 
@@ -160,16 +163,29 @@ internal class AppHostRpcTarget(
         {
             return new DashboardUrlsState
             {
-                BaseUrlWithLoginToken = baseUrlWithLoginToken
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = null
             };
         }
         else
         {
             return new DashboardUrlsState
             {
+                DashboardHealthy = true,
                 BaseUrlWithLoginToken = baseUrlWithLoginToken,
                 CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
             };
+        }
+    }
+
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
+        var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
+        await foreach (var commandOutput in logsStream.ConfigureAwait(false))
+        {
+            yield return commandOutput;
         }
     }
 
@@ -200,8 +216,13 @@ internal class AppHostRpcTarget(
     }
 #pragma warning restore CA1822
 
-    public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken = default)
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
-        await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
+        await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: false, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
+    {
+        await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
     }
 }

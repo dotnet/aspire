@@ -9,15 +9,29 @@ param api_identity_outputs_id string
 
 param mydb_kv_outputs_name string
 
+param kvName string
+
+param sharedRg string
+
 param api_identity_outputs_clientid string
 
-resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: mydb_kv_outputs_name
 }
 
-resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
-  parent: mydb_kv_outputs_name_kv
+  parent: mydb_kv
+}
+
+resource existingKv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+  name: kvName
+  scope: resourceGroup(sharedRg)
+}
+
+resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'secret'
+  parent: existingKv
 }
 
 resource api 'Microsoft.App/containerApps@2025-01-01' = {
@@ -29,7 +43,12 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
         {
           name: 'connectionstrings--mydb'
           identity: api_identity_outputs_id
-          keyVaultUrl: mydb_kv_outputs_name_kv_connectionstrings__mydb.properties.secretUri
+          keyVaultUrl: mydb_kv_connectionstrings__mydb.properties.secretUri
+        }
+        {
+          name: 'secret-value'
+          identity: api_identity_outputs_id
+          keyVaultUrl: existingKv_secret.properties.secretUri
         }
       ]
       activeRevisionsMode: 'Single'
@@ -46,8 +65,16 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               secretRef: 'connectionstrings--mydb'
             }
             {
+              name: 'SECRET_VALUE'
+              secretRef: 'secret-value'
+            }
+            {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

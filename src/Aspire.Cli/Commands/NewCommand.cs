@@ -4,41 +4,77 @@
 using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Utils;
 using Spectre.Console;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+
 namespace Aspire.Cli.Commands;
 
-internal sealed class NewCommand : BaseCommand
+internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
-    private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly IFeatures _features;
+    private readonly ICliUpdateNotifier _updateNotifier;
+    private readonly CliExecutionContext _executionContext;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliTelemetry telemetry)
-        : base("new", NewCommandStrings.Description)
+    /// <summary>
+    /// NewCommand prefetches both template and CLI package metadata.
+    /// </summary>
+    public bool PrefetchesTemplatePackageMetadata => true;
+    
+    /// <summary>
+    /// NewCommand prefetches CLI package metadata for update notifications.
+    /// </summary>
+    public bool PrefetchesCliPackageMetadata => true;
+
+    public NewCommand(
+        IDotNetCliRunner runner,
+        INuGetPackageCache nuGetPackageCache,
+        INewCommandPrompter prompter,
+        IInteractionService interactionService,
+        ICertificateService certificateService,
+        ITemplateProvider templateProvider,
+        AspireCliTelemetry telemetry,
+        IDotNetSdkInstaller sdkInstaller,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _interactionService = interactionService;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
+        _features = features;
+        _updateNotifier = updateNotifier;
+        _executionContext = executionContext;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -64,7 +100,7 @@ internal sealed class NewCommand : BaseCommand
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService);
             Subcommands.Add(templateCommand);
         }
     }
@@ -87,13 +123,19 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        if (templateResult.OutputPath is not null)
+        if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
-            _interactionService.OpenNewProject(templateResult.OutputPath);
+            extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
         return templateResult.ExitCode;
@@ -102,7 +144,7 @@ internal sealed class NewCommand : BaseCommand
 
 internal interface INewCommandPrompter
 {
-    Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken);
+    Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken);
     Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
@@ -110,14 +152,93 @@ internal interface INewCommandPrompter
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
 {
-    public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
+    public virtual async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
+        // Create a hierarchical selection experience:
+        // - Top-level: all packages from the implicit channel (if any)
+        // - Then: one entry per remaining channel that opens a sub-menu with that channel's packages
+
+        // Local helpers
+        static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
+        {
+            // Keep it concise: "Version (source)"
+            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
+        }
+
+        async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
+            PackageChannel channel,
+            IEnumerable<(NuGetPackage Package, PackageChannel Channel)> items,
+            CancellationToken ct)
+        {
+            // Show a sub-menu for this channel's packages
+            var packageChoices = items
+                .Select(i => (
+                    Label: FormatPackageLabel(i),
+                    Result: i
+                ))
+                .ToArray();
+
+            var selection = await interactionService.PromptForSelectionAsync(
+                NewCommandStrings.SelectATemplateVersion,
+                packageChoices,
+                c => c.Label,
+                ct);
+
+            return selection.Result;
+        }
+
+        // Group incoming items by channel instance
+        var byChannel = candidatePackages
+            .GroupBy(cp => cp.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // Build the root menu as tuples of (label, action)
+        var rootChoices = new List<(string Label, Func<CancellationToken, Task<(NuGetPackage, PackageChannel)>> Action)>();
+
+        if (implicitGroup is not null)
+        {
+            // Add each implicit package directly to the root
+            foreach (var item in implicitGroup)
+            {
+                var captured = item; // avoid modified-closure issues
+                rootChoices.Add((
+                    Label: FormatPackageLabel((captured.Package, captured.Channel)),
+                    Action: ct => Task.FromResult((captured.Package, captured.Channel))
+                ));
+            }
+        }
+
+        // Add a submenu entry for each explicit channel
+        foreach (var channelGroup in explicitGroups)
+        {
+            var channel = channelGroup.Key;
+            var items = channelGroup.ToArray();
+
+            rootChoices.Add((
+                Label: channel.Name,
+                Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
+            ));
+        }
+
+        // If for some reason we have no choices, fall back to the first candidate
+        if (rootChoices.Count == 0)
+        {
+            return candidatePackages.First();
+        }
+
+        // Prompt user for the top-level selection
+        var topSelection = await interactionService.PromptForSelectionAsync(
             NewCommandStrings.SelectATemplateVersion,
-            candidatePackages,
-            (p) => $"{p.Version} ({p.Source})",
-            cancellationToken
-            );
+            rootChoices,
+            c => c.Label,
+            cancellationToken);
+
+        return await topSelection.Action(cancellationToken);
     }
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
@@ -145,7 +266,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForSelectionAsync(
             NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
-            t => $"{t.Name} ({t.Description})",
+            t => t.Description,
             cancellationToken
         );
     }
@@ -153,12 +274,21 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
 internal static partial class ProjectNameValidator
 {
-    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
-    internal static partial Regex GetAssemblyNameRegex();
+    // Regex for project name validation:
+    // - Can be any characters except path separators (/ and \)
+    // - Length: 1-254 characters
+    // - Must not be empty or whitespace only
+    [GeneratedRegex(@"^[^/\\]{1,254}$", RegexOptions.Compiled)]
+    internal static partial Regex GetProjectNameRegex();
 
     public static bool IsProjectNameValid(string projectName)
     {
-        var regex = GetAssemblyNameRegex();
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            return false;
+        }
+
+        var regex = GetProjectNameRegex();
         return regex.IsMatch(projectName);
     }
 }

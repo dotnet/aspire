@@ -43,7 +43,7 @@ namespace Aspire.Hosting.Azure
         public AzurePostgresFlexibleServerResource Parent { get { throw null; } }
     }
 
-    public partial class AzurePostgresFlexibleServerResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzurePostgresFlexibleServerResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzurePostgresFlexibleServerResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
@@ -53,8 +53,16 @@ namespace Aspire.Hosting.Azure
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression? Password { get { throw null; } }
+
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UsePasswordAuthentication { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression? UserName { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 

@@ -37,9 +37,24 @@
         <target state="translated">삭제할 구성 키입니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DeleteCommand_PromptForGlobal">
+        <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</source>
+        <target state="translated">로컬 설정 파일 대신 전역 $HOME/.log/settings.json의 구성 값을 삭제하시겠습니까?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_PromptForKey">
+        <source>Which config value do you want to delete?</source>
+        <target state="translated">어떤 구성 값을 삭제하시겠습니까?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Manage configuration settings.</source>
         <target state="translated">구성 설정을 관리합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionActionPrompt">
+        <source>What do you want to do?</source>
+        <target state="translated">원하는 작업을 선택하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_Description">
@@ -50,6 +65,11 @@
       <trans-unit id="GetCommand_KeyArgumentDescription">
         <source>The configuration key to retrieve.</source>
         <target state="translated">검색할 구성 키입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_PromptForKey">
+        <source>Which configuration key do you want to retrieve?</source>
+        <target state="translated">어떤 구성 키를 검색하시겠습니까?</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -75,6 +95,31 @@
       <trans-unit id="SetCommand_KeyArgumentDescription">
         <source>The configuration key to set.</source>
         <target state="translated">설정할 구성 키입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal">
+        <source>Where do you want to set the configuration value?</source>
+        <target state="translated">구성 값을 어디에 설정하시겠습니까?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal_GlobalOption">
+        <source>Globally ($HOME/.aspire/settings.json)</source>
+        <target state="translated">전역($HOME/.log/settings.json)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal_LocalOption">
+        <source>Locally</source>
+        <target state="translated">로컬로</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForKey">
+        <source>Which configuration key do you want to set?</source>
+        <target state="translated">어떤 구성 키를 설정하시겠습니까?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForValue">
+        <source>What value do you want to set?</source>
+        <target state="translated">어떤 값을 설정하시겠습니까?</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">

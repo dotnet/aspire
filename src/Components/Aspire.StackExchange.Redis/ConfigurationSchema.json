@@ -176,6 +176,11 @@
                   "type": "string",
                   "description": "Gets or sets the comma-delimited configuration string used to connect to the Redis server."
                 },
+                "DisableAutoActivation": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether auto activation is disabled or not.",
+                  "default": true
+                },
                 "DisableHealthChecks": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the Redis health check is disabled or not.",

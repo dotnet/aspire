@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../AzureProvisioningStrings.resx">
+    <body>
+      <trans-unit id="InputsMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
+        <target state="translated">Modelde Azure aboneliği gerektiren Azure kaynakları bulunuyor.
+
+Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire/azure/provisioning) bakın.</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="InputsTitle">
+        <source>Azure provisioning</source>
+        <target state="translated">Azure sağlama</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationDialogTitle">
+        <source>Azure location and resource group</source>
+        <target state="translated">Azure konumu ve kaynak grubu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationLabel">
+        <source>Location</source>
+        <target state="translated">Konum</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationPlaceholder">
+        <source>Select location</source>
+        <target state="translated">Konum seçin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationSelectionMessage">
+        <source>Select your Azure location and specify resource group:</source>
+        <target state="translated">Azure konumunuzu seçin ve kaynak grubunu belirtin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.</source>
+        <target state="translated">Modelde Azure aboneliği gerektiren Azure kaynakları bulunuyor.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationPrimaryButtonText">
+        <source>Enter values</source>
+        <target state="translated">Değer girin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationTitle">
+        <source>Azure provisioning</source>
+        <target state="translated">Azure sağlama</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupLabel">
+        <source>Resource group</source>
+        <target state="translated">Kaynak grubu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionDialogTitle">
+        <source>Azure subscription</source>
+        <target state="translated">Azure aboneliği</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdLabel">
+        <source>Subscription ID</source>
+        <target state="translated">Abonelik Kimliği</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdPlaceholder">
+        <source>Select subscription ID</source>
+        <target state="translated">Abonelik kimliği seçin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionManualEntryMessage">
+        <source>Enter your Azure subscription ID:</source>
+        <target state="translated">Azure abonelik kimliğinizi girin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionSelectionMessage">
+        <source>Select your Azure subscription:</source>
+        <target state="translated">Azure aboneliğinizi seçin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Azure kiracısı</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">Kiracı Kimliği</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Azure kiracı kimliğinizi girin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Kiracı kimliği seçin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Azure kiracınızı seçin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationResourceGroupNameInvalid">
+        <source>Resource group name must be a valid Azure resource group name.</source>
+        <target state="translated">Kaynak grubu adı, geçerli bir Azure kaynak grubu adı olmalıdır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationSubscriptionIdInvalid">
+        <source>Subscription ID must be a valid GUID.</source>
+        <target state="translated">Abonelik kimliği geçerli bir GUID olmalıdır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">Kiracı kimliği geçerli bir GUID olmalıdır.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

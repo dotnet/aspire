@@ -63,6 +63,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string StartDebugSessionArgumentDescription {
+            get {
+                return ResourceManager.GetString("StartDebugSessionArgumentDescription", resourceCulture);
+            }
+        }
+        
         public static string IsCompatibleAppHostIsNull {
             get {
                 return ResourceManager.GetString("IsCompatibleAppHostIsNull", resourceCulture);
@@ -120,6 +126,42 @@ namespace Aspire.Cli.Resources {
         public static string ProjectCouldNotBeRun {
             get {
                 return ResourceManager.GetString("ProjectCouldNotBeRun", resourceCulture);
+            }
+        }
+        
+        public static string Dashboard {
+            get {
+                return ResourceManager.GetString("Dashboard", resourceCulture);
+            }
+        }
+        
+        public static string Logs {
+            get {
+                return ResourceManager.GetString("Logs", resourceCulture);
+            }
+        }
+        
+        public static string ConnectingToAppHost {
+            get {
+                return ResourceManager.GetString("ConnectingToAppHost", resourceCulture);
+            }
+        }
+        
+        public static string DashboardFailedToStart {
+            get {
+                return ResourceManager.GetString("DashboardFailedToStart", resourceCulture);
+            }
+        }
+        
+        public static string AppHost {
+            get {
+                return ResourceManager.GetString("AppHost", resourceCulture);
+            }
+        }
+        
+        public static string StartingDebugSessionInExtension {
+            get {
+                return ResourceManager.GetString("StartingDebugSessionInExtension", resourceCulture);
             }
         }
     }

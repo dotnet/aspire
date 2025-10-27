@@ -151,6 +151,15 @@ public sealed class DashboardCommandExecutor(
             toastParameters.Intent = ToastIntent.Success;
             toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
         }
+        else if (response.Kind == ResourceCommandResponseKind.Cancelled)
+        {
+            // For cancelled commands, just close the existing toast and don't show any success or error message
+            if (!toastClosed)
+            {
+                toastService.CloseToast(toastParameters.Id);
+            }
+            return;
+        }
         else
         {
             toastParameters.Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.GetDisplayName(commandsLoc));

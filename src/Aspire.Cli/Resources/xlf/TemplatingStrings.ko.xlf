@@ -3,38 +3,48 @@
   <file datatype="xml" source-language="en" target-language="ko" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire 앱 호스트</target>
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire 빈 앱</target>
+        <source>AppHost and service defaults</source>
+        <target state="translated">AppHost 및 서비스 기본값</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire 테스트 프로젝트(MSTest)</target>
+        <source>MSTest</source>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire 테스트 프로젝트(NUnit)</target>
+        <source>NUnit</source>
+        <target state="translated">NUnit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">React(Vite) 및 FastAPI 스타터</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire 서비스 기본값</target>
+        <source>Service defaults</source>
+        <target state="translated">서비스 기본값</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Empty AppHost</source>
+        <target state="translated">빈 AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire 시작 앱</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Blazor 및 최소 API 스타터</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire 테스트 프로젝트(xUnit)</target>
+        <source>xUnit</source>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -46,6 +56,11 @@
         <source>An error occurred while trusting the certificates: {0}</source>
         <target state="translated">인증서의 신뢰성을 확인하는 중에 오류가 발생했습니다. {0}</target>
         <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">선택한 채널에 대한 NuGet.config를 만드시겠습니까?</target>
+        <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
@@ -62,9 +77,14 @@
         <target state="translated">사용할 xUnit.net 버전을 입력하세요.</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">최신 템플릿을 가져오는 중...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="translated">템플릿을 가져오는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="translated">통합 테스트</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -80,6 +100,16 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">없음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">선택한 패키지 채널에 대한 NuGet.config를 만들었습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="translated">새 프로젝트는 출력 폴더의 기존 파일을 덮어쓰게 되므로 만들 수 없습니다. 충돌하는 파일을 제거하거나 이동하거나 다른 위치를 선택하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

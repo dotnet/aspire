@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "druid.module.bicep",
+  "params": {
+    "my_ace_outputs_azure_container_apps_environment_default_domain": "{my-ace.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+    "my_ace_outputs_azure_container_apps_environment_id": "{my-ace.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+    "my_ace_outputs_volumes_druid_0": "{my-ace.outputs.volumes_druid_0}",
+    "my_ace_outputs_volumes_druid_1": "{my-ace.outputs.volumes_druid_1}",
+    "my_ace_outputs_bindmounts_druid_0": "{my-ace.outputs.bindmounts_druid_0}"
+  }
+}

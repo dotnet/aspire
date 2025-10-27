@@ -11,7 +11,7 @@ namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 public sealed class MockDashboardClient : IDashboardClient
 {
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
-        appName: "TestResource",
+        resourceName: "TestResource",
         resourceType: KnownResourceTypes.Project,
         properties: new[]
         {
@@ -28,6 +28,13 @@ public sealed class MockDashboardClient : IDashboardClient
                     priority: 0))
         }.ToDictionary(),
         state: KnownResourceState.Running);
+
+    private readonly List<ResourceViewModel>? _resources;
+
+    public MockDashboardClient(List<ResourceViewModel>? resources = null)
+    {
+        _resources = resources;
+    }
 
     public bool IsEnabled => true;
     public Task WhenConnected => Task.CompletedTask;
@@ -60,4 +67,8 @@ public sealed class MockDashboardClient : IDashboardClient
     {
         throw new NotImplementedException();
     }
+
+    public ResourceViewModel? GetResource(string resourceName) => null;
+
+    public IReadOnlyList<ResourceViewModel> GetResources() => _resources ?? [];
 }

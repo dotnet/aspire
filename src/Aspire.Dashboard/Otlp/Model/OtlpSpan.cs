@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model.Otlp;
 using Grpc.Core;
 
@@ -23,7 +24,7 @@ public class OtlpSpan
 
     public string TraceId => Trace.TraceId;
     public OtlpTrace Trace { get; }
-    public OtlpApplicationView Source { get; }
+    public OtlpResourceView Source { get; }
 
     public required string SpanId { get; init; }
     public required string? ParentSpanId { get; init; }
@@ -42,12 +43,18 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
-    public OtlpApplication? UninstrumentedPeer { get; internal set; }
+    public OtlpResource? UninstrumentedPeer { get => _uninstrumentedPeer; init => _uninstrumentedPeer = value; }
 
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
 
     private string? _cachedDisplaySummary;
+    private OtlpResource? _uninstrumentedPeer;
+
+    public void SetUninstrumentedPeer(OtlpResource? peer)
+    {
+        _uninstrumentedPeer = peer;
+    }
 
     public OtlpSpan? GetParentSpan()
     {
@@ -64,9 +71,9 @@ public class OtlpSpan
         return null;
     }
 
-    public OtlpSpan(OtlpApplicationView applicationView, OtlpTrace trace, OtlpScope scope)
+    public OtlpSpan(OtlpResourceView resourceView, OtlpTrace trace, OtlpScope scope)
     {
-        Source = applicationView;
+        Source = resourceView;
         Trace = trace;
         Scope = scope;
     }
@@ -92,7 +99,7 @@ public class OtlpSpan
         };
     }
 
-    public List<OtlpDisplayField> AllProperties()
+    public List<OtlpDisplayField> GetKnownProperties()
     {
         var props = new List<OtlpDisplayField>
         {
@@ -111,6 +118,13 @@ public class OtlpSpan
             props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusMessageField, Value = StatusMessage });
         }
 
+        return props;
+    }
+
+    public List<OtlpDisplayField> GetAttributeProperties()
+    {
+        var props = new List<OtlpDisplayField>();
+
         foreach (var kv in Attributes.OrderBy(a => a.Key))
         {
             props.Add(new OtlpDisplayField { DisplayName = kv.Key, Key = $"unknown-{kv.Key}", Value = kv.Value });
@@ -119,9 +133,33 @@ public class OtlpSpan
         return props;
     }
 
+    public OtlpResource? GetDestination()
+    {
+        // Calculate destination. The destination could either be resolved from:
+        // - An uninstrumented peer, or
+        // - From single child span when the child span has a different resources and is a server/consumer.
+        //   This is the same situation as an uninstrumented peer except in this case the peer is recording telemetry.
+        if (UninstrumentedPeer is { } peer)
+        {
+            return peer;
+        }
+        else
+        {
+            if (GetChildSpans().SingleOrNull() is { } childSpan)
+            {
+                if (childSpan.Source.ResourceKey != Source.ResourceKey && childSpan.Kind is OtlpSpanKind.Server or OtlpSpanKind.Consumer)
+                {
+                    return childSpan.Source.Resource;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private string DebuggerToString()
     {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Application = {Source.ApplicationKey}, UninstrumentedPeerApplication = {UninstrumentedPeer?.ApplicationKey}, TraceId = {Trace.TraceId}";
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Resource = {Source.ResourceKey}, UninstrumentedPeerResource = {UninstrumentedPeer?.ResourceKey}, TraceId = {Trace.TraceId}";
     }
 
     public string GetDisplaySummary()
@@ -135,12 +173,16 @@ public class OtlpSpan
             // Fall back to the span name if we can't find anything.
             if (span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer or OtlpSpanKind.Consumer)
             {
-                if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
+                if (span.Attributes.GetValueWithFallback("http.request.method", "http.method") is { Length: > 0 } httpMethod)
                 {
-                    var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
-                    var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
+                    var statusCode = span.Attributes.GetValueWithFallback("http.response.status_code", "http.status_code");
 
-                    return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
+                    var summary = $"HTTP {httpMethod?.ToUpperInvariant()}";
+                    if (!string.IsNullOrEmpty(statusCode))
+                    {
+                        summary += $" {statusCode}";
+                    }
+                    return summary;
                 }
                 else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
                 {
@@ -189,7 +231,7 @@ public class OtlpSpan
         // Find a better way to do this if more than two values are needed.
         return field switch
         {
-            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Application.ApplicationName, span.UninstrumentedPeer?.ApplicationName),
+            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Resource.ResourceName, span.UninstrumentedPeer?.ResourceName),
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),

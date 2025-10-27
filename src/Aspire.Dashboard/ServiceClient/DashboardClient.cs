@@ -550,6 +550,28 @@ internal sealed class DashboardClient : IDashboardClient
             ?? "Aspire";
     }
 
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        EnsureInitialized();
+        lock (_lock)
+        {
+            if (_resourceByName.TryGetValue(resourceName, out var resource))
+            {
+                return resource;
+            }
+            return null;
+        }
+    }
+
+    public IReadOnlyList<ResourceViewModel> GetResources()
+    {
+        EnsureInitialized();
+        lock (_lock)
+        {
+            return _resourceByName.Values.ToList();
+        }
+    }
+
     public async Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
         EnsureInitialized();
@@ -672,16 +694,9 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }, combinedTokens.Token);
 
-        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(false))
+        await foreach (var batch in channel.Reader.ReadAllAsync(combinedTokens.Token).ConfigureAwait(false))
         {
-            if (batch.Count == 1)
-            {
-                yield return batch[0];
-            }
-            else
-            {
-                yield return batch.SelectMany(batch => batch).ToList();
-            }
+            yield return batch;
         }
 
         await readTask.ConfigureAwait(false);

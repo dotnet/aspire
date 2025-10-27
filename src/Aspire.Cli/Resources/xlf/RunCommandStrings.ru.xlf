@@ -2,8 +2,28 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to apphost...</source>
+        <target state="translated">Подключение к хосту приложений...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Панель мониторинга</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Не удалось запустить панель управления Aspire.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
+        <source>Run an Aspire apphost in development mode.</source>
         <target state="translated">Запустите хост приложений Aspire в режиме разработки.</target>
         <note />
       </trans-unit>
@@ -22,14 +42,19 @@
         <target state="translated">Значение параметра IsCompatibleAppHost равно null</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">Журналы</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">Нажмите [bold]Ctrl+C[/], чтобы остановить хост приложений и выйти.</target>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="translated">Нажмите клавиши [bold]CTRL+C[/], чтобы остановить хост приложений и выйти.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Путь к файлу проекта хоста приложений Aspire.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -42,14 +67,24 @@
         <target state="translated">Ресурс</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="translated">Запускать ли сеанс отладки при работе в терминале Aspire.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
+        <source>Starting Aspire apphost...</source>
         <target state="translated">Запускается хост приложений Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">Запускается панель мониторинга Aspire...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">Запускается панель мониторинга...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="translated">Обнаружен запуск Aspire внутри расширения Aspire, начинается сеанс отладки в VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

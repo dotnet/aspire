@@ -5,7 +5,10 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Components.Pages;
+using Aspire.Dashboard.Model.Interaction;
+using Aspire.Dashboard.Model.Markdown;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;
@@ -19,21 +22,47 @@ namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
-    internal record InteractionMessageBarReference(int InteractionId, Message Message);
-    internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog);
+    internal record InteractionMessageBarReference(int InteractionId, Message Message, ComponentTelemetryContext TelemetryContext) : IDisposable
+    {
+        public void Dispose()
+        {
+            TelemetryContext.Dispose();
+        }
+    }
+    internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog, ComponentTelemetryContext TelemetryContext) : IDisposable
+    {
+        public void Dispose()
+        {
+            TelemetryContext.Dispose();
+        }
+    }
 
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly KeyedInteractionCollection _pendingInteractions = new();
     private readonly KeyedMessageCollection _openMessageBars = new();
-
+    private MarkdownProcessor _markdownProcessor = default!;
     private Task? _dialogDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _messagesProcessed;
 
     // Internal for testing.
     internal bool? _enabled;
     internal InteractionDialogReference? _interactionDialogReference;
+    internal IEnumerable<InteractionMessageBarReference> OpenMessageBars => _openMessageBars;
+    internal async Task<int> GetMessagesProcessedAsync()
+    {
+        await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
+        try
+        {
+            return _messagesProcessed;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -48,7 +77,16 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
     public required ILogger<InteractionsProvider> Logger { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     protected override void OnInitialized()
     {
@@ -63,6 +101,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         {
             _enabled = true;
         }
+
+        _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
 
         _dialogDisplayTask = Task.Run(async () =>
         {
@@ -116,6 +156,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 _pendingInteractions.RemoveAt(0);
 
                 Func<IDialogService, Task<IDialogReference>> openDialog;
+                string dialogComponentId;
 
                 if (item.MessageBox is { } messageBox)
                 {
@@ -152,7 +193,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var content = new MessageBoxContent
                     {
                         Title = item.Title,
-                        MarkupMessage = new MarkupString(item.Message),
+                        MarkupMessage = new MarkupString(GetMessageHtml(item)),
                     };
                     switch (messageBox.Intent)
                     {
@@ -181,6 +222,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             break;
                     }
 
+                    dialogComponentId = TelemetryComponentIds.InteractionMessageBox;
                     openDialog = dialogService => ShowMessageBoxAsync(dialogService, content, dialogParameters);
                 }
                 else if (item.InputsDialog is { } inputs)
@@ -188,20 +230,25 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var vm = new InteractionsInputsDialogViewModel
                     {
                         Interaction = item,
-                        OnSubmitCallback = async savedInteraction =>
+                        Message = GetMessageHtml(item),
+                        OnSubmitCallback = async (savedInteraction, update) =>
                         {
                             var request = new WatchInteractionsRequestUpdate
                             {
                                 InteractionId = savedInteraction.InteractionId,
-                                InputsDialog = savedInteraction.InputsDialog
+                                InputsDialog = savedInteraction.InputsDialog,
+                                ResponseUpdate = update
                             };
 
                             await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
                         }
                     };
 
+                    var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
+
                     var dialogParameters = CreateDialogParameters(item, intent: null);
                     dialogParameters.Id = "interactions-input-dialog";
+                    dialogParameters.Width = $"min(650px, {width})";
                     dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                     {
                         // Only send notification of completion if the dialog was cancelled.
@@ -218,6 +265,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         }
                     });
 
+                    dialogComponentId = TelemetryComponentIds.InteractionInputsDialog;
                     openDialog = dialogService => dialogService.ShowDialogAsync<InteractionsInputDialog>(vm, dialogParameters);
                 }
                 else
@@ -232,7 +280,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 });
 
                 Debug.Assert(currentDialogReference != null, "Dialog should have been created in UI thread.");
-                _interactionDialogReference = new InteractionDialogReference(item.InteractionId, currentDialogReference);
+                _interactionDialogReference = new InteractionDialogReference(item.InteractionId, currentDialogReference, CreateTelemetryContext(dialogComponentId));
             }
             finally
             {
@@ -250,6 +298,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     {
                         if (_interactionDialogReference?.Dialog == currentDialogReference)
                         {
+                            _interactionDialogReference.Dispose();
                             _interactionDialogReference = null;
                         }
                     }
@@ -266,6 +315,23 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         }
     }
 
+    private ComponentTelemetryContext CreateTelemetryContext(string componentId)
+    {
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Control, componentId);
+        TelemetryContextProvider.Initialize(telemetryContext);
+        return telemetryContext;
+    }
+
+    private string GetMessageHtml(WatchInteractionsResponseUpdate item)
+    {
+        if (!item.EnableMessageMarkdown)
+        {
+            return WebUtility.HtmlEncode(item.Message);
+        }
+
+        return InteractionMarkdownHelper.ToHtml(_markdownProcessor, item.Message);
+    }
+
     private async Task WatchInteractionsAsync()
     {
         var interactions = DashboardClient.SubscribeInteractionsAsync(_cts.Token);
@@ -279,11 +345,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     case WatchInteractionsResponseUpdate.KindOneofCase.MessageBox:
                     case WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog:
                         if (_interactionDialogReference != null &&
-                            _interactionDialogReference.InteractionId == item.InteractionId)
+                            _interactionDialogReference.InteractionId == item.InteractionId &&
+                            _interactionDialogReference.Dialog.Instance.Content is InteractionsInputsDialogViewModel inputsVM)
                         {
                             // If the dialog is already open for this interaction, update it with the new data.
-                            var c = (InteractionsInputsDialogViewModel)_interactionDialogReference.Dialog.Instance.Content;
-                            await c.UpdateInteractionAsync(item);
+                            await inputsVM.UpdateInteractionAsync(item);
                         }
                         else
                         {
@@ -304,8 +370,15 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             NotifyInteractionAvailable();
                         }
                         break;
-                    case WatchInteractionsResponseUpdate.KindOneofCase.MessageBar:
-                        var messageBar = item.MessageBar;
+                    case WatchInteractionsResponseUpdate.KindOneofCase.Notification:
+                        var notification = item.Notification;
+
+                        // Check if the message bar is already open for this interaction.
+                        // This can happen if the connection is lost and then restored, which will replay pending interactions.
+                        if (_openMessageBars.Contains(item.InteractionId))
+                        {
+                            break;
+                        }
 
                         Message? message = null;
                         await InvokeAsync(async () =>
@@ -313,24 +386,24 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             message = await MessageService.ShowMessageBarAsync(options =>
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
-                                options.Body = item.Message; // Message is already HTML encoded depending on options.
-                                options.Intent = MapMessageIntent(messageBar.Intent);
+                                options.Body = GetMessageHtml(item);
+                                options.Intent = MapMessageIntent(notification.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;
-                                if (!string.IsNullOrEmpty(messageBar.LinkText))
+                                if (!string.IsNullOrEmpty(notification.LinkText))
                                 {
                                     options.Link = new()
                                     {
-                                        Text = messageBar.LinkText,
-                                        Href = messageBar.LinkUrl
+                                        Text = notification.LinkText,
+                                        Href = notification.LinkUrl
                                     };
                                 }
 
                                 var primaryButtonText = item.PrimaryButtonText;
                                 var secondaryButtonText = item.ShowSecondaryButton ? item.SecondaryButtonText : null;
-                                if (messageBar.Intent == MessageIntentDto.Confirmation)
+                                if (notification.Intent == MessageIntentDto.Confirmation)
                                 {
-                                    primaryButtonText = ResolvedPrimaryButtonText(item, messageBar.Intent);
+                                    primaryButtonText = ResolvedPrimaryButtonText(item, notification.Intent);
                                     secondaryButtonText = ResolvedSecondaryButtonText(item);
                                 }
 
@@ -379,11 +452,12 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                         }
                                         else
                                         {
-                                            messageBar.Result = result.Value;
-                                            request.MessageBar = messageBar;
+                                            notification.Result = result.Value;
+                                            request.Notification = notification;
                                         }
 
                                         _openMessageBars.Remove(item.InteractionId);
+                                        openMessageBar.Dispose();
 
                                         await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
                                     }
@@ -392,7 +466,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         });
 
                         Debug.Assert(message != null, "Message should have been created in UI thread.");
-                        _openMessageBars.Add(new InteractionMessageBarReference(item.InteractionId, message));
+                        _openMessageBars.Add(new InteractionMessageBarReference(item.InteractionId, message, CreateTelemetryContext(TelemetryComponentIds.InteractionMessageBar)));
                         break;
                     case WatchInteractionsResponseUpdate.KindOneofCase.Complete:
                         // Complete interaction.
@@ -411,6 +485,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             }
                             finally
                             {
+                                _interactionDialogReference.Dispose();
                                 _interactionDialogReference = null;
                             }
                         }
@@ -429,6 +504,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         Logger.LogWarning("Unexpected interaction kind: {Kind}", item.KindCase);
                         break;
                 }
+                _messagesProcessed++;
             }
             finally
             {
@@ -497,7 +573,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             DialogType = DialogType.MessageBox,
             Alignment = HorizontalAlignment.Center,
             Title = content.Title,
-            ShowDismiss = false,
+            ShowDismiss = parameters.ShowDismiss,
             PrimaryAction = parameters.PrimaryAction,
             SecondaryAction = parameters.SecondaryAction,
             Width = parameters.Width,

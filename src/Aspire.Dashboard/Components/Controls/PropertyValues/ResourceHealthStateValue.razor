@@ -1,0 +1,12 @@
+﻿@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Utils
+
+@if (_icon != null)
+{
+    <FluentIcon Width="16px"
+                Class="severity-icon"
+                Color="@_color"
+                Value="@_icon" />
+}
+
+<FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />

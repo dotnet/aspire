@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="it" original="../UpdateCommandStrings.resx">
+    <body>
+      <trans-unit id="AddedFeedFormat">
+        <source>Added: {0}</source>
+        <target state="translated">Aggiunto: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeAppHost">
+        <source>Analyze App Host</source>
+        <target state="translated">Analizza host delle app</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeAppHostSdk">
+        <source>Analyze App Host SDK</source>
+        <target state="translated">Analizza SDK dell'host delle app</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeProjectFormat">
+        <source>Analyze project: {0}</source>
+        <target state="translated">Analizza progetto: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzingProjectStatus">
+        <source>Analyzing project...</source>
+        <target state="translated">Analisi del progetto in corso...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplyChangesToNuGetConfig">
+        <source>Apply these changes to NuGet.config?</source>
+        <target state="translated">Applicare le modifiche a NuGet.config?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CentralPackageManagementNotSupported">
+        <source>Central package management is currently not supported by 'aspire update'.</source>
+        <target state="translated">La gestione centralizzata dei pacchetti non è attualmente supportata da "aspire update".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Non è possibile trovare l'elemento PackageVersion per '{0}' in {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindRootProjectElementFormat">
+        <source>Could not find root &lt;Project&gt; element in {0}</source>
+        <target state="translated">Non è possibile trovare l'elemento radice &lt;Project&gt; in {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindSdkElementFormat">
+        <source>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</source>
+        <target state="translated">Non è possibile trovare l'elemento &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; in {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Update integrations in the Aspire project. (Preview)</source>
+        <target state="translated">Consente di aggiornare le integrazioni nel progetto di Aspire. (Anteprima)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExecutingUpdateStepFormat">
+        <source>Executing: {0}</source>
+        <target state="translated">Esecuzione in corso: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedDiscoverNuGetConfig">
+        <source>Failed to discover NuGet.config files.</source>
+        <target state="translated">Non è possibile individuare i file NuGet.config.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedFetchItemsAndPropertiesFormat">
+        <source>Failed to fetch items and properties for project: {0}</source>
+        <target state="translated">Non è possibile recuperare elementi e proprietà per il progetto: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedUpdatePackageReferenceFormat">
+        <source>Failed to update package reference for {0} in project {1}.</source>
+        <target state="translated">Non è possibile aggiornare il riferimento al pacchetto per {0} nel progetto {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingAddedFormat">
+        <source>   Mapping: {0} (added)</source>
+        <target state="translated">   Mapping: {0} (aggiunto)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRemovedFormat">
+        <source>   Mapping: {0} (removed)</source>
+        <target state="translated">   Mapping: {0} (rimosso)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRetainedFormat">
+        <source>   Mapping: {0}</source>
+        <target state="translated">   Mapping: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoChangesDetectedInNuGetConfig">
+        <source>No changes detected in NuGet.config</source>
+        <target state="translated">Nessuna modifica rilevata in NuGet.config</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoPackageFoundFormat">
+        <source>No package found with ID '{0}' in channel '{1}'.</source>
+        <target state="translated">Non sono stati trovati pacchetti con ID "{0}" nel canale "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageReferenceNoIdentity">
+        <source>Package reference does not have Identity.</source>
+        <target state="translated">Il riferimento al pacchetto non ha l'identità.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageReferenceNoVersion">
+        <source>Package reference does not have Version.</source>
+        <target state="translated">Il riferimento al pacchetto non ha la versione.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PerformUpdatesPrompt">
+        <source>Perform updates?</source>
+        <target state="translated">Eseguire gli aggiornamenti?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Percorso del file di un progetto AppHost di Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectReferenceNoFullPath">
+        <source>Project reference does not have FullPath.</source>
+        <target state="translated">Il riferimento al progetto non contiene FullPath.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectUpToDateMessage">
+        <source>Project is up to date! (no updates necessary)</source>
+        <target state="translated">Il progetto è aggiornato. (non sono necessari aggiornamenti)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedFeedFormat">
+        <source>Removed: {0}</source>
+        <target state="translated">Rimosso: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RetainedFeedFormat">
+        <source>Retained: {0}</source>
+        <target state="translated">Mantenuto: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectChannelPrompt">
+        <source>Select a channel:</source>
+        <target state="translated">Selezionare un canale:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnxpectedCodePath">
+        <source>Unexpected code path.</source>
+        <target state="translated">Percorso del codice imprevisto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatePackageFormat">
+        <source>Update package {0} from {1} to {2}</source>
+        <target state="translated">Aggiorna il pacchetto {0} da {1} a {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateSuccessfulMessage">
+        <source>Update successful!</source>
+        <target state="translated">Aggiornamento riuscito.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhichDirectoryNuGetConfigPrompt">
+        <source>Which directory for NuGet.config file?</source>
+        <target state="translated">Quale directory per il file NuGet.config?</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

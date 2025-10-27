@@ -19,7 +19,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         // Arrange
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -109,7 +109,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         // Arrange
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -140,9 +140,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     public async Task DockerComposeCorrectlyEmitsPortMappings()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path)
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
@@ -169,7 +169,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -199,7 +199,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     public async Task DockerComposeAppliesServiceCustomizations()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -256,7 +256,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         void PublishApp()
         {
-            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
             builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
             builder.AddDockerComposeEnvironment("docker-compose");
@@ -287,7 +287,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         void PublishApp(params string[] paramNames)
         {
-            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
             builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
             builder.AddDockerComposeEnvironment("docker-compose");
@@ -324,7 +324,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     public async Task DockerComposeMapsPortsProperly()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -351,7 +351,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -377,7 +377,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -403,7 +403,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -431,7 +431,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -441,7 +441,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         builder.AddContainer("api", "my-api")
             .WithOtlpExporter();
 
-        builder.AddContainer("worker", "my-worker") 
+        builder.AddContainer("worker", "my-worker")
             .WithOtlpExporter();
 
         // Add a container without OTLP - should not be configured
@@ -459,11 +459,35 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for docker compose'";
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithDockerfileFactory(".", context => dockerfileContent);
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify Dockerfile was written to resource-specific path
+        var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+        var actualContent = await File.ReadAllTextAsync(dockerfilePath);
+        
+        await Verify(actualContent);
+    }
+
+    [Fact]
     public void PublishAsync_InRunMode_DoesNotCreateDashboard()
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -483,15 +507,25 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     {
         public bool BuildImageCalled { get; private set; }
 
-        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
+
+        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+        {
             return Task.CompletedTask;
         }
     }

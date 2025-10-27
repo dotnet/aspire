@@ -34,8 +34,28 @@ public class AzureContainerRegistryResource(string name, Action<AzureResourceInf
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = ContainerRegistryService.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a ContainerRegistryService with the same identifier already exists
+        var existingStore = resources.OfType<ContainerRegistryService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = ContainerRegistryService.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

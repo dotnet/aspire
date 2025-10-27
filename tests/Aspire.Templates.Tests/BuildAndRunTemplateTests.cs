@@ -28,8 +28,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate]
+    [RequiresSSLCertificate, RequiresPlaywright]
     [Trait("category", "basic-build")]
+    [OuterLoop("playwright test")]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -38,21 +39,22 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        if (BuildEnvironment.ShouldRunPlaywrightTests)
-        {
-            await using var context = await CreateNewBrowserContextAsync();
-            var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
-        }
+        await using var context = await CreateNewBrowserContextAsync();
+        var page = await project.OpenDashboardPageAsync(context);
+        await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
     }
 
     [Fact]
     public async Task BuildAndRunAspireTemplateWithCentralPackageManagement()
     {
         string id = GetNewProjectId(prefix: "aspire_CPM");
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        string version = ExtractAndRemoveVersionFromPackageReference(project);
+        string version = ExtractVersionFromSdkAndAddRedisPackageReference(project);
 
         CreateCPMFile(project, version);
 
@@ -60,45 +62,110 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.StartAppHostAsync();
         await project.StopAppHostAsync();
 
-        static string ExtractAndRemoveVersionFromPackageReference(AspireProject project)
+        static string ExtractVersionFromSdkAndAddRedisPackageReference(AspireProject project)
         {
             var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
             Assert.False(string.IsNullOrEmpty(projectName));
 
             var projectContents = File.ReadAllText(projectName);
 
-            var match = AppHostVersionRegex().Match(projectContents);
+            var match = ProjectSdkVersionRegex().Match(projectContents);
 
             File.WriteAllText(
                 projectName,
-                AppHostVersionRegex().Replace(projectContents, @"<PackageReference Include=""Aspire.Hosting.AppHost"" />")
+                ProjectClosingTagRegex().Replace(projectContents,
+                """
+                  <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.Redis" />
+                  </ItemGroup>
+                </Project>
+                """)
             );
 
-            return match.Groups[1].Value;
+            var version = match.Groups[1].Value;
+            Assert.NotNull(version);
+
+            return version;
         }
 
         static void CreateCPMFile(AspireProject project, string version)
         {
             var cpmFilePath = Path.Combine(project.RootDir, "Directory.Packages.props");
-            var cpmContent = $@"<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Do not warn for not using package source mapping when using CPM -->
-    <NoWarn>NU1507;$(NoWarn)</NoWarn>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageVersion Include=""Aspire.Hosting.AppHost"" Version=""{version}"" />
-  </ItemGroup>
-</Project>";
+            var cpmContent = $"""
+                <Project>
+                  <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                    <!-- Do not warn for not using package source mapping when using CPM -->
+                    <NoWarn>NU1507;$(NoWarn)</NoWarn>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <PackageVersion Include="Aspire.Hosting.Redis" Version="{version}" />
+                  </ItemGroup>
+                </Project>
+                """;
 
             File.WriteAllText(cpmFilePath, cpmContent);
         }
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task BuildAndRunAspireTemplateWithExplicitSdkReference(bool includeAspireHostingAppHostPackageReference)
+    {
+        string id = GetNewProjectId(prefix: "aspire_explicit_SDK");
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework);
+
+        UpdateSdkReferencesAndAddAppHostPackageReference(project, includeAspireHostingAppHostPackageReference);
+
+        await project.BuildAsync();
+        await project.StartAppHostAsync();
+        await project.StopAppHostAsync();
+
+        static void UpdateSdkReferencesAndAddAppHostPackageReference(AspireProject project, bool addPackageRef)
+        {
+            var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
+            Assert.False(string.IsNullOrEmpty(projectName));
+
+            var projectContents = File.ReadAllText(projectName);
+
+            var match = ProjectSdkVersionRegex().Match(projectContents);
+            var version = match.Groups[1].Value;
+            Assert.NotNull(version);
+
+            File.WriteAllText(
+                projectName,
+                ProjectSdkVersionRegex().Replace(projectContents,
+                $"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <Sdk Name="Aspire.AppHost.Sdk" Version="{version}" />
+                """)
+            );
+
+            if (addPackageRef)
+            {
+                File.WriteAllText(
+                    projectName,
+                    ProjectClosingTagRegex().Replace(projectContents,
+                    $"""
+                      <ItemGroup>
+                        <PackageReference Include="Aspire.Hosting.AppHost" Version="{version}" />
+                      </ItemGroup>
+                    </Project>
+                    """));
+            }
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate]
+    [RequiresSSLCertificate, RequiresPlaywright]
     [Trait("category", "basic-build")]
+    [OuterLoop("playwright test")]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
         var id = GetNewProjectId(prefix: $"aspire_starter_run_{config}");
@@ -108,11 +175,13 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = BuildEnvironment.ShouldRunPlaywrightTests ? await CreateNewBrowserContextAsync() : null;
+        await using var context = await CreateNewBrowserContextAsync();
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
     [Fact]
+    [RequiresPlaywright]
+    [OuterLoop("playwright test")]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/9155", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task ProjectWithNoHTTPSRequiresExplicitOverrideWithEnvironmentVariable()
     {
@@ -139,12 +208,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         testSpecificBuildEnvironment.EnvVars[KnownConfigNames.AllowUnsecuredTransport] = "true";
         await project.StartAppHostAsync();
 
-        if (BuildEnvironment.ShouldRunPlaywrightTests)
-        {
-            await using var context = await CreateNewBrowserContextAsync();
-            var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
-        }
+        await using var context = await CreateNewBrowserContextAsync();
+        var page = await project.OpenDashboardPageAsync(context);
+        await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
     }
 
     [Theory]
@@ -175,4 +241,10 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.AppHost""\s+Version=""([^""]+)""\s+/>")]
     private static partial Regex AppHostVersionRegex();
+
+    [GeneratedRegex(@"</Project>")]
+    private static partial Regex ProjectClosingTagRegex();
+
+    [GeneratedRegex(@"<Project\s+Sdk=""Aspire\.AppHost\.Sdk\/([^""]+)"">")]
+    private static partial Regex ProjectSdkVersionRegex();
 }

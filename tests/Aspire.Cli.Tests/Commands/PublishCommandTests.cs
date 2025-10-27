@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
@@ -7,7 +7,6 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -160,6 +159,77 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
+    }
+
+    [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9999")]
+    public async Task PublishCommandWithoutOutputPathUsesDefaultSubdirectory()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+
+                // Simulate a successful build
+                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
+
+                // Simulate a successful app host information retrieval
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                {
+                    return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                };
+
+                // Simulate apphost running successfully and establishing a backchannel
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                {
+                    Assert.True(options.NoLaunchProfile);
+
+                    // Verify that --output-path is included with the default subdirectory
+                    Assert.Contains("--output-path", args);
+
+                    // Find the --output-path argument and verify it's a subdirectory
+                    var outputPathIndex = Array.IndexOf(args, "--output-path");
+                    Assert.True(outputPathIndex >= 0 && outputPathIndex < args.Length - 1);
+                    var outputPath = args[outputPathIndex + 1];
+
+                    // Should end with the default subdirectory name
+                    Assert.EndsWith("aspire-output", outputPath);
+                    // Should be an absolute path
+                    Assert.True(Path.IsPathRooted(outputPath));
+
+                    var publishModeCompleted = new TaskCompletionSource();
+                    var backchannel = new TestAppHostBackchannel();
+                    backchannel.RequestStopAsyncCalled = publishModeCompleted;
+                    backchannelCompletionSource?.SetResult(backchannel);
+                    await publishModeCompleted.Task;
+                    return 0; // Simulate successful run
+                };
+
+                return runner;
+            };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestPublishCommandPrompter(interactionService);
+                return prompter;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode); // Ensure the command succeeds
     }
 
     [Fact]

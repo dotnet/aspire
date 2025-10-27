@@ -5,7 +5,6 @@
 // Licensed under http://www.apache.org/licenses/LICENSE-2.0.
 
 using System.Globalization;
-using Xunit;
 
 namespace Aspire.TestUtilities.Tests;
 

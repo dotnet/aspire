@@ -1,14 +1,10 @@
-import * as vscode from 'vscode';
-import { getAspireTerminal } from '../utils/terminal';
-import { isWorkspaceOpen } from '../utils/vsc';
+import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
+import { isWorkspaceOpen } from '../utils/workspace';
 
-export async function publishCommand() {
+export async function publishCommand(terminalProvider: AspireTerminalProvider) {
     if (!isWorkspaceOpen()) {
         return;
     }
 
-    const terminal = getAspireTerminal();
-
-    terminal.sendText('aspire publish');
-    terminal.show();
+    terminalProvider.sendAspireCommandToAspireTerminal('publish');
 }

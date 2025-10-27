@@ -1,0 +1,71 @@
+name: Build native CLI archives
+
+on:
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
+
+jobs:
+
+  build_cli_archives:
+    name: Build CLI (${{ matrix.targets.os }})
+    runs-on: ${{ matrix.targets.os }}
+    strategy:
+      matrix:
+        targets:
+          - os: ubuntu-latest
+            rids: linux-x64
+          - os: windows-latest
+            rids: win-x64
+          - os: macos-latest
+            rids: osx-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Build CLI packages (Windows)
+        if: ${{ matrix.targets.os == 'windows-latest' }}
+        shell: pwsh
+        run: >
+          .\build.cmd
+          -ci
+          -build
+          -restore
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          /p:ContinuousIntegrationBuild=true
+          /p:SkipManagedBuild=true
+          /p:TargetRids=${{ matrix.targets.rids }}
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Build CLI packages (Unix)
+        if: ${{ matrix.targets.os != 'windows-latest' }}
+        shell: bash
+        run: >
+          ./build.sh
+          --ci
+          --build
+          --restore
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          /p:ContinuousIntegrationBuild=true
+          /p:SkipManagedBuild=true
+          /p:TargetRids=${{ matrix.targets.rids }}
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: cli-native-logs-${{ matrix.targets.rids }}
+          path: artifacts/log/**
+
+      - name: Upload CLI archives
+        if: success()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: cli-native-archives-${{ matrix.targets.rids }}
+          path: artifacts/packages/**/aspire-cli*
+          retention-days: 15
+          if-no-files-found: error

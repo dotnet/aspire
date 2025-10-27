@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="connectionStringExpression">The connection string expression.</param>
-public sealed class ConnectionStringResource(string name, ReferenceExpression connectionStringExpression) : Resource(name), IResourceWithConnectionString, IResourceWithoutLifetime
+public sealed class ConnectionStringResource(string name, ReferenceExpression connectionStringExpression) : Resource(name), IResourceWithConnectionString, IResourceWithWaitSupport
 {
     /// <summary>
     /// Describes the connection string format string used for this resource.

@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure</PackageTags>
-    <Description>Azure resource types for .NET Aspire.</Description>
+    <PackageTags>aspire hosting azure cloud provisioning orchestration</PackageTags>
+    <Description>Azure resource types for Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
@@ -15,7 +15,6 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="$(SharedDir)CustomResourceSnapshotExtensions.cs" Link="Provisioning\Utils\CustomResourceSnapshotExtensions.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Provisioning\Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)BicepFunction2.cs" Link="Provisioning\Utils\BicepFunction2.cs" />
     <Compile Include="$(SharedDir)Model\KnownRelationshipTypes.cs" />
   </ItemGroup>
 

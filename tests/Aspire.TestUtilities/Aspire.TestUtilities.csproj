@@ -10,4 +10,8 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+  
 </Project>

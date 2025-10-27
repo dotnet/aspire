@@ -67,7 +67,7 @@ jobs:
 
       - name: Build with packages
         run: |
-          ./build.cmd -restore -build -pack -c Release -ci -bl /p:InstallBrowsersForPlaywright=false /p:SkipTestProjects=true /p:CI=false
+          ./build.cmd -restore -build -pack -c Release -ci -bl /p:InstallBrowsersForPlaywright=false /p:SkipTestProjects=true
 
       - name: Generate test runsheet
         id: generate_e2e_matrix
@@ -121,8 +121,6 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Test ${{ matrix.tests.label }}
-        env:
-          CI: false
         run: |
           ${{ matrix.tests.command }}
 
@@ -186,7 +184,6 @@ jobs:
 
       - name: Test ${{ matrix.tests.label }}
         env:
-          CI: false
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Release/Shipping
         run: |
           ${{ matrix.tests.command }}

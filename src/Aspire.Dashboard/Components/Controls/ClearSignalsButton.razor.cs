@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
@@ -25,7 +24,7 @@ public partial class ClearSignalsButton : ComponentBase
     public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
 
     [Parameter]
-    public required Func<ApplicationKey?, Task> HandleClearSignal { get; set; }
+    public required Func<ResourceKey?, Task> HandleClearSignal { get; set; }
 
     private readonly List<MenuButtonItem> _clearMenuItems = new();
 
@@ -45,7 +44,7 @@ public partial class ClearSignalsButton : ComponentBase
         {
             Id = "clear-menu-resource",
             Icon = s_clearSelectedResourceIcon,
-            OnClick = () => HandleClearSignal(SelectedResource.Id?.GetApplicationKey()),
+            OnClick = () => HandleClearSignal(SelectedResource.Id?.GetResourceKey()),
             IsDisabled = SelectedResource.Id == null,
             Text = SelectedResource.Id == null
                 ? ControlsStringsLoc[nameof(ControlsStrings.ClearPendingSelectedResource)]

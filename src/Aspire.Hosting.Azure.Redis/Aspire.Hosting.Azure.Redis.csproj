@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure</PackageTags>
-    <Description>Azure Redis resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure redis cache caching cloud</PackageTags>
+    <Description>Azure Redis resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCacheRedis_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
@@ -14,6 +14,7 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure.KeyVault\Aspire.Hosting.Azure.KeyVault.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Redis" />
+    <PackageReference Include="Azure.Provisioning.RedisEnterprise" />
   </ItemGroup>
 
 </Project>

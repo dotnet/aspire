@@ -27,7 +27,56 @@
     },
     "cs": {
       "type": "value.v0",
-      "connectionString": "sql={db.connectionString};rows={insertionrows.value}"
+      "connectionString": "sql={sql.bindings.tcp.url};rows={insertionrows.value}"
+    },
+    "parameterFromConnectionStringConfig": {
+      "type": "parameter.v0",
+      "connectionString": "{parameterFromConnectionStringConfig.value}",
+      "value": "{parameterFromConnectionStringConfig.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "throwing": {
+      "type": "parameter.v0",
+      "value": "{throwing.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "parameterFromConnectionStringConfigMissing": {
+      "type": "parameter.v0",
+      "connectionString": "{parameterFromConnectionStringConfigMissing.value}",
+      "value": "{parameterFromConnectionStringConfigMissing.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "markdownDescription": {
+      "type": "parameter.v0",
+      "value": "{markdownDescription.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "customInput": {
+      "type": "parameter.v0",
+      "value": "{customInput.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
     },
     "api": {
       "type": "project.v0",
@@ -40,7 +89,13 @@
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "InsertionRows": "{insertionrows.value}",
         "ConnectionStrings__cs": "{cs.connectionString}",
-        "ConnectionStrings__db": "{db.connectionString}"
+        "ConnectionStrings__db": "{db.connectionString}",
+        "DB_HOST": "{sql.bindings.tcp.host}",
+        "DB_PORT": "{sql.bindings.tcp.port}",
+        "DB_USERNAME": "sa",
+        "DB_PASSWORD": "{sql-password.value}",
+        "DB_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql.bindings.tcp.host}:{sql.bindings.tcp.port};user=sa;password={sql-password-uri-encoded.value};databaseName=db;trustServerCertificate=true",
+        "DB_DATABASE": "db"
       },
       "bindings": {
         "http": {
@@ -56,6 +111,29 @@
           "external": true
         }
       }
+    },
+    "sql-password": {
+      "type": "parameter.v0",
+      "value": "{sql-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
+            }
+          }
+        }
+      }
+    },
+    "sql-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{sql-password.value}",
+      "filter": "uri"
     }
   }
 }

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsErrorWatchingLogs">
         <source>Error watching logs</source>
-        <target state="new">Error watching logs</target>
+        <target state="translated">Error al ver los registros</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -32,6 +32,11 @@
         <target state="translated">No hay ningún recurso seleccionado</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="translated">No ajustar líneas de registro</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
         <target state="translated">Registros de consola de {0}</target>
@@ -47,19 +52,14 @@
         <target state="translated">&lt; Captura de registro en pausa entre {0} y {1}, {2} registros filtrados&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Acciones de recursos</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Seleccionar recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Configuración de registros de consola</target>
+        <source>Settings</source>
+        <target state="translated">Configuración</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
@@ -85,6 +85,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Visualizando registros...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="translated">Ajustar líneas de registro</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

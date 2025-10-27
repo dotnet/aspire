@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
-using Azure.Core;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Azure.Core;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -17,7 +16,7 @@ internal sealed class ProvisioningContext(
     ITenantResource tenant,
     AzureLocation location,
     UserPrincipal principal,
-    JsonObject userSecrets)
+    DistributedApplicationExecutionContext executionContext)
 {
     public TokenCredential Credential => credential;
     public IArmClient ArmClient => armClient;
@@ -26,5 +25,5 @@ internal sealed class ProvisioningContext(
     public IResourceGroupResource ResourceGroup => resourceGroup;
     public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
-    public JsonObject UserSecrets => userSecrets;
+    public DistributedApplicationExecutionContext ExecutionContext => executionContext;
 }

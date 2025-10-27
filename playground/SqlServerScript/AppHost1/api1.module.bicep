@@ -19,7 +19,7 @@ param mysqlserver_outputs_sqlserverfqdn string
 
 param api1_identity_outputs_clientid string
 
-resource api1 'Microsoft.App/containerApps@2024-03-01' = {
+resource api1 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'api1'
   location: location
   properties: {
@@ -36,6 +36,11 @@ resource api1 'Microsoft.App/containerApps@2024-03-01' = {
           identity: env_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: env_outputs_azure_container_apps_environment_id
     template: {

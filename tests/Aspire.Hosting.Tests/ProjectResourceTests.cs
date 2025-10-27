@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
 using System.Text;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
@@ -10,7 +12,6 @@ using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -157,6 +158,11 @@ public class ProjectResourceTests
             {
                 Assert.Equal("OTEL_METRICS_EXEMPLAR_FILTER", env.Key);
                 Assert.Equal("trace_based", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", env.Key);
+                Assert.Equal("true", env.Value);
             },
             env =>
             {
@@ -581,10 +587,16 @@ public class ProjectResourceTests
             });
 
         var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName")
+             .WithEndpoint("ep", e =>
+             {
+                 e.UriScheme = "http";
+                 e.AllocatedEndpoint = new(e, "localhost", 8000);
+             })
              .WithArgs(context =>
              {
                  context.Args.Add("arg1");
                  context.Args.Add(c1.GetEndpoint("ep"));
+                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep"));
              });
 
         using var app = appBuilder.Build();
@@ -593,7 +605,8 @@ public class ProjectResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
-            arg => Assert.Equal("http://localhost:1234", arg));
+            arg => Assert.Equal("http://localhost:1234", arg),
+            arg => Assert.Equal("http://localhost:8000", arg));
 
         // We don't yet process relationships set via the callbacks
         Assert.False(project.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
@@ -643,6 +656,79 @@ public class ProjectResourceTests
         }
 
         Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_IgnoresIISExpressProfile()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithIISExpressFirst>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Should select the "ProjectProfile" even though "IIS Express" is first
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Equal("ProjectProfile", selectedProfile);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_ReturnsNullWhenOnlyDisallowedProfiles()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithOnlyDisallowedProfiles>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Should return null when no allowed profiles are found
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Null(selectedProfile);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_SupportsExecutableCommandName()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithExecutableProfile>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Should select the "Executable" profile, ignoring "IIS Express"
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Equal("Executable", selectedProfile);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_AnnotationOverridesFiltering()
+    {
+        var appBuilder = CreateBuilder();
+
+        // Even if we specifically request an IIS Express profile via annotation, it should work
+        appBuilder.AddProject<TestProjectWithIISExpressFirst>("projectName", launchProfileName: "IIS Express");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Annotation should override the filtering
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Equal("IIS Express", selectedProfile);
     }
 
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
@@ -740,6 +826,71 @@ public class ProjectResourceTests
                     {
                         ["ASPNETCORE_ENVIRONMENT"] = "Development"
                     }
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithIISExpressFirst : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithIISExpressFirst()
+        {
+            Profiles = new()
+            {
+                ["IIS Express"] = new()
+                {
+                    CommandName = "IISExpress",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:12345"
+                },
+                ["ProjectProfile"] = new()
+                {
+                    CommandName = "Project",
+                    ApplicationUrl = "http://localhost:5000"
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithOnlyDisallowedProfiles : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithOnlyDisallowedProfiles()
+        {
+            Profiles = new()
+            {
+                ["IIS Express"] = new()
+                {
+                    CommandName = "IISExpress",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:12345"
+                },
+                ["Docker"] = new()
+                {
+                    CommandName = "Docker",
+                    ApplicationUrl = "http://localhost:5000"
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithExecutableProfile : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithExecutableProfile()
+        {
+            Profiles = new()
+            {
+                ["IIS Express"] = new()
+                {
+                    CommandName = "IISExpress",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:12345"
+                },
+                ["Executable"] = new()
+                {
+                    CommandName = "Executable",
+                    ApplicationUrl = "http://localhost:5000",
+                    ExecutablePath = "dotnet",
+                    CommandLineArgs = "exec app.dll"
                 }
             };
         }

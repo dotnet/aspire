@@ -83,6 +83,14 @@ public static class PageExtensions
         }
     }
 
+    public static async Task RefreshIfMobileAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, AspirePageContentLayout? layout) where TSerializableViewModel : class
+    {
+        if (layout is not null && !layout.ViewportInformation.IsDesktop)
+        {
+            await AfterViewModelChangedAsync(page, layout, false);
+        }
+    }
+
     /// <summary>
     /// If first visiting the page then initialize page state from storage and redirect using page state.
     /// </summary>

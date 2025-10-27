@@ -3,7 +3,7 @@
   "author": "Microsoft",
   "classifications": [
     "Common",
-    ".NET Aspire",
+    "Aspire",
     "Blazor",
     "Web",
     "Web API",
@@ -15,9 +15,9 @@
     "NUnit",
     "xUnit"
   ],
-  "name": ".NET Aspire Starter App",
+  "name": "Aspire Starter App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
@@ -41,9 +41,9 @@
   ],
   "sources": [
     {
-      "source": "./9.3",
+      "source": "./9.5",
       "target": "./",
-      "condition": "AspireVersionActual == 9.3",
+      "condition": "AspireVersionActual == 9.5",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -60,9 +60,9 @@
       ]
     },
     {
-      "source": "./9.4",
+      "source": "./13.0",
       "target": "./",
-      "condition": "AspireVersionActual == 9.4",
+      "condition": "AspireVersionActual == 13.0",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -99,81 +99,26 @@
         }
       ],
       "replaces": "net8.0",
-      "defaultValue": "net9.0"
-    },
-    "AspireVersionCli": {
-      "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
-      "datatype": "choice",
-      "choices": [
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        }
-      ],
-      "defaultValue": "9.4"
+      "defaultValue": "net10.0"
     },
     "AspireVersion": {
       "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
       "datatype": "choice",
-      "isEnabled": "Framework == net8.0",
       "choices": [
         {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
+          "choice": "13.0",
+          "displayName": "13.0",
+          "description": "Chooses Aspire 13.0"
         },
         {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
+          "choice": "9.5",
+          "displayName": "9.5",
+          "description": "Chooses Aspire 9.5"
         }
       ],
-      "defaultValue": "9.4"
-    },
-    "AspireVersionNet9": {
-      "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net9.0",
-      "choices": [
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        }
-      ],
-      "defaultValue": "9.4"
-    },
-    "AspireVersionNet10": {
-      "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net10.0",
-      "choices": [
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
-        }
-      ],
-      "defaultValue": "9.4"
+      "defaultValue": "13.0"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -182,20 +127,12 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
-          },
-          {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.5",
+            "value": "9.5"
           },
           {
             "condition": "",
-            "value": "9.4"
+            "value": "13.0"
           }
         ]
       }
@@ -535,6 +472,14 @@
       "replaces": "XmlEncodedProjectName",
       "valueSource": "name",
       "valueTransform": "xmlEncode"
+    },
+    "LocalhostTld": {
+      "type": "parameter",
+      "datatype": "bool",
+      "isEnabled": "Framework == net10.0 && AspireVersion == 13.0",
+      "defaultValue": "false",
+      "displayName": "Use the .dev.localhost TLD in the application URL",
+      "description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
     }
   },
   "primaryOutputs": [

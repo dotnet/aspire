@@ -1,15 +1,102 @@
-# Aspire Visual Studio Code extension
 
-This extension wraps the Aspire CLI to provide a better development experience for Aspire applications in Visual Studio Code.
+# Aspire VS Code Extension
 
-## Setup
+The Aspire VS Code extension provides a set of commands and tools to help you work with Aspire and Aspire AppHost projects directly from Visual Studio Code.
 
-1. Run `yarn install` in the extension root directory.
+## Commands
 
-## Running the extension
+The extension adds the following commands to VS Code:
 
-Open the `extension` directory in a new VS Code workspace, and f5 to run the extension. Note that you should have the Aspire CLI installed globally for the extension to work properly. To install the latest nightly CLI build, run `dotnet tool install --global aspire.cli --prerelease --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json`.
+| Command | Description | Availability |
+|---------|-------------|--------------|
+| Aspire: New Aspire project | Create a new Aspire apphost or starter app from a template. | Available |
+| Aspire: Add an integration | Add a hosting integration (`Aspire.Hosting.*`) to the Aspire apphost. | Available |
+| Aspire: Configure launch.json | Adds the default Aspire debugger launch configuration to your workspace's `launch.json`, which will detect and run the apphost in the workspace. | Available |
+| Aspire: Manage configuration settings | Manage configuration settings including feature flags. | Available |
+| Aspire: Open Aspire terminal | Open an Aspire VS Code terminal for working with Aspire projects. | Available |
+| Aspire: Publish deployment artifacts | Generates deployment artifacts for an Aspire apphost. | Preview |
+| Aspire: Deploy app | Deploy the contents of an Aspire apphost to its defined deployment targets. | Preview |
+| Aspire: Update integrations | Update hosting integrations and Aspire SDK in the apphost. | Preview |
 
-## Running tests
+All commands are available from the Command Palette (`Cmd+Shift+P` or `Ctrl+Shift+P`) and are grouped under the "Aspire" category.
 
-To run the tests, you can use the `yarn test` command. This will execute the tests defined in the `src/test` directory. Make sure that you recompile the tests after making changes by running `yarn compile-tests`. If you make changes to the extension code, you can recompile the extension by running `yarn compile`.
+## Debugging
+
+To run an Aspire application using the Aspire VS Code extension, you must be using Aspire 9.5 or higher. Some features are only available when certain VS Code extensions are installed and available. See the feature matrix below:
+
+| Feature | Requirement | Notes |
+|---------|-------------|-------|
+| Debug C# projects | [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) or [C# for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) | The C# extension is required for debugging .NET projects. Apphosts will be built in VS Code if C# Dev Kit is available. |
+| Debug Python projects | [Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) | Required for debugging Python projects |
+
+To run and debug your Aspire application, add an entry to the workspace `launch.json`. You can change the apphost to run by setting the `program` field to an apphost project file based on the below example:
+
+```json
+{
+    "type": "aspire",
+    "request": "launch",
+    "name": "Aspire: Launch MyAppHost",
+    "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj"
+}
+```
+
+## Requirements
+
+### Aspire CLI
+
+The [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/cli/install) must be installed and available on the path. You can install using the following scripts.
+
+On Windows:
+
+```powershell
+iex "& { $(irm https://aspire.dev/install.ps1) }"
+```
+
+On Linux or macOS:
+
+```sh
+curl -sSL https://aspire.dev/install.sh | bash
+```
+
+### .NET
+
+[.NET 8+](https://dotnet.microsoft.com/en-us/download) must be installed.
+
+## Feedback and Issues
+
+Please report [issues](https://github.com/dotnet/aspire/issues/new?template=10_bug_report.yml&labels=area-extension) or [feature requests](https://github.com/dotnet/aspire/issues/new?template=20_feature-request.yml&labels=area-extension) on the Aspire [GitHub repository](https://github.com/dotnet/aspire/issues) using the label `area-extension`.
+
+## Customizing debugger attributes for resources
+
+| Language | Debugger entry |
+|----------|-----------------|
+| C# | project |
+| Python | python |
+
+The debuggers property stores common debug configuration properties for different types of Aspire services.
+C#-based services have common debugging properties under `project`. Python-based services have their common properties under `python`.
+There is also a special entry for the apphost (`apphost`). For example:
+
+```json
+{
+    "type": "aspire",
+    "request": "launch",
+    "name": "Aspire: Launch MyAppHost",
+    "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj",
+    "debuggers": {
+        "project": {
+            "console": "integratedTerminal",
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        "apphost": {
+            "stopAtEntry": true
+        }
+    }
+}
+```
+
+## License
+
+See [LICENSE.TXT](./LICENSE.TXT) for details.

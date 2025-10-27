@@ -1,4 +1,5 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Components.Controls.PropertyValues
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
@@ -50,12 +51,12 @@
                         @FilteredResourceProperties.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid
-                    TItem="DisplayedResourcePropertyViewModel"
-                    Items="@FilteredResourceProperties"
-                    IsValueMaskedChanged="@OnValueMaskedChanged"
-                    HighlightText="@_filter"
-                    GridTemplateColumns="1fr 1.5fr" />
+                <PropertyGrid TItem="DisplayedResourcePropertyViewModel"
+                              Items="@FilteredResourceProperties"
+                              IsValueMaskedChanged="@OnValueMaskedChanged"
+                              HighlightText="@_filter"
+                              GridTemplateColumns="1fr 1.5fr"
+                              ValueComponents="_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsUrlsHeader)]" Expanded="@_isUrlsExpanded">
                 <div slot="end">
@@ -165,13 +166,13 @@
                                 GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
-                        @context.ResourceName
+                        <ResourceNameValue Resource="@context.Resource" Value="@context.ResourceName" FormatName="@FormatName" />
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsTypeHeader)]" TooltipText="@(c => string.Join(", ", c.Types))">
                         @string.Join(", ", context.Types)
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]" Class="no-ellipsis">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewRelationshipAsync(context))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton Appearance="Appearance.Lightweight" Class="button-hyperlink-no-icon" OnClick="@(() => OnViewRelationshipAsync(context))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -194,13 +195,13 @@
                                 GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
-                        @context.ResourceName
+                        <ResourceNameValue Resource="@context.Resource" Value="@context.ResourceName" FormatName="@FormatName" />
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsTypeHeader)]" TooltipText="@(c => string.Join(", ", c.Types))">
                         @string.Join(", ", context.Types)
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]" Class="no-ellipsis">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewRelationshipAsync(context))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton Appearance="Appearance.Lightweight" Class="button-hyperlink-no-icon" OnClick="@(() => OnViewRelationshipAsync(context))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -230,7 +231,8 @@
                     </AspireTemplateColumn>
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]" Class="stateColumn">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]"
-                                   Value="@(context.HealthStatus?.Humanize() ?? Loc[nameof(Resources.WaitingHealthDataStatusMessage)])"
+                                   Value="@GetHealthStatusWithTime(context)"
+                                   ToolTip="@GetHealthStatusTooltip(context)"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter"
                                    TextVisualizerTitle="@context.Name">
@@ -241,14 +243,7 @@
                                 }
                                 else
                                 {
-                                    // Browse the icon library at: https://aka.ms/fluentui-system-icons
-                                    (Icon? icon, Color color) = context.HealthStatus switch
-                                    {
-                                        HealthStatus.Healthy => ((Icon)new Icons.Filled.Size16.Heart(), Color.Success),
-                                        HealthStatus.Degraded => (new Icons.Filled.Size16.HeartBroken(), Color.Warning),
-                                        HealthStatus.Unhealthy => (new Icons.Filled.Size16.HeartBroken(), Color.Error),
-                                        _ => (new Icons.Regular.Size16.CircleHint(), Color.Info)
-                                    };
+                                    (Icon? icon, Color color) = ResourceIconHelpers.GetHealthStatusIcon(context.HealthStatus);
 
                                     <FluentIcon Value="@icon" Color="@color" Class="severity-icon"/>
                                 }

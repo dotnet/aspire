@@ -6,6 +6,10 @@ namespace Aspire.Dashboard.Model;
 internal static class KnownResourceTypes
 {
     public const string Executable = "Executable";
+    public const string ContainerExec = "ContainerExec";
     public const string Project = "Project";
     public const string Container = "Container";
+    public const string Parameter = "Parameter";
+    public const string ConnectionString = "ConnectionString";
+    public const string ExternalService = "ExternalService";
 }

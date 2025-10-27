@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
-using Xunit;
 
 namespace Aspire.Hosting.RabbitMQ.Tests;
 
@@ -106,7 +105,7 @@ public class AddRabbitMQTests
         var connectionStringResource = rabbitMqResource as IResourceWithConnectionString;
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("amqp://guest:p@ssw0rd1@localhost:27011", connectionString);
+        Assert.Equal("amqp://guest:p%40ssw0rd1@localhost:27011", connectionString);
         Assert.Equal("amqp://guest:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -222,7 +221,7 @@ public class AddRabbitMQTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "amqp://guest:{rabbit-password.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "connectionString": "amqp://guest:{rabbit-password-uri-encoded.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
               "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{expectedTag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
@@ -238,7 +237,6 @@ public class AddRabbitMQTests
               }
             }
             """;
-
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
@@ -256,7 +254,7 @@ public class AddRabbitMQTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "amqp://{user.value}:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "connectionString": "amqp://{user-uri-encoded.value}:{pass-uri-encoded.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
               "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "{user.value}",
@@ -280,7 +278,7 @@ public class AddRabbitMQTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "amqp://{user.value}:{rabbit2-password.value}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
+              "connectionString": "amqp://{user-uri-encoded.value}:{rabbit2-password-uri-encoded.value}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
               "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "{user.value}",
@@ -304,7 +302,7 @@ public class AddRabbitMQTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "amqp://guest:{pass.value}@{rabbit3.bindings.tcp.host}:{rabbit3.bindings.tcp.port}",
+              "connectionString": "amqp://guest:{pass-uri-encoded.value}@{rabbit3.bindings.tcp.host}:{rabbit3.bindings.tcp.port}",
               "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",

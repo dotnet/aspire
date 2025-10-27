@@ -2,15 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -27,15 +31,17 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private const string DurationColumn = nameof(DurationColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
     private IList<GridColumn> _gridColumns = null!;
-    private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
+    private SelectViewModel<ResourceTypeDetails> _allResource = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private ExplainErrorsButton? _explainErrorsButton;
     private int _totalItemsCount;
-    private List<OtlpApplication> _applications = default!;
-    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
-    private Subscription? _applicationsSubscription;
+    private List<SelectViewModel<SpanType>> _spanTypes = default!;
+    private List<OtlpResource> _resources = default!;
+    private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
+    private Subscription? _resourcesSubscription;
     private Subscription? _tracesSubscription;
-    private bool _applicationChanged;
+    private bool _resourceChanged;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
@@ -43,13 +49,14 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+    private AIContext? _aiContext;
 
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
     public string BasePath => DashboardUrls.TracesBasePath;
     public TracesPageViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
-    public string? ApplicationName { get; set; }
+    public string? ResourceName { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -82,6 +89,9 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     public required DimensionManager DimensionManager { get; init; }
 
     [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
+
+    [Inject]
     public required PauseManager PauseManager { get; init; }
 
     [Inject]
@@ -89,6 +99,10 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "type")]
+    public string? SpanTypeText { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
@@ -102,12 +116,12 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         return tooltip;
     }
 
-    private string GetSpansTooltip(OrderedApplication applicationSpans)
+    private string GetSpansTooltip(OrderedResource resourceSpans)
     {
-        var count = applicationSpans.TotalSpans;
-        var errorCount = applicationSpans.ErroredSpans;
+        var count = resourceSpans.TotalSpans;
+        var errorCount = resourceSpans.ErroredSpans;
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Application));
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(resourceSpans.Resource));
         tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
@@ -144,12 +158,17 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         _totalItemsCount = traces.TotalItemCount;
         _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
+        _explainErrorsButton?.UpdateHasErrors(TracesViewModel.HasErrors());
+        _aiContext?.ContextHasChanged();
+
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
+        _aiContext = CreateAIContext();
+
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -160,13 +179,14 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             new GridColumn(Name: ActionsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
         ];
 
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
-        PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
+        _allResource = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
+        _spanTypes = SpanType.CreateKnownSpanTypes(ControlsStringsLoc);
+        PageViewModel = new TracesPageViewModel { SelectedResource = _allResource, SelectedSpanType = _spanTypes[0] };
 
-        UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(callback: () => InvokeAsync(workItem: () =>
+        UpdateResources();
+        _resourcesSubscription = TelemetryRepository.OnNewResources(callback: () => InvokeAsync(workItem: () =>
         {
-            UpdateApplications();
+            UpdateResources();
             StateHasChanged();
         }));
     }
@@ -178,34 +198,43 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             return;
         }
 
-        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+        TracesViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
+        UpdateSubscription();
+
+        _aiContext?.ContextHasChanged();
+    }
+
+    private void UpdateResources()
+    {
+        _resources = TelemetryRepository.GetResources(includeUninstrumentedPeers: true);
+        _resourceViewModels = ResourcesSelectHelpers.CreateResources(_resources);
+        _resourceViewModels.Insert(0, _allResource);
+
         UpdateSubscription();
     }
 
-    private void UpdateApplications()
+    private Task HandleSelectedResourceChanged()
     {
-        _applications = TelemetryRepository.GetApplications(includeUninstrumentedPeers: true);
-        _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
-        _applicationViewModels.Insert(0, _allApplication);
-        UpdateSubscription();
-    }
-
-    private Task HandleSelectedApplicationChanged()
-    {
-        _applicationChanged = true;
+        _resourceChanged = true;
 
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
+    private async Task HandleSelectedSpanTypeChangedAsync()
+    {
+        //await ClearSelectedLogEntryAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+    }
+
     private void UpdateSubscription()
     {
-        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+        var selectedResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
+        if (_tracesSubscription is null || _tracesSubscription.ResourceKey != selectedResourceKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedResourceKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
@@ -219,15 +248,32 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
-    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
-    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpResource app) => OtlpResource.GetResourceName(app, _resources);
+    private string GetResourceName(OtlpResourceView app) => OtlpResource.GetResourceName(app, _resources);
+
+    private static string GetRowClass(OtlpTrace entry)
+    {
+        if (entry.Spans.Any(span => span.Status == OtlpSpanStatusCode.Error))
+        {
+            return "trace-row-error";
+        }
+
+        return string.Empty;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_applicationChanged)
+        // Check to see whether max item count should be set on every render.
+        // This is required because the data grid's virtualize component can be recreated on data change.
+        if (_dataGrid != null && FluentDataGridHelper<OtlpTrace>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+
+        if (_resourceChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _applicationChanged = false;
+            _resourceChanged = false;
         }
         if (firstRender)
         {
@@ -254,15 +300,19 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     public void Dispose()
     {
-        _applicationsSubscription?.Dispose();
+        _aiContext?.Dispose();
+        _resourcesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public async Task UpdateViewModelFromQueryAsync(TracesPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
-        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+        viewModel.SelectedResource = _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
+        TracesViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
+
+        viewModel.SelectedSpanType = _spanTypes.SingleOrDefault(t => t.Id?.Name == SpanTypeText) ?? _spanTypes[0];
+        TracesViewModel.SpanType = viewModel.SelectedSpanType.Id;
 
         if (SerializedFilters is not null)
         {
@@ -286,7 +336,8 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         return DashboardUrls.TracesUrl(
-            resource: serializable.SelectedApplication,
+            resource: serializable.SelectedResource,
+            type: serializable.SelectedSpanType,
             filters: filters);
     }
 
@@ -294,12 +345,13 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     {
         return new TracesPageState
         {
-            SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
+            SelectedResource = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
+            SelectedSpanType = PageViewModel.SelectedSpanType.Id?.Name,
             Filters = TracesViewModel.Filters
         };
     }
 
-    private async Task OpenFilterAsync(TelemetryFilter? entry)
+    private async Task OpenFilterAsync(FieldTelemetryFilter? entry)
     {
         if (_contentLayout is not null)
         {
@@ -320,7 +372,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         var data = new FilterDialogViewModel
         {
             Filter = entry,
-            PropertyKeys = TelemetryRepository.GetTracePropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
+            PropertyKeys = TelemetryRepository.GetTracePropertyKeys(PageViewModel.SelectedResource.Id?.GetResourceKey()),
             KnownKeys = KnownTraceFields.AllFields,
             GetFieldValues = TelemetryRepository.GetTraceFieldValues
         };
@@ -329,7 +381,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     private async Task HandleFilterDialog(DialogResult result)
     {
-        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is FieldTelemetryFilter filter)
         {
             if (filterResult.Delete)
             {
@@ -349,10 +401,19 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
-    private Task ClearTraces(ApplicationKey? key)
+    private async Task ExplainErrorsAsync()
+    {
+        await AIContextProvider.LaunchAssistantSidebarAsync(
+            promptContext => PromptContextsBuilder.ErrorTraces(
+                promptContext,
+                AIPromptsLoc[nameof(AIPrompts.PromptErrorTraces)],
+                () => TracesViewModel.GetErrorTraces(count: int.MaxValue)));
+    }
+
+    private Task ClearTraces(ResourceKey? key)
     {
         TelemetryRepository.ClearTraces(key);
         return Task.CompletedTask;
@@ -369,17 +430,38 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             contentLayout: _contentLayout);
     }
 
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(Traces), c =>
+        {
+            c.BuildIceBreakers = (builder, context) =>
+            {
+                var resource = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
+                if (resource != null)
+                {
+                    builder.Traces(context, resource, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));
+                }
+                else
+                {
+                    builder.Traces(context, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));
+                }
+            };
+        });
+    }
+
     public class TracesPageViewModel
     {
-        public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
+        public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
+        public required SelectViewModel<SpanType> SelectedSpanType { get; set; }
     }
 
     public class TracesPageState
     {
-        public string? SelectedApplication { get; set; }
-        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+        public string? SelectedResource { get; set; }
+        public string? SelectedSpanType { get; set; }
+        public required IReadOnlyCollection<FieldTelemetryFilter> Filters { get; set; }
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(Traces));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Traces);
 }

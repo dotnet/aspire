@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Xunit;
 
 namespace Aspire.Hosting.Containers.Tests;
 
@@ -12,6 +11,7 @@ public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDockerSocketBindMountAllowsDockerCliInContainer()
     {
         var dockerfile = """

@@ -91,15 +91,54 @@ internal class ResourceSnapshotBuilder
         }
     }
 
+    public CustomResourceSnapshot ToSnapshot(ContainerExec executable, CustomResourceSnapshot previous)
+    {
+        IResource? appModelResource = null;
+        _ = executable.AppModelResourceName is not null && _resourceState.ApplicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource);
+
+        var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
+        var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
+        var launchArguments = GetLaunchArgs(executable);
+
+        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
+        if (appModelResource != null)
+        {
+            relationships = ApplicationModel.ResourceSnapshotBuilder.BuildRelationships(appModelResource);
+        }
+
+        return previous with
+        {
+            ResourceType = KnownResourceTypes.Executable,
+            State = state,
+            ExitCode = executable.Status?.ExitCode,
+            Properties = previous.Properties.SetResourcePropertyRange([
+                new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
+                new(KnownProperties.Resource.AppArgs, launchArguments?.Args) { IsSensitive = launchArguments?.IsSensitive ?? false },
+                new(KnownProperties.Resource.AppArgsSensitivity, launchArguments?.ArgsAreSensitive) { IsSensitive = launchArguments?.IsSensitive ?? false },
+            ]),
+            EnvironmentVariables = environment,
+            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
+            StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
+            StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
+            Relationships = relationships
+        };
+    }
+
     public CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;
+        string? launchProfileName = null;
         IResource? appModelResource = null;
 
         if (executable.AppModelResourceName is not null &&
             _resourceState.ApplicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource))
         {
-            projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
+            if (appModelResource is ProjectResource projectResource)
+            {
+                projectPath = projectResource.GetProjectMetadata().ProjectPath;
+                launchProfileName = projectResource.GetEffectiveLaunchProfile()?.Name;
+            }
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -129,6 +168,7 @@ internal class ResourceSnapshotBuilder
                     new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                     new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
                     new(KnownProperties.Project.Path, projectPath),
+                    new(KnownProperties.Project.LaunchProfile, launchProfileName),
                     new(KnownProperties.Resource.AppArgs, launchArguments?.Args) { IsSensitive = launchArguments?.IsSensitive ?? false },
                     new(KnownProperties.Resource.AppArgsSensitivity, launchArguments?.ArgsAreSensitive) { IsSensitive = launchArguments?.IsSensitive ?? false },
                 ]),

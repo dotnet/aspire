@@ -8,11 +8,22 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
+    public static partial class DockerComposeAspireDashboardResourceBuilderExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> WithForwardedHeaders(this ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> builder, bool enabled = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> WithHostPort(this ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> builder, int? port = null) { throw null; }
+    }
+
     public static partial class DockerComposeEnvironmentExtensions
     {
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> AddDockerComposeEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> ConfigureComposeFile(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.Resources.ComposeFile> configure) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource>> configure) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, bool enabled = true) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithProperties(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.DockerComposeEnvironmentResource> configure) { throw null; }
     }
@@ -32,11 +43,22 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Docker
 {
+    public partial class DockerComposeAspireDashboardResource : ApplicationModel.ContainerResource
+    {
+        public DockerComposeAspireDashboardResource(string name) : base(default!, default) { }
+
+        public ApplicationModel.EndpointReference OtlpGrpcEndpoint { get { throw null; } }
+
+        public ApplicationModel.EndpointReference PrimaryEndpoint { get { throw null; } }
+    }
+
     public partial class DockerComposeEnvironmentResource : ApplicationModel.Resource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
     {
         public DockerComposeEnvironmentResource(string name) : base(default!) { }
 
         public bool BuildContainerImages { get { throw null; } set { } }
+
+        public bool DashboardEnabled { get { throw null; } set { } }
 
         public string? DefaultContainerRegistry { get { throw null; } set { } }
 
@@ -87,6 +109,8 @@ namespace Aspire.Hosting.Docker.Resources
         [YamlDotNet.Serialization.YamlMember(Alias = "volumes", DefaultValuesHandling = YamlDotNet.Serialization.DefaultValuesHandling.OmitEmptyCollections)]
         public System.Collections.Generic.Dictionary<string, ServiceNodes.Volume> Volumes { get { throw null; } set { } }
 
+        public ComposeFile AddConfig(ComposeNodes.Config config) { throw null; }
+
         public ComposeFile AddNetwork(ComposeNodes.Network network) { throw null; }
 
         public ComposeFile AddService(ComposeNodes.Service service) { throw null; }
@@ -100,8 +124,11 @@ namespace Aspire.Hosting.Docker.Resources
 namespace Aspire.Hosting.Docker.Resources.ComposeNodes
 {
     [YamlDotNet.Serialization.YamlSerializable]
-    public sealed partial class Config
+    public sealed partial class Config : NamedComposeMember
     {
+        [YamlDotNet.Serialization.YamlMember(Alias = "content")]
+        public string? Content { get { throw null; } set { } }
+
         [YamlDotNet.Serialization.YamlMember(Alias = "external")]
         public bool? External { get { throw null; } set { } }
 
@@ -110,9 +137,6 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes
 
         [YamlDotNet.Serialization.YamlMember(Alias = "labels", DefaultValuesHandling = YamlDotNet.Serialization.DefaultValuesHandling.OmitEmptyCollections)]
         public System.Collections.Generic.Dictionary<string, string> Labels { get { throw null; } set { } }
-
-        [YamlDotNet.Serialization.YamlMember(Alias = "name")]
-        public string? Name { get { throw null; } set { } }
     }
 
     public abstract partial class NamedComposeMember
@@ -315,6 +339,8 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes
         [YamlDotNet.Serialization.YamlMember(Alias = "working_dir")]
         public string? WorkingDir { get { throw null; } set { } }
 
+        public Service AddConfig(ServiceNodes.ConfigReference config) { throw null; }
+
         public Service AddEnvironmentalVariable(string key, string? value) { throw null; }
 
         public Service AddVolume(ServiceNodes.Volume volume) { throw null; }
@@ -358,10 +384,10 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes
     public sealed partial class ConfigReference
     {
         [YamlDotNet.Serialization.YamlMember(Alias = "gid")]
-        public int? Gid { get { throw null; } set { } }
+        public string? Gid { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "mode")]
-        public int? Mode { get { throw null; } set { } }
+        public System.IO.UnixFileMode? Mode { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "source")]
         public string? Source { get { throw null; } set { } }
@@ -370,7 +396,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes
         public string? Target { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "uid")]
-        public int? Uid { get { throw null; } set { } }
+        public string? Uid { get { throw null; } set { } }
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
@@ -501,10 +527,8 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
-    public sealed partial class LabelSpecs
+    public sealed partial class LabelSpecs : System.Collections.Generic.Dictionary<string, string>
     {
-        [YamlDotNet.Serialization.YamlMember(Alias = "additional_labels")]
-        public System.Collections.Generic.Dictionary<string, string> AdditionalLabels { get { throw null; } set { } }
     }
 
     [YamlDotNet.Serialization.YamlSerializable]

@@ -1,7 +1,7 @@
-﻿<FluentMenu Open="@IsNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh; margin-top: 2px;">
+﻿<FluentMenu Class="aspire-menu-container" Open="@IsNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh; margin-top: 2px; overflow-y: auto;">
     @foreach (var item in GetMobileNavMenuEntries())
     {
-        <FluentMenuItem OnClick="@(async () => { CloseNavMenu(); await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;">
+        <FluentMenuItem OnClick="@(async () => { CloseNavMenu(); await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;" title="@item.Text">
             <span>@item.Text</span>
 
             @if (item.Icon is { } icon)
@@ -30,10 +30,16 @@
     public required bool IsNavMenuOpen { get; set; }
 
     [Parameter, EditorRequired]
+    public required bool IsAIEnabled { get; set; }
+
+    [Parameter, EditorRequired]
     public required Action CloseNavMenu { get; set; }
 
     [Parameter, EditorRequired]
     public required Func<Task> LaunchHelpAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> LaunchAIAssistantAsync { get; set; }
 
     [Parameter, EditorRequired]
     public required Func<Task> LaunchSettingsAsync { get; set; }

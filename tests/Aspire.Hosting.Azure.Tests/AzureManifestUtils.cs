@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Utils;
@@ -23,7 +24,7 @@ public sealed class AzureManifestUtils
         {
             var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
             var azurePreparer = new AzureResourcePreparer(Options.Create(new AzureProvisioningOptions()), executionContext);
-            await azurePreparer.BeforeStartAsync(appModel, cancellationToken: default);
+            await azurePreparer.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), appModel), cancellationToken: default);
         }
 
         string manifestDir = Directory.CreateTempSubdirectory(resource.Name).FullName;

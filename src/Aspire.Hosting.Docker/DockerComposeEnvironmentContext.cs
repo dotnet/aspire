@@ -144,7 +144,7 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
     {
         if (serviceResource.TargetResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbacks))
         {
-            var context = new CommandLineArgsCallbackContext(serviceResource.Args, cancellationToken: cancellationToken)
+            var context = new CommandLineArgsCallbackContext(serviceResource.Args, serviceResource.TargetResource, cancellationToken: cancellationToken)
             {
                 ExecutionContext = executionContext
             };

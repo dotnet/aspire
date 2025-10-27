@@ -15,6 +15,7 @@ internal static class ResourceExtensions
             Metadata =
             {
                 Name = resource.Name.ToDeploymentName(),
+                Labels = context.Labels.ToDictionary(),
             },
             Spec =
             {
@@ -43,6 +44,7 @@ internal static class ResourceExtensions
             Metadata =
             {
                 Name = resource.Name.ToStatefulSetName(),
+                Labels = context.Labels.ToDictionary(),
             },
             Spec =
             {
@@ -125,6 +127,7 @@ internal static class ResourceExtensions
             Metadata =
             {
                 Name = resource.Name.ToServiceName(),
+                Labels = context.Labels.ToDictionary(),
             },
             Spec =
             {
@@ -230,7 +233,8 @@ internal static class ResourceExtensions
             .WithContainerEnvironmentalVariables(context)
             .WithContainerSecrets(context)
             .WithContainerPorts(context)
-            .WithContainerVolumes(context);
+            .WithContainerVolumes(context)
+            .WithContainerProbes(context);
     }
 
     private static ContainerV1 WithContainerVolumes(this ContainerV1 container, KubernetesResource context)
@@ -339,6 +343,36 @@ internal static class ResourceExtensions
 
         return container;
     }
+
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private static ContainerV1 WithContainerProbes(this ContainerV1 container, KubernetesResource context)
+    {
+        if (context.Probes.Count == 0)
+        {
+            return container;
+        }
+
+        foreach (var (probeType, probe) in context.Probes)
+        {
+            switch (probeType)
+            {
+                case ProbeType.Startup:
+                    container.StartupProbe = probe;
+                    break;
+
+                case ProbeType.Readiness:
+                    container.ReadinessProbe = probe;
+                    break;
+
+                case ProbeType.Liveness:
+                    container.LivenessProbe = probe;
+                    break;
+            }
+        }
+
+        return container;
+    }
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     private static PersistentVolume CreatePersistentVolume(KubernetesResource context, VolumeMountV1 volume)
     {

@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../CommandStrings.resx">
+    <body>
+      <trans-unit id="RestartDescription">
+        <source>Restart resource</source>
+        <target state="translated">Uruchom ponownie zasób</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestartName">
+        <source>Restart</source>
+        <target state="translated">Ponownie uruchom</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartDescription">
+        <source>Start resource</source>
+        <target state="translated">Uruchom zasób</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartName">
+        <source>Start</source>
+        <target state="translated">Początek</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StopDescription">
+        <source>Stop resource</source>
+        <target state="translated">Zatrzymaj zasób</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StopName">
+        <source>Stop</source>
+        <target state="translated">Zatrzymaj</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

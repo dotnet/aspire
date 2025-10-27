@@ -24,6 +24,18 @@
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19139",
         "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20080"
       }
+    },
+    "generate-manifest": {
+      "commandName": "Project",
+      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16175"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:15888"
     }
   }
 }

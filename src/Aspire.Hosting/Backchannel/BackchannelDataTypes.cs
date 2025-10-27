@@ -1,7 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// These types are source shared between the CLI and the Aspire.Hosting projects.
+// The CLI sets the types in its own namespace.
+#if CLI
+namespace Aspire.Cli.Backchannel;
+#else
 namespace Aspire.Hosting.Backchannel;
+#endif
+
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -39,10 +47,12 @@ internal sealed class RpcResourceState
 /// </summary>
 internal sealed class DashboardUrlsState
 {
+    public bool DashboardHealthy { get; init; } = true;
+
     /// <summary>
     /// Gets the base dashboard URL with a login token.
     /// </summary>
-    public required string BaseUrlWithLoginToken { get; init; }
+    public string? BaseUrlWithLoginToken { get; init; }
 
     /// <summary>
     /// Gets the Codespaces dashboard URL with a login token, if available.
@@ -115,6 +125,21 @@ internal sealed class PublishingActivityData
     /// Gets the input information for prompt activities, if available.
     /// </summary>
     public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
+
+    /// <summary>
+    /// Gets the log level for log activities, if available.
+    /// </summary>
+    public string? LogLevel { get; init; }
+
+    /// <summary>
+    /// Gets the timestamp for log activities, if available.
+    /// </summary>
+    public DateTimeOffset? Timestamp { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether markdown formatting is enabled for the publishing activity.
+    /// </summary>
+    public bool EnableMarkdown { get; init; } = true;
 }
 
 /// <summary>
@@ -122,6 +147,12 @@ internal sealed class PublishingActivityData
 /// </summary>
 internal sealed class PublishingPromptInput
 {
+    /// <summary>
+    /// Gets the name for the input.
+    /// Nullable for backwards compatibility with Aspire 9.5 and older app hosts.
+    /// </summary>
+    public string? Name { get; init; }
+
     /// <summary>
     /// Gets the label for the input.
     /// </summary>
@@ -146,6 +177,25 @@ internal sealed class PublishingPromptInput
     /// Gets the default value for the input.
     /// </summary>
     public string? Value { get; init; }
+
+    /// <summary>
+    /// Gets the validation errors for the input.
+    /// </summary>
+    public IReadOnlyList<string>? ValidationErrors { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a custom choice is allowed.
+    /// </summary>
+    public bool AllowCustomChoice { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the state should be updated when the input value changes.
+    /// </summary>
+    public bool UpdateStateOnChange { get; init; }
+
+    public bool Loading { get; init; }
+
+    public bool Disabled { get; init; }
 }
 
 /// <summary>
@@ -157,6 +207,7 @@ internal static class PublishingActivityTypes
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
     public const string Prompt = "prompt";
+    public const string Log = "log";
 }
 
 /// <summary>
@@ -168,4 +219,33 @@ internal static class CompletionStates
     public const string Completed = "Completed";
     public const string CompletedWithWarning = "CompletedWithWarning";
     public const string CompletedWithError = "CompletedWithError";
+}
+
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
+}
+
+internal class CommandOutput
+{
+    public required string Text { get; init; }
+    public bool IsErrorMessage { get; init; }
+    public int? LineNumber { get; init; }
+    /// <summary>
+    /// Additional info about type of the message.
+    /// Should be used for controlling the display style.
+    /// </summary>
+    public string? Type { get; init; }
+
+    public int? ExitCode { get; init; }
+}
+
+internal class PublishingPromptInputAnswer
+{
+    public string? Name { get; set; }
+    public string? Value { get; set; }
 }

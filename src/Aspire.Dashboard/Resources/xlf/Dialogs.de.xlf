@@ -97,6 +97,141 @@
         <target state="translated">Wert</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTabText">
+        <source>Details</source>
+        <target state="translated">Details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="translated">Fehler beim Anzeigen des GenAI-Inhalts:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDurationLabel">
+        <source>Duration</source>
+        <target state="translated">Dauer</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIErrorHeaderText">
+        <source>Error</source>
+        <target state="translated">Fehler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputHeaderText">
+        <source>Input</source>
+        <target state="translated">Eingabe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputOutputTabText">
+        <source>Input &amp; output</source>
+        <target state="translated">Eingabe und Ausgabe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputTokensText">
+        <source>Input tokens: {0}</source>
+        <target state="translated">Eingabetoken: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryMessage">
+        <source>Message</source>
+        <target state="translated">Nachricht</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryOutput">
+        <source>Output</source>
+        <target state="translated">Ausgabe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryStatus">
+        <source>Status</source>
+        <target state="translated">Status</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolCalls">
+        <source>Tool calls</source>
+        <target state="translated">Toolaufrufe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleAssistant">
+        <source>Assistant</source>
+        <target state="translated">Assistent</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleError">
+        <source>Error</source>
+        <target state="translated">Fehler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleSystem">
+        <source>System</source>
+        <target state="translated">System</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleTool">
+        <source>Tool</source>
+        <target state="translated">Tool</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleUser">
+        <source>User</source>
+        <target state="translated">Benutzende Person</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINAText">
+        <source>n/a</source>
+        <target state="translated">n/v</target>
+        <note>Abbreviation for Not Available</note>
+      </trans-unit>
+      <trans-unit id="GenAINextButtonText">
+        <source>Next</source>
+        <target state="translated">Weiter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContent">
+        <source>No message content.</source>
+        <target state="translated">Kein Nachrichteninhalt.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContentMoreInformationMessage">
+        <source>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</source>
+        <target state="translated">Es wurde kein Nachrichteninhalt in den Telemetriedaten aufgezeichnet. Möglicherweise ist eine zusätzliche Konfiguration erforderlich, um vertrauliche Inhalte anzuzeigen. Weitere Informationen finden Sie unter &lt;a href="{0}" target="_blank"&gt;KI-Telemetriekonfiguration&lt;/a&gt;.</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="GenAINoMessages">
+        <source>No messages found.</source>
+        <target state="translated">Keine Nachrichten gefunden.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputHeaderText">
+        <source>Output</source>
+        <target state="translated">Ausgabe</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputTokensText">
+        <source>Output tokens: {0}</source>
+        <target state="translated">Ausgabetoken: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIPreviewTabText">
+        <source>Preview</source>
+        <target state="translated">Vorschau</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIPreviousButtonText">
+        <source>Previous</source>
+        <target state="translated">Zurück</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIRawTabText">
+        <source>Raw</source>
+        <target state="translated">Roh</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAITokensLabel">
+        <source>Tokens</source>
+        <target state="translated">Token</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
         <target state="translated">Websiteweite Navigation</target>
@@ -184,17 +319,17 @@
       </trans-unit>
       <trans-unit id="InteractionButtonCancel">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">Abbrechen</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Schließen</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonOk">
         <source>OK</source>
-        <target state="new">OK</target>
+        <target state="translated">OK</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
@@ -202,15 +337,15 @@
         <target state="translated">In Textschnellansicht öffnen</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogCancelButtonText">
+      <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
         <target state="translated">Abbrechen</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogMessage">
-        <source>Waiting for trace {0} to load...</source>
-        <target state="translated">Es wird auf das Laden der Ablaufverfolgung {0} gewartet...</target>
-        <note>{0} is a trace ID</note>
+      <trans-unit id="OpenSpanDialogMessage">
+        <source>Waiting for span {0} to load...</source>
+        <target state="translated">Es wird auf das Laden des Spans {0} gewartet ...</target>
+        <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
@@ -221,6 +356,11 @@
         <source>Resource logs and telemetry</source>
         <target state="translated">Ressourcenprotokolle und Telemetrie</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="translated">Laufzeit: {0}</target>
+        <note>{0} is the .NET runtime version</note>
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>

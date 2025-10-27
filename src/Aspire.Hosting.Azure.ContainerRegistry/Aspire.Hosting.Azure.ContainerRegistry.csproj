@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure container registry</PackageTags>
-    <Description>Azure Container Registry resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure container registry cloud</PackageTags>
+    <Description>Azure Container Registry resource types for Aspire.</Description>
     <EnablePackageValidation>false</EnablePackageValidation>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>

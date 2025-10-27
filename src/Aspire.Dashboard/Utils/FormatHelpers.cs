@@ -18,6 +18,11 @@ public enum MillisecondsDisplay
 
 internal static partial class FormatHelpers
 {
+    // Limit size of very long data that is written in large grids.
+    public const int ColumnMaximumTextLength = 250;
+    public const int TooltipMaximumTextLength = 1500;
+    public const string Ellipsis = "…";
+
     // There are an unbound number of CultureInfo instances so we don't want to use it as the key.
     // Someone could have also customized their culture so we don't want to use the name as the key.
     // This struct contains required information from the culture that is used in cached format strings.
@@ -132,5 +137,25 @@ internal static partial class FormatHelpers
             _ => throw new ArgumentException("Unexpected value.", nameof(maxDecimalPlaces))
         };
         return value.ToString(formatString, provider ?? CultureInfo.CurrentCulture);
+    }
+
+    public static string TruncateText(string? text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+
+        if (text.Length <= maxLength)
+        {
+            return text;
+        }
+
+        return string.Concat(text.AsSpan(0, maxLength - Ellipsis.Length), Ellipsis);
+    }
+
+    public static string CombineWithSeparator(string separator, params string?[] parts)
+    {
+        return string.Join(separator, parts.Where(p => !string.IsNullOrEmpty(p)));
     }
 }

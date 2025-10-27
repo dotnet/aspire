@@ -3,19 +3,17 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestAppHostBackchannel : IAppHostBackchannel
 {
-    public TaskCompletionSource? PingAsyncCalled { get; set; }
-    public Func<long, Task<long>>? PingAsyncCallback { get; set; }
-
     public TaskCompletionSource? RequestStopAsyncCalled { get; set; }
     public Func<Task>? RequestStopAsyncCallback { get; set; }
 
     public TaskCompletionSource? GetDashboardUrlsAsyncCalled { get; set; }
-    public Func<CancellationToken, Task<(string, string?)>>? GetDashboardUrlsAsyncCallback { get; set; }
+    public Func<CancellationToken, Task<DashboardUrlsState>>? GetDashboardUrlsAsyncCallback { get; set; }
 
     public TaskCompletionSource? GetResourceStatesAsyncCalled { get; set; }
     public Func<CancellationToken, IAsyncEnumerable<RpcResourceState>>? GetResourceStatesAsyncCallback { get; set; }
@@ -32,13 +30,8 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        PingAsyncCalled?.SetResult();
-        return PingAsyncCallback != null
-            ? PingAsyncCallback.Invoke(timestamp)
-            : Task.FromResult(timestamp);
-    }
+    public TaskCompletionSource? AddDisconnectHandlerCalled { get; set; }
+    public Action<EventHandler<JsonRpcDisconnectedEventArgs>>? AddDisconnectHandlerCallback { get; set; }
 
     public Task RequestStopAsync(CancellationToken cancellationToken)
     {
@@ -53,12 +46,18 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    public Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         GetDashboardUrlsAsyncCalled?.SetResult();
         return GetDashboardUrlsAsyncCallback != null
             ? GetDashboardUrlsAsyncCallback.Invoke(cancellationToken)
-            : Task.FromResult<(string, string?)>(("http://localhost:5000/login?t=abcd", "https://monalisa-hot-potato-vrpqrxxrx7x2rxx-5000.app.github.dev/login?t=abcd"));
+            : Task.FromResult(
+                new DashboardUrlsState
+                {
+                    DashboardHealthy = true,
+                    BaseUrlWithLoginToken = "http://localhost:5000/login?t=abcd",
+                    CodespacesUrlWithLoginToken = "https://monalisa-hot-potato-vrpqrxxrx7x2rxx-5000.app.github.dev/login?t=abcd"
+                });
     }
 
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
@@ -237,8 +236,25 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    public Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
+    }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        AddDisconnectHandlerCalled?.SetResult();
+        AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
 }

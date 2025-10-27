@@ -9,13 +9,24 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
+public abstract class TelemetryFilter : IEquatable<TelemetryFilter>
+{
+    public bool Enabled { get; set; } = true;
+
+    public abstract bool Equals(TelemetryFilter? other);
+
+    public abstract IEnumerable<OtlpLogEntry> Apply(IEnumerable<OtlpLogEntry> input);
+
+    public abstract bool Apply(OtlpSpan span);
+}
+
 [DebuggerDisplay("{DebuggerDisplayText,nq}")]
-public class TelemetryFilter : IEquatable<TelemetryFilter>
+public class FieldTelemetryFilter : TelemetryFilter
 {
     public string Field { get; set; } = default!;
+    public string? FallbackField { get; set; }
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
-    public bool Enabled { get; set; } = true;
 
     private string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 
@@ -36,7 +47,7 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             KnownTraceFields.KindField => "Kind",
             KnownTraceFields.StatusField => "Status",
             KnownSourceFields.NameField => "Source",
-            KnownResourceFields.ServiceNameField => "Application",
+            KnownResourceFields.ServiceNameField => "Resource",
             _ => name
         };
     }
@@ -97,7 +108,7 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
-    public IEnumerable<OtlpLogEntry> Apply(IEnumerable<OtlpLogEntry> input)
+    public override IEnumerable<OtlpLogEntry> Apply(IEnumerable<OtlpLogEntry> input)
     {
         switch (Field)
         {
@@ -124,12 +135,12 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             default:
                 {
                     var func = ConditionToFuncString(Condition);
-                    return input.Where(x => func(OtlpLogEntry.GetFieldValue(x, Field), Value));
+                    return input.Where(x => func(OtlpLogEntry.GetFieldValue(x, Field) ?? string.Empty, Value));
                 }
         }
     }
 
-    public bool Apply(OtlpSpan span)
+    public override bool Apply(OtlpSpan span)
     {
         var fieldValue = OtlpSpan.GetFieldValue(span, Field);
         var isNot = Condition is FilterCondition.NotEqual or FilterCondition.NotContains;
@@ -167,24 +178,25 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
         }
     }
 
-    public bool Equals(TelemetryFilter? other)
+    public override bool Equals(TelemetryFilter? other)
     {
-        if (other == null)
+        var otherFilter = other as FieldTelemetryFilter;
+        if (otherFilter == null)
         {
             return false;
         }
 
-        if (Field != other.Field)
+        if (Field != otherFilter.Field)
         {
             return false;
         }
 
-        if (Condition != other.Condition)
+        if (Condition != otherFilter.Condition)
         {
             return false;
         }
 
-        if (!string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Value, otherFilter.Value, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }

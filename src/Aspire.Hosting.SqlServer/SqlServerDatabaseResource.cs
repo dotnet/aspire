@@ -38,6 +38,14 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     }
 
     /// <summary>
+    /// Gets the JDBC connection string for the SQL Server database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true;databaseName={database}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
+    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
@@ -47,4 +55,10 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

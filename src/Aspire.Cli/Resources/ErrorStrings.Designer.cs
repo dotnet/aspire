@@ -9,213 +9,324 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class ErrorStrings {
-        
+    public class ErrorStrings
+    {
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ErrorStrings() {
+        internal ErrorStrings()
+        {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        public static System.Resources.ResourceManager ResourceManager {
-            get {
-                if (object.Equals(null, resourceMan)) {
+        public static System.Resources.ResourceManager ResourceManager
+        {
+            get
+            {
+                if (object.Equals(null, resourceMan))
+                {
                     System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.ErrorStrings", typeof(ErrorStrings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        public static System.Globalization.CultureInfo Culture {
-            get {
+        public static System.Globalization.CultureInfo Culture
+        {
+            get
+            {
                 return resourceCulture;
             }
-            set {
+            set
+            {
                 resourceCulture = value;
             }
         }
-        
-        public static string InvalidLocaleProvided {
-            get {
+
+        public static string MinimumSdkVersionNotMet
+        {
+            get
+            {
+                return ResourceManager.GetString("MinimumSdkVersionNotMet", resourceCulture);
+            }
+        }
+
+        public static string InvalidLocaleProvided
+        {
+            get
+            {
                 return ResourceManager.GetString("InvalidLocaleProvided", resourceCulture);
             }
         }
-        
-        public static string UnsupportedLocaleProvided {
-            get {
+
+        public static string UnsupportedLocaleProvided
+        {
+            get
+            {
                 return ResourceManager.GetString("UnsupportedLocaleProvided", resourceCulture);
             }
         }
-        
-        public static string AlreadyConnectedToBackchannel {
-            get {
+
+        public static string AlreadyConnectedToBackchannel
+        {
+            get
+            {
                 return ResourceManager.GetString("AlreadyConnectedToBackchannel", resourceCulture);
             }
         }
-        
-        public static string AppHostIncompatibleWithCli {
-            get {
+
+        public static string AppHostIncompatibleWithCli
+        {
+            get
+            {
                 return ResourceManager.GetString("AppHostIncompatibleWithCli", resourceCulture);
             }
         }
-        
-        public static string ExtensionIncompatibleWithCli {
-            get {
+
+        public static string ExtensionIncompatibleWithCli
+        {
+            get
+            {
                 return ResourceManager.GetString("ExtensionIncompatibleWithCli", resourceCulture);
             }
         }
-        
-        public static string CertificatesMayNotBeFullyTrusted {
-            get {
+
+        public static string CertificatesMayNotBeFullyTrusted
+        {
+            get
+            {
                 return ResourceManager.GetString("CertificatesMayNotBeFullyTrusted", resourceCulture);
             }
         }
-        
-        public static string FailedToRetrieveCachedTemplatePackages {
-            get {
+
+        public static string FailedToRetrieveCachedTemplatePackages
+        {
+            get
+            {
                 return ResourceManager.GetString("FailedToRetrieveCachedTemplatePackages", resourceCulture);
             }
         }
-        
-        public static string FailedToSearchForPackages {
-            get {
+
+        public static string FailedToRetrieveCachedAllAspirePackages
+        {
+            get
+            {
+                return ResourceManager.GetString("FailedToRetrieveCachedAllAspirePackages", resourceCulture);
+            }
+        }
+
+        public static string FailedToSearchForPackages
+        {
+            get
+            {
                 return ResourceManager.GetString("FailedToSearchForPackages", resourceCulture);
             }
         }
-        
-        public static string AppHostWasSpecifiedButDoesntExist {
-            get {
+
+        public static string AppHostWasSpecifiedButDoesntExist
+        {
+            get
+            {
                 return ResourceManager.GetString("AppHostWasSpecifiedButDoesntExist", resourceCulture);
             }
         }
-        
-        public static string ProjectFileDoesntExist {
-            get {
+
+        public static string ProjectFileDoesntExist
+        {
+            get
+            {
                 return ResourceManager.GetString("ProjectFileDoesntExist", resourceCulture);
             }
         }
-        
-        public static string ProjectCouldNotBeAnalyzed {
-            get {
+
+        public static string ProjectCouldNotBeAnalyzed
+        {
+            get
+            {
                 return ResourceManager.GetString("ProjectCouldNotBeAnalyzed", resourceCulture);
             }
         }
-        
-        public static string ProjectIsNotAppHost {
-            get {
+
+        public static string ProjectIsNotAppHost
+        {
+            get
+            {
                 return ResourceManager.GetString("ProjectIsNotAppHost", resourceCulture);
             }
         }
-        
-        public static string CouldNotParseAspireSDKVersion {
-            get {
+
+        public static string CouldNotParseAspireSDKVersion
+        {
+            get
+            {
                 return ResourceManager.GetString("CouldNotParseAspireSDKVersion", resourceCulture);
             }
         }
-        
-        public static string AspireSDKVersionNotSupported {
-            get {
+
+        public static string AspireSDKVersionNotSupported
+        {
+            get
+            {
                 return ResourceManager.GetString("AspireSDKVersionNotSupported", resourceCulture);
             }
         }
-        
-        public static string UnableToRetrieveAssemblyVersion {
-            get {
+
+        public static string UnableToRetrieveAssemblyVersion
+        {
+            get
+            {
                 return ResourceManager.GetString("UnableToRetrieveAssemblyVersion", resourceCulture);
             }
         }
-        
-        public static string CantUseBothWatchAndNoBuild {
-            get {
+
+        public static string CantUseBothWatchAndNoBuild
+        {
+            get
+            {
                 return ResourceManager.GetString("CantUseBothWatchAndNoBuild", resourceCulture);
             }
         }
-        
-        public static string FailedToParseTemplateVersionFromStdout {
-            get {
+
+        public static string FailedToParseTemplateVersionFromStdout
+        {
+            get
+            {
                 return ResourceManager.GetString("FailedToParseTemplateVersionFromStdout", resourceCulture);
             }
         }
-        
-        public static string MultipleProjectFilesFound {
-            get {
+
+        public static string MultipleProjectFilesFound
+        {
+            get
+            {
                 return ResourceManager.GetString("MultipleProjectFilesFound", resourceCulture);
             }
         }
-        
-        public static string NoProjectFileFound {
-            get {
+
+        public static string NoProjectFileFound
+        {
+            get
+            {
                 return ResourceManager.GetString("NoProjectFileFound", resourceCulture);
             }
         }
-        
-        public static string ProjectFileNotAppHostProject {
-            get {
+
+        public static string ProjectFileNotAppHostProject
+        {
+            get
+            {
                 return ResourceManager.GetString("ProjectFileNotAppHostProject", resourceCulture);
             }
         }
-        
-        public static string AspireHostingVersionNull {
-            get {
+
+        public static string AspireHostingVersionNull
+        {
+            get
+            {
                 return ResourceManager.GetString("AspireHostingVersionNull", resourceCulture);
             }
         }
-        
-        public static string ConfigurationKeyRequired {
-            get {
+
+        public static string ConfigurationKeyRequired
+        {
+            get
+            {
                 return ResourceManager.GetString("ConfigurationKeyRequired", resourceCulture);
             }
         }
-        
-        public static string ConfigurationValueRequired {
-            get {
+
+        public static string ConfigurationValueRequired
+        {
+            get
+            {
                 return ResourceManager.GetString("ConfigurationValueRequired", resourceCulture);
             }
         }
-        
-        public static string ConfigurationKeyNotFound {
-            get {
+
+        public static string ConfigurationKeyNotFound
+        {
+            get
+            {
                 return ResourceManager.GetString("ConfigurationKeyNotFound", resourceCulture);
             }
         }
-        
-        public static string ErrorSettingConfiguration {
-            get {
+
+        public static string ErrorSettingConfiguration
+        {
+            get
+            {
                 return ResourceManager.GetString("ErrorSettingConfiguration", resourceCulture);
             }
         }
-        
-        public static string ErrorDeletingConfiguration {
-            get {
+
+        public static string ErrorDeletingConfiguration
+        {
+            get
+            {
                 return ResourceManager.GetString("ErrorDeletingConfiguration", resourceCulture);
             }
         }
-        
-        public static string ExtensionTokenMustBeSet {
-            get {
+
+        public static string ExtensionTokenMustBeSet
+        {
+            get
+            {
                 return ResourceManager.GetString("ExtensionTokenMustBeSet", resourceCulture);
             }
         }
-        
-        public static string InvalidSocketPath {
-            get {
+
+        public static string InvalidSocketPath
+        {
+            get
+            {
                 return ResourceManager.GetString("InvalidSocketPath", resourceCulture);
             }
         }
-        
-        public static string NoSelectionMade {
-            get {
+
+        public static string NoSelectionMade
+        {
+            get
+            {
                 return ResourceManager.GetString("NoSelectionMade", resourceCulture);
+            }
+        }
+
+        public static string ProjectFileMayBeUnbuildableAppHost
+        {
+            get
+            {
+                return ResourceManager.GetString("ProjectFileMayBeUnbuildableAppHost", resourceCulture);
+            }
+        }
+        public static string AppHostsMayNotBeBuildable
+        {
+            get
+            {
+                return ResourceManager.GetString("AppHostsMayNotBeBuildable", resourceCulture);
+            }
+        }
+        public static string SingleFileAppHostFeatureNotEnabled
+        {
+            get
+            {
+                return ResourceManager.GetString("SingleFileAppHostFeatureNotEnabled", resourceCulture);
+            }
+        }
+        public static string CommandNotSupportedWithSingleFileAppHost
+        {
+            get
+            {
+                return ResourceManager.GetString("CommandNotSupportedWithSingleFileAppHost", resourceCulture);
             }
         }
     }

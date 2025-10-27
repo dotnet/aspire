@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IAzureKeyVaultResource
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithConnectionString, IAzureKeyVaultResource
 {
     /// <summary>
     /// The secrets for this Key Vault.
@@ -30,10 +30,44 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets a value indicating whether the Azure Key Vault resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
+    internal EndpointReference EmulatorEndpoint => new(this, "https");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{VaultUri}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
+
+            return IsEmulator
+                ? ReferenceExpression.Create($"{EmulatorEndpoint}")
+                : ReferenceExpression.Create($"{VaultUri}");
+        }
+    }
+
+    /// <summary>
+    /// Gets the connection string for the Azure Key Vault resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure Key Vault resource.</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return ConnectionStringExpression.GetValueAsync(cancellationToken);
+    }
 
     BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 
@@ -62,8 +96,28 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = KeyVaultService.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a KeyVaultService with the same identifier already exists
+        var existingStore = resources.OfType<KeyVaultService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+
+        // Create and add new resource if it doesn't exist
+        var store = KeyVaultService.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

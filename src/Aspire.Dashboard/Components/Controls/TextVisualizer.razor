@@ -1,0 +1,58 @@
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+
+@if (Virtualize)
+{
+    <div class="log-overflow">
+        <div class="log-container" @ref="_containerElement">
+            <Virtualize @ref="VirtualizeRef" Items="@(!DisplayUnformatted ? ViewModel.FormattedLines : ViewModel.Lines)" ItemSize="20" OverscanCount="200" ItemContent="@RenderLogLine">
+            </Virtualize>
+        </div>
+    </div>
+}
+else
+{
+    <div class="log-container" @ref="_containerElement">
+        @foreach (var item in !DisplayUnformatted ? ViewModel.FormattedLines : ViewModel.Lines)
+        {
+            @RenderLogLine(item)
+        }
+    </div>
+}
+
+@{
+    RenderFragment RenderLogLine(StringLogLine context)
+    {
+        return@<div>
+        @if (_isInitialized)
+        {
+                <div class="log-line-row-container">
+                    <div class="log-line-row">
+                        <span class="log-line-area">
+                            @if (!HideLineNumbers)
+                            {
+                                <span class="log-line-number text-visualizer-line-number">@context.LineNumber</span>
+                            }
+                            @if (context.FormatKind != DashboardUIHelpers.PlaintextFormat)
+                            {
+                                // data-content and data-language used in javascript when re-highlighting a node when its
+                                // content changes (through scrolling)
+                                <span class="@GetLogContentClass()" data-content="@context.Content" data-language="@context.FormatKind">
+                                    @context.Content
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="log-content">
+                                    @context.Content
+                                </span>
+                            }
+                        </span>
+                    </div>
+                </div>
+        }
+        </div>;
+    }
+}

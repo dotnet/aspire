@@ -122,6 +122,9 @@ public static class AzureSignalRExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         builder
             .WithEndpoint(name: EmulatorEndpointName, targetPort: 8888, scheme: "http")
             .WithAnnotation(new ContainerImageAnnotation

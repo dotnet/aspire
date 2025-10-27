@@ -1,16 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json;
 using Aspire.Components.Common.TestUtilities;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -20,13 +21,14 @@ public class ManifestGenerationTests
     public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
         program.AppBuilder.AddParameter("x", secret: false);
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
         var x = resources.GetProperty("x");
         var inputs = x.GetProperty("inputs");
         var value = inputs.GetProperty("value");
@@ -37,13 +39,14 @@ public class ManifestGenerationTests
     public void EnsureAddParameterWithSecretDefaultDoesntEmitSecretField()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
         program.AppBuilder.AddParameter("x");
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
         var x = resources.GetProperty("x");
         var inputs = x.GetProperty("inputs");
         var value = inputs.GetProperty("value");
@@ -54,13 +57,14 @@ public class ManifestGenerationTests
     public void EnsureAddParameterWithSecretTrueDoesEmitSecretField()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
         program.AppBuilder.AddParameter("x", secret: true);
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
         var x = resources.GetProperty("x");
         var inputs = x.GetProperty("inputs");
         var value = inputs.GetProperty("value");
@@ -72,14 +76,13 @@ public class ManifestGenerationTests
     public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        // Build AppHost so that publisher can be resolved.
+        var manifestStore = new JsonDocumentManifestStore();
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var workerA = resources.GetProperty("workera");
         Assert.False(workerA.TryGetProperty("bindings", out _));
@@ -111,18 +114,18 @@ public class ManifestGenerationTests
     public void ExcludeLaunchProfileOmitsBindings()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
-        { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
-
+        { Args = GetJsonManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
+        var manifestStore = new JsonDocumentManifestStore();
         appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null);
 
-        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+        appBuilder.Services.AddSingleton(manifestStore);
+        appBuilder.Pipeline.AddJsonDocumentManifestPublishing();
 
         using var program = appBuilder.Build();
-        var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         Assert.False(
             resources.GetProperty("servicea").TryGetProperty("bindings", out _),
@@ -136,6 +139,7 @@ public class ManifestGenerationTests
     public void EnsureExecutableWithArgsEmitsExecutableArgs(string[] addExecutableArgs, string[] withArgsArgs)
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
 
         var resourceBuilder = program.AppBuilder.AddExecutable("program", "run program", "c:/", addExecutableArgs);
         if (withArgsArgs.Length > 0)
@@ -143,13 +147,12 @@ public class ManifestGenerationTests
             resourceBuilder.WithArgs(withArgsArgs);
         }
 
-        // Build AppHost so that publisher can be resolved.
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var resource = resources.GetProperty("program");
         var args = resource.GetProperty("args");
@@ -173,16 +176,16 @@ public class ManifestGenerationTests
     public void ExecutableManifestNotIncludeArgsWhenEmpty()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
 
         program.AppBuilder.AddExecutable("program", "run program", "c:/");
 
-        // Build AppHost so that publisher can be resolved.
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var resource = resources.GetProperty("program");
         var exists = resource.TryGetProperty("args", out _);
@@ -193,16 +196,16 @@ public class ManifestGenerationTests
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
 
         program.AppBuilder.AddRedis("rediscontainer");
 
-        // Build AppHost so that publisher can be resolved.
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
@@ -212,16 +215,17 @@ public class ManifestGenerationTests
     public void PublishingRedisResourceAsContainerResultsInConnectionStringProperty()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
 
         program.AppBuilder.AddRedis("rediscontainer");
+        program.AppBuilder.Services.AddSingleton(manifestStore);
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
@@ -232,16 +236,17 @@ public class ManifestGenerationTests
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
 
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.AppBuilder.AddPostgres("postgrescontainer").AddDatabase("postgresdatabase");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var server = resources.GetProperty("postgrescontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
@@ -254,16 +259,17 @@ public class ManifestGenerationTests
     public void MetadataPropertyNotEmittedWhenMetadataNotAdded()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var manifestStore = new JsonDocumentManifestStore();
 
+        program.AppBuilder.Services.AddSingleton(manifestStore);
         program.AppBuilder.AddContainer("testresource", "testresource");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var resources = manifestStore.ManifestDocument.RootElement.GetProperty("resources");
 
         var container = resources.GetProperty("testresource");
         Assert.False(container.TryGetProperty("metadata", out var _));
@@ -273,8 +279,10 @@ public class ManifestGenerationTests
     public void VerifyTestProgramFullManifest()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher(includeIntegrationServices: true);
+        var manifestStore = new JsonDocumentManifestStore();
 
-        program.AppBuilder.Services.Configure<PublishingOptions>(options =>
+        program.AppBuilder.Services.AddSingleton(manifestStore);
+        program.AppBuilder.Services.Configure<PipelineOptions>(options =>
         {
             // set the output path so the paths are relative to the AppHostDirectory
             options.OutputPath = program.AppBuilder.AppHostDirectory;
@@ -282,7 +290,6 @@ public class ManifestGenerationTests
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
         program.Run();
 
@@ -381,7 +388,18 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}"
+                    "REDIS_HOST": "{redis.bindings.tcp.host}",
+                    "REDIS_PORT": "{redis.bindings.tcp.port}",
+                    "REDIS_PASSWORD": "{redis-password.value}",
+                    "REDIS_URI": "redis://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
+                    "POSTGRESDB_HOST": "{postgres.bindings.tcp.host}",
+                    "POSTGRESDB_PORT": "{postgres.bindings.tcp.port}",
+                    "POSTGRESDB_USERNAME": "postgres",
+                    "POSTGRESDB_PASSWORD": "{postgres-password.value}",
+                    "POSTGRESDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/postgresdb",
+                    "POSTGRESDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/postgresdb",
+                    "POSTGRESDB_DATABASE": "postgresdb"
                   },
                   "bindings": {
                     "http": {
@@ -457,6 +475,11 @@ public class ManifestGenerationTests
                     }
                   }
                 },
+                "redis-password-uri-encoded": {
+                  "type": "annotated.string",
+                  "value": "{redis-password.value}",
+                  "filter": "uri"
+                },
                 "postgres-password": {
                   "type": "parameter.v0",
                   "value": "{postgres-password.inputs.value}",
@@ -471,11 +494,16 @@ public class ManifestGenerationTests
                       }
                     }
                   }
+                },
+                "postgres-password-uri-encoded": {
+                  "type": "annotated.string",
+                  "value": "{postgres-password.value}",
+                  "filter": "uri"
                 }
               }
             }
             """;
-        Assert.Equal(expectedManifest, publisher.ManifestDocument.RootElement.ToString());
+        Assert.Equal(expectedManifest, manifestStore.ManifestDocument.RootElement.ToString());
     }
 
     [Fact]
@@ -527,14 +555,20 @@ public class ManifestGenerationTests
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
     {
-        var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeIntegrationServices, includeNodeApp);
-        program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+        var program = TestProgram.Create<ManifestGenerationTests>(GetJsonManifestArgs(), includeIntegrationServices, includeNodeApp);
+        program.AppBuilder.Pipeline.AddJsonDocumentManifestPublishing();
         return program;
+    }
+
+    private static string[] GetJsonManifestArgs()
+    {
+        var manifestPath = Path.Combine(Path.GetTempPath(), "tempmanifests", Guid.NewGuid().ToString(), "manifest.json");
+        return ["--operation", "publish", "--step", "publish-json-manifest", "--output-path", manifestPath];
     }
 
     private static string[] GetManifestArgs()
     {
         var manifestPath = Path.Combine(Path.GetTempPath(), "tempmanifests", Guid.NewGuid().ToString(), "manifest.json");
-        return ["--publisher", "manifest", "--output-path", manifestPath];
+        return ["--operation", "publish", "--step", "publish-manifest", "--output-path", manifestPath];
     }
 }

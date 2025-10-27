@@ -1,9 +1,5 @@
-import * as vscode from 'vscode';
-import { getAspireTerminal } from '../utils/terminal';
+import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 
-export async function newCommand() {
-    const terminal = getAspireTerminal();
-
-    terminal.sendText('aspire new');
-    terminal.show();
+export async function newCommand(terminalProvider: AspireTerminalProvider) {
+    terminalProvider.sendAspireCommandToAspireTerminal('new');
 };

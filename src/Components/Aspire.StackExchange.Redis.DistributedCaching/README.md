@@ -10,7 +10,7 @@ Registers an [IDistributedCache](https://learn.microsoft.com/dotnet/api/microsof
 
 ### Install the package
 
-Install the .NET Aspire StackExchange Redis Distributed Cache library with [NuGet](https://www.nuget.org):
+Install the Aspire StackExchange Redis Distributed Cache library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.StackExchange.Redis.DistributedCaching
@@ -35,9 +35,29 @@ public ProductsController(IDistributedCache cache)
 }
 ```
 
+### Keyed IDistributedCache instances
+
+You can register multiple keyed `IDistributedCache` instances by building off the `AddRedisClientBuilder` extension method. The keyed services pattern allows you to register multiple instances of a service with different configurations and retrieve them using a key. The key used for the `IConnectionMultiplexer` service is separate from the key used to register the `IDistributedCache` service.
+
+```csharp
+builder.AddRedisClientBuilder("redis") // register an unkeyed IConnectionMultiplexer with the connection name "redis"
+       .WithKeyedDistributedCache("distributedCache"); // register a keyed IDistributedCache with key "distributedCache"
+```
+
+Then retrieve the keyed service using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```csharp
+private readonly IDistributedCache _cache;
+
+public ProductsController([FromKeyedServices("distributedCache")] IDistributedCache cache)
+{
+    _cache = cache;
+}
+```
+
 ## Configuration
 
-The .NET Aspire StackExchange Redis Distributed Cache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
+The Aspire StackExchange Redis Distributed Cache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
 
 ### Use a connection string
 

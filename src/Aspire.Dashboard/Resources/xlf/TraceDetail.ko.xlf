@@ -22,10 +22,20 @@
         <target state="translated">이름</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailNoSpans">
+        <source>No spans found</source>
+        <target state="translated">범위를 찾을 수 없음</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
         <target state="translated">{0} 추적</target>
         <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TraceDetailResourceHeader">
+        <source>Resource</source>
+        <target state="translated">리소스</target>
+        <note />
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>

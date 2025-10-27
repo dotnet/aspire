@@ -9,6 +9,7 @@ using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
@@ -16,6 +17,8 @@ using Aspire.Dashboard.Utils;
 using Aspire.Hosting.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -38,7 +41,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private EventCallback _onToggleCollapseAllCallback;
     private EventCallback _onToggleResourceTypeCallback;
     private bool _hideResourceGraph;
-    private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
+    private Dictionary<ResourceKey, int>? _resourceUnviewedErrorCounts;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -55,11 +58,19 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
     [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
+    [Inject]
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
     [Inject]
     public required ILogger<Resources> Logger { get; init; }
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.AIAssistant> AIAssistantLoc { get; init; }
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -97,10 +108,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly HashSet<string> _collapsedResourceNames = new(StringComparers.ResourceName);
+    private readonly TaskCompletionSource _loadingTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
-    private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
     private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
@@ -110,6 +121,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private IJSObjectReference? _jsModule;
     private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
+    private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
 
     private AspireMenu? _contextMenu;
     private bool _contextMenuOpen;
@@ -119,6 +132,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
     private bool _showResourceTypeColumn;
+    private AIContext? _aiContext;
     private bool _showHiddenResources;
 
     private bool Filter(ResourceViewModel resource)
@@ -170,6 +184,18 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     protected override async Task OnInitializedAsync()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
+        _aiContext = AIContextProvider.AddNew(nameof(Resources), c =>
+        {
+            c.BuildIceBreakers = (builder, context) =>
+            {
+                var hasUnhealthyResources = _resourceByName.Values
+                    .Where(r => !r.IsResourceHidden(_showHiddenResources))
+                    .Any(r => r.KnownState != KnownResourceState.Running || r.HealthStatus is HealthStatus.Unhealthy or HealthStatus.Degraded);
+
+                builder.Resources(context, hasUnhealthyResources);
+            };
+        });
+
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -192,7 +218,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             SelectedViewKind = ResourceViewKind.Table
         };
 
-        _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+        _resourceUnviewedErrorCounts = TelemetryRepository.GetResourceUnviewedErrorLogsCount();
 
         var showResourceTypeColumn = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowResourceTypes);
         if (showResourceTypeColumn.Success)
@@ -223,17 +249,17 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
-            var newApplicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+            var newResourceUnviewedErrorCounts = TelemetryRepository.GetResourceUnviewedErrorLogsCount();
 
             // Only update UI if the error counts have changed.
-            if (ApplicationErrorCountsChanged(newApplicationUnviewedErrorCounts))
+            if (ResourceErrorCountsChanged(newResourceUnviewedErrorCounts))
             {
-                _applicationUnviewedErrorCounts = newApplicationUnviewedErrorCounts;
+                _resourceUnviewedErrorCounts = newResourceUnviewedErrorCounts;
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }
         });
 
-        _isLoading = false;
+        _loadingTcs.SetResult();
 
         async Task SubscribeResourcesAsync()
         {
@@ -283,6 +309,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                     }
 
                     UpdateMaxHighlightedCount();
+                    _aiContext?.ContextHasChanged();
                     await UpdateResourceGraphResourcesAsync();
                     await InvokeAsync(async () =>
                     {
@@ -337,6 +364,13 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Check to see whether max item count should be set on every render.
+        // This is required because the data grid's virtualize component can be recreated on data change.
+        if (_dataGrid != null && FluentDataGridHelper<ResourceGridViewModel>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+
         if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && !_graphInitialized)
         {
             // Before any awaits, set a flag to indicate the graph is initialized. This prevents the graph being initialized multiple times.
@@ -360,7 +394,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         }
 
         var activeResources = _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).ToList();
-        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc, _showHiddenResources)).ToList();
+        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc, _showHiddenResources, IconResolver)).ToList();
         await _jsModule.InvokeVoidAsync("updateResourcesGraph", resources);
     }
 
@@ -419,6 +453,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             .Skip(request.StartIndex)
             .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount)
             .ToList();
+
+        _totalItemsCount = orderedResources.Count;
+        _totalItemsFooter.UpdateDisplayedCount(query.Count);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query, orderedResources.Count));
     }
@@ -517,6 +554,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             return;
         }
 
+        // Wait until the initial data is loaded. This is required so there isn't a race between data loading and using resources here.
+        await _loadingTcs.Task;
+
         // If filters were saved in page state, resource filters now need to be recomputed since the URL has changed.
         foreach (var resourceViewModel in _resourceByName)
         {
@@ -529,6 +569,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             {
                 await ShowResourceDetailsAsync(selectedResource, buttonId: null);
             }
+            else
+            {
+                Logger.LogDebug("Can't navigate to {ResourceName} from URL. Resource not found.", ResourceName);
+            }
 
             // Navigate to remove ?resource=xxx in the URL.
             NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
@@ -537,16 +581,16 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         UpdateTelemetryProperties();
     }
 
-    private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
+    private bool ResourceErrorCountsChanged(Dictionary<ResourceKey, int> newResourceUnviewedErrorCounts)
     {
-        if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
+        if (_resourceUnviewedErrorCounts == null || _resourceUnviewedErrorCounts.Count != newResourceUnviewedErrorCounts.Count)
         {
             return true;
         }
 
-        foreach (var (application, count) in newApplicationUnviewedErrorCounts)
+        foreach (var (resource, count) in newResourceUnviewedErrorCounts)
         {
-            if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var oldCount) || oldCount != count)
+            if (!_resourceUnviewedErrorCounts.TryGetValue(resource, out var oldCount) || oldCount != count)
             {
                 return true;
             }
@@ -568,15 +612,19 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 resource,
                 NavigationManager,
                 TelemetryRepository,
+                AIContextProvider,
                 GetResourceName,
                 ControlsStringsLoc,
                 Loc,
+                AIAssistantLoc,
+                AIPromptsLoc,
                 CommandsLoc,
                 EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
-                showUrls: true);
+                showUrls: true,
+                IconResolver);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();
@@ -593,6 +641,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
+        Logger.LogDebug("Showing details for resource {ResourceName}.", resource.Name);
+
         _elementIdBeforeDetailsViewOpened = buttonId;
 
         if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
@@ -630,6 +680,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
+        Logger.LogDebug("Clearing selected resource.");
+
         SelectedResource = null;
 
         await InvokeAsync(StateHasChanged);
@@ -776,7 +828,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         if (id is null
             || !Enum.TryParse(typeof(ResourceViewKind), id, out var o)
-            || o is not ResourceViewKind viewKind)
+            || o is not ResourceViewKind viewKind
+            || PageViewModel.SelectedViewKind == viewKind)
         {
             return Task.CompletedTask;
         }
@@ -866,11 +919,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     public async ValueTask DisposeAsync()
     {
+        _aiContext?.Dispose();
+
         _resourcesInteropReference?.Dispose();
         _watchTaskCancellationTokenSource.Cancel();
         _logsSubscription?.Dispose();
         TelemetryContext.Dispose();
-
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
@@ -888,7 +942,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(Resources));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Resources);
 
     public void UpdateTelemetryProperties()
     {

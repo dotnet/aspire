@@ -39,7 +39,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -62,7 +62,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -82,7 +82,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         var composeContent = File.ReadAllText(composeFile);
 
         await Verify(composeContent, "yaml");
-        
+
         tempDir.Delete(recursive: true);
     }
 
@@ -122,7 +122,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         var env1 = builder.AddDockerComposeEnvironment("env1");
@@ -142,19 +142,107 @@ public class DockerComposeTests(ITestOutputHelper output)
         await VerifyDirectory(tempDir.Path);
     }
 
+    [Fact]
+    public async Task DashboardWithForwardedHeadersWritesEnvVar()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("env")
+               .WithDashboard(d => d.WithForwardedHeaders());
+
+        // Add a sample service to force compose generation
+        builder.AddContainer("api", "myimage");
+
+        using var app = builder.Build();
+        app.Run();
+
+        var composeFile = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+        var composeContent = File.ReadAllText(composeFile);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task DockerSwarmDeploymentLabelsSerializedCorrectly()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("swarm-env");
+
+        // Add a service with Docker Swarm deployment labels
+        builder.AddContainer("my-service", "my-image:latest")
+            .PublishAsDockerComposeService((resource, service) =>
+            {
+                service.Deploy = new Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm.Deploy
+                {
+                    Labels = new Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm.LabelSpecs
+                    {
+                        ["com.example.foo"] = "bar",
+                        ["com.example.env"] = "production"
+                    }
+                };
+            });
+
+        using var app = builder.Build();
+        app.Run();
+
+        var composeFile = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+        var composeContent = File.ReadAllText(composeFile);
+
+        // Verify the deployment labels are serialized as direct key-value pairs
+        // instead of nested under "additional_labels"
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddDockerComposeEnvironment("env");
+
+        var project = builder
+            .AddProject<Projects.ServiceA>("Project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1", endpointReferenceEx.Format);
+        Assert.Empty(endpointReferenceEx.ValueProviders);
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
 
-        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
+
+        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+        {
             return Task.CompletedTask;
         }
     }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
@@ -9,7 +10,10 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
@@ -24,21 +28,34 @@ using k8s;
 using k8s.Autorest;
 using k8s.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
+internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
-    internal const string DefaultAspireNetworkName = "default-aspire-network";
+
+    // The resource name for the Aspire network resource.
+    internal const string DefaultAspireNetworkResourceName = "aspire-network";
+
+    // The base name for ephemeral networks
+    internal const string DefaultAspireNetworkName = "aspire-session-network";
+
+    // The base name for persistent networks
+    internal const string DefaultAspirePersistentNetworkName = "aspire-persistent-network";
 
     // Disposal of the DcpExecutor means shutting down watches and log streams,
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
     // it probably means DCP crashed and there is no point trying further.
     private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
+
+    // Regex for normalizing application names.
+    [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
+    private static partial Regex ApplicationNameRegex();
 
     private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
     private readonly IKubernetesService _kubernetesService;
@@ -55,9 +72,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private readonly List<AppResource> _appResources = [];
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
+    private readonly Locations _locations;
+    private readonly IDeveloperCertificateService _developerCertificateService;
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+
+    private readonly string _normalizedApplicationName;
 
     // Internal for testing.
     internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
@@ -76,6 +97,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     public DcpExecutor(ILogger<DcpExecutor> logger,
                        ILogger<DistributedApplication> distributedApplicationLogger,
                        DistributedApplicationModel model,
+                       IHostEnvironment hostEnvironment,
                        IKubernetesService kubernetesService,
                        IConfiguration configuration,
                        IDistributedApplicationEventing distributedApplicationEventing,
@@ -85,7 +107,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                        ResourceLoggerService loggerService,
                        IDcpDependencyCheckService dcpDependencyCheckService,
                        DcpNameGenerator nameGenerator,
-                       DcpExecutorEvents executorEvents)
+                       DcpExecutorEvents executorEvents,
+                       Locations locations,
+                       IDeveloperCertificateService developerCertificateService)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -102,6 +126,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
+        _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
+        _locations = locations;
+        _developerCertificateService = developerCertificateService;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
@@ -228,6 +255,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 await Task.WhenAll(
                     Task.Run(() => WatchKubernetesResourceAsync<Executable>((t, r) => ProcessResourceChange(t, r, _resourceState.ExecutablesMap, "Executable", (e, s) => _snapshotBuilder.ToSnapshot(e, s)))),
                     Task.Run(() => WatchKubernetesResourceAsync<Container>((t, r) => ProcessResourceChange(t, r, _resourceState.ContainersMap, "Container", (c, s) => _snapshotBuilder.ToSnapshot(c, s)))),
+                    Task.Run(() => WatchKubernetesResourceAsync<ContainerExec>((t, r) => ProcessResourceChange(t, r, _resourceState.ContainerExecsMap, "ContainerExec", (c, s) => _snapshotBuilder.ToSnapshot(c, s)))),
                     Task.Run(() => WatchKubernetesResourceAsync<Service>(ProcessServiceChange)),
                     Task.Run(() => WatchKubernetesResourceAsync<Endpoint>(ProcessEndpointChange))).ConfigureAwait(false);
             }
@@ -277,6 +305,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                         else if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
                         {
                             StartLogStream(executable);
+                        }
+                        else if (_resourceState.ContainerExecsMap.TryGetValue(entry.ResourceName, out var containerExec))
+                        {
+                            StartLogStream(containerExec);
                         }
                     }
                     else
@@ -377,7 +409,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, appModelResource, resource.Metadata.Name, status, s => snapshotFactory(resource, s))).ConfigureAwait(false);
 
                     if (resource is Container { LogsAvailable: true } ||
-                        resource is Executable { LogsAvailable: true })
+                        resource is Executable { LogsAvailable: true } ||
+                        resource is ContainerExec { LogsAvailable: true })
                     {
                         _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
                     }
@@ -413,12 +446,53 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         }
     }
 
+    /// <summary>
+    /// Normalizes the application name for use in physical container resource names (only guaranteed valid as a suffix).
+    /// Removes the ".AppHost" suffix if present and takes only characters that are valid in resource names.
+    /// Invalid characters are simply omitted from the name as the result doesn't need to be identical.
+    /// </summary>
+    /// <param name="applicationName">The application name to normalize.</param>
+    /// <returns>The normalized application name with invalid characters removed.</returns>
+    private static string NormalizeApplicationName(string applicationName)
+    {
+        if (string.IsNullOrEmpty(applicationName))
+        {
+            return applicationName;
+        }
+
+        applicationName = ApplicationNameRegex().Match(applicationName) switch
+        {
+            Match { Success: true } match => match.Groups["name"].Value,
+            _ => applicationName
+        };
+
+        if (string.IsNullOrEmpty(applicationName))
+        {
+            return applicationName;
+        }
+
+        var normalizedName = new StringBuilder();
+        for (var i = 0; i < applicationName.Length; i++)
+        {
+            if ((applicationName[i] is >= 'a' and <= 'z') ||
+                (applicationName[i] is >= 'A' and <= 'Z') ||
+                (applicationName[i] is >= '0' and <= '9') ||
+                (applicationName[i] is '_' or '-' or '.'))
+            {
+                normalizedName.Append(applicationName[i]);
+            }
+        }
+
+        return normalizedName.ToString();
+    }
+
     private static string GetResourceType<T>(T resource, IResource appModelResource) where T : CustomResource
     {
         return resource switch
         {
             Container => KnownResourceTypes.Container,
             Executable => appModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+            ContainerExec => KnownResourceTypes.ContainerExec,
             _ => throw new InvalidOperationException($"Unknown resource type {resource.GetType().Name}")
         };
     }
@@ -439,6 +513,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         {
             return new(executable.Status?.State, executable.Status?.StartupTimestamp?.ToUniversalTime(), executable.Status?.FinishTimestamp?.ToUniversalTime());
         }
+        if (resource is ContainerExec containerExec)
+        {
+            return new(containerExec.Status?.State, containerExec.Status?.StartupTimestamp?.ToUniversalTime(), containerExec.Status?.FinishTimestamp?.ToUniversalTime());
+        }
+
         return new(null, null, null);
     }
 
@@ -452,6 +531,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         else if (_resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable))
         {
             enumerable = new ResourceLogSource<Executable>(_logger, _kubernetesService, executable, follow: false);
+        }
+        else if (_resourceState.ContainerExecsMap.TryGetValue(resourceName, out var containerExec))
+        {
+            enumerable = new ResourceLogSource<ContainerExec>(_logger, _kubernetesService, containerExec, follow: false);
         }
 
         if (enumerable != null)
@@ -471,7 +554,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private static IEnumerable<LogEntry> CreateLogEntries(IReadOnlyList<(string, bool)> batch)
     {
-        foreach (var (content, isError) in batch)
+        foreach (var (content, logEntryType) in batch)
         {
             DateTime? timestamp = null;
             var resolvedContent = content;
@@ -482,7 +565,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 timestamp = result.Value.Timestamp.UtcDateTime;
             }
 
-            yield return LogEntry.Create(timestamp, resolvedContent, content, isError);
+            yield return LogEntry.Create(timestamp, resolvedContent, content, logEntryType, resourcePrefix: null);
         }
     }
 
@@ -492,6 +575,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         {
             Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
             Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
+            ContainerExec e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
             _ => null
         };
 
@@ -579,6 +663,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         CustomResource? cr = resourceKind switch
         {
             "Container" => _resourceState.ContainersMap.TryGetValue(resourceName, out var container) ? container : null,
+            "ContainerExec" => _resourceState.ContainerExecsMap.TryGetValue(resourceName, out var containerExec) ? containerExec : null,
             "Executable" => _resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable) ? executable : null,
             _ => null
         };
@@ -600,6 +685,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     else if (cr is Executable exe)
                     {
                         return _snapshotBuilder.ToSnapshot(exe, s);
+                    }
+                    else if (cr is ContainerExec containerExec)
+                    {
+                        return _snapshotBuilder.ToSnapshot(containerExec, s);
                     }
                     return s;
                 })).ConfigureAwait(false);
@@ -715,22 +804,30 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable);
+        var toCreate = _appResources.Where(r => r.DcpResource is Container or Executable or ContainerExec);
         AddAllocatedEndpointInfo(toCreate);
 
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
 
+        var allocatedResources = new HashSet<string>(StringComparer.Ordinal);
+
         // Fire the endpoints allocated event for all DCP managed resources with endpoints.
         foreach (var resource in toCreate.Select(r => r.ModelResource).OfType<IResourceWithEndpoints>())
         {
-            var resourceEvent = new ResourceEndpointsAllocatedEvent(resource, _executionContext.ServiceProvider);
-            await _distributedApplicationEventing.PublishAsync(resourceEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
+            // Ensure we fire the event only once for each app model resource. There may be multiple physical replicas of
+            // the same app model resource which can result in the event being fired multiple times.
+            if (allocatedResources.Add(resource.Name))
+            {
+                var resourceEvent = new ResourceEndpointsAllocatedEvent(resource, _executionContext.ServiceProvider);
+                await _distributedApplicationEventing.PublishAsync(resourceEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);
+        var containerExecsTask = CreateContainerExecutablesAsync(toCreate.Where(ar => ar.DcpResource is ContainerExec), cancellationToken);
 
-        await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
+        await Task.WhenAll(containersTask, executablesTask, containerExecsTask).WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
@@ -822,13 +919,44 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     {
         PrepareProjectExecutables();
         PreparePlainExecutables();
+        PrepareContainerExecutables();
+    }
+
+    private void PrepareContainerExecutables()
+    {
+        var modelContainerExecutableResources = _model.GetContainerExecutableResources();
+        foreach (var containerExecutable in modelContainerExecutableResources)
+        {
+            EnsureRequiredAnnotations(containerExecutable);
+            var exeInstance = GetDcpInstance(containerExecutable, instanceIndex: 0);
+
+            // Container exec runs against a dcp container resource, so its required to resolve a DCP name of the resource
+            // since this is ContainerExec resource, we will run against one of the container instances
+            var containerDcpName = containerExecutable.TargetContainerResource!.GetResolvedResourceName();
+
+            var containerExec = ContainerExec.Create(
+                name: exeInstance.Name,
+                containerName: containerDcpName,
+                command: containerExecutable.Command,
+                args: containerExecutable.Args?.ToList(),
+                workingDirectory: containerExecutable.WorkingDirectory);
+
+            containerExec.Annotate(CustomResource.OtelServiceNameAnnotation, containerExecutable.Name);
+            containerExec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
+            containerExec.Annotate(CustomResource.ResourceNameAnnotation, containerExecutable.Name);
+            SetInitialResourceState(containerExecutable, containerExec);
+
+            var exeAppResource = new AppResource(containerExecutable, containerExec);
+            _appResources.Add(exeAppResource);
+        }
     }
 
     private void PreparePlainExecutables()
     {
         var modelExecutableResources = _model.GetExecutableResources();
+        var executablesList = modelExecutableResources.ToList(); // Materialize to check count
 
-        foreach (var executable in modelExecutableResources)
+        foreach (var executable in executablesList)
         {
             EnsureRequiredAnnotations(executable);
 
@@ -842,6 +970,22 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
+
+            var supportedLaunchConfigurations = GetSupportedLaunchConfigurations();
+
+            if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
+                && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
+                && supportedLaunchConfigurations is not null
+                && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
+            {
+                exe.Spec.ExecutionType = ExecutionType.IDE;
+                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
+            }
+            else
+            {
+                exe.Spec.ExecutionType = ExecutionType.Process;
+            }
+
             SetInitialResourceState(executable, exe);
 
             var exeAppResource = new AppResource(executable, exe);
@@ -884,28 +1028,37 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 var projectArgs = new List<string>();
 
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
+                // We cannot use the IDE execution type if the Aspire extension does not support c# projects
+                var supportedLaunchConfigurations = GetSupportedLaunchConfigurations();
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+
+                    // Use the effective launch profile which has fallback logic
+                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
                     {
-                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
+                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
                     }
                 }
                 else
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
-                    if (_configuration.GetBool("DOTNET_WATCH") is not true)
+                    // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
+                    if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
-                        projectArgs.AddRange([
-                            "run",
-                            "--no-build",
-                            "--project",
-                            projectMetadata.ProjectPath,
-                        ]);
+                        projectArgs.Add("run");
+                        projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
+                        projectArgs.Add(projectMetadata.ProjectPath);
+                        if (projectMetadata.IsFileBasedApp)
+                        {
+                            projectArgs.Add("--no-cache");
+                        }
+                        if (projectMetadata.SuppressBuild)
+                        {
+                            projectArgs.Add("--no-build");
+                        }
                     }
                     else
                     {
@@ -920,7 +1073,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                     if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                     {
-                        projectArgs.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
+                        projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
                     }
 
                     // We pretty much always want to suppress the normal launch profile handling
@@ -960,79 +1113,117 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         }
     }
 
-    private Task CreateExecutablesAsync(IEnumerable<AppResource> executableResources, CancellationToken cancellationToken)
+    private Task CreateSnapshotableResourcesAsync(
+        Func<AppResource, ILogger, CancellationToken, Task> createResourceFunc,
+        IEnumerable<AppResource> executables,
+        CancellationToken cancellationToken)
     {
+        var executablesList = executables.ToList();
+
+        async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
+        {
+            var resourceLogger = _loggerService.GetLogger(resource);
+            var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
+
+            try
+            {
+                // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
+                // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                foreach (var er in executables)
+                {
+                    Func<CustomResourceSnapshot, CustomResourceSnapshot> snapshotBuild = er.DcpResource switch
+                    {
+                        Executable exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                        ContainerExec exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                        _ => throw new NotImplementedException($"Does not support snapshots for resources of type like '{er.DcpResourceName}' is ")
+                    };
+
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(
+                        _shutdownCancellation.Token, resourceType, resource,
+                        er.DcpResourceName, new ResourceStatus(null, null, null),
+                        snapshotBuild)
+                    ).ConfigureAwait(false);
+                }
+
+                await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
+
+                foreach (var er in executables)
+                {
+                    if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
+                    {
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    try
+                    {
+                        await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (FailedToApplyEnvironmentException)
+                    {
+                        // For this exception we don't want the noise of the stack trace, we've already
+                        // provided more detail where we detected the issue (e.g. envvar name). To get
+                        // more diagnostic information reduce logging level for DCP log category to Debug.
+                        await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        // The purpose of this catch block is to ensure that if an individual executable resource fails
+                        // to start that it doesn't tear down the entire app host AND that we route the error to the
+                        // appropriate replica.
+                        resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
+                        await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // The purpose of this catch block is to ensure that if an error processing the overall
+                // configuration of the executable resource files. This is different to the exception handling
+                // block above because at this stage of processing we don't necessarily have any replicas
+                // yet. For example if a dependency fails to start.
+                resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
+                await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
+            }
+        }
+
+        var tasks = new List<Task>();
+        var groups = executablesList.GroupBy(e => e.ModelResource).ToList();
+
+        foreach (var group in groups)
+        {
+            var groupList = group.ToList();
+            var groupKey = group.Key;
+            // Materialize the group with ToList() to avoid issues with deferred execution of IGrouping.
+            // Force this to be async so that blocking code does not stop other executables from being created.
+            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(groupKey, groupList, cancellationToken), cancellationToken));
+        }
+
+        return Task.WhenAll(tasks).WaitAsync(cancellationToken);
+    }
+
+    private Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)
+        => CreateSnapshotableResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
+
+    private Task CreateExecutablesAsync(IEnumerable<AppResource> execAppResources, CancellationToken cancellationToken)
+        => CreateSnapshotableResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
+
+    private async Task CreateContainerExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
+    {
+        if (er.DcpResource is not ContainerExec containerExe)
+        {
+            throw new InvalidOperationException($"Expected an {nameof(ContainerExec)} resource, but got {er.DcpResource.Kind} instead");
+        }
+        var spec = containerExe.Spec;
+
         try
         {
-            AspireEventSource.Instance.DcpExecutablesCreateStart();
-
-            async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
-            {
-                var resourceLogger = _loggerService.GetLogger(resource);
-                var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
-
-                try
-                {
-                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
-                    // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
-                    foreach (var er in executables)
-                    {
-                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable)er.DcpResource, s))).ConfigureAwait(false);
-                    }
-
-                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
-
-                    foreach (var er in executables)
-                    {
-                        if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
-                        {
-                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
-                            continue;
-                        }
-
-                        try
-                        {
-                            await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
-                        }
-                        catch (FailedToApplyEnvironmentException)
-                        {
-                            // For this exception we don't want the noise of the stack trace, we've already
-                            // provided more detail where we detected the issue (e.g. envvar name). To get
-                            // more diagnostic information reduce logging level for DCP log category to Debug.
-                            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            // The purpose of this catch block is to ensure that if an individual executable resource fails
-                            // to start that it doesn't tear down the entire app host AND that we route the error to the
-                            // appropriate replica.
-                            resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
-                            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // The purpose of this catch block is to ensure that if an error processing the overall
-                    // configuration of the executable resource files. This is different to the exception handling
-                    // block above because at this stage of processing we don't necessarily have any replicas
-                    // yet. For example if a dependency fails to start.
-                    resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
-                }
-            }
-
-            var tasks = new List<Task>();
-            foreach (var group in executableResources.GroupBy(e => e.ModelResource))
-            {
-                tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken));
-            }
-
-            return Task.WhenAll(tasks);
+            AspireEventSource.Instance.DcpContainerExecutableCreateStart(er.DcpResourceName);
+            await _kubernetesService.CreateAsync(containerExe, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            AspireEventSource.Instance.DcpExecutablesCreateStop();
+            AspireEventSource.Instance.DcpContainerExecutableCreateStop(er.DcpResourceName);
         }
     }
 
@@ -1078,7 +1269,30 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             throw new FailedToApplyEnvironmentException();
         }
 
-        await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+        (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(resourceLogger, er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
+        if (applyCustomCertificateConfig)
+        {
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
+        }
+
+        try
+        {
+            AspireEventSource.Instance.DcpExecutableCreateStart(er.DcpResourceName);
+            await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpExecutableCreateStop(er.DcpResourceName);
+        }
     }
 
     private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(AppResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)
@@ -1174,7 +1388,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             {
                 new ContainerNetworkConnection
                 {
-                    Name = DefaultAspireNetworkName,
+                    Name = DefaultAspireNetworkResourceName,
                     Aliases = new List<string> { container.Name },
                 }
             };
@@ -1239,14 +1453,24 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             // Create a custom container network for Aspire if there are container resources
             if (containerResources.Any())
             {
-                var network = ContainerNetwork.Create(DefaultAspireNetworkName);
+                var network = ContainerNetwork.Create(DefaultAspireNetworkResourceName);
                 if (containerResources.Any(cr => cr.ModelResource.GetContainerLifetimeType() == ContainerLifetime.Persistent))
                 {
                     // If we have any persistent container resources
                     network.Spec.Persistent = true;
                     // Persistent networks require a predictable name to be reused between runs.
                     // Append the same project hash suffix used for persistent container names.
-                    network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
+                    network.Spec.NetworkName = $"{DefaultAspirePersistentNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
+                }
+                else
+                {
+                    network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{DcpNameGenerator.GetRandomNameSuffix()}";
+                }
+
+                if (!string.IsNullOrEmpty(_normalizedApplicationName))
+                {
+                    var shortApplicationName = _normalizedApplicationName.Length < 32 ? _normalizedApplicationName : _normalizedApplicationName.Substring(0, 32);
+                    network.Spec.NetworkName += $"-{shortApplicationName}"; // Limit to 32 characters to avoid exceeding resource name length limits.
                 }
 
                 tasks.Add(_kubernetesService.CreateAsync(network, cancellationToken));
@@ -1266,10 +1490,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     }
                 }
 
-                tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
+                // Force this to be async so that blocking code does not stop other containers from being created.
+                tasks.Add(Task.Run(() => CreateContainerAsyncCore(cr, cancellationToken), cancellationToken));
             }
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -1284,7 +1509,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
-        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, _executionContext.ServiceProvider, cancellationToken).ConfigureAwait(false);
 
         var spec = dcpContainerResource.Spec;
 
@@ -1315,6 +1540,22 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             throw new FailedToApplyEnvironmentException();
         }
 
+        (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(resourceLogger, modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
+        if (applyCustomCertificateConfig)
+        {
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
+            spec.CreateFiles.AddRange(certificateFiles);
+        }
+
         if (_dcpInfo is not null)
         {
             DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
@@ -1323,10 +1564,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
+    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         if (modelContainerResource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } dockerfileBuildAnnotation)
         {
+            // If there's a factory, generate the Dockerfile content and write it to the specified path
+            await DockerfileHelper.ExecuteDockerfileFactoryAsync(dockerfileBuildAnnotation, modelContainerResource, serviceProvider, cancellationToken).ConfigureAwait(false);
+
             var dcpBuildArgs = new List<EnvVar>();
 
             foreach (var buildArgument in dockerfileBuildAnnotation.BuildArguments)
@@ -1452,7 +1696,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
-            spAnn.Address = NormalizeServiceProducerTargetHost(ea.TargetHost, ea.IsProxied);
+            (spAnn.Address, _) = NormalizeTargetHost(ea.TargetHost);
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
@@ -1468,41 +1712,15 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         }
     }
 
-    private static string NormalizeServiceProducerTargetHost(string targetHost, bool isProxied)
-    {
-        // When proxied, the individual services are always bound to localhost even if the proxy
-        // is bound to different addresses.
-        if (isProxied)
-        {
-            return "localhost";
-        }
-        else
-        {
-            if (string.IsNullOrEmpty(targetHost) || string.Equals(targetHost, "localhost", StringComparison.OrdinalIgnoreCase))
-            {
-                return "localhost";
-            }
-            else if (IPAddress.TryParse(targetHost, out _))
-            {
-                // Use an IP address as is
-                return targetHost;
-            }
-            else
-            {
-                // Use 0.0.0.0 if the target host is not a valid IP address or hostname
-                return IPAddress.Any.ToString();
-            }
-        }
-    }
-
     /// <summary>
-    /// Normalize the target host to a tuple of (address, binding mode). A user may have configured
-    /// an endpoint target host that isn't itself a valid IP address or hostname that can be resolved
-    /// by other services or clients. For example, 0.0.0.0 is considered to mean that the service should
-    /// bind to all IPv4 addresses. When the target host indicates that the service should bind to all
-    /// IPv4 or IPv6 addresses, we instead return "localhost" as the address. The binding mode is metdata
-    /// that indicates whether an endpoint is bound to a single address or some set of multiple addresses
-    /// on the system.
+    /// Normalize the target host to a tuple of (address, binding mode) to a single valid address for
+    /// service discovery purposes. A user may have configured an endpoint target host that isn't itself
+    /// a valid IP address or hostname that can be resolved by other services or clients. For example,
+    /// 0.0.0.0 is considered to mean that the service should bind to all IPv4 addresses. When the target
+    /// host indicates that the service should bind to all IPv4 or IPv6 addresses, we instead return
+    /// "localhost" as the address as that is a valid address for the .NET dev certificate. The binding mode
+    /// is metdata that indicates whether an endpoint is bound to a single address or some set of multiple
+    /// addresses on the system.
     /// </summary>
     /// <param name="targetHost">The target host from an EndpointAnnotation</param>
     /// <returns>A tuple of (address, binding mode).</returns>
@@ -1511,12 +1729,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         return targetHost switch
         {
             null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
-            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
+            var s when EndpointHostHelpers.IsLocalhostOrLocalhostTld(s) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using localhost or .localhost subdomain
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
                 var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
-                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addreses)
-                _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is
+                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addresses)
+                _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is as that will be the only address the service is bound to
             },
             _ => ("localhost", EndpointBindingMode.DualStackAnyAddresses), // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
         };
@@ -1659,6 +1877,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
+
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
             }
@@ -1841,6 +2060,380 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
+    }
+
+    /// <summary>
+    /// Build up the certificate authority trust configuration for an executable.
+    /// </summary>
+    /// <param name="resourceLogger">The logger for the resource.</param>
+    /// <param name="modelResource">The executable IResource.</param>
+    /// <param name="resourceArguments">The existing list of executable command line arguments.</param>
+    /// <param name="resourceEnvironment">The existing list of executable environment variables.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
+    /// <returns>A tuple containing additional command line arguments and environment variables, as well as a boolean indicating whether the operation was successful.</returns>
+    private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(ILogger resourceLogger, IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
+    {
+        // Apply the default dev cert trust behavior from options
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
+
+        var certificates = new X509Certificate2Collection();
+        var scope = CertificateTrustScope.Append;
+        if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+        {
+            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
+            {
+                certificates.AddRange(certCollection.Certificates);
+            }
+
+            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
+            scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
+        }
+
+        if (trustDevCert)
+        {
+            foreach (var cert in _developerCertificateService.Certificates)
+            {
+                certificates.Add(cert);
+            }
+        }
+
+        var context = new ExecutableCertificateTrustCallbackAnnotationContext
+        {
+            ExecutionContext = _executionContext,
+            Resource = modelResource,
+            Scope = scope,
+            Certificates = certificates,
+            CancellationToken = cancellationToken
+        };
+        if (modelResource.TryGetLastAnnotation<ExecutableCertificateTrustCallbackAnnotation>(out var callbackAnnotation))
+        {
+            await callbackAnnotation.Callback(context).ConfigureAwait(false);
+        }
+
+        var arguments = new List<string>();
+        var envVars = new List<EnvVar>();
+        if (context.Certificates.Count > 0)
+        {
+            // Path the custom certificates will be written to
+            var caBundlePath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "cert.pem");
+
+            foreach (var arg in context.CertificateTrustArguments)
+            {
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
+                {
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), false);
+                }
+
+                arguments.Add(arg);
+            }
+
+            foreach (var arg in context.CertificateBundleArguments)
+            {
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
+                {
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), false);
+                }
+
+                arguments.Add(arg);
+                arguments.Add(caBundlePath);
+            }
+
+            // Build the required environment variables to configure the resource to trust the custom certificates
+            foreach (var caFileEnv in context.CertificateBundleEnvironment)
+            {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.OrdinalIgnoreCase)))
+                {
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
+
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, false);
+                }
+
+                envVars.Add(new EnvVar
+                {
+                    Name = caFileEnv,
+                    Value = caBundlePath,
+                });
+            }
+
+            // First build a CA bundle (concatenation of all certs in PEM format)
+            var caBundleBuilder = new StringBuilder();
+            foreach (var cert in context.Certificates)
+            {
+                caBundleBuilder.Append(cert.ExportCertificatePem());
+                caBundleBuilder.Append('\n');
+            }
+
+            Directory.CreateDirectory(Path.Join(_locations.DcpSessionDir, modelResource.Name));
+            File.WriteAllText(caBundlePath, caBundleBuilder.ToString());
+        }
+        else
+        {
+            _logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", modelResource.Name);
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            _logger.LogInformation("Configuring default certificate authority trust for '{ResourceName}' to include the default system root certificate authorities.", modelResource.Name);
+        }
+
+        return (arguments, envVars, true);
+    }
+
+    /// <summary>
+    /// Build up the certificate authority trust configuration for a container.
+    /// </summary>
+    /// <param name="resourceLogger">The logger for the resource.</param>
+    /// <param name="modelResource">The container IResource.</param>
+    /// <param name="resourceArguments">The existing list of container arguments.</param>
+    /// <param name="resourceEnvironment">The existing list of container environment variables.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
+    /// <returns>A tuple containing additional command line arguments, environment variables, and container file entries required to configure certificate authority trust, as well as a boolean indicating whether the operation was successful.</returns>
+    private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(ILogger resourceLogger, IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
+    {
+        // Apply the default dev cert trust behavior from options
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
+
+        var certificates = new X509Certificate2Collection();
+        var scope = CertificateTrustScope.Append;
+        if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+        {
+            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
+            {
+                certificates.AddRange(certCollection.Certificates);
+            }
+
+            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
+            scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            // Resource has disabled custom certificate authorities
+            return (new List<string>(), new List<EnvVar>(), new List<ContainerCreateFileSystem>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
+        }
+
+        if (trustDevCert)
+        {
+            foreach (var cert in _developerCertificateService.Certificates)
+            {
+                certificates.Add(cert);
+            }
+        }
+
+        var context = new ContainerCertificateTrustCallbackAnnotationContext
+        {
+            ExecutionContext = _executionContext,
+            Resource = modelResource,
+            Scope = scope,
+            Certificates = certificates,
+            CancellationToken = cancellationToken
+        };
+
+        if (scope != CertificateTrustScope.Append)
+        {
+            // When Override or System scope is set (not Append), override the default OpenSSL certificate bundle path
+            // resolution by setting the SSL_CERT_FILE environment variable.
+            // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
+            context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+        }
+
+        if (modelResource.TryGetLastAnnotation<ContainerCertificateTrustCallbackAnnotation>(out var callbackAnnotation))
+        {
+            await callbackAnnotation.Callback(context).ConfigureAwait(false);
+        }
+
+        var arguments = new List<string>();
+        var envVars = new List<EnvVar>();
+        var createFiles = new List<ContainerCreateFileSystem>();
+        if (context.Certificates.Count > 0)
+        {
+            var caBundlePath = context.CustomCertificatesContainerFilePath + "/cert.pem";
+            var caFilesPath = context.CustomCertificatesContainerFilePath + "/certs";
+
+            foreach (var arg in context.CertificateTrustArguments)
+            {
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
+                {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), createFiles, false);
+                }
+
+                arguments.Add(arg);
+            }
+
+            foreach (var arg in context.CertificateBundleArguments)
+            {
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
+                {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), createFiles, false);
+                }
+
+                arguments.Add(arg);
+                arguments.Add(caBundlePath);
+            }
+
+            // Build the required environment variables to configure the resource to trust the custom certificates
+            foreach (var caFileEnv in context.CertificateBundleEnvironment)
+            {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.OrdinalIgnoreCase)))
+                {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
+
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, createFiles, false);
+                }
+
+                envVars.Add(new EnvVar
+                {
+                    Name = caFileEnv,
+                    Value = caBundlePath,
+                });
+            }
+
+            var caDirEnvValue = caFilesPath;
+            if (scope == CertificateTrustScope.Append)
+            {
+                foreach (var defaultCaDir in context.DefaultContainerCertificatesDirectoryPaths)
+                {
+                    caDirEnvValue += $":{defaultCaDir}";
+                }
+            }
+
+            foreach (var caDirEnv in context.CertificatesDirectoryEnvironment)
+            {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.OrdinalIgnoreCase)))
+                {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caDirEnv);
+
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, createFiles, false);
+                }
+
+                envVars.Add(new EnvVar
+                {
+                    Name = caDirEnv,
+                    Value = caDirEnvValue,
+                });
+            }
+
+            // First build a CA bundle (concatenation of all certs in PEM format)
+            var caBundleBuilder = new StringBuilder();
+            var certificateFiles = new List<ContainerFileSystemEntry>();
+            foreach (var cert in context.Certificates.OrderBy(c => c.Thumbprint))
+            {
+                caBundleBuilder.Append(cert.ExportCertificatePem());
+                caBundleBuilder.Append('\n');
+                certificateFiles.Add(new ContainerFileSystemEntry
+                {
+                    Name = cert.Thumbprint + ".pem",
+                    Type = ContainerFileSystemEntryType.OpenSSL,
+                    Contents = cert.ExportCertificatePem(),
+                    ContinueOnError = true,
+                });
+            }
+
+            createFiles.Add(new ContainerCreateFileSystem
+            {
+                Destination = context.CustomCertificatesContainerFilePath,
+                Entries = [
+                    new ContainerFileSystemEntry
+                    {
+                        Name = "cert.pem",
+                        Contents = caBundleBuilder.ToString(),
+                    },
+                    new ContainerFileSystemEntry
+                    {
+                        Name = "certs",
+                        Type = ContainerFileSystemEntryType.Directory,
+                        Entries = certificateFiles.ToList(),
+                    }
+                ],
+            });
+
+            if (scope != CertificateTrustScope.Append)
+            {
+                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
+                // used by common Linux distributions to make it easier to ensure applications pick it up.
+                foreach (var bundlePath in context.DefaultContainerCertificateAuthorityBundlePaths)
+                {
+                    createFiles.Add(new ContainerCreateFileSystem
+                    {
+                        Destination = bundlePath,
+                        Entries = [
+                            new ContainerFileSystemEntry
+                            {
+                                Name = Path.GetFileName(bundlePath),
+                                Contents = caBundleBuilder.ToString(),
+                            },
+                        ],
+                    });
+                }
+            }
+        }
+        else
+        {
+            _logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", modelResource.Name);
+            return (new List<string>(), new List<EnvVar>(), createFiles, false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            _logger.LogInformation("Configuring default certificate authority trust for '{ResourceName}' to include the default system root certificate authorities.", modelResource.Name);
+        }
+
+        return (arguments, envVars, createFiles, true);
+    }
+
+    private string[]? GetSupportedLaunchConfigurations()
+    {
+        try
+        {
+            if (_configuration[KnownConfigNames.DebugSessionInfo] is { } debugSessionInfoJson && JsonSerializer.Deserialize<RunSessionInfo>(debugSessionInfoJson) is { } debugSessionInfo)
+            {
+                return debugSessionInfo.SupportedLaunchConfigurations;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)

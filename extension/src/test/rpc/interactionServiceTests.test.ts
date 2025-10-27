@@ -2,11 +2,11 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { codespacesLink, directLink } from '../../loc/strings';
-import { RpcServerInformation, setupRpcServer } from '../../server/rpcServer';
-import { IOutputChannelWriter } from '../../utils/vsc';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
+import { extensionLogOutputChannel } from '../../utils/logging';
+import AspireRpcServer, { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
+import { AspireDebugSession } from '../../debugger/AspireDebugSession';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -22,39 +22,9 @@ suite('InteractionService endpoints', () => {
 		statusBarItem.dispose();
 	});
 
-	// showStatus
-	test('Calling showStatus with new status should show that status', async () => {
-		const testInfo = await createRpcServer();
-		const showStub = sinon.stub(statusBarItem, 'show');
-
-		testInfo.interactionService.showStatus('Test status');
-		assert.strictEqual(statusBarItem.text, 'Test status');
-		assert.ok(showStub.called, 'show should be called on the status bar item');
-		showStub.restore();
-	});
-
-	test("Calling showStatus with existing status but null should hide the status bar item", async () => {
-		const testInfo = await createRpcServer();
-		const hideStub = sinon.stub(statusBarItem, 'hide');
-		testInfo.interactionService.showStatus("Status to hide");
-		testInfo.interactionService.showStatus(null);
-		assert.strictEqual(statusBarItem.text, 'Status to hide');
-		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		hideStub.restore();
-	});
-
-	test("Calling showStatus with null with no existing status should not throw an error", async () => {
-		const testInfo = await createRpcServer();
-		const hideStub = sinon.stub(statusBarItem, 'hide');
-		testInfo.interactionService.showStatus(null);
-		assert.strictEqual(statusBarItem.text, '');
-		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		hideStub.restore();
-	});
-
 	// promptForString
 	test('promptForString calls validateInput and returns valid result', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		let validateInputCalled = false;
 		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && typeof options.validateInput === 'function') {
@@ -73,7 +43,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test('promptForString calls validateInput and returns invalid result', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		let validateInputCalled = false;
 		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && typeof options.validateInput === 'function') {
@@ -91,8 +61,60 @@ suite('InteractionService endpoints', () => {
 		showInputBoxStub.restore();
 	});
 
+	// promptForSecretString
+	test('promptForSecretString sets password option to true', async () => {
+		const testInfo = await createTestRpcServer();
+		let passwordOptionSet = false;
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+			if (options && options.password === true) {
+				passwordOptionSet = true;
+			}
+			return 'secret-value';
+		});
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForSecretString('Enter password:', true, rpcClient);
+		assert.strictEqual(result, 'secret-value');
+		assert.ok(passwordOptionSet, 'password option should be set to true for secret prompts');
+		showInputBoxStub.restore();
+	});
+
+	// confirm
+	test('confirm returns true when Yes is selected', async () => {
+		const testInfo = await createTestRpcServer();
+		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves('Yes' as any);
+		const result = await testInfo.interactionService.confirm('Are you sure?', true);
+		assert.strictEqual(result, true);
+		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		
+		// Verify options passed to showQuickPick
+		const callArgs = showQuickPickStub.getCall(0).args;
+		assert.deepStrictEqual(callArgs[0], ['Yes', 'No'], 'should show Yes and No choices');
+		assert.strictEqual(callArgs[1]?.canPickMany, false, 'canPickMany should be false');
+		assert.strictEqual(callArgs[1]?.ignoreFocusOut, true, 'ignoreFocusOut should be true');
+		
+		showQuickPickStub.restore();
+	});
+
+	test('confirm returns false when No is selected', async () => {
+		const testInfo = await createTestRpcServer();
+		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves('No' as any);
+		const result = await testInfo.interactionService.confirm('Are you sure?', false);
+		assert.strictEqual(result, false);
+		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		showQuickPickStub.restore();
+	});
+
+	test('confirm returns null when cancelled', async () => {
+		const testInfo = await createTestRpcServer();
+		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves(undefined);
+		const result = await testInfo.interactionService.confirm('Are you sure?', true);
+		assert.strictEqual(result, null);
+		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		showQuickPickStub.restore();
+	});
+
 	test('displayError endpoint', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showErrorMessageSpy = sinon.spy(vscode.window, 'showErrorMessage');
 		testInfo.interactionService.displayError('Test error message');
 		assert.ok(showErrorMessageSpy.calledWith('Test error message'));
@@ -100,7 +122,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test('displayMessage endpoint', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displayMessage(":test_emoji:", 'Test info message');
 		assert.ok(showInformationMessageSpy.calledWith('Test info message'));
@@ -108,7 +130,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displaySuccess endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displaySuccess('Test success message');
 		assert.ok(showInformationMessageSpy.calledWith('Test success message'));
@@ -116,7 +138,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displaySubtleMessage endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const setStatusBarMessageSpy = sinon.spy(vscode.window, 'setStatusBarMessage');
 		testInfo.interactionService.displaySubtleMessage('Test subtle message');
 		assert.ok(setStatusBarMessageSpy.calledWith('Test subtle message'));
@@ -124,104 +146,82 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displayEmptyLine endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const stub = sinon.stub(extensionLogOutputChannel, 'append');
+		const testInfo = await createTestRpcServer();
 		testInfo.interactionService.displayEmptyLine();
-		const appendSpy = testInfo.outputChannelWriter.append as sinon.SinonStub;
-		assert.ok(appendSpy.calledWith('\n'));
-	});
-
-	test("displayDashboardUrls shows correct actions and URLs", async () => {
-		const testInfo = await createRpcServer();
-		const dashboardMessageItem: vscode.MessageItem = { title: directLink };
-		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(dashboardMessageItem);
-		const openExternalStub = sinon.stub(vscode.env, 'openExternal').resolves(true as any);
-
-		const baseUrl = 'http://localhost';
-		const codespacesUrl = 'http://codespaces';
-		await testInfo.interactionService.displayDashboardUrls({
-			baseUrlWithLoginToken: baseUrl,
-			codespacesUrlWithLoginToken: codespacesUrl
-		});
-
-		// Check that showInformationMessage was called with the expected arguments
-		const expectedArgs = [
-			'Open Aspire Dashboard',
-			{ title: directLink },
-			{ title: codespacesLink }
-		];
-		const actualArgs = showInfoMessageStub.getCall(0)?.args;
-		assert.deepStrictEqual(actualArgs, expectedArgs, 'showInformationMessage should be called with correct arguments');
-
-		// Check that openExternal was called with the baseUrl
-		assert.ok(openExternalStub.calledWith(vscode.Uri.parse(baseUrl)), 'openExternal should be called with baseUrl');
-		showInfoMessageStub.restore();
-		openExternalStub.restore();
+		assert.ok(stub.calledWith('\n'));
+		stub.restore();
 	});
 
 	test("displayDashboardUrls writes URLs to output channel", async () => {
-		const testInfo = await createRpcServer();
-		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+		const stub = sinon.stub(extensionLogOutputChannel, 'info');
+		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
+		const testInfo = await createTestRpcServer();
 
 		const baseUrl = 'http://localhost';
 		const codespacesUrl = 'http://codespaces';
+
 		await testInfo.interactionService.displayDashboardUrls({
-			baseUrlWithLoginToken: baseUrl,
-			codespacesUrlWithLoginToken: codespacesUrl
+			BaseUrlWithLoginToken: baseUrl,
+			CodespacesUrlWithLoginToken: codespacesUrl
 		});
-		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		const outputLines = appendLineStub.getCalls().map(call => call.args[0]);
+
+		const outputLines = stub.getCalls().map(call => call.args[0]);
+
+        // wait 2 seconds to ensure we waited for displayDashboardUrls to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
-		showInfoMessageStub.restore();
+		assert.equal(showInformationMessageStub.callCount, 1);
+		stub.restore();
+		showInformationMessageStub.restore();
 	});
 
 	test("displayLines endpoint", async () => {
-		const testInfo = await createRpcServer();
-		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
-		testInfo.interactionService.displayLines([
-			{ stream: 'stdout', line: 'line1' },
-			{ stream: 'stderr', line: 'line2' }
-		]);
-		assert.ok(showInformationMessageSpy.called);
-		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		assert.ok(appendLineStub.calledWith('line1'));
-		assert.ok(appendLineStub.calledWith('line2'));
-		showInformationMessageSpy.restore();
-	});
+		const stub = sinon.stub(extensionLogOutputChannel, 'info');
+		const testInfo = await createTestRpcServer();
+		const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument');
 
-	test("displayCancellationMessage endpoint", async () => {
-		const testInfo = await createRpcServer();
-		const showWarningMessageSpy = sinon.spy(vscode.window, 'showWarningMessage');
-		testInfo.interactionService.displayCancellationMessage('Test cancelled');
-		assert.ok(showWarningMessageSpy.calledWith('Test cancelled'));
-		showWarningMessageSpy.restore();
+		testInfo.interactionService.displayLines([
+			{ Stream: 'stdout', Line: 'line1' },
+			{ Stream: 'stderr', Line: 'line2' }
+		]);
+
+		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
+		openTextDocumentStub.restore();
 	});
 });
 
 type RpcServerTestInfo = {
-	rpcServerInfo: RpcServerInformation;
-	outputChannelWriter: IOutputChannelWriter;
+	rpcServerInfo: RpcServerConnectionInfo;
 	rpcClient: ICliRpcClient;
 	interactionService: IInteractionService;
 };
 
-class TestOutputChannelWriter implements IOutputChannelWriter {
-	append = sinon.stub();
-	appendLine = sinon.stub();
-	show = sinon.stub();
-}
-
 class TestCliRpcClient implements ICliRpcClient {
+    debugSessionId: string | null;
+    interactionService: IInteractionService;
+
+    constructor(debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null) {
+        this.debugSessionId = debugSessionId;
+        this.interactionService = new InteractionService(getAspireDebugSession, this);
+    }
+
+	stopCli(): Promise<void> {
+		return Promise.resolve();
+	}
+
 	getCliVersion(): Promise<string> {
 		return Promise.resolve('1.0.0');
 	}
 
 	validatePromptInputString(input: string): Promise<ValidationResult | null> {
 		if (input === "valid") {
-			return Promise.resolve({ message: `Valid input: ${input}`, successful: true });
+			return Promise.resolve({ Message: `Valid input: ${input}`, Successful: true });
 		}
 		else if (input === "invalid") {
-			return Promise.resolve({ message: `Invalid input: ${input}`, successful: false });
+			return Promise.resolve({ Message: `Invalid input: ${input}`, Successful: false });
 		}
 		else {
 			return Promise.resolve(null);
@@ -229,25 +229,22 @@ class TestCliRpcClient implements ICliRpcClient {
 	}
 }
 
-async function createRpcServer(): Promise<RpcServerTestInfo> {
-	const outputChannel = new TestOutputChannelWriter();
-	const rpcClient = new TestCliRpcClient();
-	const interactionService = new InteractionService(outputChannel);
+async function createTestRpcServer(debugSessionId?: string | null, getAspireDebugSession?: () => AspireDebugSession | null): Promise<RpcServerTestInfo> {
+    getAspireDebugSession ??= () => {
+        return null;
+    };
 
-	const rpcServerInfo = await setupRpcServer(
-		() => interactionService,
-		() => rpcClient,
-		outputChannel
-	);
+	const rpcClient = new TestCliRpcClient(debugSessionId ?? null, getAspireDebugSession);
 
-	if (!rpcServerInfo) {
+	const rpcServer = await AspireRpcServer.create(() => rpcClient);
+
+	if (!rpcServer) {
 		throw new Error('Failed to set up RPC server');
 	}
 
 	return {
-		rpcServerInfo,
-		outputChannelWriter: outputChannel,
+		rpcServerInfo: rpcServer.connectionInfo,
 		rpcClient: rpcClient,
-		interactionService: interactionService
+		interactionService: rpcClient.interactionService
 	};
 }

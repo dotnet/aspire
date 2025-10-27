@@ -33,6 +33,8 @@ namespace Aspire.Hosting.ApplicationModel
 
         public bool IsEmulator { get { throw null; } }
 
+        public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }

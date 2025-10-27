@@ -2,19 +2,11 @@
 name: Tests
 
 on:
-  pull_request:
-    branches:
-      - main
-      - 'release/**'
-
-  push:
-    branches:
-      - main
-      - 'release/**'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
 
 jobs:
   # Duplicated jobs so their dependencies are not blocked on both the
@@ -22,7 +14,6 @@ jobs:
 
   setup_for_tests_lin:
     name: Setup for tests (Linux)
-    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -38,7 +29,6 @@ jobs:
 
   setup_for_tests_macos:
     name: Setup for tests (macOS)
-    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: macos-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -54,7 +44,6 @@ jobs:
 
   setup_for_tests_win:
     name: Setup for tests (Windows)
-    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: windows-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -70,28 +59,9 @@ jobs:
 
   build_packages:
     name: Build packages
-    if: ${{ github.repository_owner == 'dotnet' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Build with packages
-        env:
-          CI: false
-        run: ./build.sh -restore -build -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true
-
-      - name: Upload built NuGets
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: built-nugets
-          path: artifacts/packages
-
-      - name: Upload logs
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: build_packages_logs
-          path: artifacts/log
+    uses: ./.github/workflows/build-packages.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
@@ -104,7 +74,10 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      # Docker tests are run on linux, and Hosting tests take longer to finish
+      testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_macos:
     uses: ./.github/workflows/run-tests.yml
@@ -117,7 +90,8 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "macos-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
@@ -130,7 +104,8 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   templates_test_lin:
     name: Templates Linux
@@ -145,7 +120,8 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
 
@@ -162,7 +138,8 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
 
@@ -179,7 +156,8 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
 
@@ -193,10 +171,10 @@ jobs:
       os: ubuntu-latest
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   extension_tests_win:
     name: Run VS Code extension tests (Windows)
-    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: windows-latest
     defaults:
       run:
@@ -220,10 +198,10 @@ jobs:
           name: aspire-extension
           path: extension/out/aspire-extension.vsix
 
-  results: # This job is used for branch protection. It ensures all the above tests passed
+  results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
-    name: Final Results
+    name: Final Test Results
     needs: [
       endtoend_tests,
       extension_tests_win,
@@ -265,8 +243,6 @@ jobs:
 
       - name: Generate test results summary
         if: always()
-        env:
-          CI: false
         run: >
           ${{ github.workspace }}/dotnet.sh
           run

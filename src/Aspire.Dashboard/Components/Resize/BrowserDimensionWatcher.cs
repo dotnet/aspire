@@ -1,12 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model.Assistant;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Resize;
 
-public class BrowserDimensionWatcher : ComponentBase
+public class BrowserDimensionWatcher : ComponentBase, IDisposable
 {
     [Parameter]
     public ViewportInformation? ViewportInformation { get; set; }
@@ -20,6 +21,22 @@ public class BrowserDimensionWatcher : ComponentBase
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
+
+    private IDisposable? _aiDisplayChangedSubscription;
+
+    protected override void OnInitialized()
+    {
+        _aiDisplayChangedSubscription = AIContextProvider.OnDisplayChanged(() =>
+        {
+            DimensionManager.InvokeOnViewportSizeChanged(
+                DimensionManager.ViewportSize,
+                AIContextProvider.ShowAssistantSidebarDialog);
+            return Task.CompletedTask;
+        });
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -27,7 +44,7 @@ public class BrowserDimensionWatcher : ComponentBase
             try
             {
                 var viewportSize = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
-                DimensionManager.InvokeOnViewportSizeChanged(viewportSize);
+                DimensionManager.InvokeOnViewportSizeChanged(viewportSize, AIContextProvider.ShowAssistantSidebarDialog);
                 ViewportInformation = ViewportInformation.GetViewportInformation(viewportSize);
                 DimensionManager.InvokeOnViewportInformationChanged(ViewportInformation);
 
@@ -48,7 +65,7 @@ public class BrowserDimensionWatcher : ComponentBase
     [JSInvokable]
     public async Task OnResizeAsync(ViewportSize viewportSize)
     {
-        DimensionManager.InvokeOnViewportSizeChanged(viewportSize);
+        DimensionManager.InvokeOnViewportSizeChanged(viewportSize, AIContextProvider.ShowAssistantSidebarDialog);
 
         var newViewportInformation = ViewportInformation.GetViewportInformation(viewportSize);
 
@@ -64,6 +81,11 @@ public class BrowserDimensionWatcher : ComponentBase
             DimensionManager.InvokeOnViewportInformationChanged(newViewportInformation);
             await ViewportInformationChanged.InvokeAsync(newViewportInformation);
         }
+    }
+
+    public void Dispose()
+    {
+        _aiDisplayChangedSubscription?.Dispose();
     }
 }
 

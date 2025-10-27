@@ -106,25 +106,33 @@ public static class AspireOpenAIExtensions
             builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureOpenAI(sp));
         }
 
+        // GenAI telemetry isn't stable so MEAI currently has source name of "Experimental.Microsoft.Extensions.AI".
+        // Listen to both names to ensure we capture telemetry from both stable and experimental versions.
+        // When MEAI removes experimental from the source name, Aspire will continue to work without changes.
+        var telemetrySources = new string[] { "Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI" };
+
         if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry()
-                .WithTracing(traceBuilder => traceBuilder.AddSource("OpenAI.*"));
+                .WithTracing(traceBuilder => traceBuilder.AddSource(telemetrySources));
         }
 
         if (!settings.DisableMetrics)
         {
             builder.Services.AddOpenTelemetry()
-                .WithMetrics(b => b.AddMeter("OpenAI.*"));
+                .WithMetrics(b => b.AddMeter(telemetrySources));
         }
 
-        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey, settings.DisableTracing);
+        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey, settings.DisableTracing, settings.EnableSensitiveTelemetryData);
 
         OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
         {
             if (settings.Key is not null)
             {
-                var options = serviceProvider.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
+                var options = serviceKey is null ?
+                    serviceProvider.GetRequiredService<IOptions<OpenAIClientOptions>>().Value :
+                    serviceProvider.GetRequiredService<IOptionsMonitor<OpenAIClientOptions>>().Get(serviceKey);
+
                 return new OpenAIClient(new ApiKeyCredential(settings.Key), options);
             }
             else

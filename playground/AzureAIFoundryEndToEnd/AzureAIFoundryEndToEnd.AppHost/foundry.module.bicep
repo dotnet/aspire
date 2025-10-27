@@ -2,7 +2,7 @@
 param location string = resourceGroup().location
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: take('foundry${uniqueString(resourceGroup().id)}', 64)
+  name: take('foundry-${uniqueString(resourceGroup().id)}', 64)
   location: location
   identity: {
     type: 'SystemAssigned'
@@ -22,11 +22,11 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
 }
 
 resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'qwen2.5-0.5b'
+  name: 'chat'
   properties: {
     model: {
       format: 'Microsoft'
-      name: 'qwen2.5-0.5b'
+      name: 'Phi-4-mini-instruct'
       version: '1'
     }
   }
@@ -38,3 +38,7 @@ resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
 }
 
 output aiFoundryApiEndpoint string = foundry.properties.endpoints['AI Foundry API']
+
+output endpoint string = foundry.properties.endpoint
+
+output name string = foundry.name

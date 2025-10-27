@@ -14,6 +14,13 @@ internal static class DashboardUIHelpers
 {
     public const string MessageBarSection = "MessagesTop";
 
+    // these are language names supported by highlight.js
+    public const string XmlFormat = "xml";
+    public const string JsonFormat = "json";
+    public const string JavascriptFormat = "javascript";
+    public const string PlaintextFormat = "plaintext";
+    public const string MarkdownFormat = "markdown";
+
     // The initial data fetch for a FluentDataGrid doesn't include a count of items to return.
     // The data grid doesn't specify a count because it doesn't know how many items fit in the UI.
     // Once it knows the height of items and the height of the grid then it specifies the desired item count
@@ -85,6 +92,15 @@ internal static class DashboardUIHelpers
                 return Task.CompletedTask;
             };
         }).ConfigureAwait(false);
+    }
+
+    public static string? ResolveTooltip(string value)
+    {
+        // FluentSelects in the dashboard are wide enough to display at least 30 characters.
+        // Only display a tooltip if the value length is greater.
+        const int TooltipLengthThreshold = 30;
+
+        return value is { Length: > TooltipLengthThreshold } ? value : null;
     }
 }
 

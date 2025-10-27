@@ -23,4 +23,18 @@ public class AspireRedisOutputCacheExtensionsTests
         // note the RedisOutputCacheStore is internal
         Assert.StartsWith("Redis", cacheStore.GetType().Name);
     }
+
+    [Fact]
+    public void AddsRedisBuilderOutputCacheCorrectly()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddRedisClientBuilder("redis").WithOutputCache();
+
+        using var host = builder.Build();
+        var cacheStore = host.Services.GetRequiredService<IOutputCacheStore>();
+
+        // note the RedisOutputCacheStore is internal
+        Assert.StartsWith("Redis", cacheStore.GetType().Name);
+    }
 }

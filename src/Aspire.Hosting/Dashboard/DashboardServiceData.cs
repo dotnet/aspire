@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.DashboardService.Proto.V1;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -57,7 +57,9 @@ internal sealed class DashboardServiceData : IDisposable
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands,
                     IsHidden = snapshot.IsHidden,
-                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
+                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
+                    IconName = snapshot.IconName,
+                    IconVariant = snapshot.IconVariant
                 };
             }
 
@@ -97,6 +99,10 @@ internal sealed class DashboardServiceData : IDisposable
         try
         {
             var result = await _resourceCommandService.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
+            if (result.Canceled)
+            {
+                return (ExecuteCommandResultType.Canceled, result.ErrorMessage);
+            }
             return (result.Success ? ExecuteCommandResultType.Success : ExecuteCommandResultType.Failure, result.ErrorMessage);
         }
         catch
@@ -152,57 +158,84 @@ internal sealed class DashboardServiceData : IDisposable
 
     internal async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
     {
-        await _interactionService.CompleteInteractionAsync(
+        await _interactionService.ProcessInteractionFromClientAsync(
             request.InteractionId,
-            async (interaction, serviceProvider, cancellationToken) =>
+            (interaction, serviceProvider, logger) =>
             {
                 switch (request.KindCase)
                 {
                     case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
                         return new InteractionCompletionState { Complete = true, State = request.MessageBox.Result };
-                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBar:
-                        return new InteractionCompletionState { Complete = true, State = request.MessageBar.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.Notification:
+                        return new InteractionCompletionState { Complete = true, State = request.Notification.Result };
                     case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                         var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
                         var options = (InputsDialogInteractionOptions)interaction.Options;
 
-                        for (var i = 0; i < inputsInfo.Inputs.Count; i++)
-                        {
-                            var modelInput = inputsInfo.Inputs[i];
-                            var requestInput = request.InputsDialog.InputItems[i];
+                        ProcessInputs(
+                            serviceProvider,
+                            logger,
+                            inputsInfo,
+                            request.InputsDialog.InputItems.Select(i => new InputDto(i.Name, i.Value, DashboardService.MapInputType(i.InputType))).ToList(),
+                            request.ResponseUpdate,
+                            interaction.CancellationToken);
 
-                            var incomingValue = requestInput.Value;
-
-                            // Ensure checkbox value is either true or false.
-                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Boolean)
-                            {
-                                incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
-                            }
-
-                            modelInput.SetValue(incomingValue);
-                            modelInput.ValidationErrors.Clear();
-                        }
-
-                        var hasErrors = false;
-                        if (options.ValidationCallback is { } validationCallback)
-                        {
-                            var context = new InputsDialogValidationContext
-                            {
-                                CancellationToken = cancellationToken,
-                                ServiceProvider = serviceProvider,
-                                Inputs = inputsInfo.Inputs
-                            };
-                            await validationCallback(context).ConfigureAwait(false);
-
-                            hasErrors = context.HasErrors;
-                        }
-
-                        return new InteractionCompletionState { Complete = !hasErrors, State = inputsInfo.Inputs };
+                        // If the interaction was sent to the server because an input changed, don't try to complete the interaction.
+                        return new InteractionCompletionState { Complete = !request.ResponseUpdate, State = inputsInfo.Inputs };
                     default:
                         return new InteractionCompletionState { Complete = true };
                 }
             },
             cancellationToken).ConfigureAwait(false);
+    }
+
+    public record InputDto(string Name, string Value, InputType InputType);
+
+    public static void ProcessInputs(IServiceProvider serviceProvider, ILogger logger, Interaction.InputsInteractionInfo inputsInfo, List<InputDto> inputDtos, bool dependencyChange, CancellationToken cancellationToken)
+    {
+        var choiceInteractionsToUpdate = new HashSet<InteractionInput>();
+
+        for (var i = 0; i < inputDtos.Count; i++)
+        {
+            var requestInput = inputDtos[i];
+            if (!inputsInfo.Inputs.TryGetByName(requestInput.Name, out var modelInput))
+            {
+                continue;
+            }
+
+            var incomingValue = requestInput.Value;
+
+            // Ensure checkbox value is either true or false.
+            if (requestInput.InputType == InputType.Boolean)
+            {
+                incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
+            }
+
+            if (!string.Equals(modelInput.Value ?? string.Empty, incomingValue ?? string.Empty))
+            {
+                modelInput.Value = incomingValue;
+
+                // If we're processing updates because of a dependency change, check to see if this input is depended on.
+                if (dependencyChange)
+                {
+                    var dependentInputs = inputsInfo.Inputs.Where(
+                        i => i.DynamicLoading is { } dynamic &&
+                        (dynamic.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
+
+                    foreach (var dependentInput in dependentInputs)
+                    {
+                        choiceInteractionsToUpdate.Add(dependentInput);
+                    }
+                }
+            }
+        }
+
+        // Refresh options for choice inputs that depend on other inputs.
+        foreach (var inputToUpdate in choiceInteractionsToUpdate)
+        {
+            var options = new QueueLoadOptions(logger, cancellationToken, inputToUpdate, inputsInfo.Inputs, serviceProvider);
+            inputToUpdate.DynamicLoadingState!.QueueLoad(options);
+        }
     }
 }
 

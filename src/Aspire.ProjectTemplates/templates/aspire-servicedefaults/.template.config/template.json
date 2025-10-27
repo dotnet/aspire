@@ -3,16 +3,16 @@
   "author": "Microsoft",
   "classifications": [
     "Common",
-    ".NET Aspire",
+    "Aspire",
     "Cloud",
     "Web",
     "Web API",
     "API",
     "Service"
   ],
-  "name": ".NET Aspire Service Defaults",
+  "name": "Aspire Service Defaults",
   "defaultName": "ServiceDefaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "A project template for creating an Aspire service defaults project.",
   "shortName": "aspire-servicedefaults",
   "sourceName": "Aspire.ServiceDefaults1",
   "preferNameDirectory": true,
@@ -26,14 +26,14 @@
   "groupIdentity": "Aspire.ServiceDefaults",
   "sources": [
     {
-      "source": "./9.3",
+      "source": "./9.5",
       "target": "./",
-      "condition": "AspireVersionActual == 9.3"
+      "condition": "AspireVersionActual == 9.5"
     },
     {
-      "source": "./9.4",
+      "source": "./13.0",
       "target": "./",
-      "condition": "AspireVersionActual == 9.4"
+      "condition": "AspireVersionActual == 13.0"
     }
   ],
   "symbols": {
@@ -56,81 +56,26 @@
         }
       ],
       "replaces": "net8.0",
-      "defaultValue": "net9.0"
-    },
-    "AspireVersionCli": {
-      "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
-      "datatype": "choice",
-      "choices": [
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        }
-      ],
-      "defaultValue": "9.4"
+      "defaultValue": "net10.0"
     },
     "AspireVersion": {
       "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
       "datatype": "choice",
-      "isEnabled": "Framework == net8.0",
       "choices": [
         {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
+          "choice": "13.0",
+          "displayName": "13.0",
+          "description": "Chooses Aspire 13.0"
         },
         {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
+          "choice": "9.5",
+          "displayName": "9.5",
+          "description": "Chooses Aspire 9.5"
         }
       ],
-      "defaultValue": "9.4"
-    },
-    "AspireVersionNet9": {
-      "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net9.0",
-      "choices": [
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        }
-      ],
-      "defaultValue": "9.4"
-    },
-    "AspireVersionNet10": {
-      "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net10.0",
-      "choices": [
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
-        }
-      ],
-      "defaultValue": "9.4"
+      "defaultValue": "13.0"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -139,20 +84,12 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
-          },
-          {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.5",
+            "value": "9.5"
           },
           {
             "condition": "",
-            "value": "9.4"
+            "value": "13.0"
           }
         ]
       }

@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @implements IDialogContentComponent<FilterDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
@@ -20,7 +21,9 @@
                           Width="100%"
                           Height="400px"
                           OptionText="@(c => c.Name)"
-                          OptionDisabled="@(c => c.Id is null)" />
+                          OptionDisabled="@(c => c.Id is null)"
+                          OptionTitle="@(c => DashboardUIHelpers.ResolveTooltip(c.Name))">
+            </FluentSelect>
         </div>
 
         <div class="filter-input-container">
@@ -41,6 +44,7 @@
                             Height="400px"
                             OptionText="@(c => c.Name)"
                             OptionValue="@(c => c.Name)"
+                            OptionTitle="@(c => DashboardUIHelpers.ResolveTooltip(c.Name))"
                             Immediate="true"
                             ImmediateDelay="@FluentUIExtensions.InputDelay"
                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]">

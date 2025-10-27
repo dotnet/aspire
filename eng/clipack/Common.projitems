@@ -3,20 +3,41 @@
     <TargetFramework>net10.0</TargetFramework>
 
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
-    <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
-    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="$(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('win-'))">tar.gz</ArchiveFormat>
 
-    <!-- Publish native AOT if running on the target platfrom -->
+    <!-- PublishNativeAot is explicitly set to false in the projects for cases where we don't want to AOT at all.
+         For the rest, publish native AOT if running on the target platfrom -->
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsLinux()) and $(CliRuntime.StartsWith('linux-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">true</PublishNativeAot>
+
+    <!-- Run `file` on the native binary and check the output but only on Linux/macOS -->
+    <_CheckFileSignature Condition="'$(PublishNativeAot)' == 'true' and !$([System.OperatingSystem]::IsWindows())">true</_CheckFileSignature>
+
+    <_NativeBinaryPath>$([MSBuild]::NormalizePath($(OutputPath), 'aspire'))</_NativeBinaryPath>
+    <_NativeBinaryPath Condition="$(CliRuntime.StartsWith('win-'))">$(_NativeBinaryPath).exe</_NativeBinaryPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Archives" />
   </ItemGroup>
 
-  <Target Name="PublishToDisk">
+  <Target Name="PublishToDisk"
+          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;_CheckMaxFileSize;PrepareOutputPathForPublishToDisk" />
+
+  <Target Name="PrepareOutputPathForPublishToDisk">
+    <!-- TODO: avoid generating the file instead of manually deleting it here -->
+    <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
+
+    <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
+    <ItemGroup>
+      <DirectoriesToRemove Include="$(XlfLanguages)" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
+  </Target>
+
+  <Target Name="_PublishProject">
     <ItemGroup>
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
@@ -48,13 +69,44 @@
         Properties="@(AdditionalProperties)"
         RemoveProperties="OutputPath;TargetFramework" />
 
-    <!-- TODO: avoid generating the file instead of manually deleting it here -->
-    <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
-
-    <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
-    <ItemGroup>
-      <DirectoriesToRemove Include="$(XlfLanguages)" />
-    </ItemGroup>
-    <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
+    <Error Condition="!Exists('$(_NativeBinaryPath)')" Text="Could not find expected `aspire` binary at $(_NativeBinaryPath)" />
   </Target>
+
+  <Target Name="_ValidateNativeBinaryFileSignatureOnUnix" Condition="'$(_CheckFileSignature)' == 'true'">
+    <Error Condition="$(FileSignatureRegex) == ''" Text="Property %24(FileSignatureRegex) is unset." />
+
+    <Exec Command="file -b $(_NativeBinaryPath)" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_FileCommandOutput" />
+    </Exec>
+
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(_FileCommandOutput)', '$(FileSignatureRegex)'))"
+           Text="`file` signature for `$(CliRuntime)` did not match the expected regex.
+           Got     : $(_FileCommandOutput)
+           vs regex: $(FileSignatureRegex)" />
+  </Target>
+
+  <Target Name="_CheckMaxFileSize">
+    <PropertyGroup>
+      <_MaxFileSizeMB Condition="'$(CliRuntime)' == 'win-x86'">75</_MaxFileSizeMB>
+      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and $([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
+      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and !$([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
+
+      <!-- pwsh on windows. Use Ceiling to match `du -m` behavior -->
+      <_GetFileSizeMBCommand Condition="$([System.OperatingSystem]::IsWindows())">pwsh -NoProfile -Command &quot;[Math]::Ceiling((Get-Item '$(_NativeBinaryPath)' -ErrorAction Stop).Length / 1MB)&quot;</_GetFileSizeMBCommand>
+
+      <!-- Using unix tools on Linux/macOS -->
+      <_GetFileSizeMBCommand Condition="!$([System.OperatingSystem]::IsWindows())">du -m '$(_NativeBinaryPath)' | cut -f1</_GetFileSizeMBCommand>
+    </PropertyGroup>
+
+    <Exec Command="$(_GetFileSizeMBCommand)" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_NativeBinaryFileSizeMB" />
+    </Exec>
+
+    <!-- Using &gt; forces a numerical comparison: https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-conditions?view=vs-2022 -->
+    <Error Condition="$(_NativeBinaryFileSizeMB) &gt; $(_MaxFileSizeMB)"
+           Text="$(_NativeBinaryPath) size ($(_NativeBinaryFileSizeMB) MB) exceeds maximum allowed size of $(_MaxFileSizeMB) MB" />
+
+    <Message Importance="High" Text="✅ $(_NativeBinaryPath) size check passed ($(_NativeBinaryFileSizeMB) MB &lt;= $(_MaxFileSizeMB) MB)" />
+  </Target>
+
 </Project>

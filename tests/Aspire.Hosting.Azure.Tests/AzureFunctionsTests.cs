@@ -277,6 +277,7 @@ public class AzureFunctionsTests
 
         // hardcoded sha256 to make the storage name deterministic
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         var project = builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
 
         var app = builder.Build();
@@ -307,13 +308,14 @@ public class AzureFunctionsTests
 
         // hardcoded sha256 to make the storage name deterministic
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         var funcApp = builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
 
         var app = builder.Build();
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var (_, bicep) = await GetManifestWithBicep(funcApp.Resource.GetDeploymentTargetAnnotation()!.DeploymentTarget);
 
@@ -335,6 +337,7 @@ public class AzureFunctionsTests
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             .WithHostStorage(storage);
 
@@ -362,6 +365,7 @@ public class AzureFunctionsTests
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             .WithHostStorage(storage)
             .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);
@@ -390,6 +394,7 @@ public class AzureFunctionsTests
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             .WithHostStorage(storage)
             .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);
@@ -534,5 +539,70 @@ public class AzureFunctionsTests
                 }
             }
         };
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_AddsDefaultLaunchProfileAnnotation_WhenConfigured()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        // Set the AppHost default launch profile configuration
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "TestProfile";
+        
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        
+        // Verify that the DefaultLaunchProfileAnnotation is added
+        Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
+        Assert.Equal("TestProfile", annotation.LaunchProfileName);
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_AddsDefaultLaunchProfileAnnotation_FromDotnetLaunchProfile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        // Set the DOTNET_LAUNCH_PROFILE configuration
+        builder.Configuration["DOTNET_LAUNCH_PROFILE"] = "DotnetProfile";
+        
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        
+        // Verify that the DefaultLaunchProfileAnnotation is added
+        Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
+        Assert.Equal("DotnetProfile", annotation.LaunchProfileName);
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_DoesNotAddLaunchProfileAnnotation_WhenNoConfigurationSet()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        
+        // Verify that no DefaultLaunchProfileAnnotation is added when no configuration is set
+        Assert.False(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out _));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_AppHostConfigurationOverridesDotnetLaunchProfile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        // Set both configurations, AppHost should take precedence
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "AppHostProfile";
+        builder.Configuration["DOTNET_LAUNCH_PROFILE"] = "DotnetProfile";
+        
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        
+        // Verify that AppHost configuration takes precedence
+        Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
+        Assert.Equal("AppHostProfile", annotation.LaunchProfileName);
     }
 }

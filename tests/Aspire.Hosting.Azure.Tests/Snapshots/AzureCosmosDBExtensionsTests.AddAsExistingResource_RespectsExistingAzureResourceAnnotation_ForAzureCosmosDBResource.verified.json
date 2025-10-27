@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_cosmosdb_name": "{existing-cosmosdb-name.value}",
+    "existing_cosmosdb_rg": "{existing-cosmosdb-rg.value}"
+  }
+}

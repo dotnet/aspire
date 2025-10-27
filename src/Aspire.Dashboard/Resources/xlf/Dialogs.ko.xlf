@@ -97,6 +97,141 @@
         <target state="translated">값</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTabText">
+        <source>Details</source>
+        <target state="translated">세부 정보</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="translated">GenAI 콘텐츠를 표시하는 동안 오류가 발생했습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDurationLabel">
+        <source>Duration</source>
+        <target state="translated">기간</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIErrorHeaderText">
+        <source>Error</source>
+        <target state="translated">오류</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputHeaderText">
+        <source>Input</source>
+        <target state="translated">입력</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputOutputTabText">
+        <source>Input &amp; output</source>
+        <target state="translated">입력 및 출력</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputTokensText">
+        <source>Input tokens: {0}</source>
+        <target state="translated">입력 토큰: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryMessage">
+        <source>Message</source>
+        <target state="translated">메시지</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryOutput">
+        <source>Output</source>
+        <target state="translated">출력</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryStatus">
+        <source>Status</source>
+        <target state="translated">상태</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolCalls">
+        <source>Tool calls</source>
+        <target state="translated">도구 호출</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleAssistant">
+        <source>Assistant</source>
+        <target state="translated">도우미</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleError">
+        <source>Error</source>
+        <target state="translated">오류</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleSystem">
+        <source>System</source>
+        <target state="translated">시스템</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleTool">
+        <source>Tool</source>
+        <target state="translated">도구</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleUser">
+        <source>User</source>
+        <target state="translated">사용자</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINAText">
+        <source>n/a</source>
+        <target state="translated">해당 없음</target>
+        <note>Abbreviation for Not Available</note>
+      </trans-unit>
+      <trans-unit id="GenAINextButtonText">
+        <source>Next</source>
+        <target state="translated">다음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContent">
+        <source>No message content.</source>
+        <target state="translated">메시지 콘텐츠가 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContentMoreInformationMessage">
+        <source>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</source>
+        <target state="translated">원격 분석에 기록된 메시지 콘텐츠가 없습니다. 중요한 콘텐츠를 보려면 추가 구성이 필요할 수 있습니다. 자세한 내용은 &lt;a href="{0}" target="_blank"&gt;AI 원격 분석 구성&lt;/a&gt;을 참조하세요.</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="GenAINoMessages">
+        <source>No messages found.</source>
+        <target state="translated">메시지를 찾을 수 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputHeaderText">
+        <source>Output</source>
+        <target state="translated">출력</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputTokensText">
+        <source>Output tokens: {0}</source>
+        <target state="translated">출력 토큰: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIPreviewTabText">
+        <source>Preview</source>
+        <target state="translated">미리 보기</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIPreviousButtonText">
+        <source>Previous</source>
+        <target state="translated">이전</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIRawTabText">
+        <source>Raw</source>
+        <target state="translated">원시</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAITokensLabel">
+        <source>Tokens</source>
+        <target state="translated">토큰</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
         <target state="translated">사이트 전체 탐색</target>
@@ -184,17 +319,17 @@
       </trans-unit>
       <trans-unit id="InteractionButtonCancel">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">취소</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">닫기</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonOk">
         <source>OK</source>
-        <target state="new">OK</target>
+        <target state="translated">확인</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
@@ -202,15 +337,15 @@
         <target state="translated">텍스트 시각화 도우미에서 열기</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogCancelButtonText">
+      <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
         <target state="translated">취소</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogMessage">
-        <source>Waiting for trace {0} to load...</source>
-        <target state="translated">추적 {0}이(가) 로드되기를 기다리는 중...</target>
-        <note>{0} is a trace ID</note>
+      <trans-unit id="OpenSpanDialogMessage">
+        <source>Waiting for span {0} to load...</source>
+        <target state="translated">범위 {0}이(가) 로드되기를 기다리는 중...</target>
+        <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
@@ -221,6 +356,11 @@
         <source>Resource logs and telemetry</source>
         <target state="translated">리소스 로그 및 원격 분석</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="translated">런타임: {0}</target>
+        <note>{0} is the .NET runtime version</note>
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>

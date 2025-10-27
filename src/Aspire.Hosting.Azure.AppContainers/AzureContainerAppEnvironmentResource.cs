@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Primitives;
 
@@ -18,7 +19,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     internal bool UseAzdNamingConvention { get; set; }
-    
+
     /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
     /// Default is true.
@@ -64,6 +65,21 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral(resource.Name.ToLowerInvariant());
+        if (!endpointReference.EndpointAnnotation.IsExternal)
+        {
+            builder.AppendLiteral(".internal");
+        }
+        builder.Append($".{ContainerAppDomain}");
+
+        return builder.Build();
+    }
+
     internal BicepOutputReference GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
         var prefix = volume.Type switch
@@ -74,7 +90,9 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         };
 
         // REVIEW: Should we use the same naming algorithm as azd?
-        var outputName = $"{prefix}_{resource.Name}_{volumeIndex}";
+        // Normalize the resource name to ensure it's compatible with Bicep identifiers (only letters, numbers, and underscores)
+        var normalizedResourceName = Infrastructure.NormalizeBicepIdentifier(resource.Name);
+        var outputName = $"{prefix}_{normalizedResourceName}_{volumeIndex}";
 
         if (!VolumeNames.TryGetValue(outputName, out var volumeName))
         {
@@ -89,9 +107,29 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a ContainerAppManagedEnvironment with the same identifier already exists
+        var existingCae = resources.OfType<ContainerAppManagedEnvironment>().SingleOrDefault(cae => cae.BicepIdentifier == bicepIdentifier);
+
+        if (existingCae is not null)
+        {
+            return existingCae;
+        }
+
+        // Create and add new resource if it doesn't exist
         // Even though it's a compound resource, we'll only expose the managed environment
-        var cae = ContainerAppManagedEnvironment.FromExisting(this.GetBicepIdentifier());
-        cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var cae = ContainerAppManagedEnvironment.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            cae))
+        {
+            cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(cae);
         return cae;
     }

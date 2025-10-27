@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
-    <UserSecretsId>55ef4430-77f1-4dfa-9af3-e2e39d665e2a</UserSecretsId>
+    <UserSecretsId>3306d5c7-aace-4d7d-9baf-dad72bd7899a</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,9 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.OpenAI" />
     <ProjectReference Include="..\OpenAIEndToEnd.WebStory\OpenAIEndToEnd.WebStory.csproj" />
   </ItemGroup>
 

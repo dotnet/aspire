@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../AddCommandStrings.resx">
     <body>
       <trans-unit id="AddingAspireIntegration">
-        <source>Adding Aspire integration...</source>
-        <target state="translated">正在添加 Aspire 集成...</target>
+        <source>Adding Aspire hosting integration...</source>
+        <target state="translated">正在添加 Aspire 托管集成...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add an integration to the Aspire project.</source>
-        <target state="translated">将集成添加到 Aspire 项目。</target>
+        <source>Add a hosting integration to the Aspire AppHost.</source>
+        <target state="translated">将托管集成添加到 Aspire AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -32,6 +32,11 @@
         <target state="translated">找不到包。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">没有与搜索词“{0}”匹配的包。正在显示所有可用包。</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">已成功添加包 {0}::{1}。</target>
@@ -48,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
-        <source>Searching for Aspire packages...</source>
-        <target state="translated">正在搜索 Aspire 包...</target>
+        <source>Searching for Aspire integrations...</source>
+        <target state="translated">正在搜索 Aspire 集成...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">
@@ -70,6 +75,11 @@
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">找到意外数量的包。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">使用预发行包</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
@@ -147,12 +149,70 @@ public static class ParameterResourceBuilderExtensions
             });
     }
 
-    private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    /// <summary>
+    /// Sets the description of the parameter resource.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="description">The parameter description.</param>
+    /// <param name="enableMarkdown">
+    /// A value indicating whether the description should be rendered as Markdown.
+    /// <c>true</c> allows the description to contain Markdown elements such as links, text decoration and lists.
+    /// </param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(description);
+
+        builder.Resource.Description = description;
+        builder.Resource.EnableDescriptionMarkdown = enableMarkdown;
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets a custom input generator function for the parameter resource.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="createInput">Function to customize the input for the parameter.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    /// <remarks>
+    /// Use this method to customize how the input field for this parameter is rendered when its value is requested, e.g.:
+    /// <code language="csharp">
+    /// builder.AddParameter("external-service-url")
+    ///     .WithCustomInput(parameter => new()
+    ///     {
+    ///         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
+    ///         Value = "https://example.com",
+    ///         Label = parameter.Name,
+    ///         Placeholder = $"Enter value for {parameter.Name}",
+    ///         Description = parameter.Description
+    ///     });
+    /// </code>
+    /// </remarks>
+    [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<ParameterResource> WithCustomInput(this IResourceBuilder<ParameterResource> builder, Func<ParameterResource, InteractionInput> createInput)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(createInput);
+
+        builder.Resource.Annotations.Add(new InputGeneratorAnnotation(createInput));
+
+        return builder;
+    }
+
+    // Internal to allow ParameterProcessor to check for configured values
+    // without triggering default value generation
+    internal static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
-        return configuration[configurationKey]
+        
+        // Use the shared helper to get the value with normalization support
+        var value = configuration.GetValueWithNormalizedKey(configurationKey);
+        
+        return value
             ?? parameterDefault?.GetDefaultValue()
-            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
+            ?? throw new MissingParameterValueException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
 
     internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder, T resource)
@@ -160,13 +220,11 @@ public static class ParameterResourceBuilderExtensions
     {
         var state = new CustomResourceSnapshot
         {
-            ResourceType = "Parameter",
-            // hide parameters by default
-            IsHidden = true,
+            ResourceType = KnownResourceTypes.Parameter,
             Properties = [
-                new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
-            ]
+            ],
+            State = KnownResourceStates.Waiting
         };
 
         return builder.AddResource(resource)
@@ -189,7 +247,7 @@ public static class ParameterResourceBuilderExtensions
                 new ConnectionStringParameterResource(
                     name,
                     _ => builder.Configuration.GetConnectionString(name) ??
-                        throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
+                        throw new MissingParameterValueException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
                     environmentVariableName)
                 );
     }

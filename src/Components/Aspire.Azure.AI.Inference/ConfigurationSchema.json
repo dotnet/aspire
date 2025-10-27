@@ -118,18 +118,23 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the AI Foundry account."
                     },
-                    "DeploymentId": {
+                    "DeploymentName": {
                       "type": "string",
-                      "description": "Gets or sets the ID of the AI model deployment to use for chat completions."
+                      "description": "Gets or sets the name of the AI model deployment to use for chat completions."
                     },
                     "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": false
                     },
                     "DisableTracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
                       "default": false
+                    },
+                    "EnableSensitiveTelemetryData": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry."
                     },
                     "Endpoint": {
                       "type": "string",

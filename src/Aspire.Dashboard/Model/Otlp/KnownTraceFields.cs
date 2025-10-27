@@ -14,6 +14,7 @@ public static class KnownTraceFields
     // Not used in search.
     public const string StatusMessageField = "trace.statusmessage";
     public const string ParentIdField = "trace.parentid";
+    public const string DestinationField = "trace.destination";
 
     public static readonly List<string> AllFields = [
         NameField,

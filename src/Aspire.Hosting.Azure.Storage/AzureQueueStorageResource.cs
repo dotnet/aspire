@@ -26,6 +26,29 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     public ReferenceExpression ConnectionStringExpression =>
         Parent.GetQueueConnectionString();
 
+    internal ReferenceExpression GetConnectionString(string? queueName)
+    {
+        if (string.IsNullOrEmpty(queueName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        ReferenceExpressionBuilder builder = new();
+
+        if (Parent.IsEmulator)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        builder.Append($";QueueName={queueName}");
+
+        return builder.Build();
+    }
+
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (Parent.IsEmulator)

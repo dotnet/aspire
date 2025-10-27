@@ -4,7 +4,7 @@
     "milvus": {
       "type": "container.v0",
       "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-key.value}",
-      "image": "docker.io/milvusdb/milvus:v2.5.12",
+      "image": "docker.io/milvusdb/milvus:v2.5.17",
       "args": [
         "milvus",
         "run",
@@ -42,7 +42,11 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
-        "ConnectionStrings__milvus": "{milvus.connectionString}"
+        "ConnectionStrings__milvus": "{milvus.connectionString}",
+        "MILVUS_HOST": "{milvus.bindings.grpc.host}",
+        "MILVUS_PORT": "{milvus.bindings.grpc.port}",
+        "MILVUS_TOKEN": "root:{milvus-key.value}",
+        "MILVUS_URI": "{milvus.bindings.grpc.url}"
       },
       "bindings": {
         "http": {

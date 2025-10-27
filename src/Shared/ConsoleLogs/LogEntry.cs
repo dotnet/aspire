@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ConsoleLogs;
 
-[DebuggerDisplay("LineNumber = {LineNumber}, Timestamp = {Timestamp}, Content = {Content}, Type = {Type}")]
+[DebuggerDisplay("LineNumber = {LineNumber}, Timestamp = {Timestamp}, ResourcePrefix = {ResourcePrefix}, Content = {Content}, Type = {Type}")]
 #if ASPIRE_DASHBOARD
 public sealed class LogEntry
 #else
@@ -22,8 +22,9 @@ internal sealed class LogEntry
     public LogEntryType Type { get; private set; } = LogEntryType.Default;
     public int LineNumber { get; set; }
     public LogPauseViewModel? Pause { get; private set; }
+    public string? ResourcePrefix { get; set; }
 
-    public static LogEntry CreatePause(DateTime startTimestamp, DateTime? endTimestamp = null)
+    public static LogEntry CreatePause(string resourcePrefix, DateTime startTimestamp, DateTime? endTimestamp = null)
     {
         return new LogEntry
         {
@@ -32,24 +33,27 @@ internal sealed class LogEntry
             LineNumber = 0,
             Pause = new LogPauseViewModel
             {
+                ResourcePrefix = resourcePrefix,
                 StartTime = startTimestamp,
                 EndTime = endTimestamp
-            }
+            },
+            ResourcePrefix = resourcePrefix
         };
     }
 
     public static LogEntry Create(DateTime? timestamp, string logMessage, bool isErrorMessage)
     {
-        return Create(timestamp, logMessage, logMessage, isErrorMessage);
+        return Create(timestamp, logMessage, logMessage, isErrorMessage, resourcePrefix: null);
     }
 
-    public static LogEntry Create(DateTime? timestamp, string logMessage, string rawLogContent, bool isErrorMessage)
+    public static LogEntry Create(DateTime? timestamp, string logMessage, string rawLogContent, bool isErrorMessage, string? resourcePrefix)
     {
         return new LogEntry
         {
             Timestamp = timestamp,
             Content = logMessage,
             RawContent = rawLogContent,
+            ResourcePrefix = resourcePrefix,
             Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default
         };
     }

@@ -26,24 +26,19 @@ runs:
     - name: Set up .NET Core
       uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
       with:
-        dotnet-version: |
-          9.x
-          10.x
+        global-json-file: ${{ github.workspace }}/global.json
 
     - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
-      env:
-        CI: false
       shell: pwsh
       run: >
         dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
+        /bl:${{ github.workspace }}/artifacts/log/Debug/GetTestProjects.binlog
         /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
         /p:ContinuousIntegrationBuild=true
 
     - name: Generate list of template tests
       if: ${{ inputs.includeTemplates }}
-      env:
-        CI: false
       shell: pwsh
       run: >
           dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
@@ -58,8 +53,6 @@ runs:
       id: generate_integrations_matrix
       if: ${{ inputs.includeIntegrations }}
       shell: pwsh
-      env:
-        CI: false
       run: |
         $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
         $lines = Get-Content $filePath
@@ -74,8 +67,6 @@ runs:
       id: generate_templates_matrix
       if: ${{ inputs.includeTemplates }}
       shell: pwsh
-      env:
-        CI: false
       run: |
         $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
         $lines = Get-Content $inputFilePath
@@ -91,3 +82,12 @@ runs:
         $jsonString = ConvertTo-Json $jsonObject -Compress
         "templates_tests_matrix=$jsonString"
         "templates_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+      with:
+        name: logs-enumerate-tests-${{ runner.os }}
+        path: |
+          artifacts/log/**/*.binlog
+          artifacts/**/*.list

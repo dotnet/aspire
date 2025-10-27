@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Xunit;
 using Polly;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -118,7 +117,9 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var mongodb1 = builder1.AddMongoDB("mongodb");
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = mongodb1.Resource.PasswordParameter!.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
             var db1 = mongodb1.AddDatabase(dbName);
 
             if (useVolume)

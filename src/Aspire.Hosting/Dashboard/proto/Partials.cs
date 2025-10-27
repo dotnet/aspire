@@ -22,6 +22,16 @@ partial class Resource
             SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
         };
 
+        if (snapshot.IconName is not null)
+        {
+            resource.IconName = snapshot.IconName;
+        }
+
+        if (snapshot.IconVariant is not null)
+        {
+            resource.IconVariant = MapIconVariant(snapshot.IconVariant);
+        }
+
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
@@ -97,6 +107,11 @@ partial class Resource
             if (report.Status is not null)
             {
                 healthReport.Status = MapHealthStatus(report.Status.Value);
+            }
+
+            if (report.LastRunAt.HasValue)
+            {
+                healthReport.LastRunAt = Timestamp.FromDateTime(report.LastRunAt.Value.ToUniversalTime());
             }
 
             resource.HealthReports.Add(healthReport);

@@ -3,14 +3,14 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure</PackageTags>
-    <Description>Azure container apps resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure container cloud appcontainers</PackageTags>
+    <Description>Azure container apps resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared\ResourceNameComparer.cs" />
-    <Compile Include="$(SharedDir)BicepFunction2.cs" Link="Provisioning\Utils\BicepFunction2.cs" />
+    <Compile Include="$(SharedDir)BicepFormattingHelpers.cs" LinkBase="Shared\BicepFormattingHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

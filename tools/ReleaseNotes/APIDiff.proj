@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.Build.Traversal/3.0.23">
+
+  <PropertyGroup>
+    <Configuration>Release</Configuration>
+    <TargetFramework>net8.0</TargetFramework>
+    <NoIncremental>true</NoIncremental>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Projects to exclude from API generation -->
+    <ExcludedProjects Include="Aspire.Cli" />
+    <ExcludedProjects Include="Aspire.ProjectTemplates" />
+    <ExcludedProjects Include="Aspire.Hosting.AppHost" />
+    <ExcludedProjects Include="Aspire.Hosting.Testing" />
+    <ExcludedProjects Include="Aspire.Hosting.Analyzers" />
+    <ExcludedProjects Include="Aspire.RuntimeIdentifier.Tool" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Dynamically discover all .csproj files under src, excluding test projects and excluded projects -->
+    <DiscoveredProjects Include="../../src/**/*.csproj" Exclude="../../src/**/*.Tests.csproj;@(ExcludedProjects->'../../src/**/%(Identity)/*.csproj');../../src/Aspire.AppHost.Sdk/Aspire.RuntimeIdentifier.Tool/*.csproj;../../src/Aspire.ProjectTemplates/**/*.csproj" />
+  </ItemGroup>
+
+  <!-- Custom target to build and generate API files -->
+  <Target Name="BuildAndGenerateAPI">
+    <Message Text="Building all projects and generating API files..." Importance="high" />
+    <Message Text="Found @(DiscoveredProjects -> Count()) projects:" Importance="high" />
+    <Message Text="  %(DiscoveredProjects.Identity)" Importance="high" />
+    
+    <!-- Build all projects and generate API files in parallel -->
+    <MSBuild Projects="@(DiscoveredProjects)" 
+             BuildInParallel="true" 
+             Targets="Restore;Build;GenAPIGenerateReferenceAssemblySource"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);NoIncremental=$(NoIncremental)" 
+             ContinueOnError="true" />
+    
+    <Message Text="API generation completed for all projects" Importance="high" />
+  </Target>
+
+  <!-- Debug target to list discovered projects -->
+  <Target Name="ListProjects">
+    <Message Text="=== PROJECT DISCOVERY RESULTS ===" Importance="high" />
+    <Message Text="Total projects discovered: @(DiscoveredProjects -> Count())" Importance="high" />
+    <Message Text="Projects:" Importance="high" />
+    <Message Text="  %(DiscoveredProjects.Identity)" Importance="high" />
+    <Message Text="=== EXCLUDED PROJECTS ===" Importance="high" />
+    <Message Text="Excluded project patterns:" Importance="high" />
+    <Message Text="  @(ExcludedProjects->'../../src/**/%(Identity)/*.csproj')" Importance="high" />
+    <Message Text="=============================" Importance="high" />
+  </Target>
+
+  <!-- Export project list and API file paths for external tooling -->
+  <Target Name="ExportProjectInfo">
+    <ItemGroup>
+      <!-- Find all existing API files by scanning all api directories -->
+      <ExistingApiFiles Include="../../src/**/api/*.cs" />
+      <!-- Convert to absolute paths -->
+      <ExistingApiFilesFullPath Include="@(ExistingApiFiles -> '%(FullPath)')" />
+    </ItemGroup>
+
+    <!-- Create output directory if it doesn't exist -->
+    <MakeDir Directories="$(OutputPath)" Condition="'$(OutputPath)' != ''" />
+    
+    <!-- Write project list to file -->
+    <WriteLinesToFile File="$(OutputPath)projects.txt" 
+                      Lines="@(DiscoveredProjects)" 
+                      Overwrite="true" 
+                      Condition="'$(OutputPath)' != ''" />
+    
+    <!-- Write API file paths to file -->
+    <WriteLinesToFile File="$(OutputPath)api-files.txt" 
+                      Lines="@(ExistingApiFilesFullPath)" 
+                      Overwrite="true" 
+                      Condition="'$(OutputPath)' != ''" />
+    
+    <!-- Also output to console for immediate use -->
+    <Message Text="=== EXPORTED PROJECT INFO ===" Importance="high" />
+    <Message Text="Projects file: $(OutputPath)projects.txt" Importance="high" Condition="'$(OutputPath)' != ''" />
+    <Message Text="API files list: $(OutputPath)api-files.txt" Importance="high" Condition="'$(OutputPath)' != ''" />
+    <Message Text="" Importance="high" />
+    <Message Text="Total projects: @(DiscoveredProjects -> Count())" Importance="high" />
+    <Message Text="Existing API files (@(ExistingApiFilesFullPath -> Count()) total):" Importance="high" />
+    <Message Text="  %(ExistingApiFilesFullPath.Identity)" Importance="high" />
+    <Message Text="=============================" Importance="high" />
+  </Target>
+
+  <!-- Default target -->
+  <Target Name="Build" DependsOnTargets="BuildAndGenerateAPI" />
+
+</Project>

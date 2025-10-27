@@ -114,11 +114,21 @@ public static class AspireRabbitMQExtensions
         {
             builder.Services.AddSingleton<IConnectionFactory>(CreateConnectionFactory);
             builder.Services.AddSingleton<IConnection>(sp => CreateConnection(sp.GetRequiredService<IConnectionFactory>(), settings.MaxConnectRetryCount));
+
+            if (!settings.DisableAutoActivation)
+            {
+                builder.Services.ActivateSingleton<IConnection>();
+            }
         }
         else
         {
             builder.Services.AddKeyedSingleton<IConnectionFactory>(serviceKey, (sp, _) => CreateConnectionFactory(sp));
             builder.Services.AddKeyedSingleton<IConnection>(serviceKey, (sp, key) => CreateConnection(sp.GetRequiredKeyedService<IConnectionFactory>(key), settings.MaxConnectRetryCount));
+
+            if (!settings.DisableAutoActivation)
+            {
+                builder.Services.ActivateKeyedSingleton<IConnection>(serviceKey);
+            }
         }
 
         builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();

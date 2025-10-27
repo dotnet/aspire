@@ -20,6 +20,10 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
+    "storage-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
     "myblobcontainer": {
       "type": "value.v0",
       "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=myblobcontainer"
@@ -76,9 +80,9 @@
           "funcstorage67c6c_outputs_queueendpoint": "{funcstorage67c6c.outputs.queueEndpoint}",
           "funcstorage67c6c_outputs_tableendpoint": "{funcstorage67c6c.outputs.tableEndpoint}",
           "eventhubs_outputs_eventhubsendpoint": "{eventhubs.outputs.eventHubsEndpoint}",
-          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
           "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
           "cosmosdb_outputs_connectionstring": "{cosmosdb.outputs.connectionString}",
+          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
           "storage_outputs_queueendpoint": "{storage.outputs.queueEndpoint}",
           "funcapp_identity_outputs_clientid": "{funcapp-identity.outputs.clientId}"
         }
@@ -108,12 +112,12 @@
         "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__myhub__EventHubName": "myhub",
         "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__myhub__EventHubName": "myhub",
         "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__myhub__EventHubName": "myhub",
-        "ConnectionStrings__myblobcontainer": "{myblobcontainer.connectionString}",
         "messaging__fullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",
         "Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "ConnectionStrings__myblobcontainer": "{myblobcontainer.connectionString}",
         "blob__blobServiceUri": "{storage.outputs.blobEndpoint}",
         "blob__queueServiceUri": "{storage.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__blob__ServiceUri": "{storage.outputs.blobEndpoint}",
@@ -208,14 +212,6 @@
         "principalId": "{funcapp-identity.outputs.principalId}"
       }
     },
-    "funcapp-roles-storage": {
-      "type": "azure.bicep.v0",
-      "path": "funcapp-roles-storage.module.bicep",
-      "params": {
-        "storage_outputs_name": "{storage.outputs.name}",
-        "principalId": "{funcapp-identity.outputs.principalId}"
-      }
-    },
     "funcapp-roles-messaging": {
       "type": "azure.bicep.v0",
       "path": "funcapp-roles-messaging.module.bicep",
@@ -229,6 +225,14 @@
       "path": "funcapp-roles-cosmosdb.module.bicep",
       "params": {
         "cosmosdb_outputs_name": "{cosmosdb.outputs.name}",
+        "principalId": "{funcapp-identity.outputs.principalId}"
+      }
+    },
+    "funcapp-roles-storage": {
+      "type": "azure.bicep.v0",
+      "path": "funcapp-roles-storage.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
         "principalId": "{funcapp-identity.outputs.principalId}"
       }
     },

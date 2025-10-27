@@ -1,0 +1,11 @@
+﻿<configuration>
+  <packageSources>
+    <clear />
+    <add key="https://api.nuget.org/v3/index.json" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="https://api.nuget.org/v3/index.json">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>

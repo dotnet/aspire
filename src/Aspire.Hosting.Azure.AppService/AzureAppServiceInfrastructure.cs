@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,20 +13,20 @@ internal sealed class AzureAppServiceInfrastructure(
     ILogger<AzureAppServiceInfrastructure> logger,
     IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext) :
-    IDistributedApplicationLifecycleHook
+    IDistributedApplicationEventingSubscriber
 {
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         if (!executionContext.IsPublishMode)
         {
             return;
         }
 
-        var appServiceEnvironments = appModel.Resources.OfType<AzureAppServiceEnvironmentResource>().ToArray();
+        var appServiceEnvironments = @event.Model.Resources.OfType<AzureAppServiceEnvironmentResource>().ToArray();
 
         if (appServiceEnvironments.Length == 0)
         {
-            EnsureNoPublishAsAzureAppServiceWebsiteAnnotations(appModel);
+            EnsureNoPublishAsAzureAppServiceWebsiteAnnotations(@event.Model);
             return;
         }
 
@@ -34,9 +35,10 @@ internal sealed class AzureAppServiceInfrastructure(
             var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
                 logger,
                 executionContext,
-                appServiceEnvironment);
+                appServiceEnvironment,
+                @event.Services);
 
-            foreach (var resource in appModel.GetComputeResources())
+            foreach (var resource in @event.Model.GetComputeResources())
             {
                 // Support project resources and containers with Dockerfile
                 if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
@@ -66,5 +68,11 @@ internal sealed class AzureAppServiceInfrastructure(
                 throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure AppService Website, but there are no '{nameof(AzureAppServiceEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureAppServiceEnvironmentExtensions.AddAzureAppServiceEnvironment)}'.");
             }
         }
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
     }
 }

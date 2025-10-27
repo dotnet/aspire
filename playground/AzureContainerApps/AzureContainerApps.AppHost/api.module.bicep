@@ -33,13 +33,13 @@ param certificateName string
 
 param customDomain string
 
-resource account_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+resource account_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: account_kv_outputs_name
 }
 
-resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+resource account_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--account'
-  parent: account_kv_outputs_name_kv
+  parent: account_kv
 }
 
 resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
@@ -53,9 +53,17 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           value: 'cache:6379,password=${cache_password_value}'
         }
         {
+          name: 'cache-password'
+          value: cache_password_value
+        }
+        {
+          name: 'cache-uri'
+          value: 'redis://:${uriComponent(cache_password_value)}@cache:6379'
+        }
+        {
           name: 'connectionstrings--account'
           identity: api_identity_outputs_id
-          keyVaultUrl: account_kv_outputs_name_kv_connectionstrings__account.properties.secretUri
+          keyVaultUrl: account_kv_connectionstrings__account.properties.secretUri
         }
         {
           name: 'value'
@@ -123,6 +131,22 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               secretRef: 'connectionstrings--cache'
             }
             {
+              name: 'CACHE_HOST'
+              value: 'cache'
+            }
+            {
+              name: 'CACHE_PORT'
+              value: '6379'
+            }
+            {
+              name: 'CACHE_PASSWORD'
+              secretRef: 'cache-password'
+            }
+            {
+              name: 'CACHE_URI'
+              secretRef: 'cache-uri'
+            }
+            {
               name: 'ConnectionStrings__account'
               secretRef: 'connectionstrings--account'
             }
@@ -137,6 +161,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

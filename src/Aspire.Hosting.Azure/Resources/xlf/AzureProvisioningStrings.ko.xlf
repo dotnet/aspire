@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../AzureProvisioningStrings.resx">
+    <body>
+      <trans-unit id="InputsMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
+        <target state="translated">모델에는 Azure 구독이 필요한 Azure 리소스가 포함되어 있습니다.
+
+자세한 내용은 [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning)를 참조하세요.</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="InputsTitle">
+        <source>Azure provisioning</source>
+        <target state="translated">Azure 프로비전</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationDialogTitle">
+        <source>Azure location and resource group</source>
+        <target state="translated">Azure 위치 및 리소스 그룹</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationLabel">
+        <source>Location</source>
+        <target state="translated">위치</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationPlaceholder">
+        <source>Select location</source>
+        <target state="translated">위치 선택</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationSelectionMessage">
+        <source>Select your Azure location and specify resource group:</source>
+        <target state="translated">Azure 위치를 선택하고 리소스 그룹을 지정합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.</source>
+        <target state="translated">모델에는 Azure 구독이 필요한 Azure 리소스가 포함되어 있습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationPrimaryButtonText">
+        <source>Enter values</source>
+        <target state="translated">값 입력</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationTitle">
+        <source>Azure provisioning</source>
+        <target state="translated">Azure 프로비전</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupLabel">
+        <source>Resource group</source>
+        <target state="translated">리소스 그룹</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionDialogTitle">
+        <source>Azure subscription</source>
+        <target state="translated">Azure 구독</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdLabel">
+        <source>Subscription ID</source>
+        <target state="translated">구독 ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdPlaceholder">
+        <source>Select subscription ID</source>
+        <target state="translated">구독 ID 선택</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionManualEntryMessage">
+        <source>Enter your Azure subscription ID:</source>
+        <target state="translated">Azure 구독 ID 입력:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionSelectionMessage">
+        <source>Select your Azure subscription:</source>
+        <target state="translated">Azure 구독 선택:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Azure 테넌트</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">테넌트 ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Azure 테넌트 ID 입력:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">테넌트 ID 선택</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Azure 테넌트 선택:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationResourceGroupNameInvalid">
+        <source>Resource group name must be a valid Azure resource group name.</source>
+        <target state="translated">리소스 그룹 이름은 유효한 Azure 리소스 그룹 이름이어야 합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationSubscriptionIdInvalid">
+        <source>Subscription ID must be a valid GUID.</source>
+        <target state="translated">구독 ID는 유효한 GUID여야 합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">테넌트 ID는 유효한 GUID여야 합니다.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

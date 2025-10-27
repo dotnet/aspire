@@ -26,11 +26,11 @@ function getFluentMenuItemForTarget(element) {
 
     // in between the svg and fluent-menu-item is a span for the icon slot
     const possibleMenuItem = element.parentElement?.parentElement;
-    if (isElementTagName(element, "svg") && possibleMenuItem && isElementTagName(possibleMenuItem, "fluent-menu-item")) {
+    if (possibleMenuItem && (isElementTagName(possibleMenuItem, "fluent-menu-item") || isElementTagName(possibleMenuItem, "button"))) {
         return element.parentElement.parentElement;
     }
 
-    if (isElementTagName(element, "fluent-menu-item")) {
+    if (isElementTagName(element, "fluent-menu-item") || isElementTagName(element, "button")) {
         return element;
     }
 
@@ -62,6 +62,7 @@ window.getIsScrolledToContent = function () {
 window.setIsScrolledToContent = function (value) {
     if (isScrolledToContent != value) {
         isScrolledToContent = value;
+        console.log(`isScrolledToContent=${isScrolledToContent}`);
     }
 }
 
@@ -82,8 +83,11 @@ window.initializeContinuousScroll = function () {
 
     // The scroll event is used to detect when the user scrolls to view content.
     container.addEventListener('scroll', () => {
-        var v = !isScrolledToBottom(container);
-        setIsScrolledToContent(v);
+        var atBottom = isScrolledToBottom(container);
+        if (atBottom === null) {
+            return;
+        }
+        setIsScrolledToContent(!atBottom);
    }, { passive: true });
 
     // The ResizeObserver reports changes in the grid size.
@@ -91,8 +95,18 @@ window.initializeContinuousScroll = function () {
     // unless the user has scrolled to view content.
     const observer = new ResizeObserver(function () {
         lastScrollHeight = container.scrollHeight;
-        if (!getIsScrolledToContent()) {
+
+        if (lastScrollHeight == container.clientHeight) {
+            // There is no scrollbar. This could be because there's no content, or the content might have been cleared.
+            // Reset to default behavior: scroll to bottom
+            setIsScrolledToContent(false);
+            return;
+        }
+
+        var isScrolledToContent = getIsScrolledToContent();
+        if (!isScrolledToContent) {
             container.scrollTop = lastScrollHeight;
+            return;
         }
     });
     for (const child of container.children) {
@@ -108,6 +122,9 @@ function isScrolledToBottom(container) {
     if (!getIsScrolledToContent()) {
         if (lastScrollHeight != container.scrollHeight) {
             console.log(`lastScrollHeight ${lastScrollHeight} doesn't equal container scrollHeight ${container.scrollHeight}.`);
+
+            // Unknown because the container size changed.
+            return null;
         }
     }
 
@@ -115,7 +132,8 @@ function isScrolledToBottom(container) {
     const containerScrollBottom = lastScrollHeight - container.clientHeight;
     const difference = containerScrollBottom - container.scrollTop;
 
-    return difference < marginOfError;
+    var atBottom = difference < marginOfError;
+    return atBottom;
 }
 
 window.buttonOpenLink = function (element) {
@@ -154,7 +172,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             }
             if (copyIcon && checkmarkIcon) {
                 copyIcon.style.display = 'none';
-                checkmarkIcon.style.display = 'inline';
+                checkmarkIcon.style.display = '';
             }
         })
         .catch(() => {
@@ -169,17 +187,19 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
         }
 
         if (copyIcon && checkmarkIcon) {
-            copyIcon.style.display = 'inline';
+            copyIcon.style.display = '';
             checkmarkIcon.style.display = 'none';
         }
         delete button.dataset.copyTimeout;
-   }, 1500);
+    }, 1500);
 };
 
 function isActiveElementInput() {
     const currentElement = document.activeElement;
+    const tagName = currentElement.tagName.toLowerCase();
+
     // fluent components may have shadow roots that contain inputs
-    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+    return tagName === "input" || tagName === "textarea" || tagName.startsWith("fluent") ? isInputElement(currentElement, false) : false;
 }
 
 function isInputElement(element, isRoot, isShadowRoot) {
@@ -373,3 +393,23 @@ window.downloadStreamAsFile = async function (fileName, contentStreamReference) 
     anchorElement.remove();
     URL.revokeObjectURL(url);
 };
+
+window.attachChatClickEvent = function (containerId, interop) {
+    var container = document.getElementById(containerId);
+    if (!container) {
+        console.log(`Couldn't find container '${containerId}'.`);
+        return;
+    }
+
+    container.addEventListener('click', function (event) {
+        let anchorElement = event.target.closest('a');
+        if (anchorElement) {
+            // Only intercept if the link's host matches the current window's host (same domain)
+            if (anchorElement.host === window.location.host) {
+                event.preventDefault();
+                console.log('Link click intercepted:', anchorElement.href);
+                interop.invokeMethodAsync('NavigateUrl', anchorElement.href);
+            }
+        }
+    });
+}

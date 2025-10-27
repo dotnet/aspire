@@ -13,11 +13,13 @@ public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
     public OtlpOptions Otlp { get; set; } = new();
+    public McpOptions Mcp { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
     public DebugSessionOptions DebugSession { get; set; } = new();
     public UIOptions UI { get; set; } = new();
+    public AIOptions AI { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -85,6 +87,8 @@ public sealed class OtlpOptions
 
     public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
 
+    public bool SuppressUnsecuredMessage { get; set; }
+
     public BindingAddress? GetGrpcEndpointAddress()
     {
         return _parsedGrpcEndpointAddress;
@@ -128,6 +132,52 @@ public sealed class OtlpOptions
         if (string.IsNullOrEmpty(HttpEndpointUrl) && !string.IsNullOrEmpty(Cors.AllowedOrigins))
         {
             errorMessage = $"CORS configured without an OTLP HTTP endpoint. Either remove CORS configuration or specify a {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
+            return false;
+        }
+
+        _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
+        _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
+
+        errorMessage = null;
+        return true;
+    }
+}
+
+public class McpOptions
+{
+    private BindingAddress? _parsedEndpointAddress;
+    private byte[]? _primaryApiKeyBytes;
+    private byte[]? _secondaryApiKeyBytes;
+
+    public bool? Disabled { get; set; }
+    public McpAuthMode? AuthMode { get; set; }
+    public string? PrimaryApiKey { get; set; }
+    public string? SecondaryApiKey { get; set; }
+    public string? EndpointUrl { get; set; }
+
+    // Public URL could be different from the endpoint URL (e.g., when behind a proxy).
+    public string? PublicUrl { get; set; }
+
+    public bool SuppressUnsecuredMessage { get; set; }
+
+    public BindingAddress? GetEndpointAddress()
+    {
+        return _parsedEndpointAddress;
+    }
+
+    public byte[] GetPrimaryApiKeyBytes()
+    {
+        Debug.Assert(_primaryApiKeyBytes is not null, "Should have been parsed during validation.");
+        return _primaryApiKeyBytes;
+    }
+
+    public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
+
+    internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
+    {
+        if (!string.IsNullOrEmpty(EndpointUrl) && !OptionsHelpers.TryParseBindingAddress(EndpointUrl, out _parsedEndpointAddress))
+        {
+            errorMessage = $"Failed to parse MCP endpoint URL '{EndpointUrl}'.";
             return false;
         }
 
@@ -265,6 +315,11 @@ public sealed class OpenIdConnectOptions
     /// </summary>
     public string RequiredClaimValue { get; set; } = "";
 
+    /// <summary>
+    /// Gets or sets the optional value to configure the ClaimActions of <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions"/>
+    /// </summary>
+    public List<ClaimAction> ClaimActions { get; set; } = new();
+
     public string[] GetNameClaimTypes()
     {
         Debug.Assert(_nameClaimTypes is not null, "Should have been parsed during validation.");
@@ -305,6 +360,20 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+public sealed class ClaimAction
+{
+    public required string ClaimType { get; set; }
+    public required string JsonKey { get; set; }
+    public string? SubKey { get; set; }
+    public bool? IsUnique { get; set; }
+    public string? ValueType { get; set; }
+}
+
+public sealed class AIOptions
+{
+    public bool? Disabled { get; set; }
 }
 
 public sealed class DebugSessionOptions

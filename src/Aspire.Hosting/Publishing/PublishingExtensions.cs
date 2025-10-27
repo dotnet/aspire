@@ -5,10 +5,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Extension methods for <see cref="PublishingStep"/> and <see cref="PublishingTask"/> to provide direct operations.
+/// Extension methods for <see cref="IReportingStep"/> and <see cref="IReportingTask"/> to provide direct operations.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class PublishingExtensions
@@ -20,19 +20,13 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed step.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no reporter is available.</exception>
-    public static async Task<PublishingStep> SucceedAsync(
-        this PublishingStep step,
+    public static async Task<IReportingStep> SucceedAsync(
+        this IReportingStep step,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
-        if (step.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this step.");
-        }
-
         var completionText = message ?? "Completed successfully";
-        await step.Reporter.CompleteStepAsync(step, completionText, CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+        await step.CompleteAsync(completionText, CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         return step;
     }
 
@@ -43,19 +37,13 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed step.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no reporter is available.</exception>
-    public static async Task<PublishingStep> WarnAsync(
-        this PublishingStep step,
+    public static async Task<IReportingStep> WarnAsync(
+        this IReportingStep step,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
-        if (step.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this step.");
-        }
-
         var completionText = message ?? "Completed with warnings";
-        await step.Reporter.CompleteStepAsync(step, completionText, CompletionState.CompletedWithWarning, cancellationToken).ConfigureAwait(false);
+        await step.CompleteAsync(completionText, CompletionState.CompletedWithWarning, cancellationToken).ConfigureAwait(false);
         return step;
     }
 
@@ -66,19 +54,13 @@ public static class PublishingExtensions
     /// <param name="errorMessage">Optional error message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed step.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no reporter is available.</exception>
-    public static async Task<PublishingStep> FailAsync(
-        this PublishingStep step,
+    public static async Task<IReportingStep> FailAsync(
+        this IReportingStep step,
         string? errorMessage = null,
         CancellationToken cancellationToken = default)
     {
-        if (step.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this step.");
-        }
-
         var completionText = errorMessage ?? "Failed";
-        await step.Reporter.CompleteStepAsync(step, completionText, CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
+        await step.CompleteAsync(completionText, CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
         return step;
     }
 
@@ -89,18 +71,12 @@ public static class PublishingExtensions
     /// <param name="statusText">The new status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The updated task.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the parent step is complete or no reporter is available.</exception>
-    public static async Task<PublishingTask> UpdateStatusAsync(
-        this PublishingTask task,
+    public static async Task<IReportingTask> UpdateStatusAsync(
+        this IReportingTask task,
         string statusText,
         CancellationToken cancellationToken = default)
     {
-        if (task.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this task.");
-        }
-
-        await task.Reporter.UpdateTaskAsync(task, statusText, cancellationToken).ConfigureAwait(false);
+        await task.UpdateAsync(statusText, cancellationToken).ConfigureAwait(false);
         return task;
     }
 
@@ -111,18 +87,12 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed task.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no reporter is available.</exception>
-    public static async Task<PublishingTask> SucceedAsync(
-        this PublishingTask task,
+    public static async Task<IReportingTask> SucceedAsync(
+        this IReportingTask task,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
-        if (task.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this task.");
-        }
-
-        await task.Reporter.CompleteTaskAsync(task, CompletionState.Completed, message, cancellationToken).ConfigureAwait(false);
+        await task.CompleteAsync(message, CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         return task;
     }
 
@@ -133,18 +103,12 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed task.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no reporter is available.</exception>
-    public static async Task<PublishingTask> WarnAsync(
-        this PublishingTask task,
+    public static async Task<IReportingTask> WarnAsync(
+        this IReportingTask task,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
-        if (task.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this task.");
-        }
-
-        await task.Reporter.CompleteTaskAsync(task, CompletionState.CompletedWithWarning, message, cancellationToken).ConfigureAwait(false);
+        await task.CompleteAsync(message, CompletionState.CompletedWithWarning, cancellationToken).ConfigureAwait(false);
         return task;
     }
 
@@ -155,18 +119,12 @@ public static class PublishingExtensions
     /// <param name="errorMessage">Optional error message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed task.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no reporter is available.</exception>
-    public static async Task<PublishingTask> FailAsync(
-        this PublishingTask task,
+    public static async Task<IReportingTask> FailAsync(
+        this IReportingTask task,
         string? errorMessage = null,
         CancellationToken cancellationToken = default)
     {
-        if (task.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this task.");
-        }
-
-        await task.Reporter.CompleteTaskAsync(task, CompletionState.CompletedWithError, errorMessage, cancellationToken).ConfigureAwait(false);
+        await task.CompleteAsync(errorMessage, CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
         return task;
     }
 }

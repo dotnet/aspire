@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.Oracle.Tests;
 
@@ -95,7 +94,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var oracle1 = builder1.AddOracle("oracle");
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = oracle1.Resource.PasswordParameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var db1 = oracle1.AddDatabase(oracleDbName);
 

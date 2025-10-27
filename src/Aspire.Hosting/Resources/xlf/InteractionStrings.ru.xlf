@@ -1,0 +1,112 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../InteractionStrings.resx">
+    <body>
+      <trans-unit id="ContainerRuntimeDockerAdvice">
+        <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
+        <target state="translated">Убедитесь, что Docker запущен и управляющая программа Docker доступна. Если включен режим экономии ресурсов, контейнеры могут не запускаться.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeGenericAdvice">
+        <source>Ensure that the container runtime is running.</source>
+        <target state="translated">Убедитесь, что среда выполнения контейнера запущена.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeLinkText">
+        <source>Learn more</source>
+        <target state="translated">Подробнее</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">Не удалось найти среду выполнения контейнера. Дополнительные сведения о поддерживаемых средах выполнения контейнеров см. на странице https://aka.ms/dotnet/aspire/containers.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container runtime not installed</source>
+        <target state="translated">Среда выполнения контейнера не установлена</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimePodmanAdvice">
+        <source>Ensure that Podman is running.</source>
+        <target state="translated">Убедитесь, что Podman запущен.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeUnhealthyMessage">
+        <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
+        <target state="translated">Обнаружена среда выполнения контейнера "{0}", но, судя по всему, неработоспособная. </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeUnhealthyTitle">
+        <source>Container runtime unhealthy</source>
+        <target state="translated">Неработоспособная среда выполнения контейнера</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersBarMessage">
+        <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
+        <target state="translated">Существуют неразрешенные параметры, которые необходимо настроить. Укажите значения для них.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersBarPrimaryButtonText">
+        <source>Enter values</source>
+        <target state="translated">Ввести значения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersBarTitle">
+        <source>Unresolved parameters</source>
+        <target state="translated">Неразрешенные параметры</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessage">
+        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
+        <target state="translated">Укажите значения для неразрешенных параметров. Параметры можно сохранить в [пользовательских секретах](https://learn.microsoft.com/aspnet/core/security/app-secrets) для дальнейшего использования.</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="translated">Укажите значения для неразрешенных параметров.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsParameterPlaceholder">
+        <source>Enter value for {0}</source>
+        <target state="translated">Введите значение для {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsPrimaryButtonText">
+        <source>Save</source>
+        <target state="translated">Сохранить</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsRememberLabel">
+        <source>Save to user secrets</source>
+        <target state="translated">Сохранить в пользовательских секретах</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsTitle">
+        <source>Set unresolved parameters</source>
+        <target state="translated">Настроить неразрешенные параметры</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckLinkText">
+        <source>Upgrade instructions</source>
+        <target state="translated">Инструкции по обновлению</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckMessage">
+        <source>Aspire {0} is available.</source>
+        <target state="translated">Aspire {0} доступно.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckPrimaryButtonText">
+        <source>Ignore</source>
+        <target state="translated">Игнорировать</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionCheckTitle">
+        <source>Update now</source>
+        <target state="translated">Обновить сейчас</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

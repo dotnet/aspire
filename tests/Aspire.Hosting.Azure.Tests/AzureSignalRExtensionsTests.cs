@@ -53,4 +53,52 @@ public class AzureSignalRExtensionsTests
               .AppendContentAsFile(signalrRolesBicep, "bicep");
               
     }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var signalR = builder.AddAzureSignalR("signalr")
+                            .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(signalR.Resource.IsEmulator());
+        Assert.Contains(signalR.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureSignalRResource()
+    {
+        // Arrange
+        var signalRResource = new AzureSignalRResource("test-signalr", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(signalRResource, "test-signalr");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = signalRResource.AddAsExistingResource(infrastructure);
+        var secondResult = signalRResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureSignalRResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-signalr-name");
+        var existingResourceGroup = builder.AddParameter("existing-signalr-rg");
+
+        var signalR = builder.AddAzureSignalR("test-signalr")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = signalR.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
 }

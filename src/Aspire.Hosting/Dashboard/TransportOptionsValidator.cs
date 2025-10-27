@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -27,7 +28,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
 
         var firstApplicationUrl = applicationUrls.Split(";").First();
 
-        if (!Uri.TryCreate(firstApplicationUrl, UriKind.Absolute, out var parsedFirstApplicationUrl))
+        if (!TryParseBindingAddress(firstApplicationUrl, out var parsedFirstApplicationUrl))
         {
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
         }
@@ -45,13 +46,20 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
         }
 
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
         {
             return resultGrpc;
         }
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
         {
             return resultHttp;
+        }
+
+        // Validate ASPIRE_DASHBOARD_MCP_ENDPOINT_URL
+        var dashboardMcpEndpointUrl = configuration[KnownConfigNames.DashboardMcpEndpointUrl];
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardMcpEndpointUrl, dashboardMcpEndpointUrl, out var resultMcp))
+        {
+            return resultMcp;
         }
 
         // Validate ASPIRE_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
@@ -73,17 +81,31 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
 
         return ValidateOptionsResult.Success;
 
-        static bool TryValidateGrpcEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
+        static bool TryParseBindingAddress(string address, [NotNullWhen(true)] out BindingAddress? bindingAddress)
+        {
+            try
+            {
+                bindingAddress = BindingAddress.Parse(address);
+                return true;
+            }
+            catch
+            {
+                bindingAddress = null;
+                return false;
+            }
+        }
+
+        static bool TryValidateEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
         {
             if (!string.IsNullOrEmpty(value))
             {
-                if (!Uri.TryCreate(value, UriKind.Absolute, out var parsedUri))
+                if (!TryParseBindingAddress(value, out var parsedBindingAddress))
                 {
                     result = ValidateOptionsResult.Fail($"The {configName} setting with a value of '{value}' could not be parsed as a URI.");
                     return false;
                 }
 
-                if (parsedUri.Scheme == "http")
+                if (parsedBindingAddress.Scheme == "http")
                 {
                     result = ValidateOptionsResult.Fail($"The '{configName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
                     return false;

@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param userPrincipalId string
+param userPrincipalId string = ''
 
 param tags object = { }
 
@@ -79,6 +79,7 @@ resource infra_storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
   properties: {
     largeFileSharesState: 'Enabled'
+    minimumTlsVersion: 'TLS1_2'
   }
   tags: tags
 }

@@ -11,7 +11,7 @@ Registers a [BlobServiceClient](https://learn.microsoft.com/dotnet/api/azure.sto
 
 ### Install the package
 
-Install the .NET Aspire Azure Storage Blobs library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Storage Blobs library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Storage.Blobs
@@ -22,7 +22,7 @@ dotnet add package Aspire.Azure.Storage.Blobs
 In the _AppHost.cs_ file of your project, call the `AddAzureBlobClient` extension method to register a `BlobServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobServiceClient("blobs");
 ```
 
 You can then retrieve the `BlobServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -40,14 +40,14 @@ See the [Azure.Storage.Blobs documentation](https://github.com/Azure/azure-sdk-f
 
 ## Configuration
 
-The .NET Aspire Azure Storage Blobs library provides multiple options to configure the Azure Storage Blob connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Storage Blobs library provides multiple options to configure the Azure Storage Blob connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureBlobClient()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureBlobServiceClient()`:
 
 ```csharp
-builder.AddAzureBlobClient("blobsConnectionName");
+builder.AddAzureBlobServiceClient("blobsConnectionName");
 ```
 
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
@@ -78,7 +78,7 @@ Alternatively, an [Azure Storage connection string](https://learn.microsoft.com/
 
 ### Use configuration providers
 
-The .NET Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageBlobsSettings` and `BlobClientOptions` from configuration by using the `Aspire:Azure:Storage:Blobs` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageBlobsSettings` and `BlobClientOptions` from configuration by using the `Aspire:Azure:Storage:Blobs` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -105,13 +105,13 @@ The .NET Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Confi
 You can also pass the `Action<AzureStorageBlobsSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddAzureBlobClient("blobs", settings => settings.HealthChecks = false);
+builder.AddAzureBlobServiceClient("blobs", settings => settings.HealthChecks = false);
 ```
 
 You can also setup the [BlobClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.blobs.blobclientoptions) using the optional `Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>> configureClientBuilder` parameter of the `AddAzureBlobClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-builder.AddAzureBlobClient("blobs", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureBlobServiceClient("blobs", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions
@@ -133,10 +133,10 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(blobs);
 ```
 
-The `AddBlobs` method adds an Azure Storage blob resource to the builder. Or `AddConnectionString` method can be used be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:blobs` config key. The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddBlobs` method adds an Azure Storage blob service resource to the builder. Or `AddConnectionString` method can be used be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:blobs` config key. The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobServiceClient("blobs");
 ```
 
 ## Additional documentation

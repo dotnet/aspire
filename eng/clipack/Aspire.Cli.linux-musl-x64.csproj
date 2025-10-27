@@ -2,8 +2,9 @@
   <PropertyGroup>
     <CliRuntime>linux-musl-x64</CliRuntime>
     <CliPlatformType>Unix</CliPlatformType>
-    <!-- need to be on a linux-musl machine to native AOT for linux-musl-->
-    <PublishNativeAot>false</PublishNativeAot>
+
+    <!-- linux-musl-x64: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-musl-x86_64.so.1, BuildID[sha1]=6cfdc2be10e553c81dbd3f98b808c32e9820b4e7, stripped -->
+    <FileSignatureRegex>ELF 64-bit LSB pie executable, x86-64,.*/ld-musl-x86_64\.so</FileSignatureRegex>
   </PropertyGroup>
 
   <Import Project="Common.projitems" />

@@ -14,13 +14,23 @@ param kv_outputs_name string
 
 param api_identity_outputs_clientid string
 
-resource kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+resource kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: kv_outputs_name
 }
 
-resource kv_outputs_name_kv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+resource kv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'secret'
-  parent: kv_outputs_name_kv
+  parent: kv
+}
+
+resource existingKv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+  name: 'existingKvName'
+  scope: resourceGroup('existingRgName')
+}
+
+resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'secret'
+  parent: existingKv
 }
 
 resource api 'Microsoft.App/containerApps@2025-01-01' = {
@@ -36,7 +46,12 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
         {
           name: 'top-secret2'
           identity: api_identity_outputs_id
-          keyVaultUrl: kv_outputs_name_kv_secret.properties.secretUri
+          keyVaultUrl: kv_secret.properties.secretUri
+        }
+        {
+          name: 'existing-top-secret'
+          identity: api_identity_outputs_id
+          keyVaultUrl: existingKv_secret.properties.secretUri
         }
       ]
       activeRevisionsMode: 'Single'
@@ -57,8 +72,16 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               secretRef: 'top-secret2'
             }
             {
+              name: 'EXISTING_TOP_SECRET'
+              secretRef: 'existing-top-secret'
+            }
+            {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

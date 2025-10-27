@@ -5,11 +5,13 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
-
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
@@ -22,7 +24,7 @@ public class TelemetryRepositoryTests
         // Arrange
         var pauseManager = new PauseManager();
         var repository = CreateRepository(pauseManager: pauseManager);
-        using var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Other, () => Task.CompletedTask);
+        using var subscription = repository.OnNewLogs(resourceKey: null, SubscriptionType.Other, () => Task.CompletedTask);
 
         // Act and assert
         pauseManager.SetStructuredLogsPaused(true);
@@ -32,10 +34,10 @@ public class TelemetryRepositoryTests
         AddMetric();
         AddTrace();
 
-        var applicationKey = new ApplicationKey("resource", "resource");
-        Assert.Empty(repository.GetLogs(new GetLogsContext { ApplicationKey = applicationKey, Count = 100, Filters = [], StartIndex = 0 }).Items);
-        Assert.Null(repository.GetApplication(applicationKey));
-        Assert.Empty(repository.GetTraces(new GetTracesRequest { ApplicationKey = applicationKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
+        var resourceKey = new ResourceKey("resource", "resource");
+        Assert.Empty(repository.GetLogs(new GetLogsContext { ResourceKey = resourceKey, Count = 100, Filters = [], StartIndex = 0 }).Items);
+        Assert.Null(repository.GetResource(resourceKey));
+        Assert.Empty(repository.GetTraces(new GetTracesRequest { ResourceKey = resourceKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
 
         pauseManager.SetStructuredLogsPaused(false);
         pauseManager.SetMetricsPaused(false);
@@ -44,11 +46,11 @@ public class TelemetryRepositoryTests
         AddLog();
         AddMetric();
         AddTrace();
-        Assert.Single(repository.GetLogs(new GetLogsContext { ApplicationKey = applicationKey, Count = 100, Filters = [], StartIndex = 0 }).Items);
-        var application = repository.GetApplication(applicationKey);
-        Assert.NotNull(application);
-        Assert.NotEmpty(application.GetInstrumentsSummary());
-        Assert.Single(repository.GetTraces(new GetTracesRequest { ApplicationKey = applicationKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
+        Assert.Single(repository.GetLogs(new GetLogsContext { ResourceKey = resourceKey, Count = 100, Filters = [], StartIndex = 0 }).Items);
+        var resource = repository.GetResource(resourceKey);
+        Assert.NotNull(resource);
+        Assert.NotEmpty(resource.GetInstrumentsSummary());
+        Assert.Single(repository.GetTraces(new GetTracesRequest { ResourceKey = resourceKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
 
         void AddLog()
         {
@@ -132,4 +134,66 @@ public class TelemetryRepositoryTests
         }
     }
 
+    [Fact]
+    public void Subscription_MultipleDisposes_UnsubscribeOnce()
+    {
+        // Arrange
+        var telemetryRepository = CreateRepository();
+        var unsubscribeCallCount = 0;
+
+        var subscription = new Subscription(
+            name: "Test",
+            resourceKey: null,
+            subscriptionType: SubscriptionType.Read,
+            callback: () => Task.CompletedTask,
+            unsubscribe: () => unsubscribeCallCount++,
+            executionContext: null,
+            telemetryRepository: telemetryRepository);
+
+        // Act
+        subscription.Dispose();
+        subscription.Dispose();
+
+        // Assert
+        Assert.Equal(1, unsubscribeCallCount);
+    }
+
+    [Fact]
+    public async Task Subscription_ExecuteAfterDispose_LogWithNoExecute()
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<WriteContext>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var testSink = new TestSink();
+        testSink.MessageLogged += (write) =>
+        {
+            if (write.Message == "Callback 'Test' has been disposed.")
+            {
+                tcs.TrySetResult(write);
+            }
+        };
+        var factory = LoggerFactory.Create(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+            b.SetMinimumLevel(LogLevel.Trace);
+        });
+
+        var telemetryRepository = CreateRepository(loggerFactory: factory);
+
+        var subscription = new Subscription(
+            name: "Test",
+            resourceKey: null,
+            subscriptionType: SubscriptionType.Read,
+            callback: () => Task.CompletedTask,
+            unsubscribe: () => { },
+            executionContext: null,
+            telemetryRepository: telemetryRepository);
+
+        subscription.Dispose();
+
+        // Act
+        subscription.Execute();
+
+        // Assert
+        await tcs.Task.DefaultTimeout();
+    }
 }

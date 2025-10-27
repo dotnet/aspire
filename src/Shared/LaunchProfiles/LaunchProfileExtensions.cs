@@ -5,17 +5,20 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Properties;
+using Aspire.Hosting.Resources;
 
 namespace Aspire.Hosting;
 
 internal static class LaunchProfileExtensions
 {
+    // Allow list of command names that are supported by Aspire
+    private static readonly string[] s_allowedCommandNames = ["Project", "Executable"];
+
     internal static LaunchSettings? GetLaunchSettings(this ProjectResource projectResource)
     {
         if (!projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
         {
-            throw new DistributedApplicationException(Resources.ProjectDoesNotContainMetadataExceptionMessage);
+            throw new DistributedApplicationException(LaunchProfileStrings.ProjectDoesNotContainMetadataExceptionMessage);
         }
 
         // ExcludeLaunchProfileAnnotation disables getting launch settings. This ensures consumers of launch settings
@@ -56,7 +59,7 @@ internal static class LaunchProfileExtensions
         var found = profiles.TryGetValue(launchProfileName, out var launchProfile);
         if (!found && throwIfNotFound)
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
+            var message = string.Format(CultureInfo.InvariantCulture, LaunchProfileStrings.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
             throw new DistributedApplicationException(message);
         }
 
@@ -73,7 +76,7 @@ internal static class LaunchProfileExtensions
 
         if (!File.Exists(projectMetadata.ProjectPath))
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
+            var message = string.Format(CultureInfo.InvariantCulture, LaunchProfileStrings.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
             throw new DistributedApplicationException(message);
         }
 
@@ -87,7 +90,23 @@ internal static class LaunchProfileExtensions
         // It isn't mandatory that the launchSettings.json file exists!
         if (!File.Exists(launchSettingsFilePath))
         {
-            return null;
+            if (!projectMetadata.IsFileBasedApp)
+            {
+                return null;
+            }
+            else
+            {
+                // For file-based apps, also check for a .run.json file next to the .cs file
+                var runSettingsFilePath = Path.ChangeExtension(projectMetadata.ProjectPath, ".run.json");
+                if (File.Exists(runSettingsFilePath))
+                {
+                    launchSettingsFilePath = runSettingsFilePath;
+                }
+                else
+                {
+                    return null;
+                }
+            }
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);
@@ -122,8 +141,18 @@ internal static class LaunchProfileExtensions
             return false;
         }
 
-        launchProfileName = launchSettings.Profiles.Keys.First();
-        return true;
+        // Find the first profile with an allowed command name
+        foreach (var (profileName, profile) in launchSettings.Profiles)
+        {
+            if (string.IsNullOrEmpty(profile.CommandName) || Array.Exists(s_allowedCommandNames, name => string.Equals(name, profile.CommandName, StringComparison.OrdinalIgnoreCase)))
+            {
+                launchProfileName = profileName;
+                return true;
+            }
+        }
+
+        launchProfileName = null;
+        return false;
     }
 
     private static bool TrySelectLaunchProfileFromDefaultAnnotation(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)

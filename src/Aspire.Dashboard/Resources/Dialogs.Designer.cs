@@ -19,7 +19,7 @@ namespace Aspire.Dashboard.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Dialogs {
@@ -232,6 +232,249 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Details.
+        /// </summary>
+        public static string GenAIDetailsTabText {
+            get {
+                return ResourceManager.GetString("GenAIDetailsTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error displaying GenAI content:.
+        /// </summary>
+        public static string GenAIDisplayErrorMessageText {
+            get {
+                return ResourceManager.GetString("GenAIDisplayErrorMessageText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duration.
+        /// </summary>
+        public static string GenAIDurationLabel {
+            get {
+                return ResourceManager.GetString("GenAIDurationLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        public static string GenAIErrorHeaderText {
+            get {
+                return ResourceManager.GetString("GenAIErrorHeaderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Input.
+        /// </summary>
+        public static string GenAIInputHeaderText {
+            get {
+                return ResourceManager.GetString("GenAIInputHeaderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Input &amp; output.
+        /// </summary>
+        public static string GenAIInputOutputTabText {
+            get {
+                return ResourceManager.GetString("GenAIInputOutputTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Input tokens: {0}.
+        /// </summary>
+        public static string GenAIInputTokensText {
+            get {
+                return ResourceManager.GetString("GenAIInputTokensText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Message.
+        /// </summary>
+        public static string GenAIMessageCategoryMessage {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output.
+        /// </summary>
+        public static string GenAIMessageCategoryOutput {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryOutput", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        public static string GenAIMessageCategoryStatus {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tool calls.
+        /// </summary>
+        public static string GenAIMessageCategoryToolCalls {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryToolCalls", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Assistant.
+        /// </summary>
+        public static string GenAIMessageTitleAssistant {
+            get {
+                return ResourceManager.GetString("GenAIMessageTitleAssistant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        public static string GenAIMessageTitleError {
+            get {
+                return ResourceManager.GetString("GenAIMessageTitleError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System.
+        /// </summary>
+        public static string GenAIMessageTitleSystem {
+            get {
+                return ResourceManager.GetString("GenAIMessageTitleSystem", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tool.
+        /// </summary>
+        public static string GenAIMessageTitleTool {
+            get {
+                return ResourceManager.GetString("GenAIMessageTitleTool", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User.
+        /// </summary>
+        public static string GenAIMessageTitleUser {
+            get {
+                return ResourceManager.GetString("GenAIMessageTitleUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to n/a.
+        /// </summary>
+        public static string GenAINAText {
+            get {
+                return ResourceManager.GetString("GenAINAText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next.
+        /// </summary>
+        public static string GenAINextButtonText {
+            get {
+                return ResourceManager.GetString("GenAINextButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No message content..
+        /// </summary>
+        public static string GenAINoMessageContent {
+            get {
+                return ResourceManager.GetString("GenAINoMessageContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href=&quot;{0}&quot; target=&quot;_blank&quot;&gt;AI telemetry configuration&lt;/a&gt;..
+        /// </summary>
+        public static string GenAINoMessageContentMoreInformationMessage {
+            get {
+                return ResourceManager.GetString("GenAINoMessageContentMoreInformationMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No messages found..
+        /// </summary>
+        public static string GenAINoMessages {
+            get {
+                return ResourceManager.GetString("GenAINoMessages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output.
+        /// </summary>
+        public static string GenAIOutputHeaderText {
+            get {
+                return ResourceManager.GetString("GenAIOutputHeaderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output tokens: {0}.
+        /// </summary>
+        public static string GenAIOutputTokensText {
+            get {
+                return ResourceManager.GetString("GenAIOutputTokensText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preview.
+        /// </summary>
+        public static string GenAIPreviewTabText {
+            get {
+                return ResourceManager.GetString("GenAIPreviewTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Previous.
+        /// </summary>
+        public static string GenAIPreviousButtonText {
+            get {
+                return ResourceManager.GetString("GenAIPreviousButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Raw.
+        /// </summary>
+        public static string GenAIRawTabText {
+            get {
+                return ResourceManager.GetString("GenAIRawTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tokens.
+        /// </summary>
+        public static string GenAITokensLabel {
+            get {
+                return ResourceManager.GetString("GenAITokensLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Site-wide navigation.
         /// </summary>
         public static string HelpDialogCategoryNavigation {
@@ -423,18 +666,18 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
-        public static string OpenTraceDialogCancelButtonText {
+        public static string OpenSpanDialogCancelButtonText {
             get {
-                return ResourceManager.GetString("OpenTraceDialogCancelButtonText", resourceCulture);
+                return ResourceManager.GetString("OpenSpanDialogCancelButtonText", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Waiting for trace {0} to load....
+        ///   Looks up a localized string similar to Waiting for span {0} to load....
         /// </summary>
-        public static string OpenTraceDialogMessage {
+        public static string OpenSpanDialogMessage {
             get {
-                return ResourceManager.GetString("OpenTraceDialogMessage", resourceCulture);
+                return ResourceManager.GetString("OpenSpanDialogMessage", resourceCulture);
             }
         }
         
@@ -453,6 +696,15 @@ namespace Aspire.Dashboard.Resources {
         public static string SettingsDialogDashboardLogsAndTelemetry {
             get {
                 return ResourceManager.GetString("SettingsDialogDashboardLogsAndTelemetry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Runtime: {0}.
+        /// </summary>
+        public static string SettingsDialogDotNetRuntimeVersion {
+            get {
+                return ResourceManager.GetString("SettingsDialogDotNetRuntimeVersion", resourceCulture);
             }
         }
         

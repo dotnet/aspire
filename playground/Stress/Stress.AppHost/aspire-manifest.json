@@ -257,6 +257,31 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
       }
     },
+    "executableWithSingleArg": {
+      "type": "executable.v0",
+      "workingDirectory": ".",
+      "command": "dotnet",
+      "args": [
+        "--version"
+      ]
+    },
+    "executableWithSingleEscapedArg": {
+      "type": "executable.v0",
+      "workingDirectory": ".",
+      "command": "dotnet",
+      "args": [
+        "one two"
+      ]
+    },
+    "executableWithMultipleArgs": {
+      "type": "executable.v0",
+      "workingDirectory": ".",
+      "command": "dotnet",
+      "args": [
+        "--version",
+        "one two"
+      ]
+    },
     "empty-0000": {
       "type": "project.v0",
       "path": "../Stress.Empty/Stress.Empty.csproj",
@@ -282,6 +307,57 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
+      }
+    },
+    "empty-profile-1": {
+      "type": "project.v0",
+      "path": "../Stress.Empty/Stress.Empty.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{empty-profile-1.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "empty-profile-2": {
+      "type": "project.v0",
+      "path": "../Stress.Empty/Stress.Empty.csproj",
+      "args": [
+        "arg_from_apphost"
+      ],
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{empty-profile-2.bindings.http.targetPort}",
+        "APPHOST_ENV_VAR": "test",
+        "ENV_TO_OVERRIDE": "this value came from the apphost"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     }
   }

@@ -66,7 +66,7 @@ internal sealed class LogEntries(int maximumEntryCount)
 
         foreach (var pauseVM in _pauseViewModels)
         {
-            if (pauseVM.Contains(logEntry.Timestamp.Value))
+            if (pauseVM.ResourcePrefix == logEntry.ResourcePrefix && pauseVM.Contains(logEntry.Timestamp.Value))
             {
                 pauseVM.FilteredCount += 1;
                 return true;
@@ -97,7 +97,7 @@ internal sealed class LogEntries(int maximumEntryCount)
         for (var i = 0; i < _logEntries.Count; i++)
         {
             var entry = _logEntries[i];
-            if (entry.Timestamp is { } timestamp)
+            if (entry.Timestamp is { } timestamp && entry.Type is not LogEntryType.Pause)
             {
                 if (timestamp < lastTimestamp)
                 {
@@ -113,8 +113,8 @@ internal sealed class LogEntries(int maximumEntryCount)
 
     private void InsertSortedCore(LogEntry logEntry)
     {
-        // If there is no timestamp or the entry is a pause then add to the end.
-        if (logEntry.Timestamp == null || logEntry.Type is LogEntryType.Pause)
+        // If there is no timestamp then add to the end.
+        if (logEntry.Timestamp == null)
         {
             InsertAt(_logEntries.Count);
             return;

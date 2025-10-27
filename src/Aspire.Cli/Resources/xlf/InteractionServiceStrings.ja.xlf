@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">アプリ ホスティング プロセスに互換性がありません。アプリ ホスティング プロセスまたは Aspire CLI のアップグレードをご検討ください。</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">AppHost のバージョンに互換性がありません。AppHost または Aspire CLI をアップグレードしてください。</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">アプリ ホスティング プロセスをビルドしています...</target>
+        <source>Building apphost...</source>
+        <target state="translated">Apphost をビルドしています...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">{0} で設定ファイルを作成しました。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="translated">その他 (次に指定)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">ダッシュボード</target>
@@ -58,9 +63,24 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">アプリ ホスティング プロセスを検索しています...</target>
+        <source>Finding apphosts...</source>
+        <target state="translated">Apphost を検索しています...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">対話型入力は、この環境ではサポートされていません。--non-interactive フラグを使用するか、CLI が対話型ターミナルで実行されていることを確認してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoNewCliVersion">
+        <source>[dim]For more information, see: [link]{0}[/][/]</source>
+        <target state="translated">[暗い]詳細については、次を参照してください: [link]{0}[/][/]</target>
+        <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="NewCliVersionAvailable">
+        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
+        <target state="translated">[黄色]Aspire CLI の新しいバージョンが利用可能です: {0}[/]</target>
+        <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
@@ -102,14 +122,14 @@
         <target state="translated">検索しています...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">実行するアプリ ホスティング プロセスの選択</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select an apphost to use:</source>
+        <target state="translated">使用する Apphost を選択してください: </target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">指定されたプロジェクト ファイルは、Aspire アプリ ホスティング プロセスのプロジェクトではありません。</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="translated">指定されたプロジェクト ファイルは、Aspire AppHost のプロジェクトではありません。</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -120,6 +140,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">証明書の信頼を処理中です...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">アプリ ホストが見つかりませんでした (構文エラーがあるか SDK バージョンが無効であるアプリ ホスト プロジェクト ファイルが存在する可能性があります)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

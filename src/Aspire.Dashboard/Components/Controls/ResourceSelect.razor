@@ -1,6 +1,5 @@
 ﻿@using Aspire.Dashboard.Resources
-
-@inject IStringLocalizer<ControlsStrings> Loc
+@using Aspire.Dashboard.Utils
 
 <FluentInputLabel Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
                   ForId="@_selectId"
@@ -12,7 +11,8 @@
               @key="@Resources?.Count()"
               Id="@_selectId"
               OptionValue="@(c => c!.Name)"
-              OptionDisabled="@(c => !CanSelectGrouping && c!.Id?.Type is Otlp.Model.OtlpApplicationType.ResourceGrouping)"
+              OptionDisabled="@(c => !CanSelectGrouping && c!.Id?.Type is Otlp.Model.OtlpResourceType.ResourceGrouping)"
+              OptionTitle="@(c => DashboardUIHelpers.ResolveTooltip(c!.Name))"
               @bind-SelectedOption="SelectedResource"
               @bind-SelectedOption:after="SelectedResourceChangedCore"
               ValueChanged="ValuedChanged"

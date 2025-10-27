@@ -39,7 +39,7 @@ dotnet exec YourTestAssembly.dll --filter-trait "quarantined=true"
 ## Quarantined Test Lifecycle
 
 1. **Mark as Quarantined**: When a test is consistently flaky, mark it with `[QuarantinedTest("reason")]`
-2. **Outerloop Execution**: Quarantined tests run automatically in the outerloop CI (every 2 hours)
+2. **Quarantined Execution**: Quarantined tests run automatically in the quarantine CI (every 6 hours)
 3. **Fix the Issue**: Investigate and fix the underlying issue causing the flakiness
 4. **Remove Quarantine**: Once fixed and stable, remove the `[QuarantinedTest]` attribute
 
@@ -57,7 +57,8 @@ public async Task FlakyTest()
 ## CI Integration
 
 - **Regular CI**: Uses `--filter-not-trait "quarantined=true"` to exclude quarantined tests
-- **Outerloop CI**: Runs quarantined tests separately to monitor their status
+- **Quarantine CI on Schedule/Push**: Runs all quarantined tests twice daily (02:00 and 14:00 UTC) to monitor their status
+- **Quarantine CI on Pull Requests**: Runs only the first quarantined test project across all OSes (Windows, Linux, macOS) as a sanity check when PRs modify workflow/infrastructure files
 - **Results**: Quarantined test failures don't block PR merges but are tracked for fixes
 
 ## For Copilot Agent and Test Runners

@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentAzurePackageTags) redis azure cache caching cloud</PackageTags>
+    <Description>An Azure Cache for Redis® client that integrates with Aspire, including Azure AD authentication, health checks, logging and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureCacheRedis_256x.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.StackExchangeRedis" />
+    <ProjectReference Include="..\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+  </ItemGroup>
+
+</Project>

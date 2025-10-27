@@ -105,7 +105,7 @@ public partial class MetricsTests : DashboardTestContext
                 {
                     var state = new MetricsPageState
                     {
-                        ApplicationName = "TestApp2",
+                        ResourceName = "TestApp2",
                         MeterName = "test-meter",
                         InstrumentName = "test-instrument",
                         DurationMinutes = 720,
@@ -214,7 +214,7 @@ public partial class MetricsTests : DashboardTestContext
         var cut = RenderComponent<Metrics>(builder =>
         {
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
-            builder.Add(m => m.ApplicationName, "TestApp");
+            builder.Add(m => m.ResourceName, "TestApp");
         });
 
         // Assert 2
@@ -229,7 +229,7 @@ public partial class MetricsTests : DashboardTestContext
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
                 Assert.Single(items1, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items1, i => i.Instance.Data as OtlpScope == instrument.Parent);
+                Assert.Single(items1, i => i.Instance.Data as string == instrument.Parent.Name);
             }
         });
 
@@ -274,7 +274,7 @@ public partial class MetricsTests : DashboardTestContext
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
                 Assert.Single(items2, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items2, i => i.Instance.Data as OtlpScope == instrument.Parent);
+                Assert.Single(items2, i => i.Instance.Data as string == instrument.Parent.Name);
             }
         });
     }
@@ -325,7 +325,7 @@ public partial class MetricsTests : DashboardTestContext
         // Act 1
         var cut = RenderComponent<Metrics>(builder =>
         {
-            builder.Add(m => m.ApplicationName, "TestApp");
+            builder.Add(m => m.ResourceName, "TestApp");
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
@@ -336,14 +336,14 @@ public partial class MetricsTests : DashboardTestContext
 
             cut.SetParametersAndRender(builder =>
             {
-                builder.Add(m => m.ApplicationName, "TestApp2");
+                builder.Add(m => m.ResourceName, "TestApp2");
             });
         };
 
         var viewModel = cut.Instance.PageViewModel;
 
         // Assert 1
-        Assert.Equal("test-meter", viewModel.SelectedMeter!.Name);
+        Assert.Equal("test-meter", viewModel.SelectedMeter);
         Assert.Equal(app1InstrumentName, viewModel.SelectedInstrument!.Name);
 
         // Act 2
@@ -351,10 +351,10 @@ public partial class MetricsTests : DashboardTestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name));
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedResource.Name));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
-        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.Name);
+        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter);
 
         Assert.Equal(MetricViewKind.Table, viewModel.SelectedViewKind);
         Assert.Equal(TimeSpan.FromMinutes(720), viewModel.SelectedDuration.Id);

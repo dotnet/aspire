@@ -18,6 +18,12 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
         return new DefaultArmClient(armClient);
     }
 
+    public IArmClient GetArmClient(TokenCredential credential)
+    {
+        var armClient = new ArmClient(credential);
+        return new DefaultArmClient(armClient);
+    }
+
     private sealed class DefaultArmClient(ArmClient armClient) : IArmClient
     {
         public async Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default)
@@ -44,9 +50,68 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
             return (subscriptionResource, tenantResource);
         }
 
+        public async Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default)
+        {
+            var tenants = new List<ITenantResource>();
+
+            await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                tenants.Add(new DefaultTenantResource(tenant));
+            }
+
+            return tenants;
+        }
+
+        public async Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
+        {
+            var subscriptions = new List<ISubscriptionResource>();
+
+            await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                subscriptions.Add(new DefaultSubscriptionResource(subscription));
+            }
+
+            return subscriptions;
+        }
+
+        public async Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(tenantId))
+            {
+                return await GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            var subscriptions = new List<ISubscriptionResource>();
+
+            await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                // Filter subscriptions by tenant ID
+                if (subscription.Data.TenantId?.ToString().Equals(tenantId, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    subscriptions.Add(new DefaultSubscriptionResource(subscription));
+                }
+            }
+
+            return subscriptions;
+        }
+
+        public async Task<IEnumerable<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default)
+        {
+            var subscription = await armClient.GetSubscriptions().GetAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+            var locations = new List<(string Name, string DisplayName)>();
+
+            foreach (var location in subscription.Value.GetLocations(cancellationToken: cancellationToken))
+            {
+                locations.Add((location.Name, location.DisplayName ?? location.Name));
+            }
+
+            return locations.OrderBy(l => l.DisplayName);
+        }
+
         private sealed class DefaultTenantResource(TenantResource tenantResource) : ITenantResource
         {
             public Guid? TenantId => tenantResource.Data.TenantId;
+            public string? DisplayName => tenantResource.Data.DisplayName;
             public string? DefaultDomain => tenantResource.Data.DefaultDomain;
         }
     }

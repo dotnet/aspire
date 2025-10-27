@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   update-dependencies:
@@ -16,23 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@b2ace4b12f4cec1b96b6361ff2694ba9e931ceb4 # v3.3.1
-        with:
-          dotnet-version: "10.0.x"
-
       - name: Restore solution
         run: ./build.sh -restore
 
       - name: Rewrite nuget.config
-        run: dotnet new nugetconfig --force
+        run: ./dotnet.sh new nugetconfig --force
 
       - name: Install dotnet-outdated
-        run: dotnet tool install --global dotnet-outdated-tool
+        run: ./dotnet.sh tool install --global dotnet-outdated-tool
 
       - name: Update packages
         continue-on-error: true
-        run: dotnet outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./Aspire.slnx || echo "Some dependencies could not be updated, but continuing workflow."
+        env:
+          DOTNET_ROOT: ${{ github.workspace }}/.dotnet  # Even when calling the tool via ./dotnet.sh, dotnet tools require DOTNET_ROOT set to use the restored framework
+        run: ./dotnet.sh outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./Aspire.slnx || echo "Some dependencies could not be updated, but continuing workflow."
 
       - name: Revert all changes except Directory.Packages.props files
         run: |
@@ -42,6 +40,7 @@ jobs:
           git checkout -- .
 
       - name: Create Pull Request
+        id: create-pr
         uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -49,3 +48,27 @@ jobs:
           commit-message: "[Automated] Updating package dependencies"
           title: "[Automated] Update dependencies"
           body: "Auto-generated update to the package dependencies. In order for this PR to be green, it will require all of the new dependencies to be [mirrored to our AzDO NuGet feeds](https://github.com/dotnet/arcade/blob/main/Documentation/MirroringPackages.md). Any updates made outside of the first itemgroup in Directory.Packages.props should be reverted as those are packages that get updated through arcade's dependency flow."
+
+      - name: Create Issue if PR Not Created
+        if: ${{ !steps.create-pr.outputs.pull-request-number }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const workflowRunUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '[Automated] Update dependencies workflow failed to create PR',
+              body: `The update dependencies workflow completed but did not create a pull request. This could indicate:
+              
+              - No package updates were available
+              - The package update process encountered errors that prevented changes from being committed
+              - There were issues with the workflow execution
+              
+              **Workflow Run:** ${workflowRunUrl}
+              
+              Please review the workflow logs to determine if this was expected or if there was an actual failure that needs investigation.`,
+              assignees: ['radical', 'joperezr', 'eerhardt'],
+              labels: ['area-engineering-systems', 'needs-investigation']
+            });

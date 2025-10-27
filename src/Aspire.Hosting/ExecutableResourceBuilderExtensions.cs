@@ -23,7 +23,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <remarks>
     /// You can run any executable command using its full path.
     /// As a security feature, Aspire doesn't run executable unless the command is located in a path listed in the PATH environment variable.
-    /// <para/> 
+    /// <para/>
     /// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
     /// </remarks>
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, [ResourceName] string name, string command, string workingDirectory, params string[]? args)
@@ -121,6 +121,15 @@ public static class ExecutableResourceBuilderExtensions
             return builder;
         }
 
+        // Check if this resource has already been converted to a container resource.
+        // This makes the method idempotent - multiple calls won't cause errors.
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<ExecutableContainerResource>(builder.Resource.Name, out var existingBuilder))
+        {
+            // Resource has already been converted, just invoke the configure callback if provided
+            configure?.Invoke(existingBuilder);
+            return builder;
+        }
+
         // The implementation here is less than ideal, but we don't have a clean way of building resource types
         // that change their behavior based on the context. In this case, we want to change the behavior of the
         // resource from an ExecutableResource to a ContainerResource. We do this by removing the ExecutableResource
@@ -146,6 +155,74 @@ public static class ExecutableResourceBuilderExtensions
         // so that the container resource is written to the manifest
         return builder.WithManifestPublishingCallback(context =>
             context.WriteContainerAsync(container));
+    }
+
+    /// <summary>
+    /// Sets the command for the executable resource.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource.</typeparam>
+    /// <param name="builder">Builder for the executable resource.</param>
+    /// <param name="command">Command.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithCommand<T>(this IResourceBuilder<T> builder, string command) where T : ExecutableResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(command);
+
+        var executableAnnotation = builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault();
+        if (executableAnnotation is { })
+        {
+            executableAnnotation.Command = command;
+        }
+        else
+        {
+            executableAnnotation = new ExecutableAnnotation
+            {
+                Command = command,
+                WorkingDirectory = string.Empty
+            };
+            builder.Resource.Annotations.Add(executableAnnotation);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the working directory for the executable resource.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource.</typeparam>
+    /// <param name="builder">Builder for the executable resource.</param>
+    /// <param name="workingDirectory">Working directory.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithWorkingDirectory<T>(this IResourceBuilder<T> builder, string workingDirectory) where T : ExecutableResource
+    {
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
+        if (builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault() is { } executableAnnotation)
+        {
+            workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, workingDirectory));
+            executableAnnotation.WorkingDirectory = workingDirectory;
+            return builder;
+        }
+
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' is missing the ExecutableAnnotation");
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that
+    /// is invoked when an executable resource needs to configure itself for custom certificate trust. This is only supported in run mode;
+    /// certificate trust customization is not supported in publish or deploy.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<TResource> WithExecutableCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ExecutableCertificateTrustCallbackAnnotationContext, Task> callback)
+        where TResource : ExecutableResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ExecutableCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     // Allows us to mirror annotations from ExecutableResource to ContainerResource

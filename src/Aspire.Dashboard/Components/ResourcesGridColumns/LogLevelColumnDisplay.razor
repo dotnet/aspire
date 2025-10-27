@@ -4,11 +4,11 @@
 @using Aspire.Dashboard.Resources
 @using Microsoft.Extensions.Logging
 
-@if (LogEntry.Severity is LogLevel.Error or LogLevel.Critical)
+@if (LogEntry.IsError)
 {
     <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon"/>
 }
-else if (LogEntry.Severity is LogLevel.Warning)
+else if (LogEntry.IsWarning)
 {
     <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon"/>
 }

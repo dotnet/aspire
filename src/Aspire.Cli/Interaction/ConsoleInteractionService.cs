@@ -11,16 +11,34 @@ namespace Aspire.Cli.Interaction;
 
 internal class ConsoleInteractionService : IInteractionService
 {
-    private readonly IAnsiConsole _ansiConsole;
+    private static readonly Style s_exitCodeMessageStyle = new Style(foreground: Color.RoyalBlue1, background: null, decoration: Decoration.None);
+    private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
+    private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
+    private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole)
+    private readonly IAnsiConsole _ansiConsole;
+    private readonly CliExecutionContext _executionContext;
+    private readonly ICliHostEnvironment _hostEnvironment;
+
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
         _ansiConsole = ansiConsole;
+        _executionContext = executionContext;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
+        {
+            DisplaySubtleMessage(statusText);
+            return await action();
+        }
+        
         return await _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .StartAsync(statusText, (context) => action());
@@ -28,6 +46,14 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
+        {
+            DisplaySubtleMessage(statusText);
+            action();
+            return;
+        }
+        
         _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .Start(statusText, (context) => action());
@@ -36,6 +62,12 @@ internal class ConsoleInteractionService : IInteractionService
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         var prompt = new TextPrompt<string>(promptText)
         {
             IsSecret = isSecret,
@@ -46,6 +78,7 @@ internal class ConsoleInteractionService : IInteractionService
         {
             prompt.DefaultValue(defaultValue);
             prompt.ShowDefaultValue();
+            prompt.DefaultValueStyle(new Style(Color.Fuchsia));
         }
 
         if (validator is not null)
@@ -62,6 +95,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
@@ -76,6 +114,33 @@ internal class ConsoleInteractionService : IInteractionService
             .EnableSearch();
 
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
+        ArgumentNullException.ThrowIfNull(choices, nameof(choices));
+        ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
+        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
+        }
+
+        var prompt = new MultiSelectionPrompt<T>()
+            .Title(promptText)
+            .UseConverter(choiceFormatter)
+            .AddChoices(choices)
+            .PageSize(10);
+
+        var result = await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        return result;
     }
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
@@ -94,7 +159,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+        DisplayMessage("cross_mark", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
     }
 
     public void DisplayMessage(string emoji, string message)
@@ -107,27 +172,31 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine(message);
     }
 
-    public void DisplaySuccess(string message)
+    public void DisplayMarkdown(string markdown)
     {
-        DisplayMessage("thumbs_up", message);
+        var spectreMarkup = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+        _ansiConsole.MarkupLine(spectreMarkup);
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
-        _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]{InteractionServiceStrings.Dashboard}[/]:");
-        if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
-        {
-            _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-            _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-        }
-        else
-        {
-            _ansiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-        }
-        _ansiConsole.WriteLine();
+        var style = isErrorMessage ? s_errorMessageStyle
+            : type switch
+            {
+                "waiting" => s_waitingMessageStyle,
+                "running" => s_infoMessageStyle,
+                "exitCode" => s_exitCodeMessageStyle,
+                "failedToStart" => s_errorMessageStyle,
+                _ => s_infoMessageStyle
+            };
+
+        var prefix = lineNumber.HasValue ? $"#{lineNumber.Value}: " : "";
+        _ansiConsole.WriteLine($"{prefix}{message}", style);
+    }
+
+    public void DisplaySuccess(string message)
+    {
+        DisplayMessage("check_mark", message);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
@@ -136,11 +205,11 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (stream == "stdout")
             {
-                _ansiConsole.MarkupLineInterpolated($"{line}");
+                _ansiConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
             }
             else
             {
-                _ansiConsole.MarkupLineInterpolated($"[red]{line}[/]");
+                _ansiConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
             }
         }
     }
@@ -148,18 +217,23 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayCancellationMessage()
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.WriteLine();
         DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
-        _ansiConsole.MarkupLine($"[dim]{message}[/]");
+        var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
+        _ansiConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
     public void DisplayEmptyLine()
@@ -167,7 +241,12 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine();
     }
 
-    public void OpenNewProject(string projectPath)
+    private const string UpdateUrl = "https://aka.ms/aspire/update";
+
+    public void DisplayVersionUpdateNotification(string newerVersion)
     {
+        _ansiConsole.WriteLine();
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

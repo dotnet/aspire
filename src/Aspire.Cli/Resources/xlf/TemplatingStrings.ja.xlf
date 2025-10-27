@@ -3,38 +3,48 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire アプリ ホスティング プロセス</target>
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire の空のアプリ</target>
+        <source>AppHost and service defaults</source>
+        <target state="translated">AppHost およびサービスの既定値</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire テスト プロジェクト (MSTest)</target>
+        <source>MSTest</source>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire テスト プロジェクト (NUnit)</target>
+        <source>NUnit</source>
+        <target state="translated">NUnit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">React (Vite) &amp; FastAPI スターター</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire サービスの既定</target>
+        <source>Service defaults</source>
+        <target state="translated">サービスの既定値</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Empty AppHost</source>
+        <target state="translated">空の AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire スターター アプリ</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Blazor &amp; Minimal API スターター</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire テスト プロジェクト (xUnit)</target>
+        <source>xUnit</source>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -46,6 +56,11 @@
         <source>An error occurred while trusting the certificates: {0}</source>
         <target state="translated">証明書の信頼処理でエラーが発生しました: {0}</target>
         <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">選択したチャネルの NuGet.config を作成しますか?</target>
+        <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
@@ -62,9 +77,14 @@
         <target state="translated">使用する xUnit.net バージョンを入力</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">最新のテンプレートを取得しています...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="translated">テンプレートを取得しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="translated">統合テスト</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -80,6 +100,16 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">なし</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">選択したパッケージ チャネルの NuGet.config を作成しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="translated">出力フォルダー内の既存のファイルを上書きするため、新しいプロジェクトを作成できません。競合するファイルを削除または移動するか、別の場所を選択してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

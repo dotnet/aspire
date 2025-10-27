@@ -1,14 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREPIPELINES001
+
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.KeyVault;
 using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Schema;
 
@@ -218,17 +219,24 @@ public class SchemaTests
     [MemberData(nameof(ApplicationSamples))]
     public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
-        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
-        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+        var manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: Path.Combine(manifestDir, "not-used.json"), step: "publish-json-manifest");
+
+        // Register the JsonDocumentManifestStore to store the manifest in memory
+        var manifestStore = new JsonDocumentManifestStore();
+        builder.Services.AddSingleton(manifestStore);
+
+        // Add the JSON manifest publishing pipeline step
+        builder.Pipeline.AddJsonDocumentManifestPublishing();
+
         configurator(builder);
 
         using var program = builder.Build();
-        var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
 
-        var manifestText = publisher.ManifestDocument.RootElement.ToString();
+        var manifestDocument = manifestStore.ManifestDocument;
+        var manifestText = manifestDocument.RootElement.ToString();
         AssertValid(manifestText);
     }
 

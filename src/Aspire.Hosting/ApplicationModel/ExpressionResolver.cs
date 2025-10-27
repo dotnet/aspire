@@ -2,76 +2,31 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 internal class ExpressionResolver(string containerHostName, CancellationToken cancellationToken, bool sourceIsContainer)
 {
-    class HostAndPortPresence
-    {
-        public bool HasHost { get; set; }
-        public bool HasPort { get; set; }
-    }
-
-    // For each endpoint, keep track of whether host and port are in use
-    // The key is the unique name of the endpoint, which is the resource name and endpoint name
-    readonly Dictionary<string, HostAndPortPresence> _endpointUsage = [];
-    static string EndpointUniqueName(EndpointReference endpointReference) => $"{endpointReference.Resource.Name}/{endpointReference.EndpointName}";
-
-    // This marks whether we are in the preprocess phase or not
-    // Not thread-safe, but we doesn't matter, since this class is never used concurrently
-    bool Preprocess { get; set; }
 
     async Task<string?> EvalEndpointAsync(EndpointReference endpointReference, EndpointProperty property)
     {
-        var endpointUniqueName = EndpointUniqueName(endpointReference);
-
-        // In the preprocess phase, our only goal is to determine if the host and port properties are both used
-        // for each endpoint.
-        if (Preprocess)
-        {
-            if (!_endpointUsage.TryGetValue(endpointUniqueName, out var hostAndPortPresence))
-            {
-                hostAndPortPresence = new HostAndPortPresence();
-                _endpointUsage[endpointUniqueName] = hostAndPortPresence;
-            }
-
-            if (property is EndpointProperty.Host or EndpointProperty.IPV4Host)
-            {
-                hostAndPortPresence.HasHost = true;
-            }
-            else if (property == EndpointProperty.Port)
-            {
-                hostAndPortPresence.HasPort = true;
-            }
-            else if (property is EndpointProperty.Url or EndpointProperty.HostAndPort)
-            {
-                hostAndPortPresence.HasHost = hostAndPortPresence.HasPort = true;
-            }
-            return string.Empty;
-        }
         // We need to use the root resource, e.g. AzureStorageResource instead of AzureBlobResource
         // Otherwise, we get the wrong values for IsContainer and Name
         var target = endpointReference.Resource.GetRootResource();
 
-        bool HasBothHostAndPort() =>
-            _endpointUsage[endpointUniqueName].HasHost &&
-            _endpointUsage[endpointUniqueName].HasPort;
-
-        return (property, target.IsContainer(), HasBothHostAndPort()) switch
+        return (property, target.IsContainer()) switch
         {
             // If Container -> Container, we go directly to the container name and target port, bypassing the host
-            // But only do this if we have processed both the host and port properties for that same endpoint.
-            // This allows the host and port to be handled in a unified way.
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, true, true) => target.Name,
-            (EndpointProperty.Port, true, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+            (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
             // If Container -> Exe, we need to go through the container host
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, false, _) => containerHostName,
-            (EndpointProperty.Url, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => containerHostName,
+            (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
                                             endpointReference.Scheme,
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
-            (EndpointProperty.HostAndPort, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
+            (EndpointProperty.HostAndPort, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
             _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
@@ -89,6 +44,13 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         {
             var result = await ResolveInternalAsync(expr.ValueProviders[i]).ConfigureAwait(false);
             args[i] = result?.Value;
+
+            // Apply string format if needed
+            if (expr.StringFormats[i] is { } stringFormat && args[i] is string s)
+            {
+                args[i] = FormattingHelpers.FormatValue(s, stringFormat);
+            }
+
             if (result?.IsSensitive is true)
             {
                 isSensitive = true;
@@ -159,8 +121,8 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         // so we need to do the same here.
         var value = await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
 
-        // While pre-processing the endpoints, we never throw
-        if (!Preprocess && string.IsNullOrEmpty(value.Value) && !cs.Optional)
+        // Throw if the connection string is required but not present
+        if (string.IsNullOrEmpty(value.Value) && !cs.Optional)
         {
             cs.ThrowConnectionStringUnavailableException();
         }
@@ -188,12 +150,6 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     static async ValueTask<ResolvedValue> ResolveWithContainerSourceAsync(IValueProvider valueProvider, string containerHostName, bool sourceIsContainer, CancellationToken cancellationToken)
     {
         var resolver = new ExpressionResolver(containerHostName, cancellationToken, sourceIsContainer);
-
-        // Run the processing phase to know if the host and port properties are both used for each endpoint.
-        resolver.Preprocess = true;
-        await resolver.ResolveInternalAsync(valueProvider).ConfigureAwait(false);
-        resolver.Preprocess = false;
-
         return await resolver.ResolveInternalAsync(valueProvider).ConfigureAwait(false);
     }
 

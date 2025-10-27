@@ -2,6 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.AppService;
+using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -24,6 +28,64 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
     internal BicepOutputReference ContainerRegistryClientId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", this);
+    internal BicepOutputReference WebsiteContributorManagedIdentityId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID", this);
+    internal BicepOutputReference WebsiteContributorManagedIdentityPrincipalId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", this);
+
+    /// <summary>
+    /// Gets the suffix added to each web app created in this App Service Environment.
+    /// </summary>
+    private BicepOutputReference WebSiteSuffix => new("webSiteSuffix", this);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableDashboard { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether Application Insights telemetry should be enabled in the app service environment.
+    /// </summary>
+    internal bool EnableApplicationInsights { get; set; }
+
+    /// <summary>
+    /// Gets the location for the Application Insights resource. If <c>null</c>, the resource group location is used.
+    /// </summary>
+    internal string? ApplicationInsightsLocation { get; set; }
+
+    /// <summary>
+    /// Parameter resource for the Application Insights location.
+    /// </summary>
+    internal ParameterResource? ApplicationInsightsLocationParameter { get; set; }
+
+    /// <summary>
+    /// Application Insights resource.
+    /// </summary>
+    internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
+
+    /// <summary>
+    /// Gets the name of the App Service Plan.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the URI of the App Service Environment dashboard.
+    /// </summary>
+    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
+
+    /// <summary>
+    /// Gets the Application Insights Instrumentation Key.
+    /// </summary>
+    public BicepOutputReference AzureAppInsightsInstrumentationKeyReference =>
+        new("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", this);
+
+    /// <summary>
+    /// Gets the Application Insights Connection String.
+    /// </summary>
+    public BicepOutputReference AzureAppInsightsConnectionStringReference =>
+        new("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", this);
+
+    internal static BicepValue<string> GetWebSiteSuffixBicep() =>
+        BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => 
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
@@ -33,4 +95,39 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
 
     ReferenceExpression IContainerRegistry.Endpoint => 
         ReferenceExpression.Create($"{ContainerRegistryUrl}");
+
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if an AppServicePlan with the same identifier already exists
+        var existingPlan = resources.OfType<AppServicePlan>().SingleOrDefault(plan => plan.BicepIdentifier == bicepIdentifier);
+        
+        if (existingPlan is not null)
+        {
+            return existingPlan;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var plan = AppServicePlan.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            plan))
+        {
+            plan.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
+        infra.Add(plan);
+        return plan;
+    }
 }

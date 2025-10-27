@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +26,7 @@ public sealed class PublishingContext(
     CancellationToken cancellationToken,
     string outputPath)
 {
-    private IPublishingActivityProgressReporter? _progressReporter;
+    private IPipelineActivityReporter? _activityReporter;
     /// <summary>
     /// Gets the distributed application model to be published.
     /// </summary>
@@ -43,10 +43,10 @@ public sealed class PublishingContext(
     public IServiceProvider Services { get; } = serviceProvider;
 
     /// <summary>
-    /// Gets the progress reporter for publishing activities.
+    /// Gets the activity reporter for publishing activities.
     /// </summary>
-    public IPublishingActivityProgressReporter ProgressReporter => _progressReporter ??=
-        Services.GetRequiredService<IPublishingActivityProgressReporter>();
+    public IPipelineActivityReporter ActivityReporter => _activityReporter ??=
+        Services.GetRequiredService<IPipelineActivityReporter>();
 
     /// <summary>
     /// Gets the logger for publishing operations.

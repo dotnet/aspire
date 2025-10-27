@@ -26,7 +26,8 @@
                 Position="SelectPosition.Below"
                 Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
                 Items="@_languageOptions"
-                OptionText="@(c => c.NativeName.Humanize())"
+                OptionText="@(c => c!.NativeName.Humanize())"
+                ValueChanged="@ValueChanged"
                 @bind-SelectedOption="@_selectedUiCulture"
                 @bind-SelectedOption:after="@OnLanguageChanged"
                 Class="language-select"/>
@@ -55,6 +56,13 @@
             </div>
         }
 
-        <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
+        <div class="version">
+            <div>
+                @string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)
+            </div>
+            <div>
+                @string.Format(Loc[nameof(Dialogs.SettingsDialogDotNetRuntimeVersion)], System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription)
+            </div>
+        </div>
     </FluentStack>
 </FluentDialogBody>

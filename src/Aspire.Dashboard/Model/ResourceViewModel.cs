@@ -8,7 +8,6 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -22,6 +21,7 @@ public sealed class ResourceViewModel
 {
     private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
     private readonly KnownResourceState? _knownState;
+    private Lazy<ImmutableArray<string>>? _cachedAddresses;
 
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
@@ -42,6 +42,46 @@ public sealed class ResourceViewModel
     public HealthStatus? HealthStatus { get; private set; }
     public bool IsHidden { private get; init; }
     public bool SupportsDetailedTelemetry { get; init; }
+    public string? IconName { get; init; }
+    public IconVariant? IconVariant { get; init; }
+
+    /// <summary>
+    /// Gets the cached addresses for this resource that can be used for peer matching.
+    /// This includes addresses extracted from URLs, connection strings, and parameter values.
+    /// </summary>
+    public ImmutableArray<string> CachedAddresses => (_cachedAddresses ??= new Lazy<ImmutableArray<string>>(ExtractResourceAddresses)).Value;
+
+    private ImmutableArray<string> ExtractResourceAddresses()
+    {
+        var addresses = new List<string>();
+
+        // Extract addresses from URL endpoints
+        foreach (var service in Urls)
+        {
+            var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+            addresses.Add(hostAndPort);
+        }
+
+        // Extract addresses from connection strings using comprehensive parsing
+        if (Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
+            connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
+            ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
+        {
+            var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
+            addresses.Add(endpoint);
+        }
+
+        // Extract addresses from parameter values (for Parameter resources that contain URLs or host:port values)
+        if (Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
+            parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
+            ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
+        {
+            var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
+            addresses.Add(parameterEndpoint);
+        }
+
+        return addresses.ToImmutableArray();
+    }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
@@ -181,6 +221,13 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 [DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
+    // Known resource command constants.
+    // Keep in sync with KnownResourceCommands in Aspire.Hosting.
+    public const string StartCommand = "resource-start";
+    public const string StopCommand = "resource-stop";
+    public const string RestartCommand = "resource-restart";
+    private static readonly string[] s_knownResourceCommands = [StartCommand, StopCommand, RestartCommand];
+
     public string Name { get; }
     public CommandViewModelState State { get; }
     private string DisplayName { get; }
@@ -208,25 +255,30 @@ public sealed class CommandViewModel
         IconVariant = iconVariant;
     }
 
+    public static bool IsKnownCommand(string command)
+    {
+        return s_knownResourceCommands.Contains(command);
+    }
+
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
         return Name switch
         {
-            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
-            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
-            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
+            StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
+            StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
+            RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
             _ => DisplayName
         };
     }
 
-    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
         return Name switch
         {
-            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
-            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
-            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription
+            StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
+            StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
+            RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
+            _ => DisplayDescription is { Length: > 0 } ? DisplayDescription : null
         };
     }
 }
@@ -397,6 +449,10 @@ public sealed record class VolumeViewModel(int index, string Source, string Targ
 
 public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
 {
+    /// <summary>
+    /// The timestamp when this health check was last executed, or <see langword="null"/> if not available.
+    /// </summary>
+    public DateTime? LastRunAtTimeStamp { get; init; }
     private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription

@@ -1,19 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var foundry = builder.AddAzureAIFoundry("foundry")
-    .RunAsFoundryLocal()
-    ;
+    .RunAsFoundryLocal();
 
-var chat = foundry.AddDeployment("chat", "qwen2.5-0.5b", "1", "Microsoft");
+var model = foundry.Resource.IsEmulator
+    ? AIFoundryModel.Local.Phi4Mini
+    : AIFoundryModel.Microsoft.Phi4MiniInstruct;
+
+var chat = foundry.AddDeployment("chat", model);
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
        .WithReference(chat)
-       .WaitFor(chat)
-       ;
+       .WaitFor(chat);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../AzureProvisioningStrings.resx">
+    <body>
+      <trans-unit id="InputsMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
+        <target state="translated">O modelo contém recursos do Azure que exigem uma Assinatura do Azure.
+
+Para saber mais, veja a [documentação de provisionamento do Azure](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="InputsTitle">
+        <source>Azure provisioning</source>
+        <target state="translated">Provisionamento do Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationDialogTitle">
+        <source>Azure location and resource group</source>
+        <target state="translated">Localização do Azure e grupo de recursos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationLabel">
+        <source>Location</source>
+        <target state="translated">Localização</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationPlaceholder">
+        <source>Select location</source>
+        <target state="translated">Selecionar o local</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationSelectionMessage">
+        <source>Select your Azure location and specify resource group:</source>
+        <target state="translated">Selecione sua localização do Azure e especifique o grupo de recursos:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.</source>
+        <target state="translated">O modelo contém recursos do Azure que exigem uma Assinatura do Azure.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationPrimaryButtonText">
+        <source>Enter values</source>
+        <target state="translated">Inserir valores</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationTitle">
+        <source>Azure provisioning</source>
+        <target state="translated">Provisionamento do Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupLabel">
+        <source>Resource group</source>
+        <target state="translated">Grupo de recursos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionDialogTitle">
+        <source>Azure subscription</source>
+        <target state="translated">Assinatura do Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdLabel">
+        <source>Subscription ID</source>
+        <target state="translated">ID da Assinatura</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdPlaceholder">
+        <source>Select subscription ID</source>
+        <target state="translated">Selecionar a ID da assinatura</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionManualEntryMessage">
+        <source>Enter your Azure subscription ID:</source>
+        <target state="translated">Insira sua ID de assinatura do Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionSelectionMessage">
+        <source>Select your Azure subscription:</source>
+        <target state="translated">Selecione sua assinatura do Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Locatário do Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">ID do locatário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Insira a sua ID de locatário do Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Selecionar a ID do locatário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Selecione o seu locatário do Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationResourceGroupNameInvalid">
+        <source>Resource group name must be a valid Azure resource group name.</source>
+        <target state="translated">O nome do grupo de recursos deve ser um nome válido de grupo de recursos do Azure.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationSubscriptionIdInvalid">
+        <source>Subscription ID must be a valid GUID.</source>
+        <target state="translated">A ID da assinatura deve ser um GUID válido.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">A ID do locatário deve ser um GUID válido.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

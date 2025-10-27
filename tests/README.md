@@ -3,14 +3,14 @@
 The Helix CI job builds `tests/helix/send-to-helix-ci.proj`, which in turns builds the `Test` target on `tests/helix/send-to-helix-inner.proj`. This inner project uses the Helix SDK to construct `@(HelixWorkItem)`s, and send them to Helix to run.
 
 - `tests/helix/send-to-helix-basictests.targets` - this prepares all the tests that don't need special preparation
-- `tests/helix/send-to-helix-endtoend-tests.targets` - this is for tests that require a SDK+workload installed
+- `tests/helix/send-to-helix-endtoend-tests.targets` - this is for tests that require a SDK installed
 
-## Install SDK+workload from artifacts
+## Install SDK from artifacts
 
 1. `.\build.cmd -pack`
 2. `dotnet build tests\workloads.proj`
 
-.. which results in `artifacts\bin\dotnet-tests` which has a SDK (version from `global.json`) with the `aspire` workload installed using packs from `artifacts/packages`.
+.. which results in `artifacts\bin\dotnet-tests` which has a SDK (version from `global.json`) with the necessary components installed using packs from `artifacts/packages`.
 
 ## Controlling test runs on CI
 

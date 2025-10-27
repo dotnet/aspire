@@ -35,6 +35,10 @@
 
     <IsAzdoHelixRunner Condition=" '$(PrepareForHelix)' == 'true' ">true</IsAzdoHelixRunner>
 
+    <!-- Detect specific GitHub workflow types based on GITHUB_WORKFLOW environment variable -->
+    <IsOuterloopTestsWorkflow Condition=" '$(GITHUB_WORKFLOW)' == 'Outerloop Tests' ">true</IsOuterloopTestsWorkflow>
+    <IsQuarantinedTestsWorkflow Condition=" '$(GITHUB_WORKFLOW)' == 'Quarantined Tests' ">true</IsQuarantinedTestsWorkflow>
+
     <!--
       If we haven't detected the tests are run on build agents, then we presume we're running tests locally.
       -->

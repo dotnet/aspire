@@ -65,7 +65,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                                     return;
                                 }
 
-                                logger.LogError(ex, "Unexpected error ended health monitoring for resource '{Resource}'.", resourceName);
+                                logger.LogError(ex, "Unexpected error ended health monitoring for resource '{ResourceName}'.", resourceName);
                             }
                         }, state.CancellationToken);
                     }
@@ -112,14 +112,14 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
             //       on a periodic basis (you wouldn't want to do it on every pass.
-            logger.LogDebug("Resource '{Resource}' has no health checks to monitor.", resource.Name);
+            logger.LogDebug("Resource '{ResourceName}' has no health checks to monitor.", resource.Name);
             FireResourceReadyEvent(resource, cancellationToken);
 
             return;
         }
 
         var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
-        logger.LogDebug("Resource '{Resource}' health checks to monitor: {HeathCheckKeys}", resource.Name, string.Join(", ", registrationKeysToCheck));
+        logger.LogDebug("Resource '{ResourceName}' health checks to monitor: {HeathCheckKeys}", resource.Name, string.Join(", ", registrationKeysToCheck));
 
         var lastHealthCheckTimestamp = 0L;
         var lastDelayInterrupted = false;
@@ -156,7 +156,9 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     report = new HealthReport(registrationKeysToCheck.ToDictionary(k => k, k => new HealthReportEntry(HealthStatus.Unhealthy, "Error calling HealthCheckService.", TimeSpan.Zero, ex, data: null)), TimeSpan.Zero);
                 }
 
-                logger.LogTrace("Health report status for '{Resource}' is {HealthReportStatus}.", resource.Name, report.Status);
+                var lastRunAt = timeProvider.GetUtcNow().UtcDateTime;
+
+                logger.LogTrace("Health report status for '{ResourceName}' is {HealthReportStatus}.", resource.Name, report.Status);
 
                 if (report.Status == HealthStatus.Healthy)
                 {
@@ -176,19 +178,20 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
                 if (ContainsAnyHealthReportChange(report, currentEvent.Snapshot.HealthReports))
                 {
-                    logger.LogTrace("Health reports for '{Resource}' have changed. Publishing updated reports.", resource.Name);
-
-                    await resourceNotificationService.PublishUpdateAsync(resource, s =>
-                    {
-                        var healthReports = MergeHealthReports(s.HealthReports, report);
-
-                        return s with
-                        {
-                            // HealthStatus is automatically re-computed after health reports change.
-                            HealthReports = healthReports
-                        };
-                    }).ConfigureAwait(false);
+                    logger.LogTrace("Health reports for '{ResourceName}' have changed.", resource.Name);
                 }
+
+                // Publish updated health reports every time because the last run time has changed.
+                await resourceNotificationService.PublishUpdateAsync(resource, s =>
+                {
+                    var healthReports = MergeHealthReports(s.HealthReports, report, lastRunAt);
+
+                    return s with
+                    {
+                        // HealthStatus is automatically re-computed after health reports change.
+                        HealthReports = healthReports
+                    };
+                }).ConfigureAwait(false);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -197,7 +200,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 // cancellation token is signaled.
                 logger.LogTrace(
                     ex,
-                    "Health check monitoring loop for resource '{Resource}' observed exception but was ignored.",
+                    "Health check monitoring loop for resource '{ResourceName}' observed exception but was ignored.",
                     resource.Name
                     );
             }
@@ -210,7 +213,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 ? HealthyHealthCheckInterval
                 : NonHealthyHealthCheckStepInterval * Math.Min(5, nonHealthyReportCount);
 
-            logger.LogTrace("Resource '{Resource}' health check monitoring loop starting delay of {DelayInterval}.", resource.Name, delayInterval);
+            logger.LogTrace("Resource '{ResourceName}' health check monitoring loop starting delay of {DelayInterval}.", resource.Name, delayInterval);
 
             lastDelayInterrupted = await state.DelayAsync(currentEvent, delayInterval, cancellationToken).ConfigureAwait(false);
         }
@@ -239,26 +242,26 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
     private void FireResourceReadyEvent(IResource resource, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Resource '{Resource}' is ready.", resource.Name);
+        logger.LogDebug("Resource '{ResourceName}' is ready.", resource.Name);
 
         // We don't want to block the monitoring loop while we fire the event.
         _ = Task.Run(async () =>
         {
             var resourceReadyEvent = new ResourceReadyEvent(resource, services);
 
-            logger.LogDebug("Publishing ResourceReadyEvent for '{Resource}'.", resource.Name);
+            logger.LogDebug("Publishing ResourceReadyEvent for '{ResourceName}'.", resource.Name);
 
             // Execute the publish and store the task so that waiters can await it and observe the result.
             var task = eventing.PublishAsync(resourceReadyEvent, cancellationToken);
 
-            logger.LogDebug("Waiting for ResourceReadyEvent for '{Resource}'.", resource.Name);
+            logger.LogDebug("Waiting for ResourceReadyEvent for '{ResourceName}'.", resource.Name);
 
             // Suppress exceptions, we just want to make sure that the event is completed.
             await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-            logger.LogDebug("ResourceReadyEvent for '{Resource}' completed.", resource.Name);
+            logger.LogDebug("ResourceReadyEvent for '{ResourceName}' completed.", resource.Name);
 
-            logger.LogDebug("Publishing the result of ResourceReadyEvent for '{Resource}'.", resource.Name);
+            logger.LogDebug("Publishing the result of ResourceReadyEvent for '{ResourceName}'.", resource.Name);
 
             await resourceNotificationService.PublishUpdateAsync(resource, s => s with
             {
@@ -269,13 +272,16 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         cancellationToken);
     }
 
-    private static ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
+    private static ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report, DateTime runAt)
     {
         var builder = healthReports.ToBuilder();
 
         foreach (var (key, entry) in report.Entries)
         {
-            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
+            {
+                LastRunAt = runAt
+            };
 
             var found = false;
             for (var i = 0; i < builder.Count; i++)
@@ -315,7 +321,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             _resourceName = initialEvent.Resource.Name;
             LatestEvent = initialEvent;
 
-            _logger.LogDebug("Starting health monitoring for resource '{Resource}'.", _resourceName);
+            _logger.LogDebug("Starting health monitoring for resource '{ResourceName}'.", _resourceName);
         }
 
         // Used to cancel and exit the monitoring loop for a resource.
@@ -325,7 +331,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         public void StopResourceMonitor()
         {
-            _logger.LogDebug("Stopping health monitoring for resource '{Resource}'.", _resourceName);
+            _logger.LogDebug("Stopping health monitoring for resource '{ResourceName}'.", _resourceName);
             _cts.Cancel();
         }
 
@@ -353,7 +359,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 // The event might have changed before delay was called. Interrupt immediately if required.
                 if (currentEvent != null && ShouldInterrupt(currentEvent, LatestEvent))
                 {
-                    _logger.LogTrace("Health monitoring delay interrupted for resource '{Resource}'.", _resourceName);
+                    _logger.LogTrace("Health monitoring delay interrupted for resource '{ResourceName}'.", _resourceName);
                     return true;
                 }
                 _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

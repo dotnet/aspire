@@ -31,13 +31,13 @@ param cs_connectionstring string
 
 param api_identity_outputs_clientid string
 
-resource pg_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+resource pg_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: pg_kv_outputs_name
 }
 
-resource pg_kv_outputs_name_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+resource pg_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--db'
-  parent: pg_kv_outputs_name_kv
+  parent: pg_kv
 }
 
 resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
@@ -49,7 +49,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           name: 'connectionstrings--db'
           identity: api_identity_outputs_id
-          keyVaultUrl: pg_kv_outputs_name_kv_connectionstrings__db.properties.secretUri
+          keyVaultUrl: pg_kv_connectionstrings__db.properties.secretUri
         }
         {
           name: 'secretval'
@@ -186,6 +186,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

@@ -5,18 +5,22 @@ param cache_outputs_name string
 
 param principalId string
 
-param principalName string
-
-resource cache 'Microsoft.Cache/redis@2024-11-01' existing = {
+resource cache 'Microsoft.Cache/redisEnterprise@2025-04-01' existing = {
   name: cache_outputs_name
 }
 
-resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-11-01' = {
-  name: guid(cache.id, principalId, 'Data Contributor')
-  properties: {
-    accessPolicyName: 'Data Contributor'
-    objectId: principalId
-    objectIdAlias: principalName
-  }
+resource cache_default 'Microsoft.Cache/redisEnterprise/databases@2025-04-01' existing = {
+  name: 'default'
   parent: cache
+}
+
+resource cache_default_contributor 'Microsoft.Cache/redisEnterprise/databases/accessPolicyAssignments@2025-04-01' = {
+  name: guid(cache_default.id, principalId, 'default')
+  properties: {
+    accessPolicyName: 'default'
+    user: {
+      objectId: principalId
+    }
+  }
+  parent: cache_default
 }

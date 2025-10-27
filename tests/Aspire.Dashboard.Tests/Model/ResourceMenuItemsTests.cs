@@ -9,6 +9,7 @@ using Aspire.Tests.Shared.DashboardModel;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 
@@ -17,13 +18,15 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class ResourceMenuItemsTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private readonly IconResolver _iconResolver = new IconResolver(NullLogger<IconResolver>.Instance);
 
     [Fact]
     public void AddMenuItems_NoTelemetry_NoTelemetryItems()
     {
         // Arrange
         var resource = ModelTestHelpers.CreateResource();
-        var telemetryRespository = TelemetryTestHelpers.CreateRepository();
+        var repository = TelemetryTestHelpers.CreateRepository();
+        var aiContextProvider = new TestAIContextProvider();
 
         // Act
         var menuItems = new List<MenuButtonItem>();
@@ -31,16 +34,20 @@ public sealed class ResourceMenuItemsTests
             menuItems,
             resource,
             new TestNavigationManager(),
-            telemetryRespository,
+            repository,
+            aiContextProvider,
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
             new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
-            true);
+            true,
+            _iconResolver);
 
         // Assert
         Assert.Collection(menuItems,
@@ -52,9 +59,10 @@ public sealed class ResourceMenuItemsTests
     public void AddMenuItems_UninstrumentedPeer_TraceItem()
     {
         // Arrange
-        var resource = ModelTestHelpers.CreateResource(appName: "test-abc");
+        var resource = ModelTestHelpers.CreateResource(resourceName: "test-abc");
         var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes => (resource.Name, resource));
         var repository = TelemetryTestHelpers.CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+        var aiContextProvider = new TestAIContextProvider();
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
         {
@@ -83,15 +91,19 @@ public sealed class ResourceMenuItemsTests
             resource,
             new TestNavigationManager(),
             repository,
+            aiContextProvider,
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
             new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
-            true);
+            true,
+            _iconResolver);
 
         // Assert
         Assert.Collection(menuItems,
@@ -105,8 +117,9 @@ public sealed class ResourceMenuItemsTests
     public void AddMenuItems_HasTelemetry_TelemetryItems()
     {
         // Arrange
-        var resource = ModelTestHelpers.CreateResource(appName: "test-abc");
+        var resource = ModelTestHelpers.CreateResource(resourceName: "test-abc");
         var repository = TelemetryTestHelpers.CreateRepository();
+        var aiContextProvider = new TestAIContextProvider();
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
         {
@@ -134,15 +147,19 @@ public sealed class ResourceMenuItemsTests
             resource,
             new TestNavigationManager(),
             repository,
+            aiContextProvider,
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
             new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
-            true);
+            true,
+            _iconResolver);
 
         // Assert
         Assert.Collection(menuItems,

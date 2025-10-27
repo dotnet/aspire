@@ -12,8 +12,11 @@ public class DurationFormatterTests
     [Theory]
     [InlineData(0, "μs")]
     [InlineData(1, "μs")]
-    [InlineData(1_000, "μs")]
-    [InlineData(1_000_000, "ms")]
+    [InlineData(10, "μs")]
+    [InlineData(100, "ms")]
+    [InlineData(1_000, "ms")]
+    [InlineData(100_000, "ms")]
+    [InlineData(1_000_000, "s")]
     [InlineData(1_000_000_000, "s")]
     [InlineData(1_000_000_000_000, "h")]
     [InlineData(1_000_000_000_000_000, "h")]
@@ -69,6 +72,20 @@ public class DurationFormatterTests
     {
         var input = 2 * TimeSpan.TicksPerHour + 30 * TimeSpan.TicksPerMinute + 30 * TimeSpan.TicksPerSecond;
         Assert.Equal("2h 31m", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+    }
+
+    [Fact]
+    public void DisplaysLargeFractionalMillisecondAsMilliseconds()
+    {
+        var input = 9155;
+        Assert.Equal(0.92m.ToString("0.##ms", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+    }
+
+    [Fact]
+    public void DisplaysLargeFractionalSecondsAsSeconds()
+    {
+        var input = 915 * TimeSpan.TicksPerMillisecond;
+        Assert.Equal(0.92m.ToString("0.##s", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
     }
 
     [Fact]

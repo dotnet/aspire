@@ -3,13 +3,8 @@
   <file datatype="xml" source-language="en" target-language="de" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project.</source>
-        <target state="translated">Generiert Bereitstellungsartefakte für ein Aspire-App-Hostprojekt.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Fehler beim Veröffentlichen von Artefakten. Exitcode: {0}. Weitere Informationen erhalten Sie, wenn Sie mit dem Schalter „--debug“ ausführen.</target>
+        <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
+        <target state="translated">Generiert Bereitstellungsartefakte für einen Aspire-App-Host. (Vorschau)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -17,24 +12,34 @@
         <target state="translated">Artefakte werden generiert...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputPromptLoading">
+        <source>Loading...</source>
+        <target state="translated">Wird geladen...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>PUBLISHING COMPLETED</source>
+        <target state="translated">VERÖFFENTLICHUNG ABGESCHLOSSEN</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>PUBLISHING FAILED</source>
+        <target state="translated">FEHLER BEI DER VERÖFFENTLICHUNG</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for the generated artifacts.</source>
-        <target state="translated">Der Ausgabepfad für die generierten Artefakte.</target>
+        <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
+        <target state="translated">Der Ausgabepfad für die generierten Artefakte. Wenn kein Pfad angegeben wird, ist der Standardwert „./aspire-output“.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Der Pfad zur Hostprojektdatei der Aspire-App.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Der Pfad zur Aspire AppHost-Projektdatei.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">Wählen Sie einen Herausgeber aus:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">Artefakte wurden erfolgreich in {0} veröffentlicht.</target>
         <note />
       </trans-unit>
     </body>

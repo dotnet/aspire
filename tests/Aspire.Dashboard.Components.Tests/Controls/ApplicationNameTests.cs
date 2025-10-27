@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
-using Aspire.DashboardService.Proto.V1;
+using Aspire.Dashboard.Tests.Shared;
 using Bunit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,27 +62,13 @@ public class ApplicationNameTests : DashboardTestContext
         // Arrange
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
-        Services.AddSingleton<IDashboardClient, MockDashboardClient>();
+        Services.AddSingleton<IDashboardClient>(new TestDashboardClient(applicationName: "<marquee>An HTML title!</marquee>"));
 
         // Act
         var cut = RenderComponent<ApplicationName>();
 
         // Assert
         cut.MarkupMatches("&lt;marquee&gt;An HTML title!&lt;/marquee&gt;");
-    }
-
-    private sealed class MockDashboardClient : IDashboardClient
-    {
-        public bool IsEnabled => true;
-        public Task WhenConnected => Task.CompletedTask;
-        public string ApplicationName => "<marquee>An HTML title!</marquee>";
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-        public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class TestStringLocalizer<T> : IStringLocalizer<T>

@@ -8,7 +8,7 @@
 
 <PageTitle>
     <ApplicationName
-        AdditionalText="@PageViewModel.SelectedOption.Id?.ReplicaSetName"
+        AdditionalText="@PageViewModel.SelectedResource.Id?.ReplicaSetName"
         ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)"
         Loc="@Loc"/>
 </PageTitle>
@@ -24,18 +24,20 @@
         <ToolbarSection>
             <ResourceSelect Resources="_resources"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
-                            @bind-SelectedResource="PageViewModel.SelectedOption"
+                            @bind-SelectedResource="PageViewModel.SelectedResource"
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch IsPaused="@PauseManager.ConsoleLogsPaused" IsPausedChanged="@OnPausedChanged" />
-            <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
+            <SignalsActionsDisplay HandleClearSignal="@ClearConsoleLogs"
+                                  IsPaused="@PauseManager.ConsoleLogsPaused"
+                                  OnPausedChanged="@OnPausedChanged"
+                                  SelectedResource="@PageViewModel.SelectedResource" />
 
-            @if (PageViewModel.SelectedResource is { } selectedResource)
+            @if (PageViewModel.SelectedResource is { } selectedResource && !IsAllSelected())
             {
-                if (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0)
+                if (ViewportInformation.IsDesktop && (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0))
                 {
-                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]</span>
+                    <span style="margin-left: 10px;">@ControlsStringsLoc[nameof(ControlsStrings.ResourceActions)]</span>
                 }
 
                 @foreach (var command in _highlightedCommands)
@@ -58,10 +60,11 @@
 
                 if (_resourceMenuItems.Count > 0)
                 {
-                    <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                    <AspireMenuButton ButtonAppearance="@(ViewportInformation.IsDesktop ? Appearance.Lightweight : Appearance.Neutral)"
                                       Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
                                       Items="@_resourceMenuItems"
-                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]" />
+                                      Title="@ControlsStringsLoc[nameof(ControlsStrings.ResourceActions)]"
+                                      Text="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.ResourceActions)].Value)"/>
                 }
             }
 
@@ -69,20 +72,30 @@
             {
                 // This takes up too much horizontal space on mobile, so show on a new line on mobile
                 <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]" slot="end">@PageViewModel.Status</FluentLabel>
+
+                <AspireMenuButton
+                    ButtonAppearance="Appearance.Lightweight"
+                    Icon="@(new Icons.Regular.Size20.Options())"
+                    Items="@_logsMenuItems"
+                    Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
+                    slot="end"/>
+            }
+            else
+            {
+                <AspireMenuButton
+                    Icon="@(new Icons.Regular.Size20.Options())"
+                    Items="@_logsMenuItems"
+                    Text="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
+                    slot="end"/>
             }
 
-            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                              Icon="@(new Icons.Regular.Size20.Options())"
-                              Items="@_logsMenuItems"
-                              Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
-                              slot="end" />
         </ToolbarSection>
 
         <MobilePageTitleToolbarSection>
             <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">
-                @if (PageViewModel.SelectedOption?.Id is not null)
+                @if (PageViewModel.SelectedResource?.Id is not null)
                 {
-                    @($"{PageViewModel.SelectedOption.Name}: {PageViewModel.Status}")
+                    @($"{PageViewModel.SelectedResource.Name}: {PageViewModel.Status}")
                 }
                 else
                 {
@@ -93,10 +106,12 @@
 
         <MainSection>
             <LogViewer
+                @ref="_logViewerRef"
                 LogEntries="@_logEntries"
                 ShowTimestamp="@_showTimestamp"
                 IsTimestampUtc="@_isTimestampUtc"
-                ApplicationName="@PageViewModel.SelectedResource?.Name"/>
+                NoWrapLogs="@_noWrapLogs"
+                ShowResourcePrefix="@_isSubscribedToAll"/>
         </MainSection>
     </AspirePageContentLayout>
 </div>

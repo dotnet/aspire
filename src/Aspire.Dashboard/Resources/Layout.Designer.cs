@@ -19,7 +19,7 @@ namespace Aspire.Dashboard.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Layout {
@@ -133,29 +133,38 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Untrusted apps can send telemetry to the dashboard..
-        /// </summary>
-        public static string MessageTelemetryBody {
-            get {
-                return ResourceManager.GetString("MessageTelemetryBody", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to More information.
         /// </summary>
-        public static string MessageTelemetryLink {
+        public static string MessageUnsecuredEndpointLink {
             get {
-                return ResourceManager.GetString("MessageTelemetryLink", resourceCulture);
+                return ResourceManager.GetString("MessageUnsecuredEndpointLink", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Telemetry endpoint is unsecured.
+        ///   Looks up a localized string similar to Untrusted apps can access sensitive information about the running services..
         /// </summary>
-        public static string MessageTelemetryTitle {
+        public static string MessageUnsecuredEndpointMcpBody {
             get {
-                return ResourceManager.GetString("MessageTelemetryTitle", resourceCulture);
+                return ResourceManager.GetString("MessageUnsecuredEndpointMcpBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Untrusted apps can send telemetry to the dashboard..
+        /// </summary>
+        public static string MessageUnsecuredEndpointTelemetryBody {
+            get {
+                return ResourceManager.GetString("MessageUnsecuredEndpointTelemetryBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Endpoint is unsecured.
+        /// </summary>
+        public static string MessageUnsecuredEndpointTitle {
+            get {
+                return ResourceManager.GetString("MessageUnsecuredEndpointTitle", resourceCulture);
             }
         }
         

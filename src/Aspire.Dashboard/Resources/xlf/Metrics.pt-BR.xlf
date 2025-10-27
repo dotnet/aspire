@@ -67,11 +67,6 @@
         <target state="translated">{0} métricas</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="MetricsSelectADuration">
-        <source>Select a duration</source>
-        <target state="translated">Selecionar uma duração</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
         <target state="translated">Selecionar um recurso para exibir métricas</target>

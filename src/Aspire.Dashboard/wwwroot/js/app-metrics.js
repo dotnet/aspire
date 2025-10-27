@@ -113,7 +113,13 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
             var point = currentPoint;
             var pointTraceData = point.data.traceData[point.pointIndex];
 
-            chartInterop.invokeMethodAsync('ViewSpan', pointTraceData.traceId, pointTraceData.spanId);
+            var traceId = pointTraceData.traceId;
+            var spanId = pointTraceData.spanId;
+
+            // If the exemplar has trace and span details then navigate to the span on click.
+            if (traceId && spanId) {
+                chartInterop.invokeMethodAsync('ViewSpan', traceId, spanId);
+            }
         }
     });
 

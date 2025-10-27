@@ -2,16 +2,83 @@
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "script-only": {
-      "type": "dockerfile.v0",
-      "path": "../script_only/Dockerfile",
-      "context": "../script_only"
+      "type": "container.v1",
+      "build": {
+        "context": "../script_only",
+        "dockerfile": "script-only.Dockerfile"
+      },
+      "env": {
+        "OTEL_TRACES_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp",
+        "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
+      }
     },
     "instrumented-script": {
-      "type": "dockerfile.v0",
-      "path": "../instrumented_script/Dockerfile",
-      "context": "../instrumented_script",
+      "type": "container.v1",
+      "build": {
+        "context": "../instrumented_script",
+        "dockerfile": "instrumented-script.Dockerfile"
+      },
       "env": {
+        "OTEL_TRACES_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp",
         "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
+      }
+    },
+    "fastapi-app": {
+      "type": "container.v1",
+      "build": {
+        "context": "../module_only",
+        "dockerfile": "fastapi-app.Dockerfile"
+      },
+      "args": [
+        "api:app",
+        "--reload",
+        "--host=0.0.0.0",
+        "--port=8000"
+      ],
+      "env": {
+        "OTEL_TRACES_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp",
+        "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8000
+        }
+      }
+    },
+    "fastapi-uvicorn-app": {
+      "type": "container.v1",
+      "build": {
+        "context": "../module_only",
+        "dockerfile": "fastapi-uvicorn-app.Dockerfile"
+      },
+      "args": [
+        "api:app",
+        "--reload",
+        "--host=0.0.0.0",
+        "--port=8001"
+      ],
+      "env": {
+        "OTEL_TRACES_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp",
+        "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8001
+        }
       }
     }
   }

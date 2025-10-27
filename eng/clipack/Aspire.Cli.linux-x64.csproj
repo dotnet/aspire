@@ -2,6 +2,9 @@
   <PropertyGroup>
     <CliRuntime>linux-x64</CliRuntime>
     <CliPlatformType>Unix</CliPlatformType>
+
+    <!-- linux-x64: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=6092ab9b5b1cd27f812a7f08b1845fc4a48589fe, stripped -->
+    <FileSignatureRegex>ELF 64-bit LSB pie executable, x86-64,.*/ld-linux-x86-64\.so</FileSignatureRegex>
   </PropertyGroup>
 
   <Import Project="Common.projitems" />

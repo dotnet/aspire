@@ -40,6 +40,12 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Otlp.HttpEndpointUrl = otlpHttpUrl;
         }
 
+        // Copy aliased config values to the strongly typed options.
+        if (_configuration[DashboardConfigNames.DashboardMcpUrlName.ConfigKey] is { Length: > 0 } mcpUrl)
+        {
+            options.Mcp.EndpointUrl = mcpUrl;
+        }
+
         if (_configuration[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] is { Length: > 0 } frontendUrls)
         {
             options.Frontend.EndpointUrls = frontendUrls;
@@ -56,11 +62,13 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         {
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;
+            options.Mcp.AuthMode = McpAuthMode.Unsecured;
         }
         else
         {
             options.Frontend.AuthMode ??= FrontendAuthMode.BrowserToken;
             options.Otlp.AuthMode ??= OtlpAuthMode.Unsecured;
+            options.Mcp.AuthMode ??= McpAuthMode.Unsecured;
         }
 
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
@@ -71,6 +79,13 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             // (at startup, after CI is created, after options change). Setting the token in configuration makes it consistent.
             _configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = token;
             options.Frontend.BrowserToken = token;
+        }
+
+        options.AI.Disabled = _configuration.GetBool(DashboardConfigNames.DashboardAIDisabledName.ConfigKey);
+
+        if (_configuration.GetBool(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey) is { } suppressUnsecuredTelemetryMessage)
+        {
+            options.Otlp.SuppressUnsecuredMessage = suppressUnsecuredTelemetryMessage;
         }
     }
 }

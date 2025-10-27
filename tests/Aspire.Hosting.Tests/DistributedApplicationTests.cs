@@ -23,9 +23,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Xunit;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.Tests;
 
@@ -48,6 +48,7 @@ public class DistributedApplicationTests
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
         using var testProgram = CreateTestProgram("lifecycle-hook-executed-async");
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -57,6 +58,7 @@ public class DistributedApplicationTests
                 throw new DistributedApplicationException(exceptionMessage);
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
@@ -78,6 +80,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("multiple-lifecycle-hooks");
 
         // Lifecycle hook 1
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((app, cancellationToken) =>
@@ -86,8 +89,10 @@ public class DistributedApplicationTests
                 return Task.CompletedTask;
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         // Lifecycle hook 2
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((app, cancellationToken) =>
@@ -98,6 +103,7 @@ public class DistributedApplicationTests
                 throw new DistributedApplicationException(exceptionMessage);
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
@@ -391,6 +397,7 @@ public class DistributedApplicationTests
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
         using var testProgram = CreateTestProgram("lifecycle-hook-executed-sync");
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -400,6 +407,7 @@ public class DistributedApplicationTests
                 throw new DistributedApplicationException(exceptionMessage);
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var ex = Assert.Throws<AggregateException>(testProgram.Run);
         Assert.IsType<DistributedApplicationException>(ex.InnerExceptions.First());
@@ -412,12 +420,18 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("lifecycle-hook-duplicates");
 
         var callback1 = (IServiceProvider sp) => new DummyLifecycleHook();
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.TryAddLifecycleHook(callback1);
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var callback2 = (IServiceProvider sp) => new DummyLifecycleHook();
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.TryAddLifecycleHook(callback2);
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         Assert.Single(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback1);
         Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
@@ -428,7 +442,9 @@ public class DistributedApplicationTests
     {
         using var testProgram = CreateTestProgram("ports-assigned-after-hook-runs");
         var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         await using var app = testProgram.Build();
 
@@ -445,7 +461,9 @@ public class DistributedApplicationTests
         }
     }
 
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     private sealed class CheckAllocatedEndpointsLifecycleHook(TaskCompletionSource<DistributedApplicationModel> tcs) : IDistributedApplicationLifecycleHook
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     {
         public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
         {
@@ -544,7 +562,7 @@ public class DistributedApplicationTests
     [RequiresDocker]
     public async Task VerifyContainerCreateFile()
     {
-        using var testProgram = CreateTestProgram("verify-container-create-file");
+        using var testProgram = CreateTestProgram("verify-container-create-file", trustDeveloperCertificate: false);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
@@ -567,6 +585,11 @@ public class DistributedApplicationTests
                         Name = "test2.sh",
                         SourcePath = "/tmp/test2.sh",
                         Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
+                    },
+                    new ContainerOpenSSLCertificateFile
+                    {
+                        Name = "testcert.pem",
+                        Contents = "value",
                     },
                 ],
             },
@@ -597,6 +620,122 @@ public class DistributedApplicationTests
                 },
                 item.Spec.CreateFiles);
             });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [RequiresDevCert]
+    [InlineData(null, null, true)]
+    [InlineData(null, false, false)]
+    [InlineData(null, true, true)]
+    [InlineData(false, null, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, null, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert)
+    {
+        using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis");
+        if (explicitTrust.HasValue)
+        {
+            container.WithDeveloperCertificateTrust(explicitTrust.Value);
+        }
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.Collection(list,
+            item =>
+            {
+                Assert.Equal(RedisImageSource, item.Spec.Image);
+
+                if (expectDevCert)
+                {
+                    Assert.NotNull(item.Spec.Env);
+                    Assert.Collection(item.Spec.Env.OrderBy(e => e.Name),
+                        certDir =>
+                        {
+                            Assert.Equal("SSL_CERT_DIR", certDir.Name);
+                            Assert.StartsWith("/usr/lib/ssl/aspire/certs:", certDir.Value);
+                        });
+                    Assert.NotNull(item.Spec.CreateFiles);
+                    Assert.Collection(item.Spec.CreateFiles,
+                        createCerts =>
+                        {
+                            Assert.Equal("/usr/lib/ssl/aspire", createCerts.Destination);
+                            Assert.NotNull(createCerts.Entries);
+                            Assert.Collection(createCerts.Entries,
+                                bundle =>
+                                {
+                                    Assert.Equal("cert.pem", bundle.Name);
+                                    Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
+                                    var certs = new X509Certificate2Collection();
+                                    certs.ImportFromPem(bundle.Contents);
+                                    Assert.Equal(dc.Certificates.Count, certs.Count);
+                                    Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
+                                },
+                                dir =>
+                                {
+                                    Assert.Equal("certs", dir.Name);
+                                    Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
+                                    Assert.NotNull(dir.Entries);
+                                    Assert.Equal(dc.Certificates.Count, dir.Entries.Count);
+                                    foreach (var devCert in dc.Certificates)
+                                    {
+                                        Assert.Contains(dir.Entries, (cert) =>
+                                        {
+                                            return cert.Type == ContainerFileSystemEntryType.OpenSSL && string.Equals(cert.Name, devCert.Thumbprint + ".pem", StringComparison.Ordinal) && string.Equals(cert.Contents, devCert.ExportCertificatePem(), StringComparison.Ordinal);
+                                        });
+                                    }
+                                });
+                        });
+                }
+                else
+                {
+                    Assert.Empty(item.Spec.CreateFiles ?? []);
+                }
+            });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyContainerSucceedsWithCreateFileContinueOnError()
+    {
+        using var testProgram = CreateTestProgram("verify-container-continue-on-error", trustDeveloperCertificate: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-continue-on-error-redis")
+            .WithContainerFiles("/tmp", [
+                new ContainerOpenSSLCertificateFile
+                {
+                    Name = "invalid-cert.pem",
+                    Contents = "not a real cert",
+                    // This would normally cause the container to fail, but with ContinueOnError it should be ignored.
+                    ContinueOnError = true,
+                },
+            ]);
+
+        await using var app = testProgram.Build();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(container.Resource.Name, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
@@ -744,6 +883,36 @@ public class DistributedApplicationTests
             Assert.NotNull(envVars);
             return Assert.Single(envVars, e => e.Name == name).Value;
         }
+    }
+
+    [Fact]
+    public async Task StartAsync_DashboardUrls_DisplayPropertiesSet()
+    {
+        const string testName = "dashboard-urls-display";
+        var args = new string[] {
+            $"{KnownConfigNames.AspNetCoreUrls}=https://localhost:0;http://localhost:0",
+            $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0"
+        };
+        using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
+
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var aspireDashboard = model.Resources.Single(r => r.Name == KnownResourceNames.AspireDashboard);
+
+        var dashboardUrls = aspireDashboard.Annotations.OfType<ResourceUrlAnnotation>().ToList();
+        Assert.Collection(dashboardUrls,
+            u => Assert.Equal("Dashboard (https)", u.DisplayText),
+            u => Assert.Equal("Dashboard (http)", u.DisplayText),
+            u => Assert.Equal("otlp-grpc", u.DisplayText));
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Theory]
@@ -1179,14 +1348,18 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
@@ -1233,14 +1406,18 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
@@ -1308,12 +1485,16 @@ public class DistributedApplicationTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddRedis($"{testName}-redis");
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         builder.Services.TryAddLifecycleHook<KubernetesTestLifecycleHook>();
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         using var app = builder.Build();
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         var kubernetesLifecycle = (KubernetesTestLifecycleHook)lifecycles.Where(l => l.GetType() == typeof(KubernetesTestLifecycleHook)).First();
         kubernetesLifecycle.KubernetesService = s;
 
@@ -1337,7 +1518,9 @@ public class DistributedApplicationTests
         });
     }
 
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     {
         private readonly TaskCompletionSource _tcs = new();
 
@@ -1362,11 +1545,13 @@ public class DistributedApplicationTests
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
-        bool randomizePorts = true) =>
+        bool randomizePorts = true,
+        bool? trustDeveloperCertificate = null) =>
         TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,
             includeIntegrationServices: includeIntegrationServices,
             disableDashboard: disableDashboard,
-            randomizePorts: randomizePorts);
+            randomizePorts: randomizePorts,
+            trustDeveloperCertificate: trustDeveloperCertificate);
 }

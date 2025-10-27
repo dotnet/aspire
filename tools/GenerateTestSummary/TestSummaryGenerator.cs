@@ -22,10 +22,8 @@ sealed partial class TestSummaryGenerator
         int overallFailedTestCount = 0;
         int overallSkippedTestCount = 0;
 
-        // Update to use markdown tables instead of HTML
-        var tableBuilder = new StringBuilder();
-        tableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total |");
-        tableBuilder.AppendLine("|------|--------|--------|---------|-------|");
+        // Collect all test run data first so we can sort by duration
+        var testRunData = new List<TestRunSummary>();
 
         var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
         foreach (var filePath in trxFiles.OrderBy(f => Path.GetFileName(f)))
@@ -46,7 +44,7 @@ sealed partial class TestSummaryGenerator
                 continue;
             }
 
-            // emit row for each trx file
+            // collect data for each trx file
             var counters = testRun.ResultSummary.Counters;
             int total = counters.Total;
             int passed = counters.Passed;
@@ -73,7 +71,32 @@ sealed partial class TestSummaryGenerator
                             : passed > 0 ? "✅"
                                 : "❓";
 
-            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {icon} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
+            var duration = TrxReader.GetTestRunDurationInMinutes(testRun);
+
+            testRunData.Add(new TestRunSummary(
+                Icon: icon,
+                Os: os,
+                Title: GetTestTitle(filePath),
+                Passed: passed,
+                Failed: failed,
+                Skipped: skipped,
+                Total: total,
+                DurationMinutes: duration
+            ));
+        }
+
+        // Sort by duration descending
+        testRunData.Sort((x, y) => y.DurationMinutes.CompareTo(x.DurationMinutes));
+
+        // Build the table with sorted data
+        var tableBuilder = new StringBuilder();
+        tableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total | Duration (minutes) |");
+        tableBuilder.AppendLine("|------|--------|--------|---------|-------|-------------------|");
+
+        foreach (var data in testRunData)
+        {
+            tableBuilder.AppendLine(CultureInfo.InvariantCulture, 
+                $"| {data.Icon} [{data.Os}] {data.Title} | {data.Passed} | {data.Failed} | {data.Skipped} | {data.Total} | {data.DurationMinutes:F2} |");
         }
 
         var overallTableBuilder = new StringBuilder();
@@ -197,3 +220,5 @@ sealed partial class TestSummaryGenerator
     [GeneratedRegex(@"(?<testName>.*)_(?<tfm>net\d+\.0)_.*")]
     private static partial Regex TestNameFromTrxFileNameRegex();
 }
+
+internal sealed record TestRunSummary(string Icon, string Os, string Title, int Passed, int Failed, int Skipped, int Total, double DurationMinutes);

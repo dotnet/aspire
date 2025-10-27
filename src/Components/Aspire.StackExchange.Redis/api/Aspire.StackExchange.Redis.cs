@@ -8,9 +8,22 @@
 //------------------------------------------------------------------------------
 namespace Aspire.StackExchange.Redis
 {
+    public sealed partial class AspireRedisClientBuilder
+    {
+        public AspireRedisClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, StackExchangeRedisSettings settings, string? serviceKey) { }
+
+        public Microsoft.Extensions.Hosting.IHostApplicationBuilder HostBuilder { get { throw null; } }
+
+        public string? ServiceKey { get { throw null; } }
+
+        public StackExchangeRedisSettings Settings { get { throw null; } }
+    }
+
     public sealed partial class StackExchangeRedisSettings
     {
         public string? ConnectionString { get { throw null; } set { } }
+
+        public bool DisableAutoActivation { get { throw null; } set { } }
 
         public bool DisableHealthChecks { get { throw null; } set { } }
 
@@ -24,6 +37,10 @@ namespace Microsoft.Extensions.Hosting
     {
         public static void AddKeyedRedisClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
 
+        public static Aspire.StackExchange.Redis.AspireRedisClientBuilder AddKeyedRedisClientBuilder(this IHostApplicationBuilder builder, string name, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { throw null; }
+
         public static void AddRedisClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
+
+        public static Aspire.StackExchange.Redis.AspireRedisClientBuilder AddRedisClientBuilder(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { throw null; }
     }
 }

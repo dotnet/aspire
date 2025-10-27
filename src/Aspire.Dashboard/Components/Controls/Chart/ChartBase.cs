@@ -56,7 +56,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     public required TimeSpan Duration { get; set; }
 
     [Parameter]
-    public required List<OtlpApplication> Applications { get; set; }
+    public required List<OtlpResource> Resources { get; set; }
 
     // Stores a cache of the last set of spans returned as exemplars.
     // This dictionary is replaced each time the chart is updated.

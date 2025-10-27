@@ -17,6 +17,26 @@
         <target state="translated">トレース キャプチャが {0} で一時停止されました</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">種類</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">スパンの種類の選択</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} 個のトレースを表示中&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} trace&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} 個のトレースを表示中&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">名前: {0}</target>

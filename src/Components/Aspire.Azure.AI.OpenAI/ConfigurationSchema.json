@@ -67,6 +67,18 @@
                           },
                           "description": "The options to be used to configure logging within the 'System.ClientModel.Primitives.ClientPipeline'."
                         },
+                        "DefaultHeaders": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "DefaultQueryParameters": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
                         "EnableDistributedTracing": {
                           "type": "boolean",
                           "description": "Gets or sets whether distributed tracing should be enabled. If null, this value will be treated as true. The default is null."
@@ -85,11 +97,17 @@
                     },
                     "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": false
                     },
                     "DisableTracing": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
+                    },
+                    "EnableSensitiveTelemetryData": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry."
                     },
                     "Endpoint": {
                       "type": "string",

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 
@@ -9,7 +10,7 @@ static class TestResourceExtensions
 {
     public static IResourceBuilder<TestResource> AddTestResource(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.Services.TryAddLifecycleHook<TestResourceLifecycleHook>();
+        builder.Services.TryAddEventingSubscriber<TestResourceLifecycle>();
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithInitialState(new()
@@ -27,13 +28,16 @@ static class TestResourceExtensions
     }
 }
 
-internal sealed class TestResourceLifecycleHook(ResourceNotificationService notificationService, ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+internal sealed class TestResourceLifecycle(
+    ResourceNotificationService notificationService,
+    ResourceLoggerService loggerService
+    ) : IDistributedApplicationEventingSubscriber
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
-        foreach (var resource in appModel.Resources.OfType<TestResource>())
+        foreach (var resource in @event.Model.Resources.OfType<TestResource>())
         {
             var states = new[] { "Starting", "Running", "Finished", "Uploading", "Downloading", "Processing", "Provisioning" };
             var stateStyles = new[] { "info", "success", "warning", "error" };
@@ -75,6 +79,12 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
     {
         _tokenSource.Cancel();
         return default;
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
     }
 }
 

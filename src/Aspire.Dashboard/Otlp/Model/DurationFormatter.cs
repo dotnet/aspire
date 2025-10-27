@@ -12,17 +12,18 @@ public static class DurationFormatter
     {
         public required string Unit { get; init; }
         public required long Ticks { get; init; }
+        public required long Threshold { get; init; }
         public bool IsDecimal { get; init; }
     }
 
     private static readonly List<UnitStep> s_unitSteps = new List<UnitStep>
     {
-        new UnitStep { Unit = "d", Ticks = TimeSpan.TicksPerDay },
-        new UnitStep { Unit = "h", Ticks = TimeSpan.TicksPerHour },
-        new UnitStep { Unit = "m", Ticks = TimeSpan.TicksPerMinute },
-        new UnitStep { Unit = "s", Ticks = TimeSpan.TicksPerSecond, IsDecimal = true },
-        new UnitStep { Unit = "ms", Ticks = TimeSpan.TicksPerMillisecond, IsDecimal = true },
-        new UnitStep { Unit = "μs", Ticks = TimeSpan.TicksPerMicrosecond, IsDecimal = true },
+        new UnitStep { Unit = "d", Ticks = TimeSpan.TicksPerDay, Threshold = TimeSpan.TicksPerDay },
+        new UnitStep { Unit = "h", Ticks = TimeSpan.TicksPerHour, Threshold = TimeSpan.TicksPerHour },
+        new UnitStep { Unit = "m", Ticks = TimeSpan.TicksPerMinute, Threshold = TimeSpan.TicksPerMinute },
+        new UnitStep { Unit = "s", Ticks = TimeSpan.TicksPerSecond, Threshold = TimeSpan.TicksPerSecond / 10, IsDecimal = true },
+        new UnitStep { Unit = "ms", Ticks = TimeSpan.TicksPerMillisecond, Threshold = TimeSpan.TicksPerMillisecond / 100, IsDecimal = true },
+        new UnitStep { Unit = "μs", Ticks = TimeSpan.TicksPerMicrosecond, Threshold = TimeSpan.TicksPerMicrosecond, IsDecimal = true },
     };
 
     public static string FormatDuration(TimeSpan duration)
@@ -60,7 +61,7 @@ public static class DurationFormatter
         for (var i = 0; i < s_unitSteps.Count; i++)
         {
             var step = s_unitSteps[i];
-            var result = i < s_unitSteps.Count - 1 && step.Ticks > ticks;
+            var result = i < s_unitSteps.Count - 1 && step.Threshold > ticks;
 
             if (!result)
             {

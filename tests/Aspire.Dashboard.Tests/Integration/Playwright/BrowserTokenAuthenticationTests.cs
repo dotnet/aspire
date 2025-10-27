@@ -30,6 +30,8 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7921")]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange
@@ -56,6 +58,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task BrowserToken_LoginPage_Failure_DisplayFailureMessage()
     {
         // Arrange
@@ -82,6 +85,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task BrowserToken_QueryStringToken_Success_RestrictToResources()
     {
         // Arrange
@@ -99,6 +103,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task BrowserToken_QueryStringToken_Failure_DisplayLoginPage()
     {
         // Arrange

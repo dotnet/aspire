@@ -13,6 +13,10 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<Azure.AzureLogAnalyticsWorkspaceResource>? logAnalyticsWorkspace) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> WithLogAnalyticsWorkspace(this ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureLogAnalyticsWorkspaceResource> logAnalyticsWorkspace) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> WithLogAnalyticsWorkspace(this ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> builder, Azure.BicepOutputReference workspaceId) { throw null; }
     }
 }
 
@@ -27,5 +31,7 @@ namespace Aspire.Hosting.Azure
         public BicepOutputReference ConnectionString { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
     }
 }

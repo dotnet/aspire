@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="es" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">El host de aplicaciones no es compatible. Considere actualizar el host de aplicaciones o la CLI de Aspire.</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">La versión de AppHost no es compatible. Actualice el apphost o la CLI de Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">Compilando host de aplicaciones...</target>
+        <source>Building apphost...</source>
+        <target state="translated">Compilando apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">Archivo de configuración creado en {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="translated">Otro (especificar a continuación)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Panel</target>
@@ -58,9 +63,24 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">Buscando hosts de aplicaciones...</target>
+        <source>Finding apphosts...</source>
+        <target state="translated">Buscando apphosts...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">La entrada interactiva no es compatible con este entorno. Use la marca --non-interactive o asegúrese de que la CLI se esté ejecutando en un terminal interactivo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoNewCliVersion">
+        <source>[dim]For more information, see: [link]{0}[/][/]</source>
+        <target state="translated">[dim]Para obtener más información, consulte: [link]{0}[/][/]</target>
+        <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="NewCliVersionAvailable">
+        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
+        <target state="translated">[yellow]Hay una nueva versión disponible de la CLI de Aspire: {0}[/]</target>
+        <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
@@ -102,14 +122,14 @@
         <target state="translated">Buscando...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Seleccionar host de aplicación para ejecutar</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select an apphost to use:</source>
+        <target state="translated">Seleccione un apphost para usar:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">El archivo de proyecto especificado no es un proyecto de host de aplicaciones de Aspire.</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="translated">El archivo de proyecto especificado no es un proyecto AppHost d Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -120,6 +140,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">Confiar en certificados...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">No se encontraron hosts de aplicación (puede que existan archivos de proyecto de hosts de aplicación con errores de sintaxis o versiones de SDK no válidas).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

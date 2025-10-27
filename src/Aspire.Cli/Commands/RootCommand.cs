@@ -19,15 +19,35 @@ internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IInteractionService _interactionService;
 
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IFeatures featureFlags, IInteractionService interactionService)
+    public RootCommand(
+        NewCommand newCommand,
+        InitCommand initCommand,
+        RunCommand runCommand,
+        AddCommand addCommand,
+        PublishCommand publishCommand,
+        DeployCommand deployCommand,
+        DoCommand doCommand,
+        ConfigCommand configCommand,
+        CacheCommand cacheCommand,
+        ExecCommand execCommand,
+        UpdateCommand updateCommand,
+        ExtensionInternalCommand extensionInternalCommand,
+        IFeatures featureFlags,
+        IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(initCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
+        ArgumentNullException.ThrowIfNull(cacheCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
+        ArgumentNullException.ThrowIfNull(doCommand);
+        ArgumentNullException.ThrowIfNull(updateCommand);
+        ArgumentNullException.ThrowIfNull(execCommand);
+        ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
 
@@ -37,6 +57,11 @@ internal sealed class RootCommand : BaseRootCommand
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;
         debugOption.Recursive = true;
         Options.Add(debugOption);
+
+        var nonInteractiveOption = new Option<bool>("--non-interactive");
+        nonInteractiveOption.Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners";
+        nonInteractiveOption.Recursive = true;
+        Options.Add(nonInteractiveOption);
 
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
@@ -74,15 +99,21 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
+        Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
-        
-        // Only add deploy command if the feature flag is enabled
-        if (featureFlags.IsFeatureEnabled(KnownFeatures.DeployCommandEnabled, false))
+        Subcommands.Add(cacheCommand);
+        Subcommands.Add(deployCommand);
+        Subcommands.Add(doCommand);
+        Subcommands.Add(updateCommand);
+        Subcommands.Add(extensionInternalCommand);
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {
-            Subcommands.Add(deployCommand);
+            Subcommands.Add(execCommand);
         }
+
     }
 }

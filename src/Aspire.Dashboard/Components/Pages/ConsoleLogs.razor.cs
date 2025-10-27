@@ -5,11 +5,13 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Threading.Channels;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
@@ -26,19 +28,44 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
+    [DebuggerDisplay("Resource = {Resource.Name}, IsCancellationRequested = {CancellationToken.IsCancellationRequested}")]
     private sealed class ConsoleLogsSubscription
     {
         private static int s_subscriptionId;
 
         private readonly CancellationTokenSource _cts = new();
         private readonly int _subscriptionId = Interlocked.Increment(ref s_subscriptionId);
+        private readonly ILogger _logger;
 
-        public required string Name { get; init; }
+        public ResourceViewModel Resource { get; }
         public Task? SubscriptionTask { get; set; }
+        private long _cancelTimestamp;
 
         public CancellationToken CancellationToken => _cts.Token;
         public int SubscriptionId => _subscriptionId;
-        public void Cancel() => _cts.Cancel();
+
+        public ConsoleLogsSubscription(ResourceViewModel resource, ILogger logger)
+        {
+            Resource = resource;
+            _logger = logger;
+            _cts = new();
+
+            _cts.Token.Register(static state =>
+            {
+                // The canceled TCS lets us know that the subscription has been canceled without waiting for all other cancellation logic to finish running.
+                var s = (ConsoleLogsSubscription)state!;
+                s._logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Resource.Name);
+            }, this);
+        }
+
+        public void Cancel()
+        {
+            _cancelTimestamp = Stopwatch.GetTimestamp();
+            _cts.Cancel();
+            _logger.LogDebug("Canceling subscription for resource {ResourceName}.", Resource.Name);
+        }
+
+        public TimeSpan GetCancelElapsedTime() => Stopwatch.GetElapsedTime(_cancelTimestamp);
     }
 
     [Inject]
@@ -66,6 +93,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Dashboard.Resources.AIAssistant> AIAssistantLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
+
+    [Inject]
     public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
@@ -84,6 +117,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
+
+    [Inject]
     public required PauseManager PauseManager { get; init; }
 
     [Inject]
@@ -92,23 +128,37 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
     [Parameter]
     public string? ResourceName { get; set; }
 
+    private record struct LogEntryToWrite(LogEntry LogEntry, int? LineNumber);
+
     private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
+    private readonly Channel<LogEntryToWrite> _logEntryChannel = Channel.CreateUnbounded<LogEntryToWrite>(new UnboundedChannelOptions
+    {
+        SingleReader = true,
+        SingleWriter = false
+    });
     private ImmutableList<SelectViewModel<ResourceTypeDetails>>? _resources;
     private CancellationToken _resourceSubscriptionToken;
     private Task? _resourceSubscriptionTask;
-    private ConsoleLogsSubscription? _consoleLogsSubscription;
+    private Task? _logEntryChannelReaderTask;
+    private readonly ConcurrentDictionary<string, ConsoleLogsSubscription> _consoleLogsSubscriptions = new(StringComparers.ResourceName);
+    private bool _isSubscribedToAll;
     internal LogEntries _logEntries = null!;
     private readonly object _updateLogsLock = new object();
+    private AIContext? _aiContext;
+    private LogViewer? _logViewerRef;
 
     // UI
-    private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
+    private SelectViewModel<ResourceTypeDetails> _allResource = null!;
     private AspirePageContentLayout? _contentLayout;
     private readonly List<CommandViewModel> _highlightedCommands = new();
     private readonly List<MenuButtonItem> _logsMenuItems = new();
@@ -118,6 +168,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private bool _showHiddenResources;
     private bool _showTimestamp;
     private bool _isTimestampUtc;
+    private bool _noWrapLogs;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
     private ConsoleLogsFilters _consoleLogFilters = new();
@@ -130,8 +181,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         TelemetryContextProvider.Initialize(TelemetryContext);
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
-        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        _allResource = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] };
+        PageViewModel = new ConsoleLogsViewModel { SelectedResource = _allResource, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        _aiContext = CreateAIContext();
+        _logEntryChannelReaderTask = StartLogEntryChannelReaderTask();
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
@@ -141,7 +194,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 _logEntries.Clear(keepActivePauseEntries: true);
             }
 
-            await InvokeAsync(StateHasChanged);
+            await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
         });
 
         var consoleSettingsResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
@@ -149,6 +202,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _showTimestamp = consoleSettings.ShowTimestamp;
             _isTimestampUtc = consoleSettings.IsTimestampUtc;
+            _noWrapLogs = consoleSettings.NoWrapLogs;
         }
 
         var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
@@ -177,7 +231,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
-            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+            SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable));
         }
 
         async Task TrackResourceSnapshotsAsync()
@@ -209,7 +263,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
             else
             {
-                Logger.LogDebug("No resource selected.");
+                Logger.LogDebug("All resources selected.");
                 loadingTcs.TrySetResult();
             }
 
@@ -246,18 +300,60 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         void SetSelectedResourceOption(ResourceViewModel resource)
         {
-            PageViewModel.SelectedOption = GetSelectedOption();
-            PageViewModel.SelectedResource = resource;
+            PageViewModel.SelectedResource = GetSelectedOption();
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
             loadingTcs.TrySetResult();
         }
     }
 
+    private async Task StartLogEntryChannelReaderTask()
+    {
+        await foreach (var batch in _logEntryChannel.GetBatchesAsync(minReadInterval: TimeSpan.FromMilliseconds(100), cancellationToken: _resourceSubscriptionToken))
+        {
+            lock (_updateLogsLock)
+            {
+                // Console logs are filtered in the UI by the timestamp of the log entry.
+                var timestampFilterDate = GetFilteredDateFromRemove();
+
+                foreach (var (logEntry, lineNumber) in batch)
+                {
+                    if (lineNumber != null)
+                    {
+                        // Set the base line number using the reported line number of the first log line.
+                        _logEntries.BaseLineNumber ??= lineNumber;
+                    }
+
+                    // Check if log entry is not displayed because of remove.
+                    if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
+                    {
+                        continue;
+                    }
+
+                    // Check if log entry is not displayed because of pause.
+                    if (_logEntries.ProcessPauseFilters(logEntry))
+                    {
+                        continue;
+                    }
+
+                    _logEntries.InsertSorted(logEntry);
+                }
+            }
+
+            await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
+        }
+    }
+
     private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
     {
         Debug.Assert(_resources is not null);
-        return _resources.GetApplication(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
+        return _resources.GetResource(Logger, ResourceName, canSelectGrouping: true, fallbackViewModel: _allResource);
+    }
+
+    private void SetStatus(ConsoleLogsViewModel viewModel, string statusName)
+    {
+        Logger.LogDebug("Setting status to '{StatusName}'.", statusName);
+        viewModel.Status = Loc[statusName];
     }
 
     protected override async Task OnParametersSetAsync()
@@ -270,49 +366,65 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         UpdateMenuButtons();
 
-        var selectedResourceName = PageViewModel.SelectedResource?.Name;
-        if (!string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
+        // Determine if we're subscribing to "All" resources or a specific resource
+        var isAllSelected = IsAllSelected();
+        var selectedResourceName = PageViewModel.SelectedResource.Id?.InstanceId;
+
+        // Check if subscription needs to change
+        var needsNewSubscription = false;
+
+        if (isAllSelected != _isSubscribedToAll)
         {
-            Logger.LogDebug("New resource {ResourceName} selected.", selectedResourceName);
+            Logger.LogDebug("Switching to or from 'All' mode");
+            needsNewSubscription = true;
+        }
+        else if (!string.IsNullOrEmpty(selectedResourceName) && !_consoleLogsSubscriptions.ContainsKey(selectedResourceName))
+        {
+            Logger.LogDebug("Switching to different single resource: {ResourceName}", selectedResourceName);
+            needsNewSubscription = true;
+        }
 
-            ConsoleLogsSubscription? newConsoleLogsSubscription = null;
-            if (selectedResourceName is not null)
+        if (needsNewSubscription)
+        {
+            Logger.LogDebug("Subscription change needed. IsAllSelected: {IsAllSelected}, SelectedResource: {SelectedResource}", isAllSelected, selectedResourceName);
+            _aiContext?.ContextHasChanged();
+
+            // Cancel all existing subscriptions
+            await CancelAllSubscriptionsAsync();
+
+            // Clear log entries for new subscription
+            Logger.LogDebug("Creating new log entries collection.");
+            lock (_updateLogsLock)
             {
-                newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
-                Logger.LogDebug("Creating new subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
-
-                if (Logger.IsEnabled(LogLevel.Debug))
-                {
-                    newConsoleLogsSubscription.CancellationToken.Register(state =>
-                    {
-                        var s = (ConsoleLogsSubscription)state!;
-                        Logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Name);
-                    }, newConsoleLogsSubscription);
-                }
+                _logEntries.Clear(keepActivePauseEntries: false);
             }
 
-            if (_consoleLogsSubscription is { } currentSubscription)
-            {
-                currentSubscription.Cancel();
-                _consoleLogsSubscription = newConsoleLogsSubscription;
+            await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
 
-                await TaskHelpers.WaitIgnoreCancelAsync(currentSubscription.SubscriptionTask);
+            if (isAllSelected)
+            {
+                // Subscribe to all available resources
+                _isSubscribedToAll = true;
+                await SubscribeToAllResourcesAsync();
+            }
+            else if (selectedResourceName is not null && _resourceByName.TryGetValue(selectedResourceName, out var resource))
+            {
+                // Subscribe to single resource
+                _isSubscribedToAll = false;
+                await SubscribeToSingleResourceAsync(resource);
             }
             else
             {
-                _consoleLogsSubscription = newConsoleLogsSubscription;
-            }
-
-            Logger.LogDebug("Creating new log entries collection.");
-            _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
-
-            if (newConsoleLogsSubscription is not null)
-            {
-                LoadLogs(newConsoleLogsSubscription);
+                Logger.LogDebug("Unexpected state. Unknown resource '{ResourceName}' selected.", selectedResourceName);
             }
         }
 
         UpdateTelemetryProperties();
+    }
+
+    private bool IsAllSelected()
+    {
+        return PageViewModel.SelectedResource == _allResource;
     }
 
     private void UpdateMenuButtons()
@@ -323,7 +435,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         _logsMenuItems.Add(new()
         {
-            IsDisabled = PageViewModel.SelectedResource is null,
+            IsDisabled = PageViewModel.SelectedResource is null && !_isSubscribedToAll,
             OnClick = DownloadLogsAsync,
             Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
             Icon = new Icons.Regular.Size16.ArrowDownload()
@@ -333,6 +445,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             IsDivider = true
         });
+
+        var selectedResource = GetSelectedResource();
 
         CommonMenuItems.AddToggleHiddenResourcesMenuItem(
             _logsMenuItems,
@@ -344,15 +458,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             value =>
             {
                 _showHiddenResources = value;
+                UpdateResourcesList();
+                UpdateMenuButtons();
 
-                if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                if (!_showHiddenResources && selectedResource?.IsResourceHidden(showHiddenResources: false) is true)
                 {
-                    PageViewModel.SelectedResource = null;
-                    PageViewModel.SelectedOption = _noSelection;
+                    PageViewModel.SelectedResource = _allResource;
                     await this.AfterViewModelChangedAsync(_contentLayout, false);
                 }
 
-                UpdateMenuButtons();
+                await this.RefreshIfMobileAsync(_contentLayout);
             }));
 
         _logsMenuItems.Add(new()
@@ -370,56 +485,179 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             IsDisabled = !_showTimestamp
         });
 
-        if (PageViewModel.SelectedResource != null)
+        _logsMenuItems.Add(new()
+        {
+            OnClick = () => ToggleWrapLogsAsync(noWrapLogs: !_noWrapLogs),
+            Text = _noWrapLogs ? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWrapLogs)] : Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoWrapLogs)],
+            Icon = _noWrapLogs ? new Icons.Regular.Size16.TextWrap() : new Icons.Regular.Size16.TextWrapOff()
+        });
+
+        if (selectedResource != null)
         {
             if (ViewportInformation.IsDesktop)
             {
-                _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
+                _highlightedCommands.AddRange(selectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
             ResourceMenuItems.AddMenuItems(
                 _resourceMenuItems,
-                PageViewModel.SelectedResource,
+                selectedResource,
                 NavigationManager,
                 TelemetryRepository,
+                AIContextProvider,
                 GetResourceName,
                 ControlsStringsLoc,
                 ResourcesLoc,
+                AIAssistantLoc,
+                AIPromptsLoc,
                 CommandsLoc,
                 EventCallback.Factory.Create(this, () =>
                 {
-                    NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
+                    NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
                     return Task.CompletedTask;
                 }),
                 EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: false,
-                showUrls: true);
+                showUrls: true,
+                IconResolver);
         }
+    }
+
+    private ResourceViewModel? GetSelectedResource()
+    {
+        var name = PageViewModel?.SelectedResource.Id?.InstanceId;
+        if (name == null)
+        {
+            return null;
+        }
+        _resourceByName.TryGetValue(name, out var resource);
+        return resource;
     }
 
     private async Task ToggleTimestampAsync(bool showTimestamp, bool isTimestampUtc)
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(showTimestamp, isTimestampUtc));
         _showTimestamp = showTimestamp;
         _isTimestampUtc = isTimestampUtc;
+        await UpdateConsoleLogSettingsAsync();
+    }
 
+    private async Task ToggleWrapLogsAsync(bool noWrapLogs)
+    {
+        _noWrapLogs = noWrapLogs;
+        await UpdateConsoleLogSettingsAsync();
+    }
+
+    private async Task UpdateConsoleLogSettingsAsync()
+    {
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
         UpdateMenuButtons();
         StateHasChanged();
+        await this.RefreshIfMobileAsync(_contentLayout);
     }
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName);
+        var selectedResource = GetSelectedResource();
+        if (selectedResource is null)
+        {
+            Logger.LogWarning("No resource selected for command execution.");
+            return;
+        }
+
+        await DashboardCommandExecutor.ExecuteAsync(selectedResource, command, GetResourceName);
+    }
+
+    private async Task CancelAllSubscriptionsAsync()
+    {
+        if (_consoleLogsSubscriptions.IsEmpty)
+        {
+            return;
+        }
+
+        var subscriptionsToCancel = _consoleLogsSubscriptions.Values.ToList();
+        _consoleLogsSubscriptions.Clear();
+
+        foreach (var subscription in subscriptionsToCancel)
+        {
+            subscription.Cancel();
+        }
+
+        // Wait for all subscriptions to finish
+        var tasks = subscriptionsToCancel
+            .Where(s => s.SubscriptionTask is not null)
+            .Select(s => TaskHelpers.WaitIgnoreCancelAsync(s.SubscriptionTask))
+            .ToArray();
+
+        if (tasks.Length > 0)
+        {
+            await Task.WhenAll(tasks);
+        }
+    }
+
+    private async Task SubscribeToAllResourcesAsync()
+    {
+        var availableResources = _resourceByName.Values
+            .Where(r => !r.IsResourceHidden(_showHiddenResources))
+            .ToList();
+
+        Logger.LogDebug("Subscribing to {ResourceCount} resources for 'All' view.", availableResources.Count);
+
+        if (availableResources.Count == 0)
+        {
+            Logger.LogDebug("No resources available to subscribe to for 'All' view - will show empty logs.");
+            SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources));
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        // Set status to indicate we're starting to watch logs
+        SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs));
+        await InvokeAsync(StateHasChanged);
+
+        foreach (var resource in availableResources)
+        {
+            await SubscribeToSingleResourceAsync(resource);
+        }
+
+        Logger.LogDebug("Successfully created {SubscriptionCount} subscriptions for 'All' view.", _consoleLogsSubscriptions.Count);
+    }
+
+    private Task SubscribeToSingleResourceAsync(ResourceViewModel resource)
+    {
+        var resourceName = resource.Name;
+
+        if (_consoleLogsSubscriptions.ContainsKey(resourceName))
+        {
+            Logger.LogDebug("Already subscribed to resource {ResourceName}.", resourceName);
+            return Task.CompletedTask;
+        }
+
+        var subscription = new ConsoleLogsSubscription(resource, Logger);
+        Logger.LogDebug("Creating new subscription {SubscriptionId} for resource {ResourceName}.", subscription.SubscriptionId, resourceName);
+
+        // Add the subscription to the dictionary before starting the task
+        if (_consoleLogsSubscriptions.TryAdd(resourceName, subscription))
+        {
+            LoadLogsForResource(subscription);
+            Logger.LogDebug("Started log subscription task for resource {ResourceName}.", resourceName);
+        }
+        else
+        {
+            Logger.LogWarning("Failed to add subscription for resource {ResourceName} - may already exist.", resourceName);
+        }
+
+        return Task.CompletedTask;
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
 
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
-        SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
+        SelectViewModel<ResourceTypeDetails> allResourceViewModel,
         string resourceUnknownStateText,
-        bool showHiddenResources)
+        bool showHiddenResources,
+        out SelectViewModel<ResourceTypeDetails>? optionToSelect)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
@@ -428,37 +666,49 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
-            string applicationName;
+            string resourceName;
 
             if (grouping.Count() > 1)
             {
-                applicationName = grouping.Key;
+                resourceName = grouping.Key;
 
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, true),
-                    Name = applicationName
+                    Id = ResourceTypeDetails.CreateResourceGrouping(resourceName, true),
+                    Name = resourceName
                 });
             }
             else
             {
-                applicationName = grouping.First().Value.DisplayName;
+                resourceName = grouping.First().Value.DisplayName;
             }
 
             foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r, ResourceViewModelNameComparer.Instance))
             {
-                builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
+                builder.Add(ToOption(resource, grouping.Count() > 1, resourceName));
             }
         }
 
-        builder.Insert(0, noSelectionViewModel);
+        // If there are multiple resources, add "All" option.
+        // If there is one resource then it is automatically selected.
+        // If there are no resources, default to "All" (which will show no logs but is ready for when resources appear).
+        if (builder.Count == 1)
+        {
+            optionToSelect = builder.Single();
+        }
+        else
+        {
+            builder.Insert(0, allResourceViewModel);
+            optionToSelect = null;
+        }
+
         return builder.ToImmutableList();
 
-        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
+        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string resourceName)
         {
             var id = isReplica
-                ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
-                : ResourceTypeDetails.CreateSingleton(resource.Name, applicationName);
+                ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, resourceName)
+                : ResourceTypeDetails.CreateSingleton(resource.Name, resourceName);
 
             return new SelectViewModel<ResourceTypeDetails>
             {
@@ -485,21 +735,39 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
     }
 
-    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources);
-
-    private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
+    private void UpdateResourcesList()
     {
-        Logger.LogDebug("Starting log subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
+        _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _allResource, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources, out var optionToSelect);
+
+        if (optionToSelect is not null)
+        {
+            PageViewModel.SelectedResource = optionToSelect;
+        }
+    }
+
+    private void LoadLogsForResource(ConsoleLogsSubscription subscription)
+    {
+        Logger.LogDebug("Starting log subscription {SubscriptionId}.", subscription.SubscriptionId);
         var consoleLogsTask = Task.Run(async () =>
         {
-            newConsoleLogsSubscription.CancellationToken.ThrowIfCancellationRequested();
+            subscription.CancellationToken.ThrowIfCancellationRequested();
 
-            Logger.LogDebug("Subscribing to console logs with subscription {SubscriptionId} to resource {ResourceName}.", newConsoleLogsSubscription.SubscriptionId, newConsoleLogsSubscription.Name);
+            Logger.LogDebug("Subscribing to console logs with subscription {SubscriptionId} to resource {ResourceName}.", subscription.SubscriptionId, subscription.Resource.Name);
 
-            var subscription = DashboardClient.SubscribeConsoleLogs(newConsoleLogsSubscription.Name, newConsoleLogsSubscription.CancellationToken);
+            var logSubscription = DashboardClient.SubscribeConsoleLogs(subscription.Resource.Name, subscription.CancellationToken);
 
-            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
-            await InvokeAsync(StateHasChanged);
+            // For "All" subscriptions, only update status once when starting
+            if (_isSubscribedToAll && _consoleLogsSubscriptions.Count == 1)
+            {
+                SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs));
+                await InvokeAsync(StateHasChanged);
+            }
+            // For single resource subscriptions, always update status
+            else if (!_isSubscribedToAll)
+            {
+                SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs));
+                await InvokeAsync(StateHasChanged);
+            }
 
             try
             {
@@ -510,84 +778,72 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                     foreach (var priorPause in pauseIntervals)
                     {
-                        _logEntries.InsertSorted(LogEntry.CreatePause(priorPause.Start, priorPause.End));
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End), LineNumber: null));
                     }
                 }
 
-                // Console logs are filtered in the UI by the timestamp of the log entry.
-                var timestampFilterDate = GetFilteredDateFromRemove();
+                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources);
 
                 var logParser = new LogParser(ConsoleColor.Black);
-                await foreach (var batch in subscription.ConfigureAwait(true))
+                await foreach (var batch in logSubscription.ConfigureAwait(false))
                 {
+                    subscription.CancellationToken.ThrowIfCancellationRequested();
+
                     if (batch.Count is 0)
                     {
                         continue;
                     }
 
-                    lock (_updateLogsLock)
+                    foreach (var (lineNumber, content, isErrorOutput) in batch)
                     {
-                        foreach (var (lineNumber, content, isErrorOutput) in batch)
-                        {
-                            // Set the base line number using the reported line number of the first log line.
-                            _logEntries.BaseLineNumber ??= lineNumber;
+                        var logEntry = logParser.CreateLogEntry(content, isErrorOutput, resourcePrefix);
 
-                            var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-
-                            // Check if log entry is not displayed because of remove.
-                            if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
-                            {
-                                continue;
-                            }
-
-                            // Check if log entry is not displayed because of pause.
-                            if (_logEntries.ProcessPauseFilters(logEntry))
-                            {
-                                continue;
-                            }
-
-                            _logEntries.InsertSorted(logEntry);
-                        }
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(logEntry, lineNumber));
                     }
-
-                    await InvokeAsync(StateHasChanged);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // If the subscription is being canceled then error could be transient from cancellation. Ignore errors during cancellation.
-                if (!newConsoleLogsSubscription.CancellationToken.IsCancellationRequested)
+                if (!subscription.CancellationToken.IsCancellationRequested)
                 {
-                    Logger.LogError(ex, "Error watching logs for resource {ResourceName}.", newConsoleLogsSubscription.Name);
+                    Logger.LogError(ex, "Error watching logs for resource {ResourceName}.", subscription.Resource.Name);
 
-                    PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)];
-                    await InvokeAsync(StateHasChanged);
+                    // For single resource subscriptions or first subscription in "All" mode, update status
+                    if (!_isSubscribedToAll)
+                    {
+                        SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs));
+                        await InvokeAsync(StateHasChanged);
+                    }
                 }
             }
             finally
             {
-                Logger.LogDebug("Subscription {SubscriptionId} finished watching logs for resource {ResourceName}.", newConsoleLogsSubscription.SubscriptionId, newConsoleLogsSubscription.Name);
+                // Remove the subscription from tracking
+                _consoleLogsSubscriptions.TryRemove(subscription.Resource.Name, out _);
 
                 // If the subscription is being canceled then a new one could be starting.
                 // Don't set the status when finishing because overwrite the status from the new subscription.
-                if (!newConsoleLogsSubscription.CancellationToken.IsCancellationRequested)
+                if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll)
                 {
-                    PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
+                    SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs));
                     await InvokeAsync(StateHasChanged);
                 }
+
+                Logger.LogDebug("Subscription {SubscriptionId} finished watching logs for resource {ResourceName}. Cancel duration: {Duration}", subscription.SubscriptionId, subscription.Resource.Name, subscription.GetCancelElapsedTime());
             }
         });
 
-        newConsoleLogsSubscription.SubscriptionTask = consoleLogsTask;
+        subscription.SubscriptionTask = consoleLogsTask;
     }
 
     private DateTime? GetFilteredDateFromRemove()
     {
         DateTime? timestampFilterDate;
 
-        if (PageViewModel.SelectedOption.Id is not null &&
+        if (PageViewModel.SelectedResource.Id is not null &&
             _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                PageViewModel.SelectedOption.Id.GetApplicationKey().ToString(),
+                PageViewModel.SelectedResource.Id.GetResourceKey().ToString(),
                 out var filterResourceLogsDate))
         {
             // There is a filter for this individual resource.
@@ -604,7 +860,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task HandleSelectedOptionChangedAsync()
     {
-        PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
@@ -615,9 +870,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+            // If we're subscribed to all resources and this is a new resource, subscribe to it
+            if (_isSubscribedToAll && !_consoleLogsSubscriptions.ContainsKey(resource.Name) &&
+                !resource.IsResourceHidden(_showHiddenResources))
             {
-                PageViewModel.SelectedResource = resource;
+                await SubscribeToSingleResourceAsync(resource);
             }
         }
         else if (changeType == ResourceViewModelChangeType.Delete)
@@ -625,25 +882,28 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             var removed = _resourceByName.TryRemove(resource.Name, out _);
             Debug.Assert(removed, "Cannot remove unknown resource.");
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+            // Cancel subscription for the deleted resource
+            if (_consoleLogsSubscriptions.TryRemove(resource.Name, out var subscription))
+            {
+                // Fire and forget
+                _ = Task.Run(async () =>
+                {
+                    subscription.Cancel();
+                    if (subscription.SubscriptionTask is { } task)
+                    {
+                        await task;
+                    }
+                });
+            }
+
+            if (string.Equals(PageViewModel.SelectedResource.Id?.InstanceId, resource.Name, StringComparisons.ResourceName))
             {
                 // The selected resource was deleted
-                PageViewModel.SelectedOption = _noSelection;
+                PageViewModel.SelectedResource = _allResource;
                 await HandleSelectedOptionChangedAsync();
             }
 
             UpdateResourcesList();
-        }
-    }
-
-    private async Task StopAndClearConsoleLogsSubscriptionAsync()
-    {
-        if (_consoleLogsSubscription is { } consoleLogsSubscription)
-        {
-            consoleLogsSubscription.Cancel();
-            await TaskHelpers.WaitIgnoreCancelAsync(consoleLogsSubscription.SubscriptionTask);
-
-            _consoleLogsSubscription = null;
         }
     }
 
@@ -653,35 +913,44 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         var stream = new MemoryStream();
         using (var writer = new StreamWriter(stream, leaveOpen: true))
         {
-            foreach (var entry in _logEntries.GetEntries())
+            lock (_updateLogsLock)
             {
-                if (entry.Type is LogEntryType.Pause)
+                foreach (var entry in _logEntries.GetEntries())
                 {
-                    continue;
-                }
+                    if (entry.Type is LogEntryType.Pause)
+                    {
+                        continue;
+                    }
 
-                // It's ok to use sync stream methods here because we're writing to a MemoryStream.
-                if (entry.RawContent is not null)
-                {
-                    writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                    // It's ok to use sync stream methods here because we're writing to a MemoryStream.
+                    if (entry.RawContent is not null)
+                    {
+                        writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                    }
+                    else
+                    {
+                        writer.WriteLine();
+                    }
                 }
-                else
-                {
-                    writer.WriteLine();
-                }
+                writer.Flush();
             }
-            writer.Flush();
         }
         stream.Seek(0, SeekOrigin.Begin);
 
         using var streamReference = new DotNetStreamReference(stream);
-        var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
-        var fileName = $"{safeDisplayName}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
-
-        await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
+        await JS.InvokeVoidAsync("downloadStreamAsFile", GetFileName(), streamReference);
     }
 
-    private async Task ClearConsoleLogs(ApplicationKey? key)
+    private string GetFileName()
+    {
+        var fileNamePrefix = _isSubscribedToAll
+            ? "AllResources"
+            : string.Join("_", PageViewModel.SelectedResource.Id!.InstanceId!.Split(Path.GetInvalidFileNameChars()));
+
+        return $"{fileNamePrefix}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+    }
+
+    private async Task ClearConsoleLogs(ResourceKey? key)
     {
         var now = TimeProvider.GetUtcNow().UtcDateTime;
         if (key is null)
@@ -696,7 +965,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.
-        // This makes remove behavior persistant which matches removing telemetry.
+        // This makes remove behavior persistent which matches removing telemetry.
         await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
     }
 
@@ -713,43 +982,57 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             {
                 if (isPaused)
                 {
-                    Logger.LogDebug("Inserting new pause log entry starting at {StartTimestamp}.", timestamp);
-                    _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
+                    foreach (var subscription in _consoleLogsSubscriptions.Values)
+                    {
+                        Logger.LogDebug("Inserting new pause log entry for {Resource} starting at {StartTimestamp}.", subscription.Resource.Name, timestamp);
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp), LineNumber: null));
+                    }
                 }
                 else
                 {
-                    var pause = _logEntries.GetEntries().Last().Pause;
-                    Debug.Assert(pause is not null);
+                    var entries = _logEntries.GetEntries();
+                    foreach (var subscription in _consoleLogsSubscriptions.Values)
+                    {
+                        var resourcePrefix = GetResourceName(subscription.Resource);
+                        var lastResourceEntry = entries.LastOrDefault(e => e.ResourcePrefix == resourcePrefix);
 
-                    Logger.LogDebug("Updating pause log entry starting at {StartTimestamp} with end of {EndTimestamp}.", pause.StartTime, timestamp);
-                    pause.EndTime = timestamp;
+                        if (lastResourceEntry?.Pause is { } pause)
+                        {
+                            Logger.LogDebug("Updating pause log entry for {Resource} starting at {StartTimestamp} with end of {EndTimestamp}.", subscription.Resource.Name, pause.StartTime, timestamp);
+                            pause.EndTime = timestamp;
+                        }
+                    }
                 }
             }
+
+            _ = InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
         }
     }
 
     public async ValueTask DisposeAsync()
     {
+        _aiContext?.Dispose();
+
         _consoleLogsFiltersChangedSubscription?.Dispose();
 
         _resourceSubscriptionCts.Cancel();
         _resourceSubscriptionCts.Dispose();
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(_logEntryChannelReaderTask);
 
-        await StopAndClearConsoleLogsSubscriptionAsync();
+        await CancelAllSubscriptionsAsync();
         TelemetryContext.Dispose();
     }
 
     public class ConsoleLogsViewModel
     {
         public required string Status { get; set; }
-        public required SelectViewModel<ResourceTypeDetails> SelectedOption { get; set; }
-        public required ResourceViewModel? SelectedResource { get; set; }
+        public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
     }
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc);
+    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc, bool NoWrapLogs);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
@@ -757,22 +1040,20 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             if (ResourceName is not null)
             {
-                viewModel.SelectedOption = GetSelectedOption();
-                viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
+                viewModel.SelectedResource = GetSelectedOption();
                 viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
                 return Task.CompletedTask;
             }
             else if (TryGetSingleResource() is { } r)
             {
-                // If there is no app selected and there is only one application available, select it.
-                viewModel.SelectedResource = r;
+                // If there is no resource selected and there is only one resource available, select it.
+                viewModel.SelectedResource = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallbackViewModel: _allResource);
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }
         }
 
-        viewModel.SelectedOption = _noSelection;
-        viewModel.SelectedResource = null;
-        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+        viewModel.SelectedResource = _allResource;
+        SetStatus(viewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources));
         return Task.CompletedTask;
 
         ResourceViewModel? TryGetSingleResource()
@@ -789,14 +1070,32 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        var selectedResourceName = PageViewModel.SelectedResource is { } selectedResource
+        var selectedResourceName = GetSelectedResource() is { } selectedResource
             ? GetResourceName(selectedResource)
             : null;
         return new ConsoleLogsPageState(selectedResourceName);
     }
 
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(ConsoleLogs), c =>
+        {
+            c.BuildIceBreakers = (builder, context) =>
+            {
+                if (GetSelectedResource() is { } selectedResource)
+                {
+                    builder.ConsoleLogs(context, selectedResource);
+                }
+                else
+                {
+                    builder.ConsoleLogs(context);
+                }
+            };
+        });
+    }
+
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(ConsoleLogs));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.ConsoleLogs);
 
     public void UpdateTelemetryProperties()
     {

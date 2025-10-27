@@ -11,4 +11,8 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
 public class OtlpExporterAnnotation : IResourceAnnotation
 {
+    /// <summary>
+    /// Gets or sets the default protocol for the OTLP exporter.
+    /// </summary>
+    public OtlpProtocol? RequiredProtocol { get; init; }
 }

@@ -48,19 +48,9 @@ public sealed class TelemetryLoggerProvider : ILoggerProvider
                 try
                 {
                     // Get the telemetry service lazily to avoid a circular reference between resolving telemetry service and logging.
-                    var telemetryService = _serviceProvider.GetRequiredService<DashboardTelemetryService>();
+                    var errorRecorder = _serviceProvider.GetRequiredService<ITelemetryErrorRecorder>();
 
-                    telemetryService.PostFault(
-                        TelemetryEventKeys.Error,
-                        $"{exception.GetType().FullName}: {exception.Message}",
-                        FaultSeverity.Critical,
-                        new Dictionary<string, AspireTelemetryProperty>
-                        {
-                            [TelemetryPropertyKeys.ExceptionType] = new AspireTelemetryProperty(exception.GetType().FullName!),
-                            [TelemetryPropertyKeys.ExceptionMessage] = new AspireTelemetryProperty(exception.Message),
-                            [TelemetryPropertyKeys.ExceptionStackTrace] = new AspireTelemetryProperty(exception.StackTrace ?? string.Empty)
-                        }
-                    );
+                    errorRecorder.RecordError("Blazor global error", exception);
                 }
                 catch
                 {

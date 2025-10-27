@@ -21,11 +21,13 @@ public class OtlpLogEntry
     public string TraceId { get; }
     public string ParentId { get; }
     public string? OriginalFormat { get; }
-    public OtlpApplicationView ApplicationView { get; }
+    public OtlpResourceView ResourceView { get; }
     public OtlpScope Scope { get; }
     public long InternalId { get; }
+    public bool IsError => Severity is LogLevel.Error or LogLevel.Critical;
+    public bool IsWarning => Severity is LogLevel.Warning;
 
-    public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
+    public OtlpLogEntry(LogRecord record, OtlpResourceView resourceView, OtlpScope scope, OtlpContext context)
     {
         InternalId = Interlocked.Increment(ref s_nextLogEntryId);
         TimeStamp = ResolveTimeStamp(record);
@@ -61,7 +63,7 @@ public class OtlpLogEntry
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
         ParentId = parentId ?? string.Empty;
-        ApplicationView = logApp;
+        ResourceView = resourceView;
         Scope = scope;
     }
 
@@ -116,7 +118,7 @@ public class OtlpLogEntry
             KnownStructuredLogFields.SpanIdField => log.SpanId,
             KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
             KnownStructuredLogFields.CategoryField => log.Scope.Name,
-            KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
+            KnownResourceFields.ServiceNameField => log.ResourceView.Resource.ResourceName,
             _ => log.Attributes.GetValue(field)
         };
     }

@@ -6,10 +6,12 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
+using Aspire.Dashboard.Tests.Shared;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -33,6 +35,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<DashboardTelemetryService>();
         context.Services.AddSingleton<ComponentTelemetryContextProvider>();
+        context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -56,7 +59,8 @@ internal static class ResourceSetupHelpers
 
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
 
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        menuModule.SetupVoid("initialize", _ => true);
     }
 
     public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
@@ -94,10 +98,13 @@ internal static class ResourceSetupHelpers
         var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
 
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        menuModule.SetupVoid("initialize", _ => true);
 
         context.Services.AddLocalization();
+        context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        context.Services.AddSingleton<IconResolver>();
         context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<IMessageService, MessageService>();

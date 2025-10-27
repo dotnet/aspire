@@ -97,6 +97,141 @@
         <target state="translated">值</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTabText">
+        <source>Details</source>
+        <target state="translated">詳細資料</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="translated">顯示生成式 AI 內容時發生錯誤:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDurationLabel">
+        <source>Duration</source>
+        <target state="translated">期間</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIErrorHeaderText">
+        <source>Error</source>
+        <target state="translated">錯誤</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputHeaderText">
+        <source>Input</source>
+        <target state="translated">輸入</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputOutputTabText">
+        <source>Input &amp; output</source>
+        <target state="translated">輸入和輸出</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputTokensText">
+        <source>Input tokens: {0}</source>
+        <target state="translated">輸入權杖: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryMessage">
+        <source>Message</source>
+        <target state="translated">訊息</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryOutput">
+        <source>Output</source>
+        <target state="translated">輸出</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryStatus">
+        <source>Status</source>
+        <target state="translated">狀態</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolCalls">
+        <source>Tool calls</source>
+        <target state="translated">工具呼叫</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleAssistant">
+        <source>Assistant</source>
+        <target state="translated">助理</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleError">
+        <source>Error</source>
+        <target state="translated">錯誤</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleSystem">
+        <source>System</source>
+        <target state="translated">系統</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleTool">
+        <source>Tool</source>
+        <target state="translated">工具</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleUser">
+        <source>User</source>
+        <target state="translated">使用者</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINAText">
+        <source>n/a</source>
+        <target state="translated">不適用</target>
+        <note>Abbreviation for Not Available</note>
+      </trans-unit>
+      <trans-unit id="GenAINextButtonText">
+        <source>Next</source>
+        <target state="translated">下一步</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContent">
+        <source>No message content.</source>
+        <target state="translated">沒有訊息內容。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContentMoreInformationMessage">
+        <source>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</source>
+        <target state="translated">未將任何訊息內容記錄到遙測。可能需要其他設定才能檢視敏感性內容。如需詳細資訊，請參閱 &lt;a href="{0}" target="_blank"&gt;AI 遙測設定&lt;/a&gt;。</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="GenAINoMessages">
+        <source>No messages found.</source>
+        <target state="translated">找不到訊息。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputHeaderText">
+        <source>Output</source>
+        <target state="translated">輸出</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputTokensText">
+        <source>Output tokens: {0}</source>
+        <target state="translated">輸出權杖: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIPreviewTabText">
+        <source>Preview</source>
+        <target state="translated">預覽</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIPreviousButtonText">
+        <source>Previous</source>
+        <target state="translated">上一步</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIRawTabText">
+        <source>Raw</source>
+        <target state="translated">原始</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAITokensLabel">
+        <source>Tokens</source>
+        <target state="translated">權杖</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
         <target state="translated">全網站瀏覽</target>
@@ -184,17 +319,17 @@
       </trans-unit>
       <trans-unit id="InteractionButtonCancel">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">取消</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">關閉</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonOk">
         <source>OK</source>
-        <target state="new">OK</target>
+        <target state="translated">確定</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
@@ -202,15 +337,15 @@
         <target state="translated">在文字視覺化工具中開啟</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogCancelButtonText">
+      <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
         <target state="translated">取消</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogMessage">
-        <source>Waiting for trace {0} to load...</source>
-        <target state="translated">正在等候追蹤 {0} 載入...</target>
-        <note>{0} is a trace ID</note>
+      <trans-unit id="OpenSpanDialogMessage">
+        <source>Waiting for span {0} to load...</source>
+        <target state="translated">正在等候跨度 {0} 載入...</target>
+        <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
@@ -221,6 +356,11 @@
         <source>Resource logs and telemetry</source>
         <target state="translated">資源記錄與遙測</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="translated">執行階段: {0}</target>
+        <note>{0} is the .NET runtime version</note>
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>

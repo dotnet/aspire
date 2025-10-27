@@ -32,7 +32,7 @@ resource cache 'Microsoft.App/containerApps@2025-01-01' = {
     template: {
       containers: [
         {
-          image: 'docker.io/library/redis:7.4'
+          image: 'docker.io/library/redis:8.2'
           name: 'cache'
           command: [
             '/bin/sh'

@@ -5,9 +5,10 @@ using System.Text.RegularExpressions;
 using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using static Aspire.Hosting.ApplicationModel.Interaction;
+using static Aspire.Hosting.Interaction;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -19,7 +20,7 @@ namespace Aspire.Hosting.Dashboard;
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger)
     : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
@@ -37,9 +38,12 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         ApplicationInformationRequest request,
         ServerCallContext context)
     {
+        // Read the application name from configuration if available, otherwise fall back to the environment
+        var applicationName = configuration["AppHost:DashboardApplicationName"] ?? hostEnvironment.ApplicationName;
+        
         return Task.FromResult(new ApplicationInformationResponse
         {
-            ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName)
+            ApplicationName = ComputeApplicationName(applicationName)
         });
 
         static string ComputeApplicationName(string applicationName)
@@ -87,6 +91,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         }
                         change.ShowDismiss = interaction.Options.ShowDismiss ?? true;
                         change.ShowSecondaryButton = interaction.Options.ShowSecondaryButton ?? true;
+                        change.EnableMessageMarkdown = interaction.Options.EnableMessageMarkdown ?? false;
 
                         if (interaction.State == InteractionState.Complete)
                         {
@@ -97,33 +102,50 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                             change.MessageBox = new InteractionMessageBox();
                             change.MessageBox.Intent = MapMessageIntent(messageBox.Intent);
                         }
-                        else if (interaction.InteractionInfo is MessageBarInteractionInfo messageBar)
+                        else if (interaction.InteractionInfo is NotificationInteractionInfo notification)
                         {
-                            change.MessageBar = new InteractionMessageBar();
-                            change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
-                            if (messageBar.LinkText != null)
+                            change.Notification = new InteractionNotification();
+                            change.Notification.Intent = MapMessageIntent(notification.Intent);
+                            if (notification.LinkText != null)
                             {
-                                change.MessageBar.LinkText = messageBar.LinkText;
+                                change.Notification.LinkText = notification.LinkText;
                             }
-                            if (messageBar.LinkUrl != null)
+                            if (notification.LinkUrl != null)
                             {
-                                change.MessageBar.LinkUrl = messageBar.LinkUrl;
+                                change.Notification.LinkUrl = notification.LinkUrl;
                             }
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
                         {
                             change.InputsDialog = new InteractionInputsDialog();
 
+                            // Find all the inputs that are depended on.
+                            // These inputs value changing will cause the interaction to be sent to the server.
+                            var updateStateOnChangeInputs = inputs.Inputs
+                                .SelectMany(i => i.DynamicLoading?.DependsOnInputs ?? [])
+                                .ToList();
+
                             var inputInstances = inputs.Inputs.Select(input =>
                             {
-                                var dto = new InteractionInput
+                                var updateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName));
+
+                                var dto = new Aspire.DashboardService.Proto.V1.InteractionInput
                                 {
+                                    Name = input.Name,
                                     InputType = MapInputType(input.InputType),
-                                    Required = input.Required
+                                    Required = input.Required,
+                                    AllowCustomChoice = input.AllowCustomChoice,
+                                    UpdateStateOnChange = updateStateOnChange,
+                                    Disabled = input.Disabled
                                 };
-                                if (input.Label != null)
+                                if (input.EffectiveLabel != null)
                                 {
-                                    dto.Label = input.Label;
+                                    dto.Label = input.EffectiveLabel;
+                                }
+                                if (input.Description != null)
+                                {
+                                    dto.Description = input.Description;
+                                    dto.EnableDescriptionMarkdown = input.EnableDescriptionMarkdown;
                                 }
                                 if (input.Placeholder != null)
                                 {
@@ -136,6 +158,14 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                if (input.DynamicLoadingState is { } providerState)
+                                {
+                                    dto.Loading = providerState.Loading;
+                                }
+                                if (input.MaxLength != null)
+                                {
+                                    dto.MaxLength = input.MaxLength.Value;
                                 }
                                 dto.ValidationErrors.AddRange(input.ValidationErrors);
                                 return dto;
@@ -173,36 +203,50 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    private static MessageIntent MapMessageIntent(ApplicationModel.MessageIntent? intent)
+    private static Aspire.DashboardService.Proto.V1.MessageIntent MapMessageIntent(Aspire.Hosting.MessageIntent? intent)
     {
         if (intent is null)
         {
-            return MessageIntent.None;
+            return Aspire.DashboardService.Proto.V1.MessageIntent.None;
         }
 
         return intent.Value switch
         {
-            ApplicationModel.MessageIntent.Success => MessageIntent.Success,
-            ApplicationModel.MessageIntent.Warning => MessageIntent.Warning,
-            ApplicationModel.MessageIntent.Error => MessageIntent.Error,
-            ApplicationModel.MessageIntent.Information => MessageIntent.Information,
-            ApplicationModel.MessageIntent.Confirmation => MessageIntent.Confirmation,
-            _ => MessageIntent.None,
+            Aspire.Hosting.MessageIntent.Success => Aspire.DashboardService.Proto.V1.MessageIntent.Success,
+            Aspire.Hosting.MessageIntent.Warning => Aspire.DashboardService.Proto.V1.MessageIntent.Warning,
+            Aspire.Hosting.MessageIntent.Error => Aspire.DashboardService.Proto.V1.MessageIntent.Error,
+            Aspire.Hosting.MessageIntent.Information => Aspire.DashboardService.Proto.V1.MessageIntent.Information,
+            Aspire.Hosting.MessageIntent.Confirmation => Aspire.DashboardService.Proto.V1.MessageIntent.Confirmation,
+            _ => Aspire.DashboardService.Proto.V1.MessageIntent.None,
         };
     }
 
-    private static InputType MapInputType(ApplicationModel.InputType inputType)
+    private static Aspire.DashboardService.Proto.V1.InputType MapInputType(Aspire.Hosting.InputType inputType)
     {
         return inputType switch
         {
-            ApplicationModel.InputType.Text => InputType.Text,
-            ApplicationModel.InputType.SecretText => InputType.SecretText,
-            ApplicationModel.InputType.Choice => InputType.Choice,
-            ApplicationModel.InputType.Boolean => InputType.Boolean,
-            ApplicationModel.InputType.Number => InputType.Number,
+            Aspire.Hosting.InputType.Text => Aspire.DashboardService.Proto.V1.InputType.Text,
+            Aspire.Hosting.InputType.SecretText => Aspire.DashboardService.Proto.V1.InputType.SecretText,
+            Aspire.Hosting.InputType.Choice => Aspire.DashboardService.Proto.V1.InputType.Choice,
+            Aspire.Hosting.InputType.Boolean => Aspire.DashboardService.Proto.V1.InputType.Boolean,
+            Aspire.Hosting.InputType.Number => Aspire.DashboardService.Proto.V1.InputType.Number,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
     }
+
+    public static Aspire.Hosting.InputType MapInputType(Aspire.DashboardService.Proto.V1.InputType inputType)
+    {
+        return inputType switch
+        {
+            Aspire.DashboardService.Proto.V1.InputType.Text => InputType.Text,
+            Aspire.DashboardService.Proto.V1.InputType.SecretText => InputType.SecretText,
+            Aspire.DashboardService.Proto.V1.InputType.Choice => InputType.Choice,
+            Aspire.DashboardService.Proto.V1.InputType.Boolean => InputType.Boolean,
+            Aspire.DashboardService.Proto.V1.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
+    }
+
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(

@@ -3,8 +3,8 @@
   <PropertyGroup>
   <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
   <IsPackable>true</IsPackable>
-  <PackageTags>aspire integration hosting kafka</PackageTags>
-  <Description>Kafka support for .NET Aspire.</Description>
+  <PackageTags>aspire integration hosting kafka messaging eventing</PackageTags>
+  <Description>Kafka support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

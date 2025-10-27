@@ -48,3 +48,5 @@ resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = 
 output connectionString string = 'Host=${pg.properties.fullyQualifiedDomainName}'
 
 output name string = pg.name
+
+output hostName string = pg.properties.fullyQualifiedDomainName

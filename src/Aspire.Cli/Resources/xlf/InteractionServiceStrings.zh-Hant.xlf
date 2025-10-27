@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">應用程式主機不相容。請考慮升級應用程式主機或 Aspire CLI。</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">應用程式主機版本不相容。請升級應用程式主機或 Aspire CLI。</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,7 +18,7 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
+        <source>Building apphost...</source>
         <target state="translated">正在建置應用程式主機...</target>
         <note />
       </trans-unit>
@@ -42,6 +42,11 @@
         <target state="translated">已在 {0} 建立設定檔案。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="translated">其他 (指定下一個)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">儀表板</target>
@@ -58,9 +63,24 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
+        <source>Finding apphosts...</source>
         <target state="translated">正在尋找應用程式主機...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">此環境不支援互動輸入。請使用 --non-interactive 旗標，或確保 CLI 在互動終端中執行。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoNewCliVersion">
+        <source>[dim]For more information, see: [link]{0}[/][/]</source>
+        <target state="translated">[dim]如需詳細資訊，請參閱: [link]{0}[/][/]</target>
+        <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="NewCliVersionAvailable">
+        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
+        <target state="translated">[yellow]有新版的 Aspire CLI 可供使用: {0}[/]</target>
+        <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
@@ -102,13 +122,13 @@
         <target state="translated">正在搜尋...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">選取要執行的應用程式主機</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select an apphost to use:</source>
+        <target state="translated">選擇要使用的應用程式主機:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
+        <source>The specified project file is not an Aspire AppHost project.</source>
         <target state="translated">指定的專案檔案不是 Aspire 應用程式主機專案。</target>
         <note />
       </trans-unit>
@@ -120,6 +140,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">信任憑證...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">找不到應用程式主機 (可能有應用程式主機專案檔案具有語法錯誤/無效的 SDK 版本)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

@@ -1,0 +1,8 @@
+{
+  "analysis_priorities": [
+    "src/*/",
+    "src/Components/*",
+    "extension/",
+    "eng/scripts/*.*"
+  ]
+}

@@ -25,11 +25,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableClient("tables");
+            builder.AddKeyedAzureTableServiceClient("tables");
         }
         else
         {
-            builder.AddAzureTableClient("tables");
+            builder.AddAzureTableServiceClient("tables");
         }
 
         using var host = builder.Build();
@@ -52,11 +52,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableClient("tables", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureTableServiceClient("tables", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureTableClient("tables", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureTableServiceClient("tables", settings => settings.ConnectionString = ConnectionString);
         }
 
         using var host = builder.Build();
@@ -82,11 +82,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableClient("tables");
+            builder.AddKeyedAzureTableServiceClient("tables");
         }
         else
         {
-            builder.AddAzureTableClient("tables");
+            builder.AddAzureTableServiceClient("tables");
         }
 
         using var host = builder.Build();
@@ -110,11 +110,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableClient("tables");
+            builder.AddKeyedAzureTableServiceClient("tables");
         }
         else
         {
-            builder.AddAzureTableClient("tables");
+            builder.AddAzureTableServiceClient("tables");
         }
 
         using var host = builder.Build();
@@ -135,9 +135,9 @@ public class AspireTablesExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:tables3", "AccountName=account3;AccountKey=fake")
         ]);
 
-        builder.AddAzureTableClient("tables1");
-        builder.AddKeyedAzureTableClient("tables2");
-        builder.AddKeyedAzureTableClient("tables3");
+        builder.AddAzureTableServiceClient("tables1");
+        builder.AddKeyedAzureTableServiceClient("tables2");
+        builder.AddKeyedAzureTableServiceClient("tables3");
 
         using var host = builder.Build();
 

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
-        <target state="needs-review-translation">새 Aspire 샘플 프로젝트를 만듭니다.</target>
+        <target state="translated">새 Aspire 프로젝트를 만듭니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">프로젝트 이름 입력:</target>
+        <source>Enter the project name</source>
+        <target state="translated">프로젝트 이름 입력</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
-        <source>Select a project template:</source>
-        <target state="translated">프로젝트 템플릿 선택:</target>
+        <source>Select a template:</source>
+        <target state="translated">템플릿 선택:</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">프로젝트 템플릿에 사용할 NuGet 소스입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="translated">(사전 릴리스 템플릿 사용)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes;
+using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
@@ -14,7 +15,7 @@ public static class KubernetesEnvironmentExtensions
 {
     internal static IDistributedApplicationBuilder AddKubernetesInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.TryAddLifecycleHook<KubernetesInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<KubernetesInfrastructure>();
 
         return builder;
     }
@@ -34,7 +35,10 @@ public static class KubernetesEnvironmentExtensions
 
         builder.AddKubernetesInfrastructureCore();
 
-        var resource = new KubernetesEnvironmentResource(name);
+        var resource = new KubernetesEnvironmentResource(name)
+        {
+            HelmChartName = builder.Environment.ApplicationName.ToHelmChartName()
+        };
         if (builder.ExecutionContext.IsRunMode)
         {
 

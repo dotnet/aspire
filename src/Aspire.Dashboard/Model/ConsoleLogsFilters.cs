@@ -3,6 +3,7 @@
 
 namespace Aspire.Dashboard.Model;
 
+// This type is serialized to browser storage.
 public sealed class ConsoleLogsFilters
 {
     public DateTime? FilterAllLogsDate { get; set; }

@@ -47,7 +47,7 @@ internal sealed class ContainerExecSpec
     public List<string>? Args { get; set; }
 }
 
-internal sealed class ContainerExecStatus : V1Status
+internal sealed record ContainerExecStatus : V1Status
 {
     /// <summary>
     /// The current state of the container execution. See <see cref="ExecutableState"/> for possible values.
@@ -117,18 +117,23 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     /// <param name="name">Resource name of the ContainerExec instance</param>
     /// <param name="containerName">Resource name of the Container to run the command in</param>
     /// <param name="command">The command name to run</param>
+    /// <param name="args">Arguments of the command to run</param>
+    /// <param name="workingDirectory">Container working directory to run the command in</param>
     /// <returns>A new ContainerExec instance</returns>
-    public static ContainerExec Create(string name, string containerName, string command)
+    public static ContainerExec Create(string name, string containerName, string command, List<string>? args = null, string? workingDirectory = null)
     {
         var containerExec = new ContainerExec(new ContainerExecSpec
         {
             ContainerName = containerName,
             Command = command,
+            Args = args,
+            WorkingDirectory = workingDirectory
         })
         {
             Kind = Dcp.ContainerExecKind,
             ApiVersion = Dcp.GroupVersion.ToString()
         };
+
         containerExec.Metadata.Name = name;
         containerExec.Metadata.NamespaceProperty = string.Empty;
 
@@ -136,8 +141,5 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ExecutableState.Running
-        || this.Status?.State == ExecutableState.Finished
-        || this.Status?.State == ExecutableState.Terminated
-        || this.Status?.State == ExecutableState.Stopping;
+        !string.IsNullOrEmpty(this.Status?.State);
 }

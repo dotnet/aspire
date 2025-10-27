@@ -7,24 +7,24 @@
         <target state="translated">已取消部署。</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+      <trans-unit id="Description">
+        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
+        <target state="translated">将 Aspire 应用主机的内容部署到其定义的部署目标。(预览版)</target>
         <note />
       </trans-unit>
-      <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="translated">将 Aspire 应用主机项目部署到其支持的部署目标。</target>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="translated">已完成部署</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT FAILED</source>
+        <target state="translated">部署失败</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">部署工件的输出路径。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">已成功部署。工件可用位置: {0}</target>
+        <source>The optional output path for deployment artifacts.</source>
+        <target state="translated">部署工件的可选输出路径。</target>
         <note />
       </trans-unit>
     </body>

@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_storage_name": "{existing-storage-name.value}",
+    "existing_storage_rg": "{existing-storage-rg.value}"
+  }
+}

@@ -3,38 +3,48 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Hostitel aplikací Aspire</target>
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Prázdná aplikace Aspire</target>
+        <source>AppHost and service defaults</source>
+        <target state="translated">AppHost a výchozí nastavení služby</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Testovací projekt Aspire (MSTest)</target>
+        <source>MSTest</source>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Testovací projekt Aspire (NUnit)</target>
+        <source>NUnit</source>
+        <target state="translated">NUnit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">Úvodní projekt React (Vite) &amp; FastAPI</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Výchozí nastavení služby Aspire</target>
+        <source>Service defaults</source>
+        <target state="translated">Výchozí hodnoty služby</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Empty AppHost</source>
+        <target state="translated">Prázdný AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Úvodní aplikace Aspire</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Úvodní projekt Blazor &amp; Minimal API</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Testovací projekt Aspire (xUnit)</target>
+        <source>xUnit</source>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -46,6 +56,11 @@
         <source>An error occurred while trusting the certificates: {0}</source>
         <target state="translated">Při vytváření vztahu důvěryhodnosti k certifikátům došlo k chybě: {0}</target>
         <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">Chcete vytvořit soubor NuGet.config pro vybrané kanály?</target>
+        <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
@@ -62,9 +77,14 @@
         <target state="translated">Zadat verzi xUnit.net, která se má použít</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">Získávají se nejnovější šablony...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="translated">Načítají se šablony...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="translated">Integrační testy</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -80,6 +100,16 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">Žádné</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">Pro vybraný kanál balíčku se vytvořil soubor NuGet.config.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="translated">Nový projekt nelze vytvořit, protože by přepsal existující soubory ve výstupní složce. Odeberte nebo přesuňte konfliktní soubory nebo zvolte jiné umístění.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

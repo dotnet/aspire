@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="ko" original="../AddCommandStrings.resx">
     <body>
       <trans-unit id="AddingAspireIntegration">
-        <source>Adding Aspire integration...</source>
-        <target state="translated">Aspire 통합을 추가하는 중...</target>
+        <source>Adding Aspire hosting integration...</source>
+        <target state="translated">Aspire 호스팅 통합을 추가하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add an integration to the Aspire project.</source>
-        <target state="translated">Aspire 프로젝트에 통합을 추가하세요.</target>
+        <source>Add a hosting integration to the Aspire AppHost.</source>
+        <target state="translated">Aspire AppHost에 호스팅 통합을 추가하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -32,6 +32,11 @@
         <target state="translated">패키지를 찾을 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">검색어 '{0}'와(과) 일치하는 패키지가 없습니다. 사용 가능한 모든 패키지를 표시합니다.</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">패키지 {0}::{1}을(를) 추가했습니다.</target>
@@ -48,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
-        <source>Searching for Aspire packages...</source>
-        <target state="translated">Aspire 패키지를 검색하는 중...</target>
+        <source>Searching for Aspire integrations...</source>
+        <target state="translated">Aspire 통합을 검색하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">
@@ -70,6 +75,11 @@
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">예기치 않은 수의 패키지를 발견했습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">시험판 패키지 사용</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

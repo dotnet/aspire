@@ -28,6 +28,7 @@ grpc
 kubeconfig
 Kubelet
 kubernetes
+kusto
 libc
 microsoft
 mongodb

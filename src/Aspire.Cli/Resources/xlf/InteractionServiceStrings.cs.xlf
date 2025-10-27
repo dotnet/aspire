@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">Hostitel aplikací není kompatibilní. Zvažte upgrade hostitele aplikací nebo rozhraní Aspire CLI.</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">Verze AppHost není kompatibilní. Upgradujte prosím hostitele aplikací nebo rozhraní příkazového řádku Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,7 +18,7 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
+        <source>Building apphost...</source>
         <target state="translated">Vytváří se hostitel aplikací...</target>
         <note />
       </trans-unit>
@@ -42,6 +42,11 @@
         <target state="translated">Byl vytvořen soubor nastavení v cestě {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="translated">Jiné (zadejte další)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Řídicí panel</target>
@@ -58,9 +63,24 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
+        <source>Finding apphosts...</source>
         <target state="translated">Hledají se hostitelé aplikací...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">Interaktivní vstup se v tomto prostředí nepodporuje. Použijte příznak --non-interactive nebo zajistěte, aby rozhraní příkazového řádku běželo v interaktivním terminálu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoNewCliVersion">
+        <source>[dim]For more information, see: [link]{0}[/][/]</source>
+        <target state="translated">[dim]Další informace najdete tady: [link]{0}[/][/]</target>
+        <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="NewCliVersionAvailable">
+        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
+        <target state="translated">[yellow]K dispozici je nová verze rozhraní příkazového řádku Aspire: {0}[/]</target>
+        <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
@@ -102,14 +122,14 @@
         <target state="translated">Vyhledávání…</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Vyberte hostitele aplikací, který se má spustit.</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select an apphost to use:</source>
+        <target state="translated">Vyberte hostitele aplikací, kterého chcete použít:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">Zadaný soubor projektu není projekt hostitele aplikací Aspire.</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="translated">Zadaný soubor projektu není projekt Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -120,6 +140,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">Vytváří se vztah důvěryhodnosti k certifikátům...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">Nenašli se žádní hostitelé aplikací (je možné, že aplikace hostuje soubory projektu s chybami syntaxe nebo neplatnými verzemi sady SDK).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

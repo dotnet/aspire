@@ -1,5 +1,5 @@
 ﻿@page "/traces"
-@page "/traces/resource/{applicationName}"
+@page "/traces/resource/{resourceName}"
 
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
@@ -13,12 +13,13 @@
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Dialogs> DialogsLoc
+@inject IStringLocalizer<AIPrompts> AIPromptsLoc
 
 @implements IDisposable
 
 <PageTitle>
     <ApplicationName
-        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        AdditionalText="@PageViewModel.SelectedResource.Id?.ReplicaSetName"
         ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)"
         Loc="@Loc"/>
 </PageTitle>
@@ -29,17 +30,19 @@
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
         </PageTitleSection>
         <ToolbarSection>
-            <ResourceSelect Resources="_applicationViewModels"
-                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
-                            @bind-SelectedResource="PageViewModel.SelectedApplication"
-                            @bind-SelectedResource:after="HandleSelectedApplicationChanged"
+            <ResourceSelect Resources="_resourceViewModels"
+                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
+                            @bind-SelectedResource="PageViewModel.SelectedResource"
+                            @bind-SelectedResource:after="HandleSelectedResourceChanged"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreTracesPaused(out _)" IsPausedChanged="@PauseManager.SetTracesPaused" />
-            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
-                                HandleClearSignal="ClearTraces" />
+            <SignalsActionsDisplay HandleClearSignal="@ClearTraces"
+                                  IsPaused="@PauseManager.AreTracesPaused(out _)"
+                                  OnPausedChanged="@PauseManager.SetTracesPaused"
+                                  SelectedResource="@PageViewModel.SelectedResource" />
 
+            <ExplainErrorsButton @ref="_explainErrorsButton" OnClick="ExplainErrorsAsync" HasErrors="@TracesViewModel.HasErrors()" />
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"
@@ -47,10 +50,22 @@
                           Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                           title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"
                           slot="end" />
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+
+            <DesktopToolbarDivider />
+
+            <SpanTypeSelect slot="end"
+                            @bind-SpanType="@PageViewModel.SelectedSpanType"
+                            SpanTypes="@_spanTypes"
+                            HandleSelectedSpanTypeChangedAsync="@HandleSelectedSpanTypeChangedAsync" />
+
+            <DesktopToolbarDivider />
+
             @if (TracesViewModel.Filters.Count == 0)
             {
-                <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
+                if (ViewportInformation.IsDesktop)
+                {
+                    <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
+                }
             }
             else
             {
@@ -60,7 +75,9 @@
                     </FluentCounterBadge>
                 </div>
             }
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+
+            <DesktopToolbarDivider />
+
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" /></FluentButton>
@@ -81,9 +98,12 @@
                                     HeaderCellAsButtonWithMenu="true"
                                     ResizeType="DataGridResizeType.Discrete"
                                     Virtualize="true"
+                                    RowClass="@GetRowClass"
                                     GenerateHeader="GenerateHeaderOption.Sticky"
                                     ItemSize="46"
+                                    OverscanCount="100"
                                     ResizableColumns="true"
+                                    ResizeColumnOnAllRows="false"
                                     ItemsProvider="@GetData"
                                     TGridItem="OtlpTrace"
                                     GridTemplateColumns="@_manager.GetGridTemplateColumns()"
@@ -96,7 +116,7 @@
                                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
                             </AspireTemplateColumn>
                             <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
-                                <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName((context.RootOrFirstSpan).Source)));">
+                                <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorVariableByKey(GetResourceName((context.RootOrFirstSpan).Source)));">
                                     <FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" />
                                 </span>
                                 <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
@@ -104,15 +124,15 @@
                             <AspireTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                                 <FluentOverflow>
                                     <ChildContent>
-                                        @foreach (var item in TraceHelpers.GetOrderedApplications(context))
+                                        @foreach (var item in TraceHelpers.GetOrderedResources(context))
                                         {
                                             <FluentOverflowItem>
-                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Application)));">
+                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorVariableByKey(GetResourceName(item.Resource)));">
                                                     @if (item.ErroredSpans > 0)
                                                     {
                                                         <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                                     }
-                                                    @GetResourceName(item.Application) (@item.TotalSpans)
+                                                    @GetResourceName(item.Resource) (@item.TotalSpans)
                                                 </span>
                                             </FluentOverflowItem>
                                         }
@@ -174,10 +194,11 @@
             </div>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter
-                @ref="_totalItemsFooter"
-                TotalItemCount="@_totalItemsCount"
-                PauseText="@PauseText" />
+            <TotalItemsFooter @ref="_totalItemsFooter"
+                              TotalItemCount="@_totalItemsCount"
+                              SingularText="@Loc[nameof(Dashboard.Resources.Traces.TotalItemsFooterSingularText)]"
+                              PluralText="@Loc[nameof(Dashboard.Resources.Traces.TotalItemsFooterPluralText)]"
+                              PauseText="@PauseText"/>
         </FooterSection>
     </AspirePageContentLayout>
 </div>

@@ -144,5 +144,36 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets or sets the allocated endpoint.
     /// </summary>
-    public AllocatedEndpoint? AllocatedEndpoint { get; set; }
+    public AllocatedEndpoint? AllocatedEndpoint
+    {
+        get
+        {
+            if (!AllocatedEndpointSnapshot.IsValueSet)
+            {
+                return null;
+            }
+
+            // This looks bad *BUT* we check if the value is set before resolving.
+            // This preserves the semantics that if the value is not set, we return null to
+            // the caller.
+            return AllocatedEndpointSnapshot.GetValueAsync().GetAwaiter().GetResult();
+        }
+        set
+        {
+            if (value is null)
+            {
+                // Setting null will proactively set an exception on the snapshot.
+                AllocatedEndpointSnapshot.SetException(new InvalidOperationException($"The endpoint `{Name}` is not allocated"));
+            }
+            else
+            {
+                AllocatedEndpointSnapshot.SetValue(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the allocated endpoint snapshot.
+    /// </summary>
+    public ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot { get; } = new();
 }

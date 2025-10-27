@@ -1,0 +1,12 @@
+﻿@using Aspire.Dashboard.Utils
+
+@if (LogEntry.IsError)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon" />
+}
+else if (LogEntry.IsWarning)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon" />
+}
+
+<FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />

@@ -340,6 +340,7 @@ internal static class ContainerFileSystemItemExtensions
         var type = item switch
         {
             ContainerFile => ContainerFileSystemEntryType.File,
+            ContainerOpenSSLCertificateFile => ContainerFileSystemEntryType.OpenSSL,
             ContainerDirectory => ContainerFileSystemEntryType.Directory,
             _ => throw new ArgumentException("Unknown file system entry type")
         };
@@ -353,10 +354,11 @@ internal static class ContainerFileSystemItemExtensions
             Mode = (int)item.Mode,
         };
 
-        if (item is ContainerFile file)
+        if (item is ContainerFileBase file)
         {
             entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
+            entry.ContinueOnError = file.ContinueOnError;
 
             if (file.Contents is not null && file.SourcePath is not null)
             {
@@ -406,6 +408,10 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
 
+    // If true, errors creating this entry will be ignored (does not apply to directory entries)
+    [JsonPropertyName("continueOnError")]
+    public bool? ContinueOnError { get; set; }
+
     public bool Equals(ContainerFileSystemEntry? other)
     {
         if (other is null)
@@ -429,9 +435,11 @@ internal static class ContainerFileSystemEntryType
     public const string Directory = "directory";
 
     public const string File = "file";
+
+    public const string OpenSSL = "openssl";
 }
 
-internal sealed class ContainerStatus : V1Status
+internal sealed record ContainerStatus : V1Status
 {
     // Container name displayed in Docker
     [JsonPropertyName("containerName")]
@@ -544,12 +552,6 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ContainerState.Starting
-        || this.Status?.State == ContainerState.Building
-        || this.Status?.State == ContainerState.Running
-        || this.Status?.State == ContainerState.Paused
-        || this.Status?.State == ContainerState.Stopping
-        || this.Status?.State == ContainerState.Exited
-        || (this.Status?.State == ContainerState.FailedToStart && this.Status?.ContainerId is not null);
+        !string.IsNullOrEmpty(this.Status?.State);
 }
 

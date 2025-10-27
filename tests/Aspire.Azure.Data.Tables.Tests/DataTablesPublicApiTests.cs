@@ -14,7 +14,7 @@ public class DataTablesPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "tables";
 
-        var action = () => builder.AddAzureTableClient(connectionName);
+        var action = () => builder.AddAzureTableServiceClient(connectionName);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -28,7 +28,7 @@ public class DataTablesPublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddAzureTableClient(connectionName);
+        var action = () => builder.AddAzureTableServiceClient(connectionName);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -42,7 +42,7 @@ public class DataTablesPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "tables";
 
-        var action = () => builder.AddKeyedAzureTableClient(name);
+        var action = () => builder.AddKeyedAzureTableServiceClient(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -56,7 +56,7 @@ public class DataTablesPublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedAzureTableClient(name);
+        var action = () => builder.AddKeyedAzureTableServiceClient(name);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

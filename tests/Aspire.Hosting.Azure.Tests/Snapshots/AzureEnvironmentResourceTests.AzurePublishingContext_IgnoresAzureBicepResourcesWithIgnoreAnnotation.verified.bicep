@@ -26,6 +26,6 @@ module included_storage_roles 'included-storage-roles/included-storage-roles.bic
     location: location
     included_storage_outputs_name: included_storage.outputs.name
     principalType: ''
-    principalId: ''
+    principalId: principalId
   }
 }

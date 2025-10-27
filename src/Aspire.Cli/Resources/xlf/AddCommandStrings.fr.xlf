@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../AddCommandStrings.resx">
     <body>
       <trans-unit id="AddingAspireIntegration">
-        <source>Adding Aspire integration...</source>
-        <target state="translated">Ajout de l’intégration Aspire...</target>
+        <source>Adding Aspire hosting integration...</source>
+        <target state="translated">Ajout de l’intégration d’hébergement Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add an integration to the Aspire project.</source>
-        <target state="translated">Ajoutez une intégration au projet Aspire.</target>
+        <source>Add a hosting integration to the Aspire AppHost.</source>
+        <target state="translated">Ajoutez une intégration d’hébergement à l’Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -32,6 +32,11 @@
         <target state="translated">Packages introuvables.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">Aucun package ne correspond à votre terme de recherche « {0} ». Affichage de tous les packages disponibles.</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">Le package {0}::{1} a été ajouté avec succès.</target>
@@ -48,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
-        <source>Searching for Aspire packages...</source>
-        <target state="translated">Recherche de packages Aspire...</target>
+        <source>Searching for Aspire integrations...</source>
+        <target state="translated">Recherche des intégrations Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">
@@ -70,6 +75,11 @@
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">Nombre inattendu de packages trouvés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">Utiliser les paquets en préversion</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

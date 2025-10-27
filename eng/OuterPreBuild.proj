@@ -1,0 +1,30 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)Build.props" />
+
+  <Target Name="Build" Condition="'$(SkipProjectNameValidation)' != 'true'">
+    <!-- Validate that all project file names are unique to prevent build output conflicts -->
+
+    <ItemGroup>
+      <!-- Extract just the file name (without path) from each project -->
+      <_ProjectFileName Include="@(ProjectToBuild -> '%(Filename)%(Extension)')">
+        <OriginalPath>%(ProjectToBuild.Identity)</OriginalPath>
+      </_ProjectFileName>
+      <!-- Create a list of distinct file names -->
+      <_DistinctProjectFileName Include="@(_ProjectFileName -> Distinct())" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <!-- Count total project files and distinct project files -->
+      <_TotalProjectCount>@(_ProjectFileName -> Count())</_TotalProjectCount>
+      <_DistinctProjectCount>@(_DistinctProjectFileName -> Count())</_DistinctProjectCount>
+    </PropertyGroup>
+
+    <!-- If counts don't match, we have duplicates -->
+    <Error Condition="'$(_TotalProjectCount)' != '$(_DistinctProjectCount)'"
+           Text="Found duplicate project file names that can cause build output conflicts.%0ATotal projects: $(_TotalProjectCount), Unique names: $(_DistinctProjectCount)%0A%0AProject files:%0A@(_ProjectFileName -> '%(Identity): %(OriginalPath)', '%0A')%0A%0AEach project file must have a unique name to prevent compiled assemblies from overwriting each other in shared output directories." />
+  </Target>
+
+  <Target Name="Pack" />
+
+  <Target Name="Test" />
+</Project>

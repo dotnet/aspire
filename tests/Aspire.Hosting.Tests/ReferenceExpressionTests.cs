@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 public class ReferenceExpressionTests
@@ -45,7 +44,7 @@ public class ReferenceExpressionTests
     [InlineData("https://{0}:{1}/{2}?key={3}", new string[] { "test.com", "443", "path", "1234" }, "https://test.com:443/path?key=1234")]
     public void ReferenceExpressionHandlesValueWithParameterBrackets(string input, string[] parameters, string expected)
     {
-        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], parameters).ValueExpression;
+        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], parameters, []).ValueExpression;
         Assert.Equal(expected, expr);
     }
 
@@ -59,7 +58,7 @@ public class ReferenceExpressionTests
     {
         var expected = string.Format(CultureInfo.InvariantCulture, input, parameterValue);
 
-        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], [parameterValue]).ValueExpression;
+        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], [parameterValue], []).ValueExpression;
         Assert.Equal(expected, expr);
     }
 
@@ -91,6 +90,16 @@ public class ReferenceExpressionTests
 
         Assert.Equal("[{\"api_uri\":\"{value}\"}]", expr.ValueExpression);
         Assert.Equal("[{\"api_uri\":\"Hello World\"}]", await expr.GetValueAsync(default));
+    }
+
+    [Fact]
+    public async Task ReferenceExpressionIsUrlEncoded()
+    {
+        var v = new Value();
+
+        var expr = ReferenceExpression.Create($"Text: {v:uri}");
+
+        Assert.Equal("Text: Hello%20World", await expr.GetValueAsync(default));
     }
 
     private sealed class Value : IValueProvider, IManifestExpressionProvider

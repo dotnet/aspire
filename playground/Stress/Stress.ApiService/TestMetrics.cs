@@ -12,6 +12,7 @@ public class TestMetrics : IDisposable
 
     private readonly Meter _meter;
     private readonly Counter<int> _counter;
+    private readonly Histogram<double> _histogram;
 
     public TestMetrics()
     {
@@ -21,6 +22,11 @@ public class TestMetrics : IDisposable
         ]);
 
         _counter = _meter.CreateCounter<int>("test-counter", unit: null, description: "This is a description", tags:
+        [
+            new KeyValuePair<string, object?>("instrument-tag", Guid.NewGuid().ToString())
+        ]);
+
+        _histogram = _meter.CreateHistogram<double>("test-histogram", unit: null, description: "This is a description", tags:
         [
             new KeyValuePair<string, object?>("instrument-tag", Guid.NewGuid().ToString())
         ]);
@@ -56,6 +62,11 @@ public class TestMetrics : IDisposable
     public void IncrementCounter(int value, in TagList tags)
     {
         _counter.Add(value, in tags);
+    }
+
+    public void RecordHistogram(double value, in TagList tags)
+    {
+        _histogram.Record(value, in tags);
     }
 
     public void Dispose()

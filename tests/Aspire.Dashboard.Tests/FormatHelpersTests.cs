@@ -82,6 +82,16 @@ public class FormatHelpersTests
         Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ")), ignoreWhiteSpaceDifferences: true, ignoreCase: true);
     }
 
+    [Theory]
+    [InlineData(null, 5, "")]
+    [InlineData("", 5, "")]
+    [InlineData("abcdef", 5, "abcd" + FormatHelpers.Ellipsis)]
+    [InlineData("abcdef", 10, "abcdef")]
+    public void TruncateText(string? initialText, int maxLength, string expected)
+    {
+        Assert.Equal(expected, FormatHelpers.TruncateText(initialText, maxLength: maxLength));
+    }
+
     private static DateTime GetLocalDateTime(string value)
     {
         Assert.True(DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date));

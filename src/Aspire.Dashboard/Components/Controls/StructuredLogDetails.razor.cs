@@ -1,9 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -14,11 +17,17 @@ public partial class StructuredLogDetails : IDisposable
     [Parameter, EditorRequired]
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
 
+    [Parameter]
+    public EventCallback CloseCallback { get; set; }
+
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
@@ -33,20 +42,23 @@ public partial class StructuredLogDetails : IDisposable
         _contextAttributes.Where(ApplyFilter).AsQueryable();
 
     internal IQueryable<TelemetryPropertyViewModel> FilteredResourceItems =>
-        ViewModel.LogEntry.ApplicationView.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
+        ViewModel.LogEntry.ResourceView.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
     private string _filter = "";
     private bool _dataChanged;
     private StructureLogsDetailsViewModel? _viewModel;
+    private Dictionary<string, ComponentMetadata>? _valueComponents;
 
     private List<TelemetryPropertyViewModel> _logEntryAttributes = null!;
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
     private List<TelemetryPropertyViewModel> _exceptionAttributes = null!;
+    private AIContext? _aiContext;
 
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
+        _aiContext = CreateAIContext();
     }
 
     protected override void OnParametersSet()
@@ -57,6 +69,9 @@ public partial class StructuredLogDetails : IDisposable
             if (ViewModel.LogEntry.InternalId != _viewModel?.LogEntry.InternalId)
             {
                 _dataChanged = true;
+
+                // Update AI context with new log entry.
+                _aiContext?.ContextHasChanged();
             }
 
             _viewModel = ViewModel;
@@ -69,7 +84,7 @@ public partial class StructuredLogDetails : IDisposable
 
             _contextAttributes =
             [
-                new TelemetryPropertyViewModel { Name ="Category", Key = KnownStructuredLogFields.CategoryField, Value = _viewModel.LogEntry.Scope.Name }
+                new TelemetryPropertyViewModel { Name = "Category", Key = KnownStructuredLogFields.CategoryField, Value = _viewModel.LogEntry.Scope.Name }
             ];
             MoveAttributes(attributes, _contextAttributes, a => a.Name is "event.name" or "logrecord.event.id" or "logrecord.event.name");
             if (HasTelemetryBaggage(_viewModel.LogEntry.TraceId))
@@ -79,10 +94,6 @@ public partial class StructuredLogDetails : IDisposable
             if (HasTelemetryBaggage(_viewModel.LogEntry.SpanId))
             {
                 _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "SpanId", Key = KnownStructuredLogFields.SpanIdField, Value = _viewModel.LogEntry.SpanId });
-            }
-            if (HasTelemetryBaggage(_viewModel.LogEntry.ParentId))
-            {
-                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "ParentId", Key = KnownStructuredLogFields.ParentIdField, Value = _viewModel.LogEntry.ParentId });
             }
 
             _exceptionAttributes = [];
@@ -94,6 +105,30 @@ public partial class StructuredLogDetails : IDisposable
                 new TelemetryPropertyViewModel { Name = "Message", Key = KnownStructuredLogFields.MessageField, Value = _viewModel.LogEntry.Message },
                 .. attributes,
             ];
+
+            _valueComponents = new Dictionary<string, ComponentMetadata>
+            {
+                [KnownStructuredLogFields.TraceIdField] = new ComponentMetadata
+                {
+                    Type = typeof(TraceIdButtonValue),
+                    Parameters = { ["OnClick"] = CloseCallback }
+                },
+                [KnownStructuredLogFields.SpanIdField] = new ComponentMetadata
+                {
+                    Type = typeof(SpanIdButtonValue),
+                    Parameters = { ["TraceId"] = _viewModel.LogEntry.TraceId }
+                },
+                [KnownResourceFields.ServiceNameField] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceNameButtonValue),
+                    Parameters = { ["Resource"] = _viewModel.LogEntry.ResourceView.Resource }
+                },
+                [KnownStructuredLogFields.LevelField] = new ComponentMetadata
+                {
+                    Type = typeof(LogLevelValue),
+                    Parameters = { ["LogEntry"] = _viewModel.LogEntry }
+                },
+            };
         }
     }
 
@@ -148,11 +183,20 @@ public partial class StructuredLogDetails : IDisposable
         return false;
     }
 
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(StructuredLogDetails), c =>
+        {
+            c.BuildIceBreakers = (builder, context) => builder.StructuredLogs(context, ViewModel.LogEntry);
+        });
+    }
+
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, nameof(StructuredLogDetails));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.StructuredLogDetails);
 
     public void Dispose()
     {
         TelemetryContext.Dispose();
+        _aiContext?.Dispose();
     }
 }

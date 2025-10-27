@@ -1,0 +1,20 @@
+﻿<configuration>
+  <packageSources>
+    <clear />
+    <add key="NuGet" value="https://api.nuget.org/v3/index.json" />
+    <add key="hexesoft" value="https://example.com/hexesoft/nuget/v3/index.json" />
+    <add key="dotnet9" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="dotnet9">
+      <package pattern="Aspire*" />
+      <package pattern="Microsoft.Extensions.SpecialPackage*" />
+    </packageSource>
+    <packageSource key="NuGet">
+      <package pattern="*" />
+    </packageSource>
+    <packageSource key="hexesoft">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>

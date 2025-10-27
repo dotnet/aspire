@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
-        <target state="needs-review-translation">创建新的 Aspire 示例项目。</target>
+        <target state="translated">创建新的 Aspire 项目。</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">输入项目名称:</target>
+        <source>Enter the project name</source>
+        <target state="translated">输入项目名称</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
-        <source>Select a project template:</source>
-        <target state="translated">选择项目模板:</target>
+        <source>Select a template:</source>
+        <target state="translated">选择模板:</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">要用于项目模板的 NuGet 源。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="translated">(使用预发布模板)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

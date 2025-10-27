@@ -10,8 +10,9 @@
     <PackageType>Template</PackageType>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <EnableDefaultItems>false</EnableDefaultItems>
-    <Description>.NET Aspire Template Pack for Microsoft Template Engine</Description>
+    <Description>Aspire Template Pack for Microsoft Template Engine</Description>
     <UsingToolTemplateLocalizer>true</UsingToolTemplateLocalizer>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -19,35 +20,52 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- see https://github.com/dotnet/aspire/pull/1225 -->
     <None Include="templates\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Template project files: *.csproj -->
+    <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\**\*.csproj">
+      <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateProjectFiles>
+
+    <!-- Template project files: apphost.cs (singlefile only) -->
+    <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs">
+      <PackagePath>content/templates/aspire-apphost-singlefile/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\aspire-apphost-singlefile\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateProjectFiles>
+
+    <!-- Template project files: apphost.cs (aspire-py-starter) -->
+    <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\aspire-py-starter\**\apphost.cs">
+      <PackagePath>content/templates/aspire-py-starter/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\aspire-py-starter\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateProjectFiles>
+
+    <TemplateProjectFilesObj Include="@(TemplateProjectFiles->'%(DestinationFile)')" />
+
+    <TemplateFiles Include="$(MSBuildThisFileDirectory)templates\**\*"
+                   Exclude="$(MSBuildThisFileDirectory)templates\**\bin\**;$(MSBuildThisFileDirectory)templates\**\obj\**;$(MSBuildThisFileDirectory)templates\**\*.csproj;$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs;$(MSBuildThisFileDirectory)templates\aspire-py-starter\**\apphost.cs">
+      <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
+    </TemplateFiles>
+    <TemplateFilesObj Include="@(TemplateFiles->'$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)')" />
   </ItemGroup>
 
   <!-- When building a package, this target will run to copy all the templates into the intermediate directory,
        replaces the package versions, and adds them to the package.-->
   <Target Name="AddTemplatesToPackageAsContent"
           DependsOnTargets="ReplacePackageVersionOnTemplates">
-
-    <!-- Creating a temporary item instead of defining content items directly in order to avoid MSBuild MSB4120
-    message shown when an item within a target references itself which may cuase unintended expansion. -->
     <ItemGroup>
-      <_TemplatesForPackage Include="$(IntermediateOutputPath)\content\templates\**\*" />
-    </ItemGroup>
-    <ItemGroup>
-      <Content Include="%(_TemplatesForPackage.Identity)"
-              PackagePath="content/templates/%(_TemplatesForPackage.RecursiveDir)" />
+      <Content Include="@(TemplateFilesObj);@(TemplateProjectFilesObj)" />
     </ItemGroup>
   </Target>
 
   <!-- Replaces the versions referenced by the templates projects to use the version of the packages being live-built -->
   <Target Name="ReplacePackageVersionOnTemplates"
-          DependsOnTargets="CopyTemplatesToIntermediateOutputPath">
-
-    <ItemGroup>
-      <TemplateProjectFiles Include="templates\**\*.csproj" />
-      <TemplateProjectFiles>
-        <DestinationFile>$(IntermediateOutputPath)\content\templates\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
-      </TemplateProjectFiles>
-    </ItemGroup>
+          DependsOnTargets="CopyTemplatesToIntermediateOutputPath"
+          Inputs="@(TemplateProjectFiles)"
+          Outputs="@(TemplateProjectFilesObj)">
 
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
@@ -55,25 +73,25 @@
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_9_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet9)')
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_10_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet10)')
                                                  .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_LTS_VERSION!!', '$(OpenTelemetryLTSVersion)')
+                                                 .Replace('!!REPLACE_WITH_SERVICE_DISCOVERY_VERSION!!', '$(MicrosoftExtensionsServiceDiscoveryVersion)')
+                                                 .Replace('!!REPLACE_WITH_OTEL_NET8_VERSION!!', '$(OpenTelemetryNet8Version)')
                                                  .Replace('!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!', '$(OpenTelemetryExporterOpenTelemetryProtocolVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_HOSTING_VERSION!!', '$(OpenTelemetryInstrumentationExtensionsHostingVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!', '$(OpenTelemetryInstrumentationAspNetCoreVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_HTTP_VERSION!!', '$(OpenTelemetryInstrumentationHttpVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!', '$(OpenTelemetryInstrumentationRuntimeVersion)') )"
+                      WriteOnlyWhenDifferent="True"
                       Overwrite="true" />
   </Target>
 
   <!-- Grabs the contents of the templates folder and copies them to IntermediateOutputPath directory -->
-  <Target Name="CopyTemplatesToIntermediateOutputPath">
+  <Target Name="CopyTemplatesToIntermediateOutputPath"
+          Inputs="@(TemplateFiles)"
+          Outputs="@(TemplateFilesObj)">
 
-    <ItemGroup>
-      <_ContentFilesToPackage Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\*.csproj" />
-    </ItemGroup>
-
-    <Copy SourceFiles="@(_ContentFilesToPackage)"
-          SkipUnchangedFiles="true"
-          DestinationFolder="$(IntermediateOutputPath)\content\templates\%(RecursiveDir)" />
+    <Copy SourceFiles="@(TemplateFiles)"
+          DestinationFiles="@(TemplateFilesObj)"
+          SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

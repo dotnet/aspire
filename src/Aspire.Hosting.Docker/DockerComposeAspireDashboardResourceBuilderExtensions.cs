@@ -58,4 +58,24 @@ public static class DockerComposeAspireDashboardResourceBuilderExtensions
             e.IsExternal = port is not null;
         });
     }
+
+    /// <summary>
+    /// Configures whether forwarded headers processing is enabled for the Aspire dashboard container.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{DockerComposeAspireDashboardResource}"/> instance.</param>
+    /// <param name="enabled">True to enable forwarded headers (<c>ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true</c>), false to disable it (sets the value to <c>false</c>).</param>
+    /// <returns>The same <see cref="IResourceBuilder{DockerComposeAspireDashboardResource}"/> to allow chaining.</returns>
+    /// <remarks>
+    /// This sets the <c>ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED</c> environment variable inside the dashboard
+    /// container. When enabled, the dashboard will process <c>X-Forwarded-Host</c> and <c>X-Forwarded-Proto</c>
+    /// headers which is required when the dashboard is accessed through a reverse proxy or load balancer.
+    /// </remarks>
+    public static IResourceBuilder<DockerComposeAspireDashboardResource> WithForwardedHeaders(
+        this IResourceBuilder<DockerComposeAspireDashboardResource> builder,
+        bool enabled = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEnvironment("ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED", enabled ? "true" : "false");
+    }
 }

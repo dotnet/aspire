@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_appconfig_name": "{existing-appconfig-name.value}",
+    "existing_appconfig_rg": "{existing-appconfig-rg.value}"
+  }
+}

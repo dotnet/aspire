@@ -10,49 +10,49 @@ namespace Aspire.Dashboard.Model;
 [DebuggerDisplay("Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}")]
 public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
 {
-    private ResourceTypeDetails(OtlpApplicationType type, string? instanceId, string? replicaSetName)
+    private ResourceTypeDetails(OtlpResourceType type, string? instanceId, string? replicaSetName)
     {
         Type = type;
         InstanceId = instanceId;
         ReplicaSetName = replicaSetName;
     }
 
-    public OtlpApplicationType Type { get; }
+    public OtlpResourceType Type { get; }
     public string? InstanceId { get; }
     public string? ReplicaSetName { get; }
 
-    public ApplicationKey GetApplicationKey()
+    public ResourceKey GetResourceKey()
     {
         if (ReplicaSetName == null)
         {
-            throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
+            throw new InvalidOperationException($"Can't get ResourceKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
         }
         if (InstanceId is null)
         {
-            return new ApplicationKey(ReplicaSetName, InstanceId: null);
+            return new ResourceKey(ReplicaSetName, InstanceId: null);
         }
 
-        return ApplicationKey.Create(name: ReplicaSetName, instanceId: InstanceId);
+        return ResourceKey.Create(name: ReplicaSetName, instanceId: InstanceId);
     }
 
-    public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)
+    public static ResourceTypeDetails CreateResourceGrouping(string groupingName, bool isReplicaSet)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.ResourceGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
+        return new ResourceTypeDetails(OtlpResourceType.ResourceGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
     }
 
     public static ResourceTypeDetails CreateSingleton(string instanceId, string replicaSetName)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: replicaSetName);
+        return new ResourceTypeDetails(OtlpResourceType.Singleton, instanceId, replicaSetName: replicaSetName);
     }
 
     public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.Instance, instanceId, replicaSetName);
+        return new ResourceTypeDetails(OtlpResourceType.Instance, instanceId, replicaSetName);
     }
 
     public override string ToString()
     {
-        return $"Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}";
+        return $"Type = {Type}, InstanceId = {InstanceId ?? "(null)"}, ReplicaSetName = {ReplicaSetName ?? "(null)"}";
     }
 
     public bool Equals(ResourceTypeDetails? other)

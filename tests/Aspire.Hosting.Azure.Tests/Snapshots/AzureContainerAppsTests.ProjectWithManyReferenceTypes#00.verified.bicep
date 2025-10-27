@@ -29,15 +29,18 @@ param value1_value string
 @secure()
 param cs_connectionstring string
 
+@secure()
+param pgc_password_value string
+
 param api_identity_outputs_clientid string
 
-resource pg_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+resource pg_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: pg_kv_outputs_name
 }
 
-resource pg_kv_outputs_name_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+resource pg_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--db'
-  parent: pg_kv_outputs_name_kv
+  parent: pg_kv
 }
 
 resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
@@ -49,7 +52,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           name: 'connectionstrings--db'
           identity: api_identity_outputs_id
-          keyVaultUrl: pg_kv_outputs_name_kv_connectionstrings__db.properties.secretUri
+          keyVaultUrl: pg_kv_connectionstrings__db.properties.secretUri
         }
         {
           name: 'secretval'
@@ -62,6 +65,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           name: 'cs'
           value: cs_connectionstring
+        }
+        {
+          name: 'database-url'
+          value: 'postgresql://${uriComponent('postgres')}:${uriComponent(pgc_password_value)}@pgc:5432'
         }
       ]
       activeRevisionsMode: 'Single'
@@ -148,6 +155,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               secretRef: 'cs'
             }
             {
+              name: 'DATABASE_URL'
+              secretRef: 'database-url'
+            }
+            {
               name: 'HTTP_EP'
               value: 'http://api.internal.${env_outputs_azure_container_apps_environment_default_domain}'
             }
@@ -186,6 +197,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

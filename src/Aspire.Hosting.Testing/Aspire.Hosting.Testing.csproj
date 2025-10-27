@@ -7,7 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <PackageTags>aspire testing</PackageTags>
-    <Description>Testing support for the .NET Aspire application model.</Description>
+    <Description>Testing support for the Aspire application model.</Description>
     <IsAspireHost>false</IsAspireHost>
   </PropertyGroup>
 
@@ -42,6 +42,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Cli.Tests"/>
   </ItemGroup>
 
 </Project>

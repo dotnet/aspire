@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -32,6 +33,9 @@ public partial class ResourceSelect
 
     [Parameter]
     public string? LabelClass { get; set; }
+
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
 
     private Task SelectedResourceChangedCore()
     {

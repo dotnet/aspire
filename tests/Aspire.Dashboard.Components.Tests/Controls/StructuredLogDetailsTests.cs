@@ -23,12 +23,12 @@ public class StructuredLogDetailsTests : DashboardTestContext
         StructuredLogsSetupHelpers.SetupStructuredLogsDetails(this);
 
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app = new OtlpApplication("app1", "instance1", uninstrumentedPeer: false, context);
-        var view = new OtlpApplicationView(app, new RepeatedField<KeyValue>
+        var app = new OtlpResource("app1", "instance1", uninstrumentedPeer: false, context);
+        var view = new OtlpResourceView(app, new RepeatedField<KeyValue>
         {
             new KeyValue { Key = "Message", Value = new AnyValue { StringValue = "value1" } },
             new KeyValue { Key = "Message", Value = new AnyValue { StringValue = "value2" } },
-            new KeyValue { Key = OtlpApplication.SERVICE_NAME, Value = new AnyValue { StringValue = "value1" } }
+            new KeyValue { Key = OtlpResource.SERVICE_NAME, Value = new AnyValue { StringValue = "value1" } }
         });
         var model = new StructureLogsDetailsViewModel
         {
@@ -40,7 +40,7 @@ public class StructuredLogDetailsTests : DashboardTestContext
                     KeyValuePair.Create("event.name", "value1"),
                     KeyValuePair.Create("event.name", "value2")
                 ]),
-                logApp: view,
+                resourceView: view,
                 scope: TelemetryTestHelpers.CreateOtlpScope(
                     context,
                     attributes:

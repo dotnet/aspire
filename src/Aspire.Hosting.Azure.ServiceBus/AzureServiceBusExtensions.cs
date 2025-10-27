@@ -347,6 +347,9 @@ public static class AzureServiceBusExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         // Add emulator container
 
         // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
@@ -363,11 +366,11 @@ public static class AzureServiceBusExtensions
             })
             .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
-        var sqlEdgeResource = builder.ApplicationBuilder
-                .AddContainer($"{builder.Resource.Name}-sqledge",
-                    image: ServiceBusEmulatorContainerImageTags.AzureSqlEdgeImage,
-                    tag: ServiceBusEmulatorContainerImageTags.AzureSqlEdgeTag)
-                .WithImageRegistry(ServiceBusEmulatorContainerImageTags.AzureSqlEdgeRegistry)
+        var sqlServerResource = builder.ApplicationBuilder
+                .AddContainer($"{builder.Resource.Name}-mssql",
+                    image: ServiceBusEmulatorContainerImageTags.SqlServerImage,
+                    tag: ServiceBusEmulatorContainerImageTags.SqlServerTag)
+                .WithImageRegistry(ServiceBusEmulatorContainerImageTags.SqlServerRegistry)
                 .WithEndpoint(targetPort: 1433, name: "tcp")
                 .WithEnvironment("ACCEPT_EULA", "Y")
                 .WithEnvironment(context =>
@@ -378,7 +381,7 @@ public static class AzureServiceBusExtensions
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
-            var sqlEndpoint = sqlEdgeResource.Resource.GetEndpoint("tcp");
+            var sqlEndpoint = sqlServerResource.Resource.GetEndpoint("tcp");
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("SQL_SERVER", $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}");
@@ -400,7 +403,7 @@ public static class AzureServiceBusExtensions
             }
         }
 
-        sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
+        sqlServerResource = sqlServerResource.WithLifetime(lifetime);
 
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
         // until all resources are about to be prepared and annotations can't be updated anymore.

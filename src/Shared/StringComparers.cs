@@ -18,6 +18,7 @@ internal static class StringComparers
     public static StringComparer ResourceOwnerUid => StringComparer.Ordinal;
     public static StringComparer UserTextSearch => StringComparer.CurrentCultureIgnoreCase;
     public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
+    public static StringComparer Url => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
     public static StringComparer HtmlAttribute => StringComparer.Ordinal;
@@ -30,6 +31,7 @@ internal static class StringComparers
     public static StringComparer CultureName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer CommandName => StringComparer.Ordinal;
     public static StringComparer CliInputOrOutput => StringComparer.Ordinal;
+    public static StringComparer InteractionInputName => StringComparer.OrdinalIgnoreCase;
 }
 
 internal static class StringComparisons
@@ -45,6 +47,7 @@ internal static class StringComparisons
     public static StringComparison ResourceOwnerUid => StringComparison.Ordinal;
     public static StringComparison UserTextSearch => StringComparison.CurrentCultureIgnoreCase;
     public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
+    public static StringComparison Url => StringComparison.OrdinalIgnoreCase;
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;
     public static StringComparison UrlHost => StringComparison.OrdinalIgnoreCase;
     public static StringComparison HtmlAttribute => StringComparison.Ordinal;
@@ -57,4 +60,5 @@ internal static class StringComparisons
     public static StringComparison CultureName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison CommandName => StringComparison.Ordinal;
     public static StringComparison CliInputOrOutput => StringComparison.Ordinal;
+    public static StringComparison InteractionInputName => StringComparison.OrdinalIgnoreCase;
 }

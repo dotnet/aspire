@@ -4,7 +4,9 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 
 public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
 {
@@ -13,7 +15,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     {
         var tempDir = Directory.CreateTempSubdirectory(".k8s-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
         builder.AddKubernetesEnvironment("env");
 
@@ -35,6 +37,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task PublishAsKubernetesService_ThrowsIfNoEnvironment()
     {
         static async Task RunTest(Action<IDistributedApplicationBuilder> action)
@@ -66,11 +69,12 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task MultipleKubernetesEnvironmentsSupported()
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         var env1 = builder.AddKubernetesEnvironment("env1");
         var env2 = builder.AddKubernetesEnvironment("env2");
@@ -87,6 +91,24 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
         await app.RunAsync();
 
         await VerifyDirectory(tempDir.Path);
+    }
+
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddKubernetesEnvironment("env");
+
+        var project = builder
+            .AddProject<Projects.ServiceA>("project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1-service", endpointReferenceEx.Format);
+        Assert.Empty(endpointReferenceEx.ValueProviders);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

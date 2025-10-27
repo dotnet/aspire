@@ -30,6 +30,18 @@
       "_justification": "This isn't a real secret, it's used in one of the playground applications for testing purposes."
     },
     {
+        "placeholder": "password",
+        "_justification": "Generic term used in examples and test files. Not a real credential."
+    },
+    {
+        "placeholder": "pass",
+        "_justification": "Abbreviated form used in test scenarios and sample code. Not a real secret."
+    },
+    {
+        "placeholder": "mypass",
+        "_justification": "Dummy credential used in unit tests and examples. Not a real secret."
+    },
+    {
       "file": "\\tests\\Shared\\TestCertificates\\eku.client.pfx",
       "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
     },

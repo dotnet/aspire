@@ -22,10 +22,20 @@
         <target state="translated">Name</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailNoSpans">
+        <source>No spans found</source>
+        <target state="translated">Keine Spannen gefunden.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
         <target state="translated">{0}-Ablaufverfolgung</target>
         <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TraceDetailResourceHeader">
+        <source>Resource</source>
+        <target state="translated">Ressource</target>
+        <note />
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>

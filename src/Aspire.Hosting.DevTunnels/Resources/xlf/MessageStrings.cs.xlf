@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../MessageStrings.resx">
+    <body>
+      <trans-unit id="AuthenticationExpiredNotification">
+        <source>Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.</source>
+        <target state="translated">Platnost ověření vývojových tunelů vypršela. Restartujte prostředky vývojového tunelu, aby se znovu ověřily.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AuthenticationRequiredNotification">
+        <source>Dev tunnels requires authentication to continue:</source>
+        <target state="translated">Vývojové tunely vyžadují ověření, aby bylo možné pokračovat:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelHealthy">
+        <source>Dev tunnel '{0}' is active with {1} host connections and {2} ports.</source>
+        <target state="translated">Vývojový tunel {0} je aktivní s {1} připojeními hostitele a {2} porty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortHealthy">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' is active.</source>
+        <target state="translated">Port vývojového tunelu {0} ve vývojovém tunelu {1} je aktivní.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_Error">
+        <source>Failed to check port '{0}' on dev tunnel '{1}': {2}</source>
+        <target state="translated">Nepovedlo se zkontrolovat port {0} ve vývojovém tunelu {1}: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_StatusUnknown">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' status is not known.</source>
+        <target state="translated">Stav portu vývojového tunelu {0} ve vývojovém tunelu {1} není známý.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_Error">
+        <source>Failed to check dev tunnel '{0}': {1}</source>
+        <target state="translated">Nepovedlo se zkontrolovat vývojový tunel {0}: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_NoActiveHostConnections">
+        <source>Dev tunnel '{0}' has no active host connections.</source>
+        <target state="translated">Vývojový tunel {0} nemá žádná aktivní připojení hostitele.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_PortInactive">
+        <source>Dev tunnel '{0}' port '{1}' is not active.</source>
+        <target state="translated">Port {1} vývojového tunelu {0} není aktivní.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliVersionNotSupported">
+        <source>The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</source>
+        <target state="translated">Nainstalovaná verze příkazového řádku devtunnel {0} není podporovaná. Vyžaduje se verze {1} nebo vyšší.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallationInstructions">
+        <source>Installation instructions</source>
+        <target state="translated">Pokyny k instalaci</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithGitHub">
+        <source>Login with GitHub</source>
+        <target state="translated">Přihlásit se pomocí GitHubu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithMicrosoft">
+        <source>Login with Microsoft</source>
+        <target state="translated">Přihlásit se pomocí účtu Microsoft</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotification">
+        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
+        <target state="translated">Požadovaný příkaz {0} nebyl nalezen v cestě PATH nebo v zadaném umístění.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithLink">
+        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
+        <target state="translated">Požadovaný příkaz {0} nebyl nalezen. Další podrobnosti najdete v pokynech k instalaci.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithValidation">
+        <source>{0} See installation instructions for more details.</source>
+        <target state="translated">{0} Další podrobnosti najdete v pokynech k instalaci.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

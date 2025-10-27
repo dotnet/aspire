@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Storage library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Storage.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Storage.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure Storage Hosting library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Storage Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Storage
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.Storage
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -50,8 +50,58 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Azure.Storage.Blobs](https://www.nuget.org/packages/Aspire.Azure.Storage.Blobs):
 
 ```csharp
-builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobServiceClient("blobs");
 ```
+
+## Creating and using blob containers and queues directly
+
+You can create and use blob containers and queues directly by adding them to your storage resource. This allows you to provision and reference specific containers or queues for your services.
+
+### Adding a blob container
+
+```csharp
+var storage = builder.AddAzureStorage("storage");
+var container = storage.AddBlobContainer("my-container");
+```
+
+You can then pass the container reference to a project:
+
+```csharp
+builder.AddProject<Projects.MyService>()
+       .WithReference(container);
+```
+
+In your service, consume the container using:
+
+```csharp
+builder.AddAzureBlobContainerClient("my-container");
+```
+
+This will register a singleton of type `BlobContainerClient`.
+
+### Adding a queue
+
+```csharp
+var storage = builder.AddAzureStorage("storage");
+var queue = storage.AddQueue("my-queue");
+```
+
+Pass the queue reference to a project:
+
+```csharp
+builder.AddProject<Projects.MyService>()
+       .WithReference(queue);
+```
+
+In your service, consume the queue using:
+
+```csharp
+builder.AddAzureQueue("my-queue");
+```
+
+This will register a singleton of type `QueueClient`.
+
+This approach allows you to define and use specific blob containers and queues as first-class resources in your Aspire application model.
 
 ## Additional documentation
 

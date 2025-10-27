@@ -48,6 +48,8 @@ namespace Aspire.Hosting.ApplicationModel
 
         public Azure.BicepOutputReference Endpoint { get { throw null; } }
 
+        public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }

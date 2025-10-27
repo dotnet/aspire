@@ -151,4 +151,69 @@ public sealed class ResourceViewModelTests
                 Assert.True(p.Value.IsValueSensitive);
             });
     }
+
+    [Fact]
+    public void ToViewModel_WithCustomIcon_SetsIconProperties()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestResource",
+            DisplayName = "Test Resource",
+            ResourceType = "container",
+            CreatedAt = Timestamp.FromDateTime(s_dateTime),
+            IconName = "Database",
+            IconVariant = IconVariant.Filled
+        };
+
+        // Act
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
+
+        // Assert
+        Assert.Equal("Database", vm.IconName);
+        Assert.Equal(Microsoft.FluentUI.AspNetCore.Components.IconVariant.Filled, vm.IconVariant);
+    }
+
+    [Fact]
+    public void ToViewModel_WithCustomIconRegularVariant_SetsIconProperties()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestResource",
+            DisplayName = "Test Resource", 
+            ResourceType = "container",
+            CreatedAt = Timestamp.FromDateTime(s_dateTime),
+            IconName = "CloudArrowUp",
+            IconVariant = IconVariant.Regular
+        };
+
+        // Act
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
+
+        // Assert
+        Assert.Equal("CloudArrowUp", vm.IconName);
+        Assert.Equal(Microsoft.FluentUI.AspNetCore.Components.IconVariant.Regular, vm.IconVariant);
+    }
+
+    [Fact]
+    public void ToViewModel_WithoutCustomIcon_IconPropertiesAreNull()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestResource",
+            DisplayName = "Test Resource",
+            ResourceType = "container", 
+            CreatedAt = Timestamp.FromDateTime(s_dateTime)
+            // No IconName or IconVariant set
+        };
+
+        // Act
+        var vm = resource.ToViewModel(new MockKnownPropertyLookup(), NullLogger.Instance);
+
+        // Assert
+        Assert.Null(vm.IconName);
+        Assert.Null(vm.IconVariant);
+    }
 }

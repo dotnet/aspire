@@ -1,0 +1,275 @@
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.GenAI
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+@using System.Globalization
+
+@implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
+
+<FluentDialogHeader ShowDismiss="true">
+    <div class="dialog-title-grid">
+        <FluentIcon Value="@(new Icons.Regular.Size24.Sparkle())" Style="grid-area: dialog-icon; align-self: center;" />
+        <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
+            @Content.Title
+        </FluentLabel>
+
+        @if (_contextSpans.Count > 1)
+        {
+            <div Style="grid-area: dialog-format;">
+                <FluentButton IconStart="new Icons.Regular.Size16.ArrowUp()"
+                              Appearance="Appearance.Stealth"
+                              Disabled="@(_currentSpanContextIndex == 0)"
+                              OnClick="OnPreviousGenAISpan">@Loc[nameof(Dialogs.GenAIPreviousButtonText)]</FluentButton>
+                <FluentButton IconStart="new Icons.Regular.Size16.ArrowDown()"
+                              Appearance="Appearance.Stealth"
+                              Disabled="@(_currentSpanContextIndex >= _contextSpans.Count - 1)"
+                              OnClick="OnNextGenAISpan">@Loc[nameof(Dialogs.GenAINextButtonText)]</FluentButton>
+            </div>
+        }
+    </div>
+</FluentDialogHeader>
+
+<FluentDialogBody>
+    <div class="genai-visualizer-container">
+        <FluentSplitter BarHandle="true"
+                        Style="height:100%"
+                        Panel1Size="3fr"
+                        Panel2Size="7fr"
+                        BarSize="10">
+            <Panel1>
+                <div class="span-messages-sidebar">
+                    <TreeGenAISelector PageViewModel="@Content"
+                                       SelectedItem="@SelectedItem"
+                                       HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+                </div>
+            </Panel1>
+            <Panel2>
+                <div class="span-messages-container">
+                    @if (SelectedItem is { } selectedItem)
+                    {
+                        var selectedView = selectedItem.Type == GenAIItemType.Error
+                            ? ItemViewKind.Raw
+                            : MessageActiveView;
+
+                        <div>
+                            <div class="message-header">
+                                <GenAIItemTitle Item="@selectedItem" ResourceName="@selectedItem.ResourceName" />
+                            </div>
+                            @*
+                                Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
+                                Content is located in manually created divs so they can be placed in their own CSS grid row.
+                            *@
+                            @if (selectedItem.Type != GenAIItemType.Error)
+                            {
+                                <FluentTabs ActiveTabId="@($"tab-message-{selectedView}")" OnTabChange="@OnMessageTabChange" Size="null">
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-message-{ItemViewKind.Preview}")"
+                                               Label="@Loc[nameof(Dialogs.GenAIPreviewTabText)]">
+                                    </FluentTab>
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-message-{ItemViewKind.Raw}")"
+                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
+                                    </FluentTab>
+                                </FluentTabs>
+                            }
+                            else
+                            {
+                                <FluentTabs ActiveTabId="@($"tab-message-{ItemViewKind.Raw}")" Size="null">
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-message-{ItemViewKind.Raw}")"
+                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
+                                    </FluentTab>
+                                </FluentTabs>
+                            }
+                        </div>
+                        @if (selectedView == ItemViewKind.Preview)
+                        {
+                            <div class="tab-container">
+                                @foreach (var itemPart in selectedItem.ItemParts)
+                                {
+                                    if (IsImagePart(itemPart, out var imageContent) && IsSupportedImageScheme(imageContent))
+                                    {
+                                        <img src="@imageContent" />
+                                    }
+                                    else if (itemPart.AdditionalProperties is { } additionalProperties && additionalProperties.Count > 0)
+                                    {
+                                        <PropertyGrid TItem="GenAIPartPropertyViewModel"
+                                                      Items="additionalProperties.AsQueryable()"
+                                                      IsNameSortable="false"
+                                                      IsValueSortable="false"
+                                                      GridTemplateColumns="1fr 1.5fr" />
+                                    }
+                                    else
+                                    {
+                                        if (itemPart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
+                                        {
+                                            @itemPart.TextVisualizerViewModel.FormattedText
+                                        }
+                                        else if (itemPart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.MarkdownFormat)
+                                        {
+                                            <MarkdownRenderer MarkdownProcessor="@_markdownProcess" Markdown="@itemPart.TextVisualizerViewModel.FormattedText" />
+                                        }
+                                        else
+                                        {
+                                            <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+                                        }
+                                    }
+                                }
+                            </div>
+                        }
+                        @if (selectedView == ItemViewKind.Raw)
+                        {
+                            <div class="tab-container">
+                                @foreach (var itemPart in selectedItem.ItemParts)
+                                {
+                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" Virtualize="false" />
+                                }
+                            </div>
+                        }
+                        <FluentButton Id="@_copyButtonId"
+                                      Class="message-copy-button"
+                                      Appearance="Appearance.Stealth"
+                                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(string.Join(Environment.NewLine + Environment.NewLine, selectedItem.ItemParts.Select(p => p.TextVisualizerViewModel?.FormattedText ?? string.Empty)), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                            <span slot="start">
+                                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                            </span>
+                            @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
+                        </FluentButton>
+                    }
+                    else
+                    {
+                        <div>
+                            <div class="message-header">
+                                <span class="llm-badge">LLM</span>
+                                <div class="message-header-title">
+                                    <span>@Content.Span.Name</span>
+                                    <span class="message-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
+                                </div>
+                                @{
+                                    var tokenTotal = Content.InputTokens + Content.OutputTokens;
+                                    var tokenText = tokenTotal == null ? Loc[nameof(Dialogs.GenAINAText)] : tokenTotal.Value.ToString(CultureInfo.CurrentCulture);
+                                    string tokenTooltip;
+                                    if (tokenTotal == null)
+                                    {
+                                        tokenTooltip = Loc[nameof(Dialogs.GenAINAText)];
+                                    }
+                                    else
+                                    {
+                                        tokenTooltip = string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAIInputTokensText)], Content.InputTokens ?? 0) +
+                                            Environment.NewLine +
+                                            string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAIOutputTokensText)], Content.OutputTokens ?? 0);
+                                    }
+                                }
+                                <div class="message-header-details">
+                                    <span>@Loc[nameof(Dialogs.GenAIDurationLabel)] <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
+                                    <span title="@tokenTooltip">@Loc[nameof(Dialogs.GenAITokensLabel)] <strong>@tokenText</strong></span>
+                                </div>
+                            </div>
+                            @*
+                                Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
+                                Content is located in manually created divs so they can be placed in their own CSS grid row.
+                            *@
+                            <FluentTabs ActiveTabId="@($"tab-overview-{OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
+                                           Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]">
+                                </FluentTab>
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.Details}")"
+                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]">
+                                </FluentTab>
+                            </FluentTabs>
+                        </div>
+                        @if (OverviewActiveView == OverviewViewKind.InputOutput)
+                        {
+                            <div class="tab-container">
+                                @if (!string.IsNullOrEmpty(Content.DisplayErrorMessage))
+                                {
+                                    <div class="display-error-message">
+                                        <h5>@Loc[nameof(Dialogs.GenAIDisplayErrorMessageText)]</h5>
+                                        <div class="display-error-content">
+                                            @Content.DisplayErrorMessage
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @if (Content.NoMessageContent)
+                                    {
+                                        <div class="no-message-content-content">
+                                            @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAINoMessageContentMoreInformationMessage)], "https://aka.ms/aspire/telemetry-ai-content"))
+                                        </div>
+                                    }
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent)
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent)
+                                    @if (Content.ErrorItem is { } errorItem)
+                                    {
+                                        @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent)
+                                    }
+                                }
+                            </div>
+                        }
+                        @if (OverviewActiveView == OverviewViewKind.Details)
+                        {
+                            <div class="tab-container">
+                                <SpanDetails ViewModel="@Content.SpanDetailsViewModel" HideToolbar="true" />
+                            </div>
+                        }
+                    }
+                </div>
+            </Panel2>
+        </FluentSplitter>
+    </div>
+</FluentDialogBody>
+
+<FluentDialogFooter Visible="false" />
+
+@{
+    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent)
+    {
+        return@<div class="section-container">
+            <div class="section-title">@title</div>
+            @if (items.Count > 0)
+            {
+                foreach (var item in items)
+                {
+                    var itemParts = item.ItemParts.Where(p => !string.IsNullOrEmpty(p.TextVisualizerViewModel.Text)).ToList();
+
+                    <div class="message-container">
+                        @if (item.Type != GenAIItemType.Error)
+                        {
+                            <div class="message-title">
+                                @GetItemTitle(item)
+                            </div>
+                        }
+                        <span class="defaultHidden">
+                            <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewItem(item))">
+                                <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
+                            </FluentButton>
+                        </span>
+                        @if (itemParts.Count > 0)
+                        {
+                            foreach (var itemPart in itemParts)
+                            {
+                                <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-message-content">
+                                @Loc[nameof(Dialogs.GenAINoMessageContent)]
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <p>@Loc[nameof(Dialogs.GenAINoMessages)]</p>
+            }
+        </div>;
+    }
+}

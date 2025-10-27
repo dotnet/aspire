@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.Kafka.Tests;
 
@@ -19,6 +18,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyWaitForOnKafkaBlocksDependentResources()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -56,6 +56,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyKafkaResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -112,6 +113,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

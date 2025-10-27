@@ -9,6 +9,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 public class OtlpTrace
 {
     private OtlpSpan? _rootSpan;
+    private TimeSpan? _duration;
 
     public ReadOnlyMemory<byte> Key { get; }
     public string TraceId { get; }
@@ -18,24 +19,9 @@ public class OtlpTrace
     public DateTime TimeStamp => FirstSpan.StartTime;
     public OtlpSpan? RootSpan => _rootSpan;
     public OtlpSpan RootOrFirstSpan => RootSpan ?? FirstSpan;
-    public TimeSpan Duration
-    {
-        get
-        {
-            var start = FirstSpan.StartTime;
-            DateTime end = default;
-            foreach (var span in Spans)
-            {
-                if (span.EndTime > end)
-                {
-                    end = span.EndTime;
-                }
-            }
-            return end - start;
-        }
-    }
-
+    public TimeSpan Duration => _duration ??= CalculateDuration();
     public OtlpSpanCollection Spans { get; } = new OtlpSpanCollection();
+    public DateTime LastUpdatedDate { get; private set; }
 
     public int CalculateDepth(OtlpSpan span)
     {
@@ -51,7 +37,7 @@ public class OtlpTrace
 
     public int CalculateMaxDepth() => Spans.Max(CalculateDepth);
 
-    public void AddSpan(OtlpSpan span)
+    public void AddSpan(OtlpSpan span, bool skipLastUpdatedDate = false)
     {
         if (Spans.Contains(span.SpanId))
         {
@@ -99,11 +85,16 @@ public class OtlpTrace
             FullName = BuildFullName(span);
         }
 
+        if (!skipLastUpdatedDate)
+        {
+            LastUpdatedDate = DateTime.UtcNow;
+        }
+
         AssertSpanOrder();
 
         static string BuildFullName(OtlpSpan existingSpan)
         {
-            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
+            return $"{existingSpan.Source.Resource.ResourceName}: {existingSpan.Name}";
         }
     }
 
@@ -148,27 +139,53 @@ public class OtlpTrace
         }
     }
 
-    public OtlpTrace(ReadOnlyMemory<byte> traceId)
+    public OtlpTrace(ReadOnlyMemory<byte> traceId, DateTime lastUpdatedDate)
     {
         Key = traceId;
         TraceId = OtlpHelpers.ToHexString(traceId);
         FullName = string.Empty;
+        LastUpdatedDate = lastUpdatedDate;
     }
 
     public static OtlpTrace Clone(OtlpTrace trace)
     {
-        var newTrace = new OtlpTrace(trace.Key);
+        var newTrace = new OtlpTrace(trace.Key, trace.LastUpdatedDate);
         foreach (var item in trace.Spans)
         {
-            newTrace.AddSpan(OtlpSpan.Clone(item, newTrace));
+            newTrace.AddSpan(OtlpSpan.Clone(item, newTrace), skipLastUpdatedDate: true);
         }
 
         return newTrace;
     }
 
+    private TimeSpan CalculateDuration()
+    {
+        var start = FirstSpan.StartTime;
+        DateTime end = default;
+        foreach (var span in Spans)
+        {
+            if (span.EndTime > end)
+            {
+                end = span.EndTime;
+            }
+        }
+        return end - start;
+    }
+
     private string DebuggerToString()
     {
         return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan?.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan?.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
+    }
+
+    public void SetSpanUninstrumentedPeer(OtlpSpan span, OtlpResource? resource)
+    {
+        if (span.Trace != this)
+        {
+            throw new ArgumentException("Span does not belong to this trace.", nameof(span));
+        }
+
+        span.SetUninstrumentedPeer(resource);
+        LastUpdatedDate = DateTime.UtcNow;
     }
 
     private sealed class SpanStartDateComparer : IComparer<OtlpSpan>

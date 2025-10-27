@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_postgres_name": "{existing-postgres-name.value}",
+    "existing_postgres_rg": "{existing-postgres-rg.value}"
+  }
+}

@@ -1,11 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Tests.Helpers;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit;
-
 namespace Aspire.Hosting.Tests;
 
 public class AsHttp2ServiceTests
@@ -14,9 +9,6 @@ public class AsHttp2ServiceTests
     public void Http2TransportIsNotSetWhenHttp2ServiceAnnotationIsNotApplied()
     {
         using var testProgram = CreateTestProgram(["--publisher", "manifest"]);
-
-        // Block DCP from actually starting anything up as we don't need it for this test.
-        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 
         testProgram.Build();
         testProgram.Run();
@@ -36,9 +28,6 @@ public class AsHttp2ServiceTests
         using var testProgram = CreateTestProgram(["--publisher", "manifest"]);
         testProgram.ServiceABuilder.AsHttp2Service();
 
-        // Block DCP from actually starting anything up as we don't need it for this test.
-        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
-
         testProgram.Build();
         testProgram.Run();
 
@@ -53,9 +42,6 @@ public class AsHttp2ServiceTests
         using var testProgram = CreateTestProgram(["--publisher", "manifest"]);
         testProgram.ServiceABuilder.WithEndpoint(9999, scheme: "tcp");
         testProgram.ServiceABuilder.AsHttp2Service();
-
-        // Block DCP from actually starting anything up as we don't need it for this test.
-        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 
         testProgram.Build();
         testProgram.Run();

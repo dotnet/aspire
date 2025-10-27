@@ -1,0 +1,146 @@
+parameters:
+  - name: testVariants
+    type: string
+    default: ''
+
+variables:
+  - template: /eng/common/templates/variables/pool-providers.yml
+
+  - name: _BuildConfig
+    value: Release
+  - name: Build.Arcade.ArtifactsPath
+    value: $(Build.SourcesDirectory)/artifacts/
+  - name: Build.Arcade.LogsPath
+    value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
+  - name: Build.Arcade.TestResultsPath
+    value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
+
+  # needed for darc (dependency flow) publishing
+  - name: _PublishArgs
+    value: ''
+  - name: _OfficialBuildIdArgs
+    value: ''
+  # needed for signing
+  - name: _SignType
+    value: test
+  - name: _SignArgs
+    value: ''
+  - name: _Sign
+    value: false
+  - name: HelixApiAccessToken
+    value: ''
+  - name: _InternalBuildArgs
+    value: ''
+
+  # Set test variants based on parameter or build reason
+  - ${{ if ne(parameters.testVariants, '') }}:
+    - name: testVariants
+      value: ${{ parameters.testVariants }}
+  - ${{ else }}:
+    # Use the build reason to decide whether to include helix_tests
+    - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
+      - name: testVariants
+        value: '_pipeline_tests,_helix_tests'
+    - ${{ else }}:
+      - name: testVariants
+        value: ''
+
+resources:
+  containers:
+  - container: LinuxContainer
+    image: mcr.microsoft.com/dotnet-buildtools/prereqs:cbl-mariner-2.0-fpm
+
+stages:
+
+# ----------------------------------------------------------------
+# This stage performs build, test, packaging
+# ----------------------------------------------------------------
+- stage: build
+  displayName: Build
+  jobs:
+  - template: /eng/common/templates/jobs/jobs.yml
+    parameters:
+      artifacts:
+        publish:
+          artifacts: false
+          logs:
+            name: 'Logs_Build_$(Agent.JobName)_$(_BuildConfig)'
+          manifests: true
+      enableMicrobuild: true
+      enablePublishUsingPipelines: true
+      publishAssetsImmediately: true
+      enablePublishTestResults: true
+      testResultsFormat: vstest
+      enableSourceIndex: false
+      workspace:
+        clean: all
+
+      jobs:
+
+      # Windows jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
+        - job: Windows${{ testVariant }}
+
+          # timeout accounts for wait times for helix agents up to 30mins
+          timeoutInMinutes: 90
+
+          pool:
+            name: $(DncEngPublicBuildPool)
+            demands: ImageOverride -equals windows.vs2022preview.amd64.open
+
+          variables:
+            - name: _buildScript
+              value: $(Build.SourcesDirectory)/build.cmd -ci
+
+          preSteps:
+            - checkout: self
+              fetchDepth: 1
+              clean: true
+
+          steps:
+            - template: /eng/pipelines/templates/BuildAndTest.yml
+              parameters:
+                runAsPublic: true
+                dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
+                buildScript: $(_buildScript)
+                buildConfig: $(_BuildConfig)
+                repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                repoLogPath: $(Build.Arcade.LogsPath)
+                repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                isWindows: true
+                runHelixTests: ${{ contains(testVariant, 'helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}
+
+      # Linux jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
+        - job: Linux${{ testVariant }}
+
+          # timeout accounts for wait times for helix agents up to 30mins
+          timeoutInMinutes: 90
+
+          pool:
+            name: $(DncEngPublicBuildPool)
+            demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+
+          variables:
+            - name: _buildScript
+              value: $(Build.SourcesDirectory)/build.sh --ci
+
+          preSteps:
+            - checkout: self
+              fetchDepth: 1
+              clean: true
+
+          steps:
+            - template: /eng/pipelines/templates/BuildAndTest.yml
+              parameters:
+                runAsPublic: true
+                dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+                buildScript: $(_buildScript)
+                buildConfig: $(_BuildConfig)
+                repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                repoLogPath: $(Build.Arcade.LogsPath)
+                repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                isWindows: false
+                runHelixTests: ${{ contains(testVariant, '_helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}

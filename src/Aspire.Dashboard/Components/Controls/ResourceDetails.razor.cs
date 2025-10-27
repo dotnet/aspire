@@ -3,11 +3,15 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -33,6 +37,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
@@ -101,6 +108,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     private string _filter = "";
     private bool? _isMaskAllChecked;
     private bool _dataChanged;
+    private AIContext? _aiContext;
+    private Dictionary<string, ComponentMetadata>? _valueComponents;
 
     private bool IsMaskAllChecked
     {
@@ -120,6 +129,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 _isMaskAllChecked = true;
                 _unmaskedItemNames.Clear();
                 _dataChanged = true;
+
+                // Update AI context with new resource.
+                _aiContext?.ContextHasChanged();
             }
 
             _resource = Resource;
@@ -145,6 +157,25 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                     item.IsValueMasked = !_unmaskedItemNames.Contains(item.Name);
                 }
             }
+
+            _valueComponents = new Dictionary<string, ComponentMetadata>
+            {
+                [KnownProperties.Resource.State] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceStateValue),
+                    Parameters = { ["Resource"] = _resource }
+                },
+                [KnownProperties.Resource.DisplayName] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceNameValue),
+                    Parameters = { ["Resource"] = _resource, ["FormatName"] = new Func<ResourceViewModel, string>(FormatName) }
+                },
+                [KnownProperties.Resource.HealthState] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceHealthStateValue),
+                    Parameters = { ["Resource"] = _resource }
+                },
+            };
         }
 
         UpdateTelemetryProperties();
@@ -167,6 +198,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+        _aiContext = CreateAIContext();
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
@@ -272,6 +304,11 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         }
     }
 
+    private string FormatName(ResourceViewModel resource)
+    {
+        return ResourceViewModel.GetResourceName(resource, ResourceByName);
+    }
+
     public Task OnViewRelationshipAsync(ResourceDetailRelationshipViewModel relationship)
     {
         NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
@@ -279,7 +316,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, nameof(ResourceDetails));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.ResourceDetails);
 
     public void UpdateTelemetryProperties()
     {
@@ -288,8 +325,55 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         ], Logger);
     }
 
+    private string GetHealthStatusWithTime(HealthReportViewModel context)
+    {
+        var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
+        
+        // Show timestamp for all resources when available per @davidfowl feedback
+        if (context.LastRunAtTimeStamp.HasValue)
+        {
+            var duration = DateTime.UtcNow.Subtract(context.LastRunAtTimeStamp.Value);
+            
+            // Round duration to seconds to avoid sub-second precision issues
+            var roundedDuration = TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds));
+            
+            // Display "just now" for health checks that ran in the last 10 seconds
+            if (roundedDuration.TotalSeconds < 10)
+            {
+                return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
+            }
+            
+            var formattedDuration = DurationFormatter.FormatDuration(roundedDuration);
+            return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
+        }
+        
+        return statusText;
+    }
+
+    private string? GetHealthStatusTooltip(HealthReportViewModel context)
+    {
+        var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
+        
+        if (context.LastRunAtTimeStamp.HasValue)
+        {
+            var localTime = FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.LastRunAtTimeStamp.Value);
+            return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeTooltipFormat), statusText, localTime];
+        }
+        
+        return null;
+    }
+
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(ResourceDetails), c =>
+        {
+            c.BuildIceBreakers = (builder, context) => builder.ResourceDetails(context, Resource);
+        });
+    }
+
     public void Dispose()
     {
+        _aiContext?.Dispose();
         TelemetryContext.Dispose();
     }
 }

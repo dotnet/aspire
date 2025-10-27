@@ -1,0 +1,70 @@
+﻿@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+param my_ace_outputs_azure_container_apps_environment_default_domain string
+
+param my_ace_outputs_azure_container_apps_environment_id string
+
+param my_ace_outputs_volumes_druid_0 string
+
+param my_ace_outputs_volumes_druid_1 string
+
+param my_ace_outputs_bindmounts_druid_0 string
+
+resource druid 'Microsoft.App/containerApps@2025-01-01' = {
+  name: 'druid'
+  location: location
+  properties: {
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: false
+        targetPort: 8081
+        transport: 'http'
+      }
+    }
+    environmentId: my_ace_outputs_azure_container_apps_environment_id
+    template: {
+      containers: [
+        {
+          image: 'apache/druid:34.0.0'
+          name: 'druid'
+          volumeMounts: [
+            {
+              volumeName: 'v0'
+              mountPath: '/opt/shared'
+            }
+            {
+              volumeName: 'v1'
+              mountPath: '/opt/druid/var'
+            }
+            {
+              volumeName: 'bm0'
+              mountPath: '/opt/bind'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+      }
+      volumes: [
+        {
+          name: 'v0'
+          storageType: 'AzureFile'
+          storageName: my_ace_outputs_volumes_druid_0
+        }
+        {
+          name: 'v1'
+          storageType: 'AzureFile'
+          storageName: my_ace_outputs_volumes_druid_1
+        }
+        {
+          name: 'bm0'
+          storageType: 'AzureFile'
+          storageName: my_ace_outputs_bindmounts_druid_0
+        }
+      ]
+    }
+  }
+}

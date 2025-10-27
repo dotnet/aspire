@@ -8,7 +8,6 @@ using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 
@@ -159,7 +158,9 @@ public class AddPostgresTests
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
         Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -492,7 +493,9 @@ public class AddPostgresTests
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("MaintenanceDB").GetString());
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"echo '{pg1.Resource.PasswordParameter.Value}'", servers.GetProperty("1").GetProperty("PasswordExecCommand").GetString());
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // Make sure the second server is correct.
         Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
@@ -502,7 +505,9 @@ public class AddPostgresTests
         Assert.Equal("myuser", servers.GetProperty("2").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -620,6 +625,7 @@ public class AddPostgresTests
 
     private static string CreatePgWebBookmarkfileContent(PostgresDatabaseResource postgresDatabase)
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
 
         // We're hardcoding references to container resources based on a default Aspire network
@@ -632,6 +638,7 @@ public class AddPostgresTests
                 database = "{postgresDatabase.DatabaseName}"
                 sslmode = "disable"
                 """;
+#pragma warning restore CS0618 // Type or member is obsolete
 
         return fileContent;
     }
@@ -673,6 +680,8 @@ public class AddPostgresTests
                                  .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         var connectionString = await postgres.Resource.GetConnectionStringAsync();
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"Host=localhost;Port=2000;Username=user1;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 }

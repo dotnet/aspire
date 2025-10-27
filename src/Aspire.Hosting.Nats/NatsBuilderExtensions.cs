@@ -73,7 +73,7 @@ public static class NatsBuilderExtensions
                 AuthOpts = new()
                 {
                     Username = await nats.UserNameReference.GetValueAsync(ct).ConfigureAwait(false),
-                    Password = nats.PasswordParameter!.Value,
+                    Password = await nats.PasswordParameter!.GetValueAsync(ct).ConfigureAwait(false),
                 }
             };
 

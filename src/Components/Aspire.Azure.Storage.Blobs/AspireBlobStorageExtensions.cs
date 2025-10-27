@@ -33,7 +33,7 @@ public static partial class AspireBlobStorageExtensions
     /// <exception cref="InvalidOperationException">
     ///  Neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.
     /// </exception>
-    public static void AddAzureBlobClient(
+    public static void AddAzureBlobServiceClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
@@ -43,6 +43,20 @@ public static partial class AspireBlobStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <inheritdoc cref="AddAzureBlobServiceClient"/>
+    [Obsolete("Use AddAzureBlobServiceClient instead. This method will be removed in a future version.")]
+    public static void AddAzureBlobClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureStorageBlobsSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddAzureBlobServiceClient(builder, connectionName, configureSettings, configureClientBuilder);
     }
 
     /// <summary>
@@ -65,7 +79,7 @@ public static partial class AspireBlobStorageExtensions
     /// <exception cref="InvalidOperationException">
     ///  Neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.
     /// </exception>
-    public static void AddKeyedAzureBlobClient(
+    public static void AddKeyedAzureBlobServiceClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
@@ -75,6 +89,20 @@ public static partial class AspireBlobStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <inheritdoc cref="AddKeyedAzureBlobServiceClient"/>
+    [Obsolete("Use AddKeyedAzureBlobServiceClient instead. This method will be removed in a future version.")]
+    public static void AddKeyedAzureBlobClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureStorageBlobsSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        AddKeyedAzureBlobServiceClient(builder, name, configureSettings, configureClientBuilder);
     }
 
     /// <summary>

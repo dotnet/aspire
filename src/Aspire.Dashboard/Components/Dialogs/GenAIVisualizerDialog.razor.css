@@ -1,0 +1,215 @@
+::deep .span-messages-container {
+    background: var(--main-container-background-color);
+    color: var(--neutral-foreground-rest);
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    padding: 8px 8px 16px 16px;
+    height: 65vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+::deep .span-messages-container fluent-button::part(control):not(:hover) {
+    background: var(--main-container-background-color);
+}
+
+::deep .span-messages-sidebar {
+    height: 65vh;
+    overflow-y: auto;
+}
+
+::deep .message-container {
+    padding: 12px;
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-hover);
+    border-radius: calc(var(--layer-corner-radius) * 0.5px);
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    position: relative;
+}
+
+::deep .message-container .message-title {
+    font-size: var(--type-ramp-plus-1-font-size);
+}
+
+::deep .section-title {
+    font-size: var(--type-ramp-plus-1-font-size);
+    font-weight: 600;
+}
+
+.genai-visualizer-container ::deep .fluent-splitter::part(median) {
+    opacity: 0;
+}
+
+::deep .genai-message-tree {
+    --base-height-multiplier: 9;
+    min-width: auto;
+}
+
+::deep fluent-tree-item::part(positioning-region) {
+    margin-bottom: 1px;
+}
+
+::deep fluent-tree-item:not([selected])::part(positioning-region):not(:hover) {
+    background-color: unset;
+}
+
+::deep .message-tree-item-container {
+    margin-left: 16px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+}
+
+::deep .message-name {
+    display: inline-flex;
+    column-gap: 4px;
+}
+
+::deep .category-badge, ::deep .llm-badge {
+    display: inline-flex;
+}
+
+::deep .category-badge {
+    border-radius: 4px;
+    margin-left: 8px;
+    font-size: 12px;
+    line-height: 18px;
+    padding: 0px 2px;
+    column-gap: 2px;
+}
+
+::deep .llm-badge {
+    border-radius: 8px;
+    padding: 0px 8px;
+    background-color: var(--llm-background-color);
+    color: var(--llm-color);
+    margin-right: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+::deep .category-message {
+    background-color: var(--message-background-color);
+    color: var(--message-color);
+    --icon-color: var(--message-color);
+}
+
+::deep .category-tool-calls {
+    background-color: var(--tool-calls-background-color);
+    color: var(--tool-calls-color);
+    --icon-color: var(--tool-calls-color);
+}
+
+::deep .category-output {
+    background-color: var(--output-background-color);
+    color: var(--output-color);
+    --icon-color: var(--output-color);
+}
+
+::deep .message-header {
+    display: flex;
+    align-items: center;
+    height: 50px;
+}
+
+::deep .message-header-details {
+    display: flex;
+    flex-flow: column;
+    font-size: 12px;
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+::deep .message-header-title {
+    display: flex;
+    flex-flow: column;
+}
+
+::deep .message-header-date {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+}
+
+::deep .tab-container {
+    margin-top: 10px;
+    padding-right: 8px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    /* don't stretch images */
+    align-items: flex-start;
+    /* break up long words that take up the entire line. avoid horizontal scrollbars */
+    word-break: break-word;
+}
+
+::deep .tab-container img {
+    /* don't exceed available space and keep aspect ratio */
+    max-width: 100%;
+    height: auto;
+}
+
+::deep .section-container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    width: 100%;
+}
+
+::deep .span-details-layout, ::deep .property-grid-container {
+    padding: 0;
+    overflow: initial;
+    display: block;
+}
+
+::deep .message-container .log-content {
+    /* don't break on every word */
+    word-break: normal;
+}
+
+::deep .text-visualizer-line-number {
+    min-width: 33px;
+}
+
+::deep .message-container .defaultHidden {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: none;
+}
+
+::deep .message-container:hover .defaultHidden {
+    display: block;
+}
+
+::deep .no-message-content {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+}
+
+::deep .display-error-message {
+    color: var(--error);
+}
+
+::deep .display-error-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+::deep .no-message-content-content {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+    padding-bottom: 12px;
+}
+
+::deep .message-copy-button {
+    margin-left: auto;
+    margin-top: 4px;
+    margin-right: 4px;
+}
+
+::deep .markdown-container {
+    width: 100%;
+}

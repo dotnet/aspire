@@ -166,6 +166,8 @@ message HealthReport {
     string description = 3;
     // Any exception details.
     string exception = 4;
+    // The timestamp when this health check was last executed.
+    optional google.protobuf.Timestamp last_run_at = 5;
 }
 
 enum HealthStatus {
@@ -243,6 +245,13 @@ message Resource {
 
     // Whether the resource is built into Aspire and supports more detailed telemetry.
     bool supports_detailed_telemetry = 22;
+
+    // Optional custom icon name to use for the resource. This should be a valid FluentUI icon name.
+    // If not specified, the dashboard will use default icons based on the resource type.
+    optional string icon_name = 23;
+
+    // Optional icon variant for the custom icon.
+    optional IconVariant icon_variant = 24;
 }
 
 ////////////////////////////////////////////
@@ -323,8 +332,12 @@ message WatchInteractionsRequestUpdate {
         InteractionComplete complete = 2;
         InteractionMessageBox message_box = 3;
         InteractionInputsDialog inputs_dialog = 4;
-        InteractionMessageBar message_bar = 5;
+        InteractionNotification notification = 5;
     }
+
+    // A flag indicating that the message is an update and shouldn't complete the interaction.
+    // Currently only used for inputs dialog updates.
+    optional bool response_update = 6;
 }
 // A message received from the server when watching interactions. Has multiple types of payload.
 message WatchInteractionsResponseUpdate {
@@ -337,12 +350,13 @@ message WatchInteractionsResponseUpdate {
     string secondary_button_text = 5;
     bool show_secondary_button = 6;
     bool show_dismiss = 7;
+    bool enable_message_markdown = 8;
 
     oneof kind {
         InteractionComplete complete = 16;
         InteractionMessageBox message_box = 17;
         InteractionInputsDialog inputs_dialog = 18;
-        InteractionMessageBar message_bar = 19;
+        InteractionNotification notification = 19;
     }
 }
 // Represents the completion of an interaction.
@@ -353,12 +367,12 @@ message InteractionMessageBox {
     MessageIntent intent = 1;
     optional bool result = 2;
 }
-// Represents a message bar interaction, which is a non-modal message with an optional link.
-message InteractionMessageBar {
+// Represents a notification interaction, which is a non-modal message with an optional link.
+message InteractionNotification {
     MessageIntent intent = 1;
     optional bool result = 2;
-    string linkText = 3;
-    string linkUrl = 4;
+    string link_text = 3;
+    string link_url = 4;
 }
 // Represents a dialog that collects inputs from the user.
 message InteractionInputsDialog {
@@ -373,6 +387,14 @@ message InteractionInput {
     map<string, string> options = 5;
     string value = 6;
     repeated string validation_errors = 7;
+    string description = 8;
+    bool enable_description_markdown = 9;
+    int32 max_length = 10;
+    bool allow_custom_choice = 11;
+    bool loading = 12;
+    bool update_state_on_change = 13;
+    string name = 14;
+    bool disabled = 15;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;

@@ -1,0 +1,51 @@
+# Sample Data for Pipeline Processing
+
+## User Records
+ID,Name,Email,Department,Salary,JoinDate
+1,John Smith,john.smith@example.com,Engineering,75000,2023-01-15
+2,Sarah Johnson,sarah.johnson@example.com,Marketing,65000,2023-02-20
+3,Mike Davis,mike.davis@example.com,Engineering,80000,2022-11-10
+4,Lisa Wilson,lisa.wilson@example.com,Sales,70000,2023-03-05
+5,David Brown,david.brown@example.com,HR,60000,2023-01-30
+
+## Application Logs
+2024-01-15T10:30:15.123Z INFO Starting application service
+2024-01-15T10:30:16.456Z INFO Database connection established
+2024-01-15T10:30:17.789Z WARN Slow query detected: SELECT * FROM users WHERE department = 'Engineering'
+2024-01-15T10:30:18.012Z INFO Processing 150 user records
+2024-01-15T10:30:19.345Z ERROR Failed to process record ID: 42 - Invalid email format
+2024-01-15T10:30:20.678Z INFO Successfully processed 149 records
+2024-01-15T10:30:21.901Z INFO Application service stopped gracefully
+
+## Configuration Settings
+{
+    "database": {
+        "connectionString": "Server=localhost;Database=AspireDemo;Trusted_Connection=true;",
+        "timeout": 30
+    },
+    "messaging": {
+        "rabbitMQ": {
+            "host": "localhost",
+            "port": 5672,
+            "virtualHost": "/"
+        }
+    },
+    "redis": {
+        "connectionString": "localhost:6379"
+    }
+}
+
+## Sample Messages
+MSG001: User registration completed for user ID 1001
+MSG002: Password reset requested for user john.doe@example.com
+MSG003: Order #12345 shipped to customer address
+MSG004: Payment processed successfully for amount $299.99
+MSG005: Inventory updated: Product SKU-ABC123 quantity changed from 100 to 85
+
+## Performance Metrics
+Timestamp,CPU_Usage,Memory_MB,Requests_Per_Second,Response_Time_MS
+2024-01-15T10:00:00Z,25.4,512,150,45
+2024-01-15T10:01:00Z,32.1,548,175,52
+2024-01-15T10:02:00Z,28.7,534,165,48
+2024-01-15T10:03:00Z,45.2,612,220,67
+2024-01-15T10:04:00Z,38.9,589,198,58

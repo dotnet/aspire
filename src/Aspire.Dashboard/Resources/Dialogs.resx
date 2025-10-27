@@ -235,11 +235,11 @@
   <data name="ExemplarsDialogTrace" xml:space="preserve">
     <value>Trace</value>
   </data>
-  <data name="OpenTraceDialogMessage" xml:space="preserve">
-    <value>Waiting for trace {0} to load...</value>
-    <comment>{0} is a trace ID</comment>
+  <data name="OpenSpanDialogMessage" xml:space="preserve">
+    <value>Waiting for span {0} to load...</value>
+    <comment>{0} is a span ID</comment>
   </data>
-  <data name="OpenTraceDialogCancelButtonText" xml:space="preserve">
+  <data name="OpenSpanDialogCancelButtonText" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="TextVisualizerDialogPlaintextFormat" xml:space="preserve">
@@ -303,5 +303,94 @@
   </data>
   <data name="InteractionButtonClose" xml:space="preserve">
     <value>Close</value>
+  </data>
+  <data name="GenAIPreviousButtonText" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="GenAINextButtonText" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="GenAIPreviewTabText" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="GenAIRawTabText" xml:space="preserve">
+    <value>Raw</value>
+  </data>
+  <data name="GenAIDetailsTabText" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="GenAIInputOutputTabText" xml:space="preserve">
+    <value>Input &amp; output</value>
+  </data>
+  <data name="GenAIDurationLabel" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="GenAITokensLabel" xml:space="preserve">
+    <value>Tokens</value>
+  </data>
+  <data name="GenAINAText" xml:space="preserve">
+    <value>n/a</value>
+    <comment>Abbreviation for Not Available</comment>
+  </data>
+  <data name="GenAIInputTokensText" xml:space="preserve">
+    <value>Input tokens: {0}</value>
+    <comment>{0} is the number of tokens</comment>
+  </data>
+  <data name="GenAIOutputTokensText" xml:space="preserve">
+    <value>Output tokens: {0}</value>
+    <comment>{0} is the number of tokens</comment>
+  </data>
+  <data name="GenAIInputHeaderText" xml:space="preserve">
+    <value>Input</value>
+  </data>
+  <data name="GenAIOutputHeaderText" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="GenAIMessageCategoryToolCalls" xml:space="preserve">
+    <value>Tool calls</value>
+  </data>
+  <data name="GenAIMessageCategoryOutput" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="GenAIMessageCategoryMessage" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="GenAIMessageTitleSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="GenAIMessageTitleUser" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="GenAIMessageTitleAssistant" xml:space="preserve">
+    <value>Assistant</value>
+  </data>
+  <data name="GenAIMessageTitleTool" xml:space="preserve">
+    <value>Tool</value>
+  </data>
+  <data name="GenAIMessageTitleError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="GenAIMessageCategoryStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="GenAIErrorHeaderText" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="GenAINoMessageContentMoreInformationMessage" xml:space="preserve">
+    <value>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</value>
+    <comment>{0} is a URL</comment>
+  </data>
+  <data name="GenAINoMessageContent" xml:space="preserve">
+    <value>No message content.</value>
+  </data>
+  <data name="GenAINoMessages" xml:space="preserve">
+    <value>No messages found.</value>
+  </data>
+  <data name="SettingsDialogDotNetRuntimeVersion" xml:space="preserve">
+    <value>Runtime: {0}</value>
+    <comment>{0} is the .NET runtime version</comment>
+  </data>
+  <data name="GenAIDisplayErrorMessageText" xml:space="preserve">
+    <value>Error displaying GenAI content:</value>
   </data>
 </root>

@@ -18,10 +18,10 @@ public static class TelemetryPropertyKeys
 
     // ConsoleLogs properties
     public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + "ConsoleLogs.ShowTimestamp";
-    public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + "ConsoleLogs.ApplicationName";
+    public const string ConsoleLogsResourceName = AspireDashboardPropertyPrefix + "ConsoleLogs.ResourceName";
 
     // Metrics properties
-    public const string MetricsApplicationIsReplica = AspireDashboardPropertyPrefix + "Metrics.ApplicationIsReplica";
+    public const string MetricsResourceIsReplica = AspireDashboardPropertyPrefix + "Metrics.ResourceIsReplica";
     public const string MetricsInstrumentsCount = AspireDashboardPropertyPrefix + "Metrics.InstrumentsCount";
     public const string MetricsSelectedDuration = AspireDashboardPropertyPrefix + "Metrics.SelectedDuration";
     public const string MetricsSelectedView = AspireDashboardPropertyPrefix + "Metrics.SelectedView";
@@ -30,6 +30,7 @@ public static class TelemetryPropertyKeys
     public const string ExceptionType = AspireDashboardPropertyPrefix + "Exception.Type";
     public const string ExceptionMessage = AspireDashboardPropertyPrefix + "Exception.Message";
     public const string ExceptionStackTrace = AspireDashboardPropertyPrefix + "Exception.StackTrace";
+    public const string ExceptionRuntimeVersion = AspireDashboardPropertyPrefix + "Exception.RuntimeVersion";
 
     // Resources properties
     public const string ResourceTypes = AspireDashboardPropertyPrefix + "Resource.Types";
@@ -45,4 +46,11 @@ public static class TelemetryPropertyKeys
 
     // Command properties
     public const string CommandName = AspireDashboardPropertyPrefix + "Command.Name";
+
+    // AIAssistant properties
+    public const string AIAssistantEnabled = AspireDashboardPropertyPrefix + "AIAssistant.Enabled";
+    public const string AIAssistantChatMessageCount = AspireDashboardPropertyPrefix + "AIAssistant.ChatMessageCount";
+    public const string AIAssistantSelectedModel = AspireDashboardPropertyPrefix + "AIAssistant.SelectedModel";
+    public const string AIAssistantToolCalls = AspireDashboardPropertyPrefix + "AIAssistant.ToolCalls";
+    public const string AIAssistantFeedbackType = AspireDashboardPropertyPrefix + "AIAssistant.FeedbackType";
 }

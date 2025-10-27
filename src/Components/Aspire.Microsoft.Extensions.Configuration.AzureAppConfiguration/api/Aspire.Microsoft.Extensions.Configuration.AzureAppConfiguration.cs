@@ -10,7 +10,13 @@ namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
 {
     public sealed partial class AzureAppConfigurationSettings
     {
+        public string? ConnectionString { get { throw null; } set { } }
+
         public global::Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
+
+        public bool DisableHealthChecks { get { throw null; } set { } }
+
+        public bool DisableTracing { get { throw null; } set { } }
 
         public System.Uri? Endpoint { get { throw null; } set { } }
 

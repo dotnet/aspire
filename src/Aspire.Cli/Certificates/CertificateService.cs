@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;

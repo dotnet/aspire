@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) sqlserver sql</PackageTags>
     <Description>A Microsoft SQL Server client that integrates with Aspire, including health checks, metrics and telemetry.</Description>

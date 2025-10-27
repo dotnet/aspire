@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
-        <target state="needs-review-translation">Créez un nouveau projet d’exemple Aspire.</target>
+        <target state="translated">Créez un nouveau projet Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">Entrez le nom du projet :</target>
+        <source>Enter the project name</source>
+        <target state="translated">Entrer le nom du projet</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
-        <source>Select a project template:</source>
-        <target state="translated">Sélectionnez un modèle de projet :</target>
+        <source>Select a template:</source>
+        <target state="translated">Sélectionnez un modèle :</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">La source NuGet à utiliser pour les modèles de projet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="translated">(utilisez des modèles de préversion)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

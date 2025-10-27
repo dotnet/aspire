@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,9 +46,9 @@ public class TextVisualizerDialogTests : DashboardTestContext
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
-        Assert.Equal(expectedJson, instance.FormattedText);
-        Assert.Equal(TextVisualizerDialog.JsonFormat, instance.FormatKind);
-        Assert.Equal([TextVisualizerDialog.JsonFormat, TextVisualizerDialog.PlaintextFormat], instance.EnabledOptions.ToImmutableSortedSet());
+        Assert.Equal(expectedJson, instance.TextVisualizerViewModel.FormattedText);
+        Assert.Equal(DashboardUIHelpers.JsonFormat, instance.TextVisualizerViewModel.FormatKind);
+        Assert.Equal([DashboardUIHelpers.JsonFormat, DashboardUIHelpers.PlaintextFormat], instance.EnabledOptions.ToImmutableSortedSet());
     }
 
     [Fact]
@@ -57,7 +57,6 @@ public class TextVisualizerDialogTests : DashboardTestContext
         const string rawXml = """<parent><child>text<!-- comment --></child></parent>""";
         const string expectedXml =
             """
-            <?xml version="1.0" encoding="utf-16"?>
             <parent>
               <child>text<!-- comment --></child>
             </parent>
@@ -69,15 +68,15 @@ public class TextVisualizerDialogTests : DashboardTestContext
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
-        Assert.Equal(TextVisualizerDialog.XmlFormat, instance.FormatKind);
-        Assert.Equal(expectedXml, instance.FormattedText);
-        Assert.Equal([TextVisualizerDialog.PlaintextFormat, TextVisualizerDialog.XmlFormat], instance.EnabledOptions.ToImmutableSortedSet());
+        Assert.Equal(DashboardUIHelpers.XmlFormat, instance.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(expectedXml, instance.TextVisualizerViewModel.FormattedText);
+        Assert.Equal([DashboardUIHelpers.PlaintextFormat, DashboardUIHelpers.XmlFormat], instance.EnabledOptions.ToImmutableSortedSet());
 
         // changing format works
-        instance.ChangeFormat(TextVisualizerDialog.PlaintextFormat, rawXml);
+        instance.ChangeFormat(DashboardUIHelpers.PlaintextFormat, rawXml);
 
-        Assert.Equal(TextVisualizerDialog.PlaintextFormat, instance.FormatKind);
-        Assert.Equal(rawXml, instance.FormattedText);
+        Assert.Equal(DashboardUIHelpers.PlaintextFormat, instance.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(rawXml, instance.TextVisualizerViewModel.FormattedText);
     }
 
     [Fact]
@@ -96,9 +95,9 @@ public class TextVisualizerDialogTests : DashboardTestContext
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
-        Assert.Equal(TextVisualizerDialog.XmlFormat, instance.FormatKind);
-        Assert.Equal(expectedXml, instance.FormattedText);
-        Assert.Equal([TextVisualizerDialog.PlaintextFormat, TextVisualizerDialog.XmlFormat], instance.EnabledOptions.ToImmutableSortedSet());
+        Assert.Equal(DashboardUIHelpers.XmlFormat, instance.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(expectedXml, instance.TextVisualizerViewModel.FormattedText);
+        Assert.Equal([DashboardUIHelpers.PlaintextFormat, DashboardUIHelpers.XmlFormat], instance.EnabledOptions.ToImmutableSortedSet());
     }
 
     [Fact]
@@ -112,9 +111,9 @@ public class TextVisualizerDialogTests : DashboardTestContext
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
-        Assert.Equal(TextVisualizerDialog.PlaintextFormat, instance.FormatKind);
-        Assert.Equal(rawText, instance.FormattedText);
-        Assert.Equal([TextVisualizerDialog.PlaintextFormat], instance.EnabledOptions.ToImmutableSortedSet());
+        Assert.Equal(DashboardUIHelpers.PlaintextFormat, instance.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(rawText, instance.TextVisualizerViewModel.FormattedText);
+        Assert.Equal([DashboardUIHelpers.PlaintextFormat], instance.EnabledOptions.ToImmutableSortedSet());
     }
 
     [Fact]
@@ -168,13 +167,13 @@ public class TextVisualizerDialogTests : DashboardTestContext
         cut.WaitForAssertion(() => Assert.True(cut.HasComponent<TextVisualizerDialog>()));
 
         Assert.Single(cut.FindAll(".block-warning"));
-        Assert.False(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
+        Assert.False(cut.HasComponent<Virtualize<StringLogLine>>());
 
         cut.Find(".text-visualizer-unmask-content").Click();
 
         cut.WaitForAssertion(() => Assert.False(cut.FindComponent<TextVisualizerDialog>().Instance.ShowSecretsWarning));
         Assert.Empty(cut.FindAll(".block-warning"));
-        Assert.True(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
+        Assert.True(cut.HasComponent<Virtualize<StringLogLine>>());
         Assert.True(secretsWarningAcknowledged);
     }
 
@@ -191,41 +190,22 @@ public class TextVisualizerDialogTests : DashboardTestContext
 
         cut.WaitForAssertion(() => Assert.False(cut.FindComponent<TextVisualizerDialog>().Instance.ShowSecretsWarning));
         Assert.False(cut.HasComponent<FluentMessageBar>());
-        Assert.True(cut.HasComponent<Virtualize<TextVisualizerDialog.StringLogLine>>());
+        Assert.True(cut.HasComponent<Virtualize<StringLogLine>>());
     }
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService, ThemeManager? themeManager = null, TestLocalStorage? localStorage = null)
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-        themeManager ??= new ThemeManager(new TestThemeResolver());
+        FluentUISetupHelpers.SetupDialogInfrastructure(this, themeManager: themeManager, localStorage: localStorage);
 
-        Services.AddSingleton<ILocalStorage>(localStorage ?? new TestLocalStorage());
-        Services.AddFluentUIComponents();
-        Services.AddSingleton(themeManager);
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddLocalization();
-        var module = JSInterop.SetupModule("/Components/Dialogs/TextVisualizerDialog.razor.js");
+        var module = JSInterop.SetupModule("/Components/Controls/TextVisualizer.razor.js");
         module.SetupVoid();
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
 
-        var cut = Render(builder =>
-        {
-            builder.OpenComponent<FluentDialogProvider>(0);
-            builder.CloseComponent();
-        });
-
-        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
-        // This makes FluentMenu render without error.
-        var menuService = Services.GetRequiredService<IMenuService>();
-        menuService.ProviderId = "Test";
+        var cut = FluentUISetupHelpers.RenderDialogProvider(this);
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }

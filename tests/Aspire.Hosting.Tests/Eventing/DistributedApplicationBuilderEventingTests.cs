@@ -6,7 +6,6 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Eventing;
 
@@ -177,15 +176,14 @@ public class DistributedApplicationBuilderEventingTests
         var beforeResourceStartedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis");
-
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(redis.Resource, (e, ct) =>
-        {
-            Assert.NotNull(e.Services);
-            Assert.NotNull(e.Resource);
-            beforeResourceStartedTcs.TrySetResult();
-            return Task.CompletedTask;
-        });
+        var redis = builder.AddRedis("redis")
+            .OnBeforeResourceStarted((_, e, _) =>
+            {
+                Assert.NotNull(e.Services);
+                Assert.NotNull(e.Resource);
+                beforeResourceStartedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
 
         using var app = builder.Build();
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
@@ -267,7 +265,83 @@ public class DistributedApplicationBuilderEventingTests
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task ResourceStoppedEventCanBeSubscribedTo()
+    {
+        var eventFired = false;
+        var resourceStopped = default(IResource);
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new TestResource("test-resource"))
+            .OnResourceStopped((res, evt, ct) =>
+            {
+                eventFired = true;
+                resourceStopped = res;
+                Assert.NotNull(evt.Services);
+                Assert.Equal(res, evt.Resource);
+                Assert.NotNull(evt.ResourceEvent);
+                Assert.Equal(res, evt.ResourceEvent.Resource);
+                return Task.CompletedTask;
+            });
+
+        // Verify the subscription was registered (the event handler is stored in the eventing service)
+        Assert.NotNull(resource);
+
+        // This test focuses on verifying subscription registration and callback structure.
+        // The following integration test handles actual event firing with complex setup.
+        using var app = builder.Build();
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+        // Manually fire the event to test the subscription
+        var testSnapshot = new CustomResourceSnapshot
+        {
+            ResourceType = "TestResource",
+            Properties = []
+        };
+        var testResourceEvent = new ResourceEvent(resource.Resource, "test-resource", testSnapshot);
+        var testEvent = new ResourceStoppedEvent(resource.Resource, app.Services, testResourceEvent);
+        await eventing.PublishAsync(testEvent, CancellationToken.None);
+
+        Assert.True(eventFired);
+        Assert.Equal(resource.Resource, resourceStopped);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task ResourceStoppedEventFiresWhenResourceStops()
+    {
+        var resourceStoppedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis")
+            .OnResourceStopped((resource, e, _) =>
+            {
+                Assert.NotNull(e.Services);
+                Assert.NotNull(e.Resource);
+                Assert.Equal(resource, e.Resource);
+                resourceStoppedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
+
+        using var app = builder.Build();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Get the resource notification service to wait for the resource to start
+        await app.ResourceNotifications.WaitForResourceAsync("redis", KnownResourceStates.Running).DefaultTimeout();
+
+        await app.ResourceCommands.ExecuteCommandAsync("redis", KnownResourceCommands.StopCommand);
+
+        // Verify that ResourceStoppedEvent was fired
+        await resourceStoppedTcs.Task.DefaultTimeout();
+    }
+
     public class DummyEvent : IDistributedApplicationEvent
     {
+    }
+
+    private sealed class TestResource(string name) : IResource
+    {
+        public string Name { get; } = name;
+        public ResourceAnnotationCollection Annotations { get; } = new();
     }
 }

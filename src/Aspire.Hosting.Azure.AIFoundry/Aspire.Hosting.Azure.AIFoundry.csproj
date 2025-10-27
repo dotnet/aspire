@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure openai ai aifoundry foundry</PackageTags>
-    <Description>Azure AI Foundry resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure openai ai aifoundry foundry ai-search cloud</PackageTags>
+    <Description>Azure AI Foundry resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureAIFoundry_256x.png</PackageIconFullPath>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <!--
@@ -14,7 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+    <Compile Remove="tools\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

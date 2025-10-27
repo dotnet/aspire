@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.DotNet.RemoteExecutor;
-using Xunit;
 
 namespace Aspire.Cli.Tests;
 
@@ -22,7 +21,7 @@ public class CliSmokeTests
     [InlineData("fr", true)]
     [InlineData("fr", true, "DOTNET_CLI_UI_LANGUAGE")]
     [InlineData("el", false)]
-    public void LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_CLI_LOCALE_OVERRIDE")
+    public void LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_LOCALE_OVERRIDE")
     {
         RemoteExecutor.Invoke(async (loc, validStr, envVar) =>
         {

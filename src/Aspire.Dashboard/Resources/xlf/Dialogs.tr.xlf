@@ -97,6 +97,141 @@
         <target state="translated">Değer</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTabText">
+        <source>Details</source>
+        <target state="translated">Ayrıntılar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="translated">GenAI içeriğini görüntüleme hatası:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDurationLabel">
+        <source>Duration</source>
+        <target state="translated">Süre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIErrorHeaderText">
+        <source>Error</source>
+        <target state="translated">Hata</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputHeaderText">
+        <source>Input</source>
+        <target state="translated">Giriş</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputOutputTabText">
+        <source>Input &amp; output</source>
+        <target state="translated">Giriş ve çıkış</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputTokensText">
+        <source>Input tokens: {0}</source>
+        <target state="translated">Giriş belirteçleri: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryMessage">
+        <source>Message</source>
+        <target state="translated">İleti</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryOutput">
+        <source>Output</source>
+        <target state="translated">Çıkış</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryStatus">
+        <source>Status</source>
+        <target state="translated">Durum</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolCalls">
+        <source>Tool calls</source>
+        <target state="translated">Araç çağrıları</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleAssistant">
+        <source>Assistant</source>
+        <target state="translated">Yardımcı</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleError">
+        <source>Error</source>
+        <target state="translated">Hata</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleSystem">
+        <source>System</source>
+        <target state="translated">Sistem</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleTool">
+        <source>Tool</source>
+        <target state="translated">Araç</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleUser">
+        <source>User</source>
+        <target state="translated">Kullanıcı</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINAText">
+        <source>n/a</source>
+        <target state="translated">yok</target>
+        <note>Abbreviation for Not Available</note>
+      </trans-unit>
+      <trans-unit id="GenAINextButtonText">
+        <source>Next</source>
+        <target state="translated">Sonraki</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContent">
+        <source>No message content.</source>
+        <target state="translated">İleti içeriği yok.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContentMoreInformationMessage">
+        <source>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</source>
+        <target state="translated">Telemetriye hiçbir ileti içeriği kaydedilmedi. Hassas içeriği görüntülemek için ek yapılandırma gerekebilir. Daha fazla bilgi için bkz. &lt;a href="{0}" target="_blank"&gt;Yapay zeka telemetri yapılandırması&lt;/a&gt;.</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="GenAINoMessages">
+        <source>No messages found.</source>
+        <target state="translated">İleti bulunamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputHeaderText">
+        <source>Output</source>
+        <target state="translated">Çıkış</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputTokensText">
+        <source>Output tokens: {0}</source>
+        <target state="translated">Çıkış belirteçleri: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIPreviewTabText">
+        <source>Preview</source>
+        <target state="translated">Önizleme</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIPreviousButtonText">
+        <source>Previous</source>
+        <target state="translated">Önceki</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIRawTabText">
+        <source>Raw</source>
+        <target state="translated">Ham</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAITokensLabel">
+        <source>Tokens</source>
+        <target state="translated">Belirteçler</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
         <target state="translated">Site genelinde gezinti</target>
@@ -184,17 +319,17 @@
       </trans-unit>
       <trans-unit id="InteractionButtonCancel">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">İptal</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Kapat</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonOk">
         <source>OK</source>
-        <target state="new">OK</target>
+        <target state="translated">Tamam</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
@@ -202,15 +337,15 @@
         <target state="translated">Metin görselleştiricide aç</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogCancelButtonText">
+      <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
         <target state="translated">İptal</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogMessage">
-        <source>Waiting for trace {0} to load...</source>
-        <target state="translated">{0} izinin yüklenmesi bekleniyor...</target>
-        <note>{0} is a trace ID</note>
+      <trans-unit id="OpenSpanDialogMessage">
+        <source>Waiting for span {0} to load...</source>
+        <target state="translated">Span {0} yükleniyor...</target>
+        <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
@@ -221,6 +356,11 @@
         <source>Resource logs and telemetry</source>
         <target state="translated">Kaynak günlükleri ve telemetri</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="translated">Çalışma Zamanı: {0}</target>
+        <note>{0} is the .NET runtime version</note>
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>

@@ -10,7 +10,7 @@ namespace Aspire.Azure.AI.OpenAI
 {
     public partial class AspireAzureOpenAIClientBuilder : Aspire.OpenAI.AspireOpenAIClientBuilder
     {
-        public AspireAzureOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing) : base(default!, default!, default, default) { }
+        public AspireAzureOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing, bool enableSensitiveTelemetryData) : base(default!, default!, default, default, default) { }
 
         public override string ConfigurationSectionName { get { throw null; } }
     }
@@ -22,6 +22,8 @@ namespace Aspire.Azure.AI.OpenAI
         public bool DisableMetrics { get { throw null; } set { } }
 
         public bool DisableTracing { get { throw null; } set { } }
+
+        public bool EnableSensitiveTelemetryData { get { throw null; } set { } }
 
         public System.Uri? Endpoint { get { throw null; } set { } }
 

@@ -48,11 +48,10 @@ public abstract class ContainerFileSystemItem
 }
 
 /// <summary>
-/// Represents a file in the container file system.
+/// Base class for files in the container file system (as compared to directories).
 /// </summary>
-public sealed class ContainerFile : ContainerFileSystemItem
+public abstract class ContainerFileBase : ContainerFileSystemItem
 {
-
     /// <summary>
     /// The contents of the file. Setting Contents is mutually exclusive with <see cref="SourcePath"/>. If both are set, an exception will be thrown.
     /// </summary>
@@ -63,6 +62,29 @@ public sealed class ContainerFile : ContainerFileSystemItem
     /// Setting SourcePath is mutually exclusive with <see cref="Contents"/>. If both are set, an exception will be thrown.
     /// </summary>
     public string? SourcePath { get; set; }
+
+    /// <summary>
+    /// If true, errors creating this file will be ignored and the container creation will continue. Defaults to false.
+    /// </summary>
+    public bool? ContinueOnError { get; set; }
+}
+
+/// <summary>
+/// Represents a standard file in the container file system.
+/// </summary>
+public sealed class ContainerFile : ContainerFileBase
+{
+}
+
+/// <summary>
+/// Represents an OpenSSL public certificate in the container file system. Must be PEM encoded.
+/// An OpenSSL compatible symlink pointing to the destination file will be created in the same
+/// container folder as the certificate file named [subject hash].[n], where [n] is a
+/// sequence number that increases for each certificate in a target folder with the same
+/// subject hash.
+/// </summary>
+public sealed class ContainerOpenSSLCertificateFile : ContainerFileBase
+{
 }
 
 /// <summary>
@@ -90,7 +112,7 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
                         Entries = node.Value.SelectMany(GetItems),
                     },
                 ],
-                ContainerFile file => [file],
+                ContainerFileBase file => [file],
                 _ => throw new InvalidOperationException($"Unknown file system item type: {node.Value.GetType().Name}"),
             };
         }

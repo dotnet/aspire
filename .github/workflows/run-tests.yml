@@ -24,6 +24,9 @@ on:
       extraTestArgs:
         required: false
         type: string
+      versionOverrideArg:
+        required: false
+        type: string
       # Triggers downloading the built nugets, and running the tests
       # from the archive outside the repo
       requiresNugets:
@@ -36,17 +39,27 @@ on:
         required: false
         type: boolean
         default: false
+      # Controls whether to install Playwright browsers during project build
+      enablePlaywrightInstall:
+        required: false
+        type: boolean
+        default: false
       os:
         required: false
         type: string
         default: "ubuntu-latest"
+      # When true, ignores test failures and checks if .trx files have nonzero test count
+      ignoreTestFailures:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
   test:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
-    name: ${{ inputs.testShortName }}
+    name: ${{ inputs.testShortName }} (${{ inputs.os }})
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
     steps:
@@ -58,12 +71,17 @@ jobs:
             exit 1
           }
 
+      # Adding .dotnet to GITHUB_PATH as this ensures that the tests running
+      # from the repo always use restored dotnet. For tests run from outside
+      # the repo we install system dotnet earlier in the build
+
       - name: Setup vars (Linux)
         if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
           echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
+          echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
 
       - name: Setup vars (Windows)
         if: ${{ inputs.os == 'windows-latest' }}
@@ -71,6 +89,7 @@ jobs:
           echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
           echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
           echo "TEST_RUN_PATH=${{ github.workspace }}\run-tests" >> $env:GITHUB_ENV
+          echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
 
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -107,10 +126,52 @@ jobs:
         run:
           Move-Item -Path "${{ github.workspace }}/artifacts/packages/built-nugets/Debug" -Destination "${{ github.workspace }}/artifacts/packages"
 
+      - name: Compute RID for arch-specific packages
+        if: ${{ inputs.requiresNugets }}
+        id: compute_rid
+        shell: pwsh
+        run: |
+          $os = "${{ inputs.os }}"
+          switch ($os) {
+            'ubuntu-latest' { $rid = 'linux-x64' }
+            'macos-latest'  { $rid = 'osx-arm64' }
+            'windows-latest'{ $rid = 'win-x64' }
+            Default { Write-Error "Unknown OS '$os' for RID mapping"; exit 1 }
+          }
+          Write-Host "Using RID=$rid"
+          "RID=$rid"    | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "rid=$rid"    | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Download arch-specific nugets
+        if: ${{ inputs.requiresNugets }}
+        continue-on-error: true
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: built-nugets-for-${{ steps.compute_rid.outputs.rid }}
+          path: ${{ github.workspace }}/arch-specific
+
+      - name: Merge arch-specific nugets into package feed
+        if: ${{ inputs.requiresNugets }}
+        shell: pwsh
+        run: |
+          $dest = "${{ github.workspace }}/artifacts/packages/Debug/Shipping"
+          if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+          $source = "${{ github.workspace }}/arch-specific"
+          if (-not (Test-Path $source)) {
+            Write-Error "Source folder '$source' does not exist."; exit 1
+          }
+          $nupkgs = Get-ChildItem -Path $source -Filter *.nupkg -ErrorAction SilentlyContinue
+          if (-not $nupkgs -or $nupkgs.Count -eq 0) {
+            Write-Error "No arch-specific nugets found in '$source'"; exit 1
+          } else {
+            foreach ($pkg in $nupkgs) {
+              Copy-Item -Path $pkg.FullName -Destination $dest -Force
+            }
+            Write-Host "Merged $($nupkgs.Count) arch-specific nugets for RID=$env:RID into $dest"
+          }
+
       - name: Install sdk for nuget based testing
         if: ${{ inputs.requiresTestSdk }}
-        env:
-          CI: false
         run: >
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
           /p:SkipPackageCheckForTemplatesTesting=true
@@ -125,8 +186,6 @@ jobs:
       - name: Compute test project path
         id: compute_project_path
         shell: pwsh
-        env:
-          CI: false
         run: |
           $testShortName = "${{ inputs.testShortName }}"
           $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
@@ -150,25 +209,27 @@ jobs:
 
       - name: Build test project
         if: ${{ ! inputs.requiresNugets }}
-        env:
-          CI: false
-        run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+        run: >
+          ${{ env.BUILD_SCRIPT }}
+          -restore
+          -ci
+          -build
+          -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          ${{ inputs.versionOverrideArg }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
-        env:
-          CI: false
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+          ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          ${{ inputs.versionOverrideArg }}
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
         if: inputs.testShortName == 'Playground'
-        env:
-          CI: false
         run: |
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
@@ -213,11 +274,11 @@ jobs:
         if: ${{ inputs.requiresNugets }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
-          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
           NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
         run: >
@@ -230,18 +291,19 @@ jobs:
           --filter-not-trait "category=failing"
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
+          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
 
       - name: Run tests
         if: ${{ ! inputs.requiresNugets }}
         id: run-tests
         env:
-          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
           # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
+          PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
@@ -257,6 +319,54 @@ jobs:
           --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
+          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+
+      - name: Verify test results exist
+        if: ${{ inputs.ignoreTestFailures }}
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
+          
+          if ($trxFiles.Count -eq 0) {
+            Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
+            exit 1
+          }
+          
+          Write-Host "Found $($trxFiles.Count) .trx file(s)"
+          
+          $validFileCount = 0
+          foreach ($trxFile in $trxFiles) {
+            Write-Host "Checking $($trxFile.Name)..."
+            
+            try {
+              [xml]$trxContent = Get-Content -Path $trxFile.FullName
+              
+              # Check if the XML is valid and non-empty
+              if ($trxContent -and $trxContent.TestRun) {
+                $validFileCount++
+                $countersNode = $trxContent.TestRun.ResultSummary.Counters
+                
+                if ($countersNode -and $countersNode.total) {
+                  $testCount = [int]$countersNode.total
+                  Write-Host "  Total tests in file: $testCount"
+                } else {
+                  Write-Host "  File is valid but has no test count information"
+                }
+              } else {
+                Write-Warning "  File appears to be empty or invalid"
+              }
+            }
+            catch {
+              Write-Warning "Failed to parse $($trxFile.Name): $_"
+            }
+          }
+          
+          if ($validFileCount -eq 0) {
+            Write-Error "No valid .trx files found. All .trx files are empty or invalid XML."
+            exit 1
+          }
+          
+          Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
 
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
@@ -280,8 +390,6 @@ jobs:
 
       - name: Generate test results summary
         if: always()
-        env:
-          CI: false
         shell: pwsh
         run: |
           if (Test-Path "${{ github.workspace }}/testresults") {

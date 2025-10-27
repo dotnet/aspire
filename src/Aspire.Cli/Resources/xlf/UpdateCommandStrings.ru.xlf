@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../UpdateCommandStrings.resx">
+    <body>
+      <trans-unit id="AddedFeedFormat">
+        <source>Added: {0}</source>
+        <target state="translated">Добавлено: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeAppHost">
+        <source>Analyze App Host</source>
+        <target state="translated">Анализ хоста приложений</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeAppHostSdk">
+        <source>Analyze App Host SDK</source>
+        <target state="translated">Анализ SDK хоста приложений</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzeProjectFormat">
+        <source>Analyze project: {0}</source>
+        <target state="translated">Анализ проекта: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AnalyzingProjectStatus">
+        <source>Analyzing project...</source>
+        <target state="translated">Анализ проекта...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplyChangesToNuGetConfig">
+        <source>Apply these changes to NuGet.config?</source>
+        <target state="translated">Применить эти изменения к NuGet.config?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CentralPackageManagementNotSupported">
+        <source>Central package management is currently not supported by 'aspire update'.</source>
+        <target state="translated">Централизованное управление пакетами в настоящее время не поддерживается функцией "обновление Aspire".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Не удалось найти элемент PackageVersion для "{0}" в {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindRootProjectElementFormat">
+        <source>Could not find root &lt;Project&gt; element in {0}</source>
+        <target state="translated">Не удалось найти корневой элемент &lt;Project&gt; в {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindSdkElementFormat">
+        <source>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</source>
+        <target state="translated">Не удалось найти элемент &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; в {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Update integrations in the Aspire project. (Preview)</source>
+        <target state="translated">Обновление интеграций в проекте Aspire. (предварительная версия)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExecutingUpdateStepFormat">
+        <source>Executing: {0}</source>
+        <target state="translated">Выполнение: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedDiscoverNuGetConfig">
+        <source>Failed to discover NuGet.config files.</source>
+        <target state="translated">Не удалось обнаружить файлы NuGet.config.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedFetchItemsAndPropertiesFormat">
+        <source>Failed to fetch items and properties for project: {0}</source>
+        <target state="translated">Не удалось получить элементы и свойства для проекта: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedUpdatePackageReferenceFormat">
+        <source>Failed to update package reference for {0} in project {1}.</source>
+        <target state="translated">Не удалось обновить ссылку на пакет для {0} в проекте {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingAddedFormat">
+        <source>   Mapping: {0} (added)</source>
+        <target state="translated">   Сопоставление: {0} (добавлено)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRemovedFormat">
+        <source>   Mapping: {0} (removed)</source>
+        <target state="translated">   Сопоставление: {0} (удалено)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRetainedFormat">
+        <source>   Mapping: {0}</source>
+        <target state="translated">   Сопоставление: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoChangesDetectedInNuGetConfig">
+        <source>No changes detected in NuGet.config</source>
+        <target state="translated">Изменений в NuGet.config не обнаружено</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoPackageFoundFormat">
+        <source>No package found with ID '{0}' in channel '{1}'.</source>
+        <target state="translated">Не найден пакет с идентификатором "{0}" в канале "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageReferenceNoIdentity">
+        <source>Package reference does not have Identity.</source>
+        <target state="translated">Ссылка на пакет не содержит удостоверение.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageReferenceNoVersion">
+        <source>Package reference does not have Version.</source>
+        <target state="translated">Ссылка на пакет не содержит версию.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PerformUpdatesPrompt">
+        <source>Perform updates?</source>
+        <target state="translated">Выполнить обновления?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectReferenceNoFullPath">
+        <source>Project reference does not have FullPath.</source>
+        <target state="translated">Ссылка на проект не содержит полный путь.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectUpToDateMessage">
+        <source>Project is up to date! (no updates necessary)</source>
+        <target state="translated">Проект обновлен! (обновления не требуются)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedFeedFormat">
+        <source>Removed: {0}</source>
+        <target state="translated">Удалено: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RetainedFeedFormat">
+        <source>Retained: {0}</source>
+        <target state="translated">Сохранено: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectChannelPrompt">
+        <source>Select a channel:</source>
+        <target state="translated">Выберите канал:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnxpectedCodePath">
+        <source>Unexpected code path.</source>
+        <target state="translated">Непредвиденный путь к коду.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatePackageFormat">
+        <source>Update package {0} from {1} to {2}</source>
+        <target state="translated">Обновить пакет {0} с{1} до {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateSuccessfulMessage">
+        <source>Update successful!</source>
+        <target state="translated">Обновлено!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhichDirectoryNuGetConfigPrompt">
+        <source>Which directory for NuGet.config file?</source>
+        <target state="translated">Какой каталог для файла NuGet.config?</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

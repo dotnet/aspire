@@ -17,6 +17,11 @@
         <target state="translated">Файл AppHost указан в "{0}", но не существует в пути "{1}".</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">Не найдены хосты приложений с возможностью сборки, но могут быть хосты приложений без возможности сборки.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">Значение AspireHostingVersion равно NULL</target>
@@ -35,6 +40,11 @@
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
         <target state="translated">Сертификаты разработчика могут быть не полностью доверенными (код завершения доверия: {0}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="translated">Эта команда пока не поддерживается для одиночных файлов AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -69,17 +79,22 @@
       </trans-unit>
       <trans-unit id="ExtensionIncompatibleWithCli">
         <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
-        <target state="new">Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</target>
+        <target state="translated">Расширение Aspire несовместимо с CLI. Расширение необходимо обновить до версии, которая поддерживает возможность {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionTokenMustBeSet">
         <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
-        <target state="new">The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</target>
+        <target state="translated">Необходимо задать токен расширения Aspire, если настроено ASPIRE_EXTENSION_ENDPOINT. Задайте ASPIRE_EXTENSION_TOKEN</target>
         <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
         <source>Failed to parse template version from stdout.</source>
         <target state="translated">Не удалось проделать разбор версии шаблона из stdout.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">Не удалось получить все пакеты Aspire через кэш.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
@@ -99,7 +114,12 @@
       </trans-unit>
       <trans-unit id="InvalidSocketPath">
         <source>The provided extension socket path needs two valid parts.</source>
-        <target state="new">The provided extension socket path needs two valid parts.</target>
+        <target state="translated">Для указанного пути сокета расширения требуется две действительные части.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="translated">Для Aspire CLI требуется версия .NET SDK {0} или более поздняя. Обнаружено: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -114,7 +134,7 @@
       </trans-unit>
       <trans-unit id="NoSelectionMade">
         <source>Input was required for prompt '{0}' but not provided.</source>
-        <target state="new">Input was required for prompt '{0}' but not provided.</target>
+        <target state="translated">Для запроса "{0}" требовались входные данные, но они не были предоставлены.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
@@ -127,14 +147,24 @@
         <target state="translated">Файл проекта не существует.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">Не удалось выполнить сборку: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Файл проекта не является проектом хоста приложений Aspire.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="translated">Файл проекта не является проектом Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">Проект не является проектом хоста приложений Aspire.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="translated">Проект не содержит хост приложений Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="translated">Функция одиночного файла AppHost не включена. Чтобы использовать CS-файлы AppHost, включите эту функцию с помощью конфигурации.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

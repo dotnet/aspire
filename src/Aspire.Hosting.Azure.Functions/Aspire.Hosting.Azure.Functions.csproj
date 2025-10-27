@@ -1,12 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <!-- Azure Functions support is in preview until the full experience is implemented. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>aspire integration hosting azure functions</PackageTags>
-    <Description>Azure Functions resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure functions serverless cloud</PackageTags>
+    <Description>Azure Functions resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
@@ -22,18 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Aspire.Hosting\Properties\Resources.Designer.cs">
-      <Link>Properties\Resources.Designer.cs</Link>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
+    <Compile Include="..\Aspire.Hosting\Resources\LaunchProfileStrings.Designer.cs">
+      <Link>Resources\LaunchProfileStrings.Designer.cs</Link>
+      <DependentUpon>LaunchProfileStrings.resx</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="..\Aspire.Hosting\Properties\Resources.resx">
-      <Link>Properties\Resources.resx</Link>
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <CustomToolNamespace>Aspire.Hosting.Properties</CustomToolNamespace>
-      <LogicalName>Aspire.Hosting.Properties.Resources.resources</LogicalName>
+    <EmbeddedResource Include="..\Aspire.Hosting\Resources\LaunchProfileStrings.resx">
+      <Link>Resources\LaunchProfileStrings.resx</Link>
     </EmbeddedResource>
   </ItemGroup>
 

@@ -1,0 +1,17 @@
+//- Render an html page containing a table of weather forecasts
+html
+    head(title=Weather Forecasts)
+    body
+        h1 Weather Forecasts
+        table
+            thead
+                tr
+                    th Date
+                    th Temperature (C)
+                    th Summary
+            tbody
+                each forecast in forecasts
+                    tr
+                        td=forecast.date
+                        td=forecast.temperatureC
+                        td=forecast.summary

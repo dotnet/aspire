@@ -45,12 +45,12 @@
                     },
                     "ConsumerDispatchConcurrency": {
                       "type": "integer",
-                      "description": "Set to a value greater than one to enable concurrent processing. For a concurrency greater than one 'RabbitMQ.Client.IBasicConsumer' will be offloaded to the worker thread pool so it is important to choose the value for the concurrency wisely to avoid thread pool overloading. 'RabbitMQ.Client.IAsyncBasicConsumer' can handle concurrency much more efficiently due to the non-blocking nature of the consumer. Defaults to 1."
+                      "description": "Set to a value greater than one to enable concurrent processing. For a concurrency greater than one 'RabbitMQ.Client.IAsyncBasicConsumer' will be offloaded to the worker thread pool so it is important to choose the value for the concurrency wisely to avoid thread pool overloading. 'RabbitMQ.Client.IAsyncBasicConsumer' can handle concurrency much more efficiently due to the non-blocking nature of the consumer. Defaults to 1."
                     },
                     "ContinuationTimeout": {
                       "type": "string",
                       "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
-                      "description": "Amount of time protocol  operations (e.g. queue.declare) are allowed to take before timing out."
+                      "description": "Amount of time protocol operations (e.g. queue.declare) are allowed to take before timing out."
                     },
                     "DefaultAddressFamily": {
                       "enum": [
@@ -102,10 +102,6 @@
                         "Tls13"
                       ],
                       "description": "TLS versions enabled by default: TLSv1.2, v1.1, v1.0."
-                    },
-                    "DispatchConsumersAsync": {
-                      "type": "boolean",
-                      "description": "Set to true will enable a asynchronous consumer dispatcher which is compatible with 'RabbitMQ.Client.IAsyncBasicConsumer'. Defaults to false."
                     },
                     "Endpoint": {
                       "type": "object",
@@ -216,9 +212,9 @@
                       "type": "string",
                       "description": "The host to connect to."
                     },
-                    "MaxMessageSize": {
+                    "MaxInboundMessageBodySize": {
                       "type": "integer",
-                      "description": "Maximum allowed message size, in bytes, from RabbitMQ. Corresponds to the rabbit.max_message_size setting."
+                      "description": "Maximum allowed message size, in bytes, from RabbitMQ. Corresponds to the ConnectionFactory.DefaultMaxMessageSize setting."
                     },
                     "NetworkRecoveryInterval": {
                       "type": "string",
@@ -332,6 +328,11 @@
                 "ConnectionString": {
                   "type": "string",
                   "description": "Gets or sets the connection string of the RabbitMQ server to connect to."
+                },
+                "DisableAutoActivation": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether auto activation is disabled or not.",
+                  "default": true
                 },
                 "DisableHealthChecks": {
                   "type": "boolean",

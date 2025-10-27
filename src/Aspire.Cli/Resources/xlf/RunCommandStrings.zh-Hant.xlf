@@ -2,9 +2,29 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to apphost...</source>
+        <target state="translated">正線連線到 AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">儀表板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Aspire 儀表板啟動失敗。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">在開發模式中執行 Aspire 應用程式主機。</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="translated">在開發模式中執行 Aspire AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -22,14 +42,19 @@
         <target state="translated">IsCompatibleAppHost 為 null</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">記錄</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">按 [bold]Ctrl+C[/] 以停止應用程式主機並結束。</target>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="translated">按 [bold]CTRL+C[/] 停止 apphost 並結束。</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire 應用程式主機專案檔案的路徑。</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost 專案檔案的路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -42,14 +67,24 @@
         <target state="translated">資源</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="translated">是否要啟動偵測工作階段 (當在 Aspire 終端機中執行時)。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">正在啟動 Aspire 應用程式主機...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="translated">正在啟動 Aspire AppHost...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">正在啟動 Aspire 儀表板...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">正在啟動儀表板...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="translated">偵測到 Aspire 在 Aspire 擴充功能中執行，正在 VS Code 中啟動偵錯工作階段...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

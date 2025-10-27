@@ -93,6 +93,42 @@ public class AzureContainerRegistryTests
               
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureContainerRegistryResource()
+    {
+        // Arrange
+        var containerRegistryResource = new AzureContainerRegistryResource("test-acr", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(containerRegistryResource, "test-acr");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = containerRegistryResource.AddAsExistingResource(infrastructure);
+        var secondResult = containerRegistryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureContainerRegistryResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-acr-name");
+        var existingResourceGroup = builder.AddParameter("existing-acr-rg");
+
+        var acr = builder.AddAzureContainerRegistry("test-acr")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = acr.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";

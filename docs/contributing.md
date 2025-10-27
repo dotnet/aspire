@@ -10,6 +10,10 @@ See [machine-requirements.md](machine-requirements.md).
 
 `.\build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
 
+## Using the `dotnet` CLI
+
+In building and testing, never use the global `dotnet` copy. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
+
 ## Run TestShop
 
 This will confirm that you're all set up.
@@ -17,6 +21,7 @@ This will confirm that you're all set up.
 In your shell or in VS Code:
 
 ```shell
+# Replace "dotnet" with "./dotnet.sh" or ".\dotnet.cmd", as appropriate
 dotnet restore playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 dotnet run --project playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 ```
@@ -26,6 +31,22 @@ Or, if you are using Visual Studio:
 1. Open `Aspire.slnx`
 1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
 1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
+
+## Using VS Code
+
+Make sure you [build the repo](#build-the-repo) from command line at least once. Then use `./start-code.sh` (macOS and Linux) or `.\start-code.cmd` to start VS Code.
+
+## Using Visual Studio
+
+Make sure you [build the repo](#build-the-repo) from command line at least once using `.\build.cmd` (Windows). Then use `.\startvs.cmd` to start Visual Studio with the correct environment setup.
+
+## Native build
+
+The default build includes native builds for `Aspire.Cli` which produces Native AOT binaries for some platforms. These projects are in `eng/clipack/Aspire.Cli.*`.
+
+By default it builds the cli native project for the current Runtime Identifier. A specific RIDs can be specified too by setting `$(TargetRids)` to a colon separated list like `/p:TargetRids=osx-x64:osx-arm64`.
+
+Native build can be disabled with `/p:SkipNativeBuild=true`. And to only the native bits use `/p:SkipManagedBuild=true`.
 
 ## View Dashboard
 
@@ -56,7 +77,7 @@ To run tests, use the build script:
 
 ```bash
 ./build.sh --test  # Linux/macOS
-./build.cmd --test # Windows
+./build.cmd -test # Windows
 ```
 
 ### Quarantined Tests
@@ -66,8 +87,13 @@ Flaky tests may be marked as quarantined to prevent them from blocking CI while 
 When running tests locally or in automated environments, use the quarantine filter to exclude known flaky tests:
 
 ```bash
+# Replace "dotnet" with "./dotnet.sh" or ".\dotnet.cmd", as appropriate
 dotnet test --filter-not-trait "quarantined=true"
 ```
+
+### Testing Pull Request Changes
+
+To test changes from a specific pull request locally, see [dogfooding-pull-requests.md](dogfooding-pull-requests.md) for instructions on installing Aspire CLI and NuGet packages built by that PR's CI run.
 
 ## Integrations (Formerly Components)
 
@@ -83,7 +109,10 @@ To do so simply execute:
 
 This will generate all the packages in the folder `./artifacts/packages/Debug/Shipping`. At this point from your solution folder run:
 
-`dotnet nuget add source my_aspire_folder/artifacts/packages/Debug/Shipping`
+```shell
+# Replace "dotnet" with "./dotnet.sh" or ".\dotnet.cmd", as appropriate
+dotnet nuget add source my_aspire_folder/artifacts/packages/Debug/Shipping
+```
 
 Or edit the `NuGet.config` file and add this line to the `<packageSources>` list:
 

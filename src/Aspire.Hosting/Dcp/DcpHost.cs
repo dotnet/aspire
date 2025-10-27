@@ -7,13 +7,15 @@ using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 internal sealed class DcpHost
 {
@@ -24,7 +26,9 @@ internal sealed class DcpHost
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
     private readonly IDcpDependencyCheckService _dependencyCheckService;
+    private readonly IInteractionService _interactionService;
     private readonly Locations _locations;
+    private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
 
@@ -41,15 +45,19 @@ internal sealed class DcpHost
         ILoggerFactory loggerFactory,
         IOptions<DcpOptions> dcpOptions,
         IDcpDependencyCheckService dependencyCheckService,
+        IInteractionService interactionService,
         Locations locations,
-        DistributedApplicationModel applicationModel)
+        DistributedApplicationModel applicationModel,
+        TimeProvider timeProvider)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHost>();
         _dcpOptions = dcpOptions.Value;
         _dependencyCheckService = dependencyCheckService;
+        _interactionService = interactionService;
         _locations = locations;
         _applicationModel = applicationModel;
+        _timeProvider = timeProvider;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -58,7 +66,7 @@ internal sealed class DcpHost
         EnsureDcpHostRunning();
     }
 
-    private async Task EnsureDcpContainerRuntimeAsync(CancellationToken cancellationToken)
+    internal async Task EnsureDcpContainerRuntimeAsync(CancellationToken cancellationToken)
     {
         // Ensure DCP is installed and has all required dependencies
         var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -85,13 +93,6 @@ internal sealed class DcpHost
                 using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeoutCancellation.CancelAfter(_dcpOptions.ContainerRuntimeInitializationTimeout);
 
-                static bool IsContainerRuntimeHealthy(DcpInfo dcpInfo)
-                {
-                    var installed = dcpInfo.Containers?.Installed ?? false;
-                    var running = dcpInfo.Containers?.Running ?? false;
-                    return installed && running;
-                }
-
                 try
                 {
                     while (dcpInfo is not null && !IsContainerRuntimeHealthy(dcpInfo))
@@ -110,6 +111,9 @@ internal sealed class DcpHost
             if (dcpInfo is not null)
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo, throwIfUnhealthy: requireContainerRuntimeInitialization);
+                
+                // Show UI notification if container runtime is unhealthy
+                TryShowContainerRuntimeNotification(dcpInfo, cancellationToken);
             }
         }
         finally
@@ -269,63 +273,24 @@ internal sealed class DcpHost
 
         (ILogger, LogLevel, string message) GetLogInfo(ReadOnlySpan<byte> line)
         {
-            // The log format is
-            // <date>\t<level>\t<category>\t<log message>
-            // e.g. 2023-09-19T20:40:50.509-0700      info    dcpctrl.ServiceReconciler       service /apigateway is now in state Ready       {"ServiceName": {"name":"apigateway"}}
-
-            var tab = line.IndexOf((byte)'\t');
-            var date = line[..tab];
-            line = line[(tab + 1)..];
-            tab = line.IndexOf((byte)'\t');
-            var level = line[..tab];
-            line = line[(tab + 1)..];
-            tab = line.IndexOf((byte)'\t');
-            var category = line[..tab];
-            line = line[(tab + 1)..];
-
-            // Trim trailing carriage return.
-            if (line[^1] == '\r')
+            if (!DcpLogParser.TryParseDcpLog(line, out var parsedMessage, out var logLevel, out var category))
             {
-                line = line[0..^1];
-            }
-
-            var message = line;
-
-            var logLevel = LogLevel.Information;
-
-            if (level.SequenceEqual("info"u8))
-            {
-                logLevel = LogLevel.Information;
-            }
-            else if (level.SequenceEqual("error"u8))
-            {
-                logLevel = LogLevel.Error;
-            }
-            else if (level.SequenceEqual("warning"u8))
-            {
-                logLevel = LogLevel.Warning;
-            }
-            else if (level.SequenceEqual("debug"u8))
-            {
-                logLevel = LogLevel.Debug;
-            }
-            else if (level.SequenceEqual("trace"u8))
-            {
-                logLevel = LogLevel.Trace;
+                // If parsing fails, return a default logger and the line as-is
+                return (_logger, LogLevel.Information, Encoding.UTF8.GetString(line));
             }
 
             var hash = new HashCode();
-            hash.AddBytes(category);
+            hash.AddBytes(Encoding.UTF8.GetBytes(category));
             var hashValue = hash.ToHashCode();
 
             if (!loggerCache.TryGetValue(hashValue, out var logger))
             {
                 // loggerFactory.CreateLogger internally caches, but we may as well cache the logger as well as the string
                 // for the lifetime of this socket
-                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{Encoding.UTF8.GetString(category)}");
+                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{category}");
             }
 
-            return (logger, logLevel, Encoding.UTF8.GetString(message));
+            return (logger, logLevel, parsedMessage);
         }
 
         try
@@ -366,4 +331,130 @@ internal sealed class DcpHost
             reader.Complete();
         }
     }
+
+    private void TryShowContainerRuntimeNotification(DcpInfo dcpInfo, CancellationToken cancellationToken)
+    {
+        // Check if the interaction service is available (dashboard enabled)
+        if (!_interactionService.IsAvailable)
+        {
+            return;
+        }
+
+        var containerRuntime = _dcpOptions.ContainerRuntime;
+        if (string.IsNullOrEmpty(containerRuntime))
+        {
+            // Default runtime is Docker
+            containerRuntime = "docker";
+        }
+
+        var installed = dcpInfo.Containers?.Installed ?? false;
+        var running = dcpInfo.Containers?.Running ?? false;
+
+        // Early check: if container runtime is not installed, show notification and return immediately (no polling)
+        if (!installed)
+        {
+            string title = InteractionStrings.ContainerRuntimeNotInstalledTitle;
+            string message = InteractionStrings.ContainerRuntimeNotInstalledMessage;
+
+            var options = new NotificationInteractionOptions
+            {
+                Intent = MessageIntent.Error,
+                LinkText = InteractionStrings.ContainerRuntimeLinkText,
+                LinkUrl = "https://aka.ms/dotnet/aspire/containers"
+            };
+
+            // Show notification without polling (non-auto-dismiss)
+            _ = _interactionService.PromptNotificationAsync(title, message, options, cancellationToken);
+            return;
+        }
+
+        // Only show notification if container runtime is installed but not running
+        // If not installed, that's usually a more fundamental setup issue that would be addressed differently
+        if (installed && !running)
+        {
+            string title = InteractionStrings.ContainerRuntimeUnhealthyTitle;
+            var (message, linkUrl) = DcpDependencyCheck.BuildContainerRuntimeUnhealthyMessage(containerRuntime);
+
+            var options = new NotificationInteractionOptions
+            {
+                Intent = MessageIntent.Error,
+                LinkText = linkUrl is not null ? InteractionStrings.ContainerRuntimeLinkText : null,
+                LinkUrl = linkUrl
+            };
+
+            // Create a cancellation token source that can be cancelled when runtime becomes healthy
+            var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
+            
+            // Single background task to show notification and poll for health updates
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // First, show the notification
+                    var notificationTask = _interactionService.PromptNotificationAsync(title, message, options, notificationCts.Token);
+
+                    // Then poll for container runtime health updates every 5 seconds
+                    using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), _timeProvider);
+                    while (await timer.WaitForNextTickAsync(notificationCts.Token).ConfigureAwait(false))
+                    {
+                        try
+                        {
+                            var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
+                            
+                            if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
+                            {
+                                // Container runtime is now healthy, exit the polling loop
+                                break;
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Expected when cancellation is requested
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log but continue polling
+                            _logger.LogDebug(ex, "Error while polling container runtime health for notification");
+                        }
+                    }
+                    
+                    // Cancel the notification at the end of the loop
+                    notificationCts.Cancel();
+                    
+                    // Wait for notification task to complete
+                    try
+                    {
+                        await notificationTask.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when notification is cancelled
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't propagate notification errors
+                    _logger.LogDebug(ex, "Failed to show container runtime notification or poll for health");
+                }
+                finally
+                {
+                    notificationCts.Dispose();
+                }
+            }, cancellationToken);
+        }
+    }
+
+    private static bool IsContainerRuntimeHealthy(DcpInfo dcpInfo)
+    {
+        var installed = dcpInfo.Containers?.Installed ?? false;
+        var running = dcpInfo.Containers?.Running ?? false;
+        return installed && running;
+    }
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

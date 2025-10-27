@@ -8,6 +8,22 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static partial class AzureRedisEnterpriseExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> AddAzureRedisEnterprise(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> RunAsContainer(this ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> builder, System.Action<ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource>>? configureContainer = null) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> builder) { throw null; }
+    }
+
     public static partial class AzureRedisExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name) { throw null; }
@@ -28,13 +44,42 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureRedisCacheResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureRedisCacheResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureRedisCacheResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
         public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression? Password { get { throw null; } }
+
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
+        public bool UseAccessKeyAuthentication { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public partial class AzureRedisEnterpriseResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    {
+        public AzureRedisEnterpriseResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression? Password { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }

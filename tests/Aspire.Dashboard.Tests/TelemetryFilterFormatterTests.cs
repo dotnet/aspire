@@ -13,7 +13,7 @@ public class TelemetryFilterFormatterTests
     public void RoundTripFilterWithColon()
     {
         var serializedFilters = TelemetryFilterFormatter.SerializeFiltersToString([
-            new TelemetryFilter
+            new FieldTelemetryFilter
             {
                 Field = "test:name",
                 Condition = FilterCondition.Equals,
@@ -33,7 +33,7 @@ public class TelemetryFilterFormatterTests
     public void RoundTripFiltersWithPluses()
     {
         var serializedFilters = TelemetryFilterFormatter.SerializeFiltersToString([
-            new TelemetryFilter
+            new FieldTelemetryFilter
             {
                 Field = "test+name",
                 Condition = FilterCondition.Equals,
@@ -53,7 +53,7 @@ public class TelemetryFilterFormatterTests
     public void RoundTripFilterWithColon_Disabled()
     {
         var serializedFilters = TelemetryFilterFormatter.SerializeFiltersToString([
-            new TelemetryFilter
+            new FieldTelemetryFilter
             {
                 Field = "test:name",
                 Condition = FilterCondition.Equals,

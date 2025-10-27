@@ -10,7 +10,7 @@ public static class TelemetryFilterFormatter
 {
     private const string DisabledText = "disabled";
 
-    private static string SerializeFilterToString(TelemetryFilter filter)
+    private static string SerializeFilterToString(FieldTelemetryFilter filter)
     {
         var condition = filter.Condition switch
         {
@@ -34,7 +34,7 @@ public static class TelemetryFilterFormatter
         return filterString;
     }
 
-    public static string SerializeFiltersToString(IEnumerable<TelemetryFilter> filters)
+    public static string SerializeFiltersToString(IEnumerable<FieldTelemetryFilter> filters)
     {
         return string.Join(" ", filters.Select(SerializeFilterToString));
     }
@@ -71,7 +71,7 @@ public static class TelemetryFilterFormatter
 
         var enabled = parts is not [_, _, _, DisabledText];
 
-        return new TelemetryFilter
+        return new FieldTelemetryFilter
         {
             Condition = condition.Value,
             Field = field,
@@ -80,13 +80,13 @@ public static class TelemetryFilterFormatter
         };
     }
 
-    public static List<TelemetryFilter> DeserializeFiltersFromString(string filtersString)
+    public static List<FieldTelemetryFilter> DeserializeFiltersFromString(string filtersString)
     {
         return filtersString
             .Split(' ')
             .Select(DeserializeFilterFromString)
             .Where(filter => filter is not null)
-            .Cast<TelemetryFilter>()
+            .Cast<FieldTelemetryFilter>()
             .ToList();
     }
 }

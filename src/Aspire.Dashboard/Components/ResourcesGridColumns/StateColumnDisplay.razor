@@ -7,11 +7,12 @@
 }
 
 <div class="state-column-cell">
-
-    <FluentIcon Value="@vm.Icon"
-                Color="@vm.Color"
-                Class="severity-icon" />
-
+    @* Do this to trim significant whitespace so there isn't a space added between icon and text *@
+    @{
+        <FluentIcon Value="@vm.Icon"
+                    Color="@vm.Color"
+                    Class="severity-icon" />
+    }
     <span>@vm.Text</span>
 
     <UnreadLogErrorsBadge

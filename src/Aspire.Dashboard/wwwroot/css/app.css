@@ -2,11 +2,15 @@
     scrollbar-color: var(--scrollbar-color) transparent;
 }
 
-.visualizer-title-grid {
+.dialog-title-grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
     grid-template-areas: "dialog-icon dialog-title dialog-format";
-    grid-column-gap: 8px;
+    grid-column-gap: 10px;
+}
+
+fluent-toolbar fluent-divider {
+    border: 0;
 }
 
 fluent-toolbar fluent-switch,
@@ -74,7 +78,15 @@ fluent-toolbar::part(end) {
     --messagebar-warning-border-color: #f4bfab;
     --messagebar-info-background-color: #f5f5f5;
     --messagebar-info-border-color: #d1d1d1;
+    --chat-background-color: var(--neutral-layer-floating);
+    --chat-user-background-color: #f7f7f7;
+    --chat-codeblock-background-color: var(--neutral-fill-hover);
+    --table-header-border-color: var(--neutral-stroke-rest);
+    --table-body-border-color: #f2f2f2;
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
+    --layout-left-padding: calc(var(--design-unit) * 4.5px);
+    --layout-right-padding: calc(var(--design-unit) * 2px);
+    --inline-icon-margin: 5px;
     /*
         --neutral-layer-2 is the background for the body of most of the site so
         we can default the datagrid hover color to that and just override it as
@@ -90,6 +102,38 @@ fluent-toolbar::part(end) {
     --hljs-string: green;
     --hljs-section: #007faa;
     --hljs-keyword: #7928a1;
+    /* geni visualizer */
+    --main-container-background-color: #f7f7f7;
+    --main-sidebar-background-color: #f7f7f7;
+    --llm-background-color: #a6e9ed;
+    --llm-color: #00666d;
+    --message-background-color: #ebf3fc;
+    --message-color: #115ea3;
+    --tool-calls-background-color: #f2fbf2;
+    --tool-calls-color: #11910d;
+    --output-background-color: #f4bfab;
+    --output-color: #7a2101;
+    /* accent variables */
+    --accent-teal: #14959B;
+    --accent-marigold: #E9C877;
+    --accent-brass: #9F724F;
+    --accent-peach: #F39E67;
+    --accent-coral: #E1694E;
+    --accent-royal-blue: #5F79DE;
+    --accent-orchid: #C764BA;
+    --accent-brand-blue: #0E62AD;
+    --accent-seafoam: #55BFA9;
+    --accent-mink: #9C9587;
+    --accent-cyan: #0E858B;
+    --accent-gold: #D7A763;
+    --accent-bronze: #7B4F2E;
+    --accent-orange: #F57D1A;
+    --accent-rust: #E0522A;
+    --accent-navy: #1B3A70;
+    --accent-berry: #C239B3;
+    --accent-ocean: #0E5E77;
+    --accent-jade: #3BAB8E;
+    --accent-olive: #6F6652;
 }
 
 [data-theme="dark"] {
@@ -115,6 +159,11 @@ fluent-toolbar::part(end) {
     --messagebar-warning-border-color: #DA3B01;
     --messagebar-info-background-color: #141414;
     --messagebar-info-border-color: #666;
+    --chat-background-color: #212121;
+    --chat-user-background-color: #333;
+    --chat-codeblock-background-color: var(--neutral-layer-4);
+    --table-header-border-color: var(--neutral-stroke-rest);
+    --table-body-border-color: #474747;
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
     color-scheme: dark;
@@ -127,6 +176,39 @@ fluent-toolbar::part(end) {
     --hljs-string: #abe338;
     --hljs-section: #00e0e0;
     --hljs-keyword: #dcc6e0;
+    /* geni visualizer */
+    --main-container-background-color: #333333;
+    --main-sidebar-background-color: #272727;
+    --events-background-color: var(--neutral-fill-layer-rest);
+    --llm-background-color: #00666d;
+    --llm-color: #a6e9ed;
+    --message-background-color: #063004;
+    --message-color: #5ec75a;
+    --tool-calls-background-color: #082338;
+    --tool-calls-color: #62abf5;
+    --output-background-color: #7a2101;
+    --output-color: #f4bfab;
+    /* accent variables */
+    --accent-teal: #2CB7BD;
+    --accent-marigold: #F3D58E;
+    --accent-brass: #BF8B64;
+    --accent-peach: #FFC18F;
+    --accent-coral: #F89170;
+    --accent-royal-blue: #88A1F0;
+    --accent-orchid: #E19AD4;
+    --accent-brand-blue: #1A7ECF;
+    --accent-seafoam: #74D6C6;
+    --accent-mink: #B9B2A4;
+    --accent-cyan: #17A0A6;
+    --accent-gold: #E3BA7A;
+    --accent-bronze: #8E6038;
+    --accent-orange: #FFA44A;
+    --accent-rust: #EA6A3E;
+    --accent-navy: #2A4C8A;
+    --accent-berry: #D150C3;
+    --accent-ocean: #16728F;
+    --accent-jade: #51C0A5;
+    --accent-olive: #847B63;
 }
 
 .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header']):hover td {
@@ -189,12 +271,12 @@ h1 {
 
 @media (min-width: 768px) {
     fluent-toolbar[orientation=horizontal].main-toolbar {
-        padding-left: calc(var(--design-unit) * 4.5px);
-        padding-right: calc(var(--design-unit) * 2px);
+        padding-left: var(--layout-left-padding);
+        padding-right: var(--layout-right-padding);
     }
 
     .page-header {
-        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 4.5px);
+        padding: calc(var(--design-unit) * 1.5px) var(--layout-left-padding);
     }
  }
 
@@ -235,6 +317,7 @@ h1 {
     padding: calc(var(--design-unit) * 4px);
     padding-top: calc(var(--design-unit) * 2px);
     padding-bottom: 0 !important;
+    width: 100%;
 }
 
 .fluent-messagebar.intent-success {
@@ -306,20 +389,28 @@ td .long-inner-content {
 }
 
 .version {
+    color: var(--foreground-subtext-rest);
     text-align: end;
     font-size: small;
     width: 100%;
-    flex-grow: 1;
-
-    /* right/bottom align the inner version text */
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: column;
     align-items: flex-end;
+    row-gap: 4px;
+    margin-top: auto;
 }
 
 .anchor-no-padding::part(control) {
     padding: 0;
     flex-grow: 0;
+}
+
+.button-hyperlink::part(control), .button-hyperlink-no-icon::part(control) {
+    padding: 0;
+}
+
+.button-hyperlink::part(start) {
+    margin-inline-end: var(--inline-icon-margin);
 }
 
 .ellipsis-overflow {
@@ -358,12 +449,12 @@ td .long-inner-content {
 
 .severity-icon {
     vertical-align: text-bottom;
-    margin-right: 3px;
+    margin-right: var(--inline-icon-margin);
 }
 
 .persistent-container-icon {
     vertical-align: text-bottom;
-    margin-left: 4px;
+    margin-left: var(--inline-icon-margin);
 }
 
 .align-text-bottom {
@@ -444,7 +535,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .property-grid-container > fluent-accordion > fluent-accordion-item::part(heading) {
-    padding-left: calc(var(--design-unit) * 2 * 1px);
+    padding-left: calc(var(--design-unit) * 2px);
 }
 
 .property-grid-container fluent-accordion .fluent-data-grid {
@@ -472,7 +563,9 @@ fluent-switch.table-switch::part(label) {
 }
 
 .property-grid-container fluent-accordion-item::part(region) {
-    padding-bottom: 0;
+    padding: 0;
+    /* overflow hidden masks content in the item's rounded borders */
+    overflow: hidden;
 }
 
 .property-grid-container fluent-accordion-item::part(heading-content) {
@@ -499,6 +592,11 @@ fluent-switch.table-switch::part(label) {
     background-color: var(--neutral-fill-active);
 }
 
+.property-grid-container tr:last-child td {
+    /* bottom of the table is at the bottom of an accordion item so hide the bottom row's bottom border */
+    border-bottom: none;
+}
+
 .items-footer {
     display: flex;
     column-gap: 20px;
@@ -507,7 +605,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .items-footer .result-count {
-    padding-left: calc(var(--design-unit) * 4.5px);
+    padding-left: var(--layout-left-padding);
 }
 
 /* Align the toast with the top of the body/bottom of the header
@@ -583,6 +681,7 @@ fluent-switch.table-switch::part(label) {
 
     --line-number-color: #848484;
     --timestamp-color: var(--line-number-color);
+    --resource-text-color: #000;
     --console-background-color: var(--console-theme-black);
     --console-background-color-hover: #1D1D1D;
     --console-font-color: var(--console-theme-white);
@@ -604,6 +703,15 @@ fluent-switch.table-switch::part(label) {
     display: flex;
     flex-direction: column;
     width: 100%;
+}
+
+.wrap-log-container .log-line-row-container {
+    overflow: visible;
+}
+
+.wrap-log-container .log-content {
+    white-space: nowrap;
+    overflow-wrap: normal;
 }
 
 .log-line-row-container {
@@ -637,11 +745,11 @@ fluent-switch.table-switch::part(label) {
     user-select: none;
     cursor: default;
     height: 100%;
+    margin-right: 20px;
 }
 
 .log-content {
     word-break: break-all;
-    margin-left: 20px;
     position: relative;
     margin-right: 6px;
     user-select: text;
@@ -650,7 +758,7 @@ fluent-switch.table-switch::part(label) {
     overflow-wrap: anywhere;
 }
 
-.resource-select-application-label {
+.resource-select-resource-label {
     color: var(--accent-foreground-rest);
 }
 
@@ -810,10 +918,33 @@ fluent-tooltip[anchor="dialog_close"] > div {
 
 .resource-icon {
     vertical-align: text-bottom;
-    margin-right: 3px;
+    margin-right: var(--inline-icon-margin);
 }
 
-fluent-menu-item::part(content) {
+.aspire-menu-container > fluent-menu > fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
+}
+
+.overflow-fluent-menu-item::part(content) {
+    width: 100%;
+    text-overflow: ellipsis;
+}
+
+.fluent-messagebar-action {
+    font-size: var(--type-ramp-minus-1-font-size);
+}
+
+.filter-group > legend {
+    font-size: var(--type-ramp-plus-2-font-size);
+    font-weight: 500;
+}
+
+#chat-modal-dialog::part(control) {
+    background-color: var(--chat-background-color);
+    border: 1px solid var(--neutral-stroke-divider-rest);
+}
+
+fluent-dialog#chat-modal-dialog fluent-button[appearance=stealth]:not(:hover)::part(control) {
+    background: var(--chat-background-color);
 }

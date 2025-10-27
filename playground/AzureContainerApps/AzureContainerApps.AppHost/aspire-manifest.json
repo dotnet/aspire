@@ -39,7 +39,7 @@
     "cache": {
       "type": "container.v1",
       "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
-      "image": "docker.io/library/redis:7.4",
+      "image": "docker.io/library/redis:8.2",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "cache.module.bicep",
@@ -149,6 +149,10 @@
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
+        "CACHE_HOST": "{cache.bindings.tcp.host}",
+        "CACHE_PORT": "{cache.bindings.tcp.port}",
+        "CACHE_PASSWORD": "{cache-password.value}",
+        "CACHE_URI": "redis://:{cache-password-uri-encoded.value}@{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
         "ConnectionStrings__account": "{account.connectionString}",
         "VALUE": "{secretparam.value}",
         "AZURE_PRINCIPAL_NAME": "{api-identity.outputs.principalName}"
@@ -203,6 +207,11 @@
           }
         }
       }
+    },
+    "cache-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{cache-password.value}",
+      "filter": "uri"
     }
   }
 }

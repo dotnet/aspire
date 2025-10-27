@@ -1,0 +1,31 @@
+id: milestoneAssignment.prClosed
+name: Auto Assign Milestone to Merged PRs
+description: Automatically assigns milestones to pull requests when they are merged based on target branch
+owner:
+resource: repository
+disabled: false
+where:
+configuration:
+  resourceManagementConfiguration:
+    eventResponderTasks:
+    - if:
+      - payloadType: Pull_Request
+      - isAction:
+          action: Closed
+      - targetsBranch:
+          branch: main
+      then:
+      - addMilestone:
+          milestone: 13.0
+      description: '[Milestone Assignments] Assign Milestone to PRs merged to the `main` branch'
+    - if:
+      - payloadType: Pull_Request
+      - isAction:
+          action: Closed
+      - targetsBranch:
+          branch: release/9.4
+      then:
+      - removeMilestone
+      - addMilestone:
+          milestone: 9.4.2
+      description: '[Milestone Assignments] Assign Milestone to PRs merged to release/9.4 branch'

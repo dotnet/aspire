@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../MessageStrings.resx">
+    <body>
+      <trans-unit id="AuthenticationExpiredNotification">
+        <source>Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.</source>
+        <target state="translated">Geliştirme tünellerinin kimlik doğrulama süresi doldu. Yeniden kimlik doğrulaması yapmak için geliştirme tüneli kaynaklarını yeniden başlatın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AuthenticationRequiredNotification">
+        <source>Dev tunnels requires authentication to continue:</source>
+        <target state="translated">Geliştirme tünelleri devam etmek için kimlik doğrulama gerektirir:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelHealthy">
+        <source>Dev tunnel '{0}' is active with {1} host connections and {2} ports.</source>
+        <target state="translated">Geliştirme tüneli '{0}', {1} ana bilgisayar bağlantısı ve {2} bağlantı noktası ile etkindir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortHealthy">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' is active.</source>
+        <target state="translated">Geliştirme tüneli ‘{1}’ üzerindeki geliştirme tüneli ‘{0}’ etkindir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_Error">
+        <source>Failed to check port '{0}' on dev tunnel '{1}': {2}</source>
+        <target state="translated">Geliştirme tüneli '{1}' üzerindeki '{0}' bağlantı noktasını kontrol edemedi: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_StatusUnknown">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' status is not known.</source>
+        <target state="translated">'{0}' geliştirme tünelindeki '{1}' dev tünelinin durumu bilinmiyor.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_Error">
+        <source>Failed to check dev tunnel '{0}': {1}</source>
+        <target state="translated">Geliştirme tüneli '{0}' kontrol edilemedi: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_NoActiveHostConnections">
+        <source>Dev tunnel '{0}' has no active host connections.</source>
+        <target state="translated">Geliştirme tüneli '{0}' etkin ana bilgisayar bağlantısı yok.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_PortInactive">
+        <source>Dev tunnel '{0}' port '{1}' is not active.</source>
+        <target state="translated">Geliştirme tüneli '{0}' bağlantı noktası '{1}' etkin değil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliVersionNotSupported">
+        <source>The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</source>
+        <target state="translated">Yüklü devtunnel CLI sürümü {0} desteklenmiyor. Sürüm {1} veya üstü gereklidir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallationInstructions">
+        <source>Installation instructions</source>
+        <target state="translated">Yükleme yönergeleri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithGitHub">
+        <source>Login with GitHub</source>
+        <target state="translated">GitHub ile oturum açma</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithMicrosoft">
+        <source>Login with Microsoft</source>
+        <target state="translated">Microsoft ile oturum açın</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotification">
+        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
+        <target state="translated">Gerekli komut '{0}' PATH'de veya belirtilen konumda bulunamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithLink">
+        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
+        <target state="translated">Gerekli komut '{0}' bulunamadı. Daha fazla bilgi için yükleme yönergelerine bakın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithValidation">
+        <source>{0} See installation instructions for more details.</source>
+        <target state="translated">{0} Daha fazla bilgi için yükleme yönergelerine bakın.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

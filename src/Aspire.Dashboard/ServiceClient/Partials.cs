@@ -40,7 +40,9 @@ partial class Resource
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
                 IsHidden = IsHidden,
-                SupportsDetailedTelemetry = SupportsDetailedTelemetry
+                SupportsDetailedTelemetry = SupportsDetailedTelemetry,
+                IconName = HasIconName ? IconName : null,
+                IconVariant = HasIconVariant ? MapResourceIconVariant(IconVariant) : null
             };
         }
         catch (Exception ex)
@@ -50,7 +52,14 @@ partial class Resource
 
         HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
         {
-            return new HealthReportViewModel(healthReport.Key, healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, healthReport.Description, healthReport.Exception);
+            return new HealthReportViewModel(
+                healthReport.Key, 
+                healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, 
+                healthReport.Description, 
+                healthReport.Exception)
+            {
+                LastRunAtTimeStamp = healthReport.LastRunAt?.ToDateTime()
+            };
         }
 
         Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus)
@@ -131,6 +140,16 @@ partial class Resource
                 };
             }
         }
+
+        static FluentUIIconVariant MapResourceIconVariant(IconVariant iconVariant)
+        {
+            return iconVariant switch
+            {
+                IconVariant.Regular => FluentUIIconVariant.Regular,
+                IconVariant.Filled => FluentUIIconVariant.Filled,
+                _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
+            };
+        }
     }
 
     private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
@@ -146,7 +165,9 @@ partial class Resource
                 isValueSensitive: property.IsSensitive,
                 knownProperty: knownProperty,
                 priority: priority)
-            { IsValueMasked = property.IsSensitive };
+            {
+                IsValueMasked = property.IsSensitive
+            };
 
             if (builder.ContainsKey(propertyViewModel.Name))
             {

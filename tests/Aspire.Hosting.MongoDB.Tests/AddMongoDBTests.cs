@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
@@ -88,9 +87,13 @@ public class AddMongoDBTests
         Assert.NotNull(connectionStringResource);
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
         
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", await serverResource.GetConnectionStringAsync());
+#pragma warning restore CS0618 // Type or member is obsolete
         Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin&authMechanism=SCRAM-SHA-256", serverResource.ConnectionStringExpression.ValueExpression);
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionString);
+#pragma warning restore CS0618 // Type or member is obsolete
         Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -199,7 +202,7 @@ public class AddMongoDBTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "mongodb://admin:{mongo-password.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
+              "connectionString": "mongodb://admin:{mongo-password-uri-encoded.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
               "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
               "env": {
                 "MONGO_INITDB_ROOT_USERNAME": "admin",
@@ -220,7 +223,7 @@ public class AddMongoDBTests
         expectedManifest = """
             {
               "type": "value.v0",
-              "connectionString": "mongodb://admin:{mongo-password.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/mydb?authSource=admin\u0026authMechanism=SCRAM-SHA-256"
+              "connectionString": "mongodb://admin:{mongo-password-uri-encoded.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/mydb?authSource=admin\u0026authMechanism=SCRAM-SHA-256"
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());

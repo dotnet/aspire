@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_logworkspace_name": "{existing-logworkspace-name.value}",
+    "existing_logworkspace_rg": "{existing-logworkspace-rg.value}"
+  }
+}

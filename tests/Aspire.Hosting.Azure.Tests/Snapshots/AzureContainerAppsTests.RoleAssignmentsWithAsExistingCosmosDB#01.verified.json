@@ -2,7 +2,7 @@
   "type": "azure.bicep.v1",
   "path": "api-roles-cosmos.module.bicep",
   "params": {
-    "cosmos_outputs_name": "{cosmos.outputs.name}",
+    "cosmosName": "{cosmosName.value}",
     "principalId": "{api-identity.outputs.principalId}"
   },
   "scope": {

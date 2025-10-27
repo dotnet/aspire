@@ -17,6 +17,26 @@
         <target state="translated">Capture des traces suspendue à {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">Type</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">Sélectionnez le type de plage</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
+        <target state="translated">Affichage de &lt;strong&gt;{0} traces&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} trace&lt;/strong&gt;</source>
+        <target state="translated">Affichage de &lt;strong&gt;{0} trace&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">Nom : {0}</target>

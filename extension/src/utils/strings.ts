@@ -19,3 +19,15 @@ const emojiMap: { [key: string]: string; } = {
 export function formatText(str: string): string {
   return str.replace(/:[a-z]+(?:_[a-z]+)*:/g, match => emojiMap[match] || match);
 }
+
+export function removeTrailingNewline(str: string): string {
+  return str.replace(/(\r\n|\n)$/, '');
+}
+
+export function applyTextStyle(text: string, style: string | null | undefined): string {
+  if (!style) {
+    return text;
+  }
+
+  return `${style}${text}\x1b[0m`;
+}

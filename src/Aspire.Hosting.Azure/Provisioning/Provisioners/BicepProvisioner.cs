@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources.Models;
@@ -13,12 +14,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
-    ISecretClientProvider secretClientProvider)
+    ISecretClientProvider secretClientProvider,
+    IDeploymentStateManager deploymentStateManager,
+    DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
 {
+    /// <inheritdoc />
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
         var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
@@ -58,7 +64,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 
@@ -98,6 +104,7 @@ internal sealed class BicepProvisioner(
         return true;
     }
 
+    /// <inheritdoc />
     public async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var resourceGroup = context.ResourceGroup;
@@ -106,7 +113,7 @@ internal sealed class BicepProvisioner(
         if (BicepUtilities.GetExistingResourceGroup(resource) is { } existingResourceGroup)
         {
             var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
-                ? parameterResource.Value
+                ? (await parameterResource.GetValueAsync(cancellationToken).ConfigureAwait(false))!
                 : (string)existingResourceGroup;
             var response = await context.Subscription.GetResourceGroups().GetAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
@@ -162,15 +169,19 @@ internal sealed class BicepProvisioner(
 
         resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
 
-        var deployments = resourceGroup.GetArmDeployments();
+        // Resources with a Subscription scope should use a subscription-level deployment.
+        var deployments = resource.Scope?.Subscription != null
+            ? context.Subscription.GetArmDeployments()
+            : resourceGroup.GetArmDeployments();
+        var deploymentName = executionContext.IsPublishMode ? $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}" : resource.Name;
 
-        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        var deploymentContent = new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents),
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
-        }),
-        cancellationToken).ConfigureAwait(false);
+        });
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
         var url = GetDeploymentUrl(context, resourceGroup, resource.Name);
@@ -198,7 +209,10 @@ internal sealed class BicepProvisioner(
 
         if (deployment.Data.Properties.ProvisioningState == ResourcesProvisioningState.Succeeded)
         {
-            template.Dispose();
+            if (context.ExecutionContext.IsRunMode)
+            {
+                template.Dispose();
+            }
         }
         else
         {
@@ -206,40 +220,38 @@ internal sealed class BicepProvisioner(
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
-
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        var az = context.UserSecrets.Prop("Azure");
-        az["Tenant"] = context.Tenant.DefaultDomain;
+        // Acquire resource-specific state section for thread-safe deployment state management
+        var sectionName = $"Azure:Deployments:{resource.Name}";
+        var stateSection = await deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
 
-        var resourceConfig = context.UserSecrets
-            .Prop("Azure")
-            .Prop("Deployments")
-            .Prop(resource.Name);
-
-        // Clear the entire section
-        resourceConfig.AsObject().Clear();
+        // Update deployment state for this specific resource
+        stateSection.Data.Clear();
 
         // Save the deployment id to the configuration
-        resourceConfig["Id"] = deployment.Id.ToString();
+        stateSection.Data["Id"] = deployment.Id.ToString();
 
         // Stash all parameters as a single JSON string
-        resourceConfig["Parameters"] = parameters.ToJsonString();
+        stateSection.Data["Parameters"] = parameters.ToJsonString();
 
         if (outputObj is not null)
         {
             // Same for outputs
-            resourceConfig["Outputs"] = outputObj.ToJsonString();
+            stateSection.Data["Outputs"] = outputObj.ToJsonString();
         }
 
         // Write resource scope to config for consistent checksums
         if (scope is not null)
         {
-            resourceConfig["Scope"] = scope.ToJsonString();
+            stateSection.Data["Scope"] = scope.ToJsonString();
         }
 
         // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+        stateSection.Data["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+
+        // Save the section back to the deployment state manager
+        await deploymentStateManager.SaveSectionAsync(stateSection, cancellationToken).ConfigureAwait(false);
 
         if (outputObj is not null)
         {
@@ -247,7 +259,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 

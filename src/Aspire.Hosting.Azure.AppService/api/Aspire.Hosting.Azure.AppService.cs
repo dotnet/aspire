@@ -22,7 +22,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureAppServiceEnvironmentResource : AzureProvisioningResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
+    public partial class AzureAppServiceEnvironmentResource : AzureProvisioningResource, IAzureComputeEnvironmentResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
     {
         public AzureAppServiceEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
@@ -31,6 +31,10 @@ namespace Aspire.Hosting.Azure
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 
     public sealed partial class AzureAppServiceWebsiteCustomizationAnnotation : ApplicationModel.IResourceAnnotation

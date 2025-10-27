@@ -1,12 +1,12 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param storage_outputs_name string
+param storageName string
 
 param principalId string
 
 resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: storage_outputs_name
+  name: storageName
 }
 
 resource storage_StorageBlobDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

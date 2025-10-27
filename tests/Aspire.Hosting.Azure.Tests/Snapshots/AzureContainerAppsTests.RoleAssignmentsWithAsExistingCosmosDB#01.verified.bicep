@@ -1,12 +1,12 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param cosmos_outputs_name string
+param cosmosName string
 
 param principalId string
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
-  name: cosmos_outputs_name
+  name: cosmosName
 }
 
 resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {

@@ -20,9 +20,9 @@
 
   <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
 
-  <Target Name="_SetVersionTextReplacementValue" BeforeTargets="GatherTextReplacementValues" DependsOnTargets="SetVersions" >
+  <Target Name="_SetVersionTextReplacementValue" BeforeTargets="GatherTextReplacementValues" >
     <ItemGroup>
-      <TextReplacementValue Include="VERSION" NewValue="$(PackageReferenceVersion)" />
+      <TextReplacementValue Include="VERSION" NewValue="$(PackageVersion)" />
     </ItemGroup>
   </Target>
 

@@ -21,7 +21,8 @@ public static class AzureFunctionsProjectResourceExtensions
     /// is a combination of this prefix, a hash of the AppHost project name, and the name of the
     /// resource group associated with the deployment. We want to keep the total number of characters
     /// in the name under 24 characters to avoid truncation by Azure and allow
-    /// for unique enough identifiers.
+    /// for unique enough identifiers. The hash is based on the project name (not path) to ensure
+    /// stable naming across deployments.
     /// </remarks>
     internal const string DefaultAzureFunctionsHostStorageName = "funcstorage";
 
@@ -89,9 +90,20 @@ public static class AzureFunctionsProjectResourceExtensions
 
         resource.HostStorage = storage;
 
-        return builder.AddResource(resource)
+        var functionsBuilder = builder.AddResource(resource)
             .WithAnnotation(new TProject())
-            .WithAnnotation(new AzureFunctionsAnnotation())
+            .WithAnnotation(new AzureFunctionsAnnotation());
+
+        // Add launch profile annotations like regular projects do.
+        // This ensures proper VS integration and port handling.
+        var appHostDefaultLaunchProfileName = builder.Configuration["AppHost:DefaultLaunchProfileName"]
+            ?? builder.Configuration["DOTNET_LAUNCH_PROFILE"];
+        if (!string.IsNullOrEmpty(appHostDefaultLaunchProfileName))
+        {
+            functionsBuilder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
+        }
+
+        return functionsBuilder
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"] = "true";
@@ -238,7 +250,8 @@ public static class AzureFunctionsProjectResourceExtensions
 
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
-        var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
+        // Use ProjectNameSha256 for stable naming across deployments regardless of path
+        var applicationHash = builder.Configuration["AppHost:ProjectNameSha256"]![..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }
 }

@@ -4,11 +4,12 @@
 using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.ConsoleLogs;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -92,6 +93,9 @@ public partial class GridValue
     [Parameter]
     public bool ContainsSecret { get; set; }
 
+    [Parameter]
+    public ComponentMetadata? ComponentMetadata { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -106,6 +110,7 @@ public partial class GridValue
     private readonly string _cellTextId = $"celltext-{Guid.NewGuid():N}";
     private string? _value;
     private string? _formattedValue;
+    private Dictionary<string, object>? _componentParameters;
 
     protected override void OnInitialized()
     {
@@ -156,5 +161,23 @@ public partial class GridValue
     private async Task OpenTextVisualizerAsync()
     {
         await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ValueDescription, ValueToVisualize ?? Value ?? string.Empty, IsMasked || ContainsSecret);
+    }
+
+    private Dictionary<string, object> BuildComponentParameters()
+    {
+        _componentParameters ??= [];
+
+        if (ComponentMetadata?.Parameters != null)
+        {
+            foreach (var parameter in ComponentMetadata.Parameters)
+            {
+                _componentParameters[parameter.Key] = parameter.Value;
+            }
+        }
+
+        _componentParameters["Value"] = Value ?? string.Empty;
+        _componentParameters["HighlightText"] = HighlightText ?? string.Empty;
+
+        return _componentParameters;
     }
 }

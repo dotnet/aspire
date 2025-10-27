@@ -10,13 +10,15 @@ namespace Aspire.OpenAI
 {
     public partial class AspireOpenAIClientBuilder
     {
-        public AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing) { }
+        public AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing, bool enableSensitiveTelemetryData) { }
 
         public virtual string ConfigurationSectionName { get { throw null; } }
 
         public string ConnectionName { get { throw null; } }
 
         public bool DisableTracing { get { throw null; } }
+
+        public bool EnableSensitiveTelemetryData { get { throw null; } }
 
         public Microsoft.Extensions.Hosting.IHostApplicationBuilder HostBuilder { get { throw null; } }
 
@@ -28,6 +30,8 @@ namespace Aspire.OpenAI
         public bool DisableMetrics { get { throw null; } set { } }
 
         public bool DisableTracing { get { throw null; } set { } }
+
+        public bool EnableSensitiveTelemetryData { get { throw null; } set { } }
 
         public System.Uri? Endpoint { get { throw null; } set { } }
 

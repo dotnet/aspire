@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
@@ -18,7 +20,7 @@ internal sealed class KubernetesPublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    public readonly string OutputPath = outputPath;
+    public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Kubernetes publishing.");
 
     private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
@@ -39,13 +41,10 @@ internal sealed class KubernetesPublishingContext(
         .WithIndentedSequences()
         .Build();
 
-    public ILogger Logger => logger;
-
     internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
-            logger.NotInPublishingMode();
             return;
         }
 
@@ -71,6 +70,27 @@ internal sealed class KubernetesPublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)
             {
+                // Materialize Dockerfile factory if present
+                if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var dockerfileContext = new DockerfileFactoryContext
+                    {
+                        Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(dockerfileContext).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
@@ -80,7 +100,7 @@ internal sealed class KubernetesPublishingContext(
                 }
 
                 await WriteKubernetesTemplatesForResource(resource, serviceResource.GetTemplatedResources()).ConfigureAwait(false);
-                AppendResourceContextToHelmValues(resource, serviceResource);
+                await AppendResourceContextToHelmValuesAsync(resource, serviceResource).ConfigureAwait(false);
             }
         }
 
@@ -88,14 +108,14 @@ internal sealed class KubernetesPublishingContext(
         await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
-    private void AppendResourceContextToHelmValues(IResource resource, KubernetesResource resourceContext)
+    private async Task AppendResourceContextToHelmValuesAsync(IResource resource, KubernetesResource resourceContext)
     {
-        AddValuesToHelmSection(resource, resourceContext.Parameters, HelmExtensions.ParametersKey);
-        AddValuesToHelmSection(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey);
-        AddValuesToHelmSection(resource, resourceContext.Secrets, HelmExtensions.SecretsKey);
+        await AddValuesToHelmSectionAsync(resource, resourceContext.Parameters, HelmExtensions.ParametersKey).ConfigureAwait(false);
+        await AddValuesToHelmSectionAsync(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey).ConfigureAwait(false);
+        await AddValuesToHelmSectionAsync(resource, resourceContext.Secrets, HelmExtensions.SecretsKey).ConfigureAwait(false);
     }
 
-    private void AddValuesToHelmSection(
+    private async Task AddValuesToHelmSectionAsync(
         IResource resource,
         Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
         string helmKey)
@@ -114,7 +134,19 @@ internal sealed class KubernetesPublishingContext(
                 continue;
             }
 
-            paramValues[key] = helmExpressionWithValue.Value ?? string.Empty;
+            string? value;
+
+            // If there's a parameter source, resolve its value asynchronously
+            if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
+            {
+                value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                value = helmExpressionWithValue.Value;
+            }
+
+            paramValues[key.ToHelmValuesSectionName()] = value ?? string.Empty;
         }
 
         if (paramValues.Count > 0)

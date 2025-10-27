@@ -2,7 +2,6 @@
   "type": "azure.bicep.v1",
   "path": "api-roles-redis.module.bicep",
   "params": {
-    "redis_outputs_name": "{redis.outputs.name}",
     "principalId": "{api-identity.outputs.principalId}",
     "principalName": "{api-identity.outputs.principalName}"
   },

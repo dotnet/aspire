@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="ru" original="../AddCommandStrings.resx">
     <body>
       <trans-unit id="AddingAspireIntegration">
-        <source>Adding Aspire integration...</source>
-        <target state="translated">Производится добавление интеграции Aspire...</target>
+        <source>Adding Aspire hosting integration...</source>
+        <target state="translated">Добавление интеграции размещения Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add an integration to the Aspire project.</source>
-        <target state="translated">Добавляет интеграцию в проект Aspire.</target>
+        <source>Add a hosting integration to the Aspire AppHost.</source>
+        <target state="translated">Добавьте интеграцию размещения в Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -32,6 +32,11 @@
         <target state="translated">Ни одного пакета не найдено.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">Не найдено пакетов, соответствующих вашему запросу "{0}". Показаны все доступные пакеты.</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">Пакет {0}::{1} загружен успешно.</target>
@@ -48,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
-        <source>Searching for Aspire packages...</source>
-        <target state="translated">Производится поиск пакетов Aspire...</target>
+        <source>Searching for Aspire integrations...</source>
+        <target state="translated">Поиск интеграций Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">
@@ -70,6 +75,11 @@
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">Обнаружено неожиданное количество пакетов.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">Использовать пакеты предварительного выпуска</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

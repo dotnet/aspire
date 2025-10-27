@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -20,6 +19,11 @@ internal interface IArmClientProvider
     /// Gets the ARM client for Azure resource management.
     /// </summary>
     IArmClient GetArmClient(TokenCredential credential, string subscriptionId);
+
+    /// <summary>
+    /// Gets the ARM client for Azure resource management without a specific subscription.
+    /// </summary>
+    IArmClient GetArmClient(TokenCredential credential);
 }
 
 /// <summary>
@@ -45,22 +49,6 @@ internal interface IBicepCompiler
 }
 
 /// <summary>
-/// Provides user secrets management functionality.
-/// </summary>
-internal interface IUserSecretsManager
-{
-    /// <summary>
-    /// Loads user secrets from the current application.
-    /// </summary>
-    Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Saves user secrets to the current application.
-    /// </summary>
-    Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
 /// Provides provisioning context creation functionality.
 /// </summary>
 internal interface IProvisioningContextProvider
@@ -68,7 +56,9 @@ internal interface IProvisioningContextProvider
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
-    Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A provisioning context.</returns>
+    Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -80,6 +70,26 @@ internal interface IArmClient
     /// Gets the default subscription and its matching tenant.
     /// </summary>
     Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all tenants accessible to the current user.
+    /// </summary>
+    Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all subscriptions accessible to the current user.
+    /// </summary>
+    Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all subscriptions accessible to the current user filtered by tenant ID.
+    /// </summary>
+    Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available locations for the specified subscription.
+    /// </summary>
+    Task<IEnumerable<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -106,6 +116,11 @@ internal interface ISubscriptionResource
     /// Gets resource groups collection.
     /// </summary>
     IResourceGroupCollection GetResourceGroups();
+
+    /// <summary>
+    /// Gets ARM deployments collection.
+    /// </summary>
+    IArmDeploymentCollection GetArmDeployments();
 }
 
 /// <summary>
@@ -169,6 +184,11 @@ internal interface ITenantResource
     /// Gets the tenant ID.
     /// </summary>
     Guid? TenantId { get; }
+
+    /// <summary>
+    /// Gets the display name.
+    /// </summary>
+    string? DisplayName { get; }
 
     /// <summary>
     /// Gets the default domain.

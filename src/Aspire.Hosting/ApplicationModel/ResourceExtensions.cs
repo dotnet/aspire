@@ -282,7 +282,7 @@ public static class ResourceExtensions
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 Logger = logger,
                 ExecutionContext = executionContext
@@ -538,6 +538,29 @@ public static class ResourceExtensions
     /// <returns>True if the container image name was found, otherwise false.</returns>
     public static bool TryGetContainerImageName(this IResource resource, [NotNullWhen(true)] out string? imageName)
     {
+        return TryGetContainerImageName(resource, useBuiltImage: true, out imageName);
+    }
+
+    /// <summary>
+    /// Attempts to get the container image name from the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to get the container image name from.</param>
+    /// <param name="useBuiltImage">When true, uses the image name from DockerfileBuildAnnotation if present. When false, uses only ContainerImageAnnotation.</param>
+    /// <param name="imageName">The container image name if found, otherwise null.</param>
+    /// <returns>True if the container image name was found, otherwise false.</returns>
+    public static bool TryGetContainerImageName(this IResource resource, bool useBuiltImage, [NotNullWhen(true)] out string? imageName)
+    {
+        // First check if there's a DockerfileBuildAnnotation with an image name/tag
+        // This takes precedence over the ContainerImageAnnotation when building from a Dockerfile
+        if (useBuiltImage &&
+            resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation &&
+            !string.IsNullOrEmpty(buildAnnotation.ImageName))
+        {
+            var tagSuffix = string.IsNullOrEmpty(buildAnnotation.ImageTag) ? string.Empty : $":{buildAnnotation.ImageTag}";
+            imageName = $"{buildAnnotation.ImageName}{tagSuffix}";
+            return true;
+        }
+
         if (resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
         {
             var registryPrefix = string.IsNullOrEmpty(imageAnnotation.Registry) ? string.Empty : $"{imageAnnotation.Registry}/";
@@ -576,6 +599,39 @@ public static class ResourceExtensions
         {
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource requires image building.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build if they provide their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image build requirements.</param>
+    /// <returns>True if the resource requires image building; otherwise, false.</returns>
+    public static bool RequiresImageBuild(this IResource resource)
+    {
+        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource requires image building and pushing.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build and a push to a container registry if they provide
+    /// their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image push requirements.</param>
+    /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
+    public static bool RequiresImageBuildAndPush(this IResource resource)
+    {
+        return resource.RequiresImageBuild() && !resource.IsBuildOnlyContainer();
+    }
+
+    internal static bool IsBuildOnlyContainer(this IResource resource)
+    {
+        return resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuild) &&
+            !dockerfileBuild.HasEntrypoint;
     }
 
     /// <summary>
@@ -681,6 +737,25 @@ public static class ResourceExtensions
         };
 
     /// <summary>
+    /// Returns a single DCP resource name for the specified resource.
+    /// Throws <see cref="InvalidOperationException"/> if the resource has no resolved names or multiple resolved names.
+    /// </summary>
+    internal static string GetResolvedResourceName(this IResource resource)
+    {
+        var names = resource.GetResolvedResourceNames();
+        if (names.Length == 0)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has no resolved names.");
+        }
+        if (names.Length > 1)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has multiple resolved names: {string.Join(", ", names)}.");
+        }
+
+        return names[0];
+    }
+
+    /// <summary>
     /// Gets resolved names for the specified resource.
     /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
     /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
@@ -695,5 +770,37 @@ public static class ResourceExtensions
         {
             return [resource.Name];
         }
+    }
+
+    /// <summary>
+    /// Adds a deployment-specific image tag callback to a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
+    /// <returns>The resource builder.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, string> callback) where T : class, IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds a deployment-specific image tag callback to a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
+    /// <returns>The resource builder.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback) where T : class, IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
     }
 }

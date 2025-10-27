@@ -2,9 +2,29 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to apphost...</source>
+        <target state="translated">apphost에 연결하는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">대시보드</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Azure 대시보드를 시작하지 못했습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">개발 모드에서 Aspire 앱 호스트를 실행합니다.</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="translated">개발 모드에서 Aspire 앱호스트를 실행합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -22,14 +42,19 @@
         <target state="translated">IsCompatibleAppHost가 null입니다</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">로그</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">앱 호스트를 중지하고 종료하려면 [bold]Ctrl+C[/]를 누르세요.</target>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="translated">앱 호스트를 중지하고 종료하려면 [bold]CTRL+C[/]를 누르세요.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire 앱 호스트 프로젝트 파일의 경로입니다.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -42,14 +67,24 @@
         <target state="translated">리소스</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="translated">Aspire 터미널에서 실행 중일 때 디버그 세션을 시작할지 여부입니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Aspire 앱 호스트 시작 중...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="translated">Aspire apphost를 시작하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">Aspire 대시보드 시작 중...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">대시보드 시작 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="translated">Aspire 확장 내에서 Aspire 실행이 감지되어 VS Code에서 디버그 세션을 시작합니다...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

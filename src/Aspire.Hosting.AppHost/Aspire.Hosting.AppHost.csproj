@@ -6,7 +6,7 @@
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
-    <Description>Core library and MSBuild logic for .NET Aspire AppHost projects.</Description>
+    <Description>Core library and MSBuild logic for Aspire AppHost projects.</Description>
   </PropertyGroup>
 
   <PropertyGroup>

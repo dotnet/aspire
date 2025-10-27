@@ -93,11 +93,11 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
               name: openai_outputs_name
             }
 
-            resource openai_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(openai.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+            resource openai_CognitiveServicesOpenAIUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(openai.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
               properties: {
                 principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
                 principalType: principalType
               }
               scope: openai
@@ -105,5 +105,41 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
             """;
         output.WriteLine(openaiRolesManifest.BicepText);
         Assert.Equal(expectedBicep, openaiRolesManifest.BicepText);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureOpenAIResource()
+    {
+        // Arrange
+        var openAIResource = new AzureOpenAIResource("test-openai", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(openAIResource, "test-openai");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = openAIResource.AddAsExistingResource(infrastructure);
+        var secondResult = openAIResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureOpenAIResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-openai-name");
+        var existingResourceGroup = builder.AddParameter("existing-openai-rg");
+
+        var openAI = builder.AddAzureOpenAI("test-openai")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = openAI.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 }

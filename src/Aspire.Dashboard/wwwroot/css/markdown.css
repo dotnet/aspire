@@ -1,0 +1,163 @@
+.markdown-container blockquote {
+    font-style: normal;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Remove paragraph margin-bottom when it's the last element in a blockquote. */
+.markdown-container blockquote > p:last-child {
+    margin-bottom: 0;
+}
+
+/* Remove paragraph margin-bottom when it's the last element in a blockquote. */
+.markdown-container li > p:last-child {
+    margin-bottom: 0;
+}
+
+/*
+    Remove paragraph margin-bottom when it's nested in a list,
+    and the paragraph is immediately followed by another list.
+*/
+.markdown-container li > p:first-child:has(+ ul),
+.markdown-container li > p:first-child:has(+ ol) {
+    margin-bottom: 0;
+}
+
+.markdown-container li {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+.markdown-container .code-block {
+    border: 1px solid var(--neutral-stroke-rest);
+    background-color: var(--chat-codeblock-background-color);
+    border-radius: .375rem;
+    position: relative;
+}
+
+.markdown-container .code-title {
+    display: flex;
+    color: var(--foreground-settings-text);
+    background-color: var(--neutral-fill-hover);
+    padding-left: 14px;
+    padding-right: 14px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    height: 2rem;
+    font-size: 13px;
+    align-items: center;
+}
+
+.markdown-container .code-container {
+    overflow-y: auto;
+    padding: 14px;
+}
+
+.markdown-container .code-buttons-anchor {
+    position: sticky;
+    top: 2.25rem;
+}
+
+.markdown-container .code-buttons-hover {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    padding-right: 14px;
+}
+
+.markdown-container pre {
+    overflow: visible; /* required for sticky copy button */
+    font-family: inherit;
+    font-size: inherit;
+    margin: 0.5rem 0.75rem 1rem 0;
+}
+
+.markdown-container code {
+    font-family: 'Cascadia Mono', Consolas, monospace;
+    color: unset;
+    background-color: var(--neutral-fill-secondary-focus);
+    padding: .15rem .3rem;
+    border-radius: .25rem;
+}
+
+.markdown-container pre code {
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.markdown-container pre code, .markdown-container a code {
+    background-color: unset;
+    padding: unset;
+    border-radius: unset;
+}
+
+.markdown-container .code-copy-button {
+    border: 0;
+    border-radius: 5px;
+    background-color: var(--neutral-fill-hover);
+    width: 28px;
+    height: 28px;
+}
+
+.markdown-container .code-copy-button:hover {
+    background-color: var(--neutral-fill-active);
+}
+
+.markdown-container .copy-icon,
+.markdown-container .checkmark-icon {
+    display: inline-flex;
+    vertical-align: sub;
+}
+
+.markdown-container strong {
+    font-weight: 600;
+}
+
+.markdown-container table {
+    margin-bottom: calc(.25rem * 6);
+    margin-top: calc(.25rem * 3);
+    width: 100%;
+}
+
+.markdown-container tr:last-child {
+    border-style: none;
+}
+
+.markdown-container tr {
+    border-bottom: 1px solid var(--table-body-border-color);
+}
+
+.markdown-container th {
+    padding-right: calc(.25rem * 1);
+}
+
+.markdown-container th {
+    border-bottom: 1px solid var(--table-header-border-color);
+    padding-bottom: calc(.25rem * 1.5);
+    padding-top: calc(.25rem * 1);
+    font-weight: 600;
+}
+
+.markdown-container td {
+    padding-right: calc(.25rem * 1);
+    padding-block: calc(.25rem * 1.5);
+}
+
+/* Markdown headings are modified to never be larger than h4 */
+.markdown-container h4 {
+    font-size: var(--type-ramp-plus-2-font-size);
+    line-height: var(--type-ramp-plus-2-line-height);
+}
+
+.markdown-container h5 {
+    font-size: var(--type-ramp-plus-1-font-size);
+    line-height: var(--type-ramp-plus-1-line-height);
+}
+
+.markdown-container h6 {
+    font-size: var(--type-ramp-base-font-size);
+    line-height: var(--type-ramp-base-line-height);
+}

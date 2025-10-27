@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -430,6 +429,250 @@ public class ResourceNotificationTests
             var result = ResourceNotificationService.IsMicrosoftOpenType(type);
             Assert.True(result);
         }
+    }
+
+    [Fact]
+    public async Task UpdateIcons_DoesNotOverwriteExistingIconValues()
+    {
+        var resource = new CustomResource("myResource");
+
+        // Add multiple icon annotations to test the override behavior
+        resource.Annotations.Add(new ResourceIconAnnotation("FirstIcon", IconVariant.Filled));
+        resource.Annotations.Add(new ResourceIconAnnotation("LastIcon", IconVariant.Regular));
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellationToken)
+        {
+            var values = new List<ResourceEvent>();
+
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
+            {
+                values.Add(item);
+
+                if (values.Count == 2)
+                {
+                    break;
+                }
+            }
+
+            return values;
+        }
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var enumerableTask = GetValuesAsync(cts.Token);
+
+        // First, publish an update with existing icon values in the snapshot
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            IconName = "ExistingIcon",
+            IconVariant = IconVariant.Filled
+        }).DefaultTimeout();
+
+        // Publish another update that should NOT overwrite the existing icon values
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = "Running"  // Change something else to trigger an update
+        }).DefaultTimeout();
+
+        var values = await enumerableTask.DefaultTimeout();
+
+        Assert.Equal(2, values.Count);
+
+        // Check the first event (with initial icon values)
+        var firstEvent = values[0];
+        Assert.Equal("ExistingIcon", firstEvent.Snapshot.IconName);
+        Assert.Equal(IconVariant.Filled, firstEvent.Snapshot.IconVariant);
+
+        // Check the second event (icon values should not be overwritten)
+        var secondEvent = values[1];
+        Assert.Equal("ExistingIcon", secondEvent.Snapshot.IconName);
+        Assert.Equal(IconVariant.Filled, secondEvent.Snapshot.IconVariant);
+        Assert.Equal("Running", secondEvent.Snapshot.State?.Text);
+    }
+
+    [Fact]
+    public async Task UpdateIcons_UsesLastAnnotationWhenNoIconSet()
+    {
+        var resource = new CustomResource("myResource");
+
+        // Add multiple icon annotations to simulate .WithIconName("FirstIcon").WithIconName("LastIcon")
+        resource.Annotations.Add(new ResourceIconAnnotation("FirstIcon", IconVariant.Filled));
+        resource.Annotations.Add(new ResourceIconAnnotation("LastIcon", IconVariant.Regular));
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        async Task<ResourceEvent> GetFirstValueAsync(CancellationToken cancellationToken)
+        {
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
+            {
+                return item;
+            }
+            throw new InvalidOperationException("No events received");
+        }
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var enumerableTask = GetFirstValueAsync(cts.Token);
+
+        // Publish an update with no existing icon values (simulates initial resource creation)
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = "Starting"
+        }).DefaultTimeout();
+
+        var value = await enumerableTask.DefaultTimeout();
+
+        // Verify that the icon values were set from the LAST annotation (not the first)
+        Assert.Equal("LastIcon", value.Snapshot.IconName);
+        Assert.Equal(IconVariant.Regular, value.Snapshot.IconVariant);
+        Assert.Equal("Starting", value.Snapshot.State?.Text);
+    }
+
+    [Fact]
+    public async Task UpdateIcons_SetsIconValuesWhenNotAlreadySet()
+    {
+        var resource = new CustomResource("myResource");
+
+        // Add icon annotation to the resource
+        resource.Annotations.Add(new ResourceIconAnnotation("AnnotationIcon", IconVariant.Regular));
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        async Task<ResourceEvent> GetFirstValueAsync(CancellationToken cancellationToken)
+        {
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
+            {
+                return item;
+            }
+            throw new InvalidOperationException("No events received");
+        }
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var enumerableTask = GetFirstValueAsync(cts.Token);
+
+        // Publish an update with no existing icon values
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = "Starting"
+        }).DefaultTimeout();
+
+        var value = await enumerableTask.DefaultTimeout();
+
+        // Verify that the icon values were set from the annotation
+        Assert.Equal("AnnotationIcon", value.Snapshot.IconName);
+        Assert.Equal(IconVariant.Regular, value.Snapshot.IconVariant);
+        Assert.Equal("Starting", value.Snapshot.State?.Text);
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncWaitsForResourceReadyEvent()
+    {
+        var resource = new CustomResource("myResource");
+        var logger = new FakeLogger<ResourceNotificationService>();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(logger: logger);
+
+        // Create a TaskCompletionSource to control when the ResourceReadyEvent completes
+        var resourceReadyTcs = new TaskCompletionSource();
+        var eventSnapshot = new EventSnapshot(resourceReadyTcs.Task);
+
+        // Start the wait task - this should not complete until ResourceReadyEvent is done
+        var waitTask = notificationService.WaitForResourceHealthyAsync("myResource");
+
+        // First, make the resource running (which makes it healthy) but without ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running
+        }).DefaultTimeout();
+
+        // Now add the ResourceReadyEvent but don't complete it yet
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running,
+            ResourceReadyEvent = eventSnapshot
+        }).DefaultTimeout();
+
+        // Complete the ResourceReadyEvent
+        resourceReadyTcs.SetResult();
+
+        // Now the wait task should complete
+        var resourceEvent = await waitTask.DefaultTimeout();
+
+        var logRecords = logger.Collector.GetSnapshot();
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+        Assert.Equal(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy, resourceEvent.Snapshot.HealthStatus);
+        Assert.NotNull(resourceEvent.Snapshot.ResourceReadyEvent);
+        Assert.True(resourceEvent.Snapshot.ResourceReadyEvent.EventTask.IsCompletedSuccessfully);
+
+        // Assert logs
+        Assert.Contains(logRecords, log => log.Level == LogLevel.Debug && log.Message.Contains("Waiting for resource 'myResource' to enter the 'Healthy' state."));
+        Assert.Contains(logRecords, log => log.Level == LogLevel.Debug && log.Message.Contains("Waiting for resource ready to execute for 'myResource'."));
+        Assert.Contains(logRecords, log => log.Level == LogLevel.Debug && log.Message.Contains("Finished waiting for resource 'myResource'."));
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncWaitsForResourceReadyEventWithException()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a TaskCompletionSource that will throw an exception
+        var resourceReadyTcs = new TaskCompletionSource();
+        var eventSnapshot = new EventSnapshot(resourceReadyTcs.Task);
+
+        // Start the wait task
+        var waitTask = notificationService.WaitForResourceHealthyAsync("myResource");
+
+        // Make the resource running (healthy) and add ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running,
+            ResourceReadyEvent = eventSnapshot
+        }).DefaultTimeout();
+
+        // Set an exception in the ResourceReadyEvent
+        resourceReadyTcs.SetException(new InvalidOperationException("ResourceReady failed"));
+
+        // The wait task should propagate the exception
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => waitTask.DefaultTimeout());
+        Assert.Equal("ResourceReady failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncWorksWithoutResourceReadyEvent()
+    {
+        var resource = new CustomResource("myResource");
+        var logger = new FakeLogger<ResourceNotificationService>();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(logger: logger);
+
+        // Start the wait task
+        var waitTask = notificationService.WaitForResourceHealthyAsync("myResource");
+
+        // Make the resource running (healthy) without ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running
+        }).DefaultTimeout();
+
+        // Now publish an update with ResourceReadyEvent that's already completed
+        // In practice, this represents a resource that doesn't have OnResourceReady handlers
+
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running,
+            ResourceReadyEvent = new EventSnapshot(Task.CompletedTask)
+        }).DefaultTimeout();
+
+        // Now the wait task should complete
+        var resourceEvent = await waitTask.DefaultTimeout();
+        var logRecords = logger.Collector.GetSnapshot();
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+        Assert.Equal(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy, resourceEvent.Snapshot.HealthStatus);
+
+        Assert.Contains(logRecords, log => log.Level == LogLevel.Debug && log.Message.Contains("Waiting for resource 'myResource' to enter the 'Healthy' state."));
+        Assert.Contains(logRecords, log => log.Level == LogLevel.Debug && log.Message.Contains("Waiting for resource ready to execute for 'myResource'."));
+        Assert.Contains(logRecords, log => log.Level == LogLevel.Debug && log.Message.Contains("Finished waiting for resource 'myResource'."));
     }
 
     private sealed class CustomResource(string name) : Resource(name),

@@ -196,6 +196,9 @@
   <data name="ResourcesDetailsProjectPathProperty" xml:space="preserve">
     <value>Project path</value>
   </data>
+  <data name="ResourcesDetailsProjectLaunchProfileProperty" xml:space="preserve">
+    <value>Launch profile</value>
+  </data>
   <data name="ResourcesDetailsStartTimeProperty" xml:space="preserve">
     <value>Start time</value>
   </data>
@@ -244,6 +247,18 @@
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
   </data>
+  <data name="HealthCheckStatusWithTimeFormat" xml:space="preserve">
+    <value>{0} ({1} ago)</value>
+    <comment>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</comment>
+  </data>
+  <data name="HealthCheckStatusJustNowFormat" xml:space="preserve">
+    <value>{0} (just now)</value>
+    <comment>{0} is the health status like "Unhealthy"</comment>
+  </data>
+  <data name="HealthCheckStatusWithTimeTooltipFormat" xml:space="preserve">
+    <value>{0} (last run at {1})</value>
+    <comment>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</comment>
+  </data>
   <data name="WaitingForHealthDataMessage" xml:space="preserve">
     <value>Waiting for health data...</value>
     <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
@@ -276,5 +291,22 @@
   </data>
   <data name="ResourcesShowTypes" xml:space="preserve">
     <value>Show resource types</value>
+  </data>
+  <data name="ResourcesDetailsParameterValueProperty" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="TotalItemsFooterSingularText" xml:space="preserve">
+    <value>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</value>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="TotalItemsFooterPluralText" xml:space="preserve">
+    <value>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</value>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="ResourceActionCommandsText" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="ResourceActionUrlsText" xml:space="preserve">
+    <value>URLs</value>
   </data>
 </root>

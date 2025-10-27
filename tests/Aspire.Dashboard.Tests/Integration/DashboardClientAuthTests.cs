@@ -41,7 +41,7 @@ public sealed class DashboardClientAuthTests
         await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
         await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.Unsecured).DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
+        var call = await server.Calls.ResourceInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -57,7 +57,7 @@ public sealed class DashboardClientAuthTests
         await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
         await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!").DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
+        var call = await server.Calls.ResourceInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -153,7 +153,7 @@ public sealed class DashboardClientAuthTests
 
     private sealed class TestCalls
     {
-        public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ApplicationInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
+        public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ResourceInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
     }
 
     private sealed class MockDashboardService(TestCalls testCalls) : DashboardServiceBase
@@ -162,7 +162,7 @@ public sealed class DashboardClientAuthTests
             ApplicationInformationRequest request,
             ServerCallContext context)
         {
-            testCalls.ApplicationInformationCallsChannel.Writer.TryWrite(new ReceivedCallInfo<ApplicationInformationRequest>(request, context.RequestHeaders));
+            testCalls.ResourceInformationCallsChannel.Writer.TryWrite(new ReceivedCallInfo<ApplicationInformationRequest>(request, context.RequestHeaders));
 
             return Task.FromResult(new ApplicationInformationResponse()
             {

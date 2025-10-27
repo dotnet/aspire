@@ -27,11 +27,11 @@ On Windows, you can collect the trace using PerfView instead (https://github.com
 1. Expand Advanced Options panel and make sure you have Kernel Base, Cpu Samples, File I/O, .NET, and Task (TPL) options checked.
 1. In "Additional Providers" add `*Microsoft-Aspire-Hosting` (note the asterisk before the .NET Aspire provider name!).
 
-Once you are ready, git "Start Collection" button and run your scenario.
+Once you are ready, hit "Start Collection" button and run your scenario.
 
 When done with the scenario, hit "Stop Collection". Wait for PerfView to finish merging and analyzing data (the "working" status bar stops flashing).
 
-### Verify that the trace contains data .NET Aspire data
+### Verify that the trace contains .NET Aspire data
 
 This is an optional step, but if you are wondering if your trace has been captured properly, you can check the following:
 

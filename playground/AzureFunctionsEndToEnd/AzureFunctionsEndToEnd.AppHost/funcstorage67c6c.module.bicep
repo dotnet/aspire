@@ -21,11 +21,6 @@ resource funcstorage67c6c 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-  name: 'default'
-  parent: funcstorage67c6c
-}
-
 output blobEndpoint string = funcstorage67c6c.properties.primaryEndpoints.blob
 
 output queueEndpoint string = funcstorage67c6c.properties.primaryEndpoints.queue

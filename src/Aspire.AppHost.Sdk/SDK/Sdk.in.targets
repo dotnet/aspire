@@ -6,6 +6,8 @@
   This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
   -->
 
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="'$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true'" />
+
   <ItemGroup>
     <ProjectCapability Include="DynamicFileNesting" />
     <ProjectCapability Include="DynamicFileNestingEnabled" />
@@ -49,11 +51,24 @@
     <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
 
+  <!-- Add an implicit reference to the Aspire.Hosting.AppHost package if not already referenced.
+       This is done here so that AppHost projects and file-based apps only need to set the SDK to make them an Aspire AppHost.
+       This mechanism can be disabled by setting `SkipAddAspireDefaultReferences` to `true` -->
+  <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(SkipAddAspireDefaultReferences)' != 'true'">
+    <PropertyGroup>
+      <_ImplicitAppHostVersion>@VERSION@</_ImplicitAppHostVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.AppHost" Version="$(_ImplicitAppHostVersion)" IsImplicitlyDefined="true"
+                        Condition="'@(PackageReference->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == ''" />
+    </ItemGroup>
+  </Target>
+
   <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
        a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
        the same version. This is done here dynamically to avoid having to pull in DCP and Dashboard packages
        for all of the platforms. This mechanism can be disabled by setting `SkipAddAspireDefaultReferences` to `true` -->
-  <Target Name="AddReferenceToDashboardAndDCP" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(SkipAddAspireDefaultReferences)' != 'true'">
+  <Target Name="AddReferenceToDashboardAndDCP" BeforeTargets="Restore;CollectPackageReferences" AfterTargets="AddImplicitAspireAppHostPackage" Condition="'$(SkipAddAspireDefaultReferences)' != 'true'">
 
     <!-- First, we assume project is not using Central Package Management, and we try to extract the version
          from PackageReference Items. -->

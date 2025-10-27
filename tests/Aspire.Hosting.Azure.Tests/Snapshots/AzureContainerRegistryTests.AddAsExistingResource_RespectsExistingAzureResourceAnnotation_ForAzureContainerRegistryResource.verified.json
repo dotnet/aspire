@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_acr_name": "{existing-acr-name.value}",
+    "existing_acr_rg": "{existing-acr-rg.value}"
+  }
+}

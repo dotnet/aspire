@@ -42,7 +42,7 @@ public static class AzureContainerAppExtensions
         // so Azure resources don't need to add the default role assignments themselves
         builder.Services.Configure<AzureProvisioningOptions>(o => o.SupportsTargetedRoleAssignments = true);
 
-        builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<AzureContainerAppsInfrastructure>();
 
         return builder;
     }
@@ -62,7 +62,7 @@ public static class AzureContainerAppExtensions
             var appEnvResource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
 
             // This tells azd to avoid creating infrastructure
-            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string));
+            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
             infra.Add(userPrincipalId);
 
             var tags = new ProvisioningParameter("tags", typeof(object))
@@ -177,7 +177,8 @@ public static class AzureContainerAppExtensions
                     Tags = tags,
                     Sku = new StorageSku() { Name = StorageSkuName.StandardLrs },
                     Kind = StorageKind.StorageV2,
-                    LargeFileSharesState = LargeFileSharesState.Enabled
+                    LargeFileSharesState = LargeFileSharesState.Enabled,
+                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
                 };
 
                 infra.Add(storageVolume);

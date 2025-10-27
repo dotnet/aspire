@@ -33,7 +33,9 @@ public static class AzureAIFoundryExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureAIFoundryResource(name, ConfigureInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName,
+                CognitiveServicesBuiltInRole.CognitiveServicesUser, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser);
     }
 
     /// <summary>
@@ -68,6 +70,36 @@ public static class AzureAIFoundryExtensions
         }
 
         return deploymentBuilder;
+    }
+
+    /// <summary>
+    /// Adds and returns an Azure AI Foundry Deployment resource to the application model using a <see cref="AIFoundryModel"/>.
+    /// </summary>
+    /// <param name="builder">The Azure AI Foundry resource builder.</param>
+    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">aiFoundry.AddDeployment(name: "chat", model: AIFoundryModel.OpenAI.Gpt5Mini)</code></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a deployment for the OpenAI GTP-5-mini model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// var gpt5mini = aiFoundry.AddDeployment("chat", AIFoundryModel.OpenAI.Gpt5Mini);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModel model)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Version);
+        ArgumentException.ThrowIfNullOrEmpty(model.Format);
+
+        return builder.AddDeployment(name, model.Name, model.Version, model.Format);
     }
 
     /// <summary>
@@ -130,12 +162,42 @@ public static class AzureAIFoundryExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure AI Foundry resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure AI Foundry resource.</param>
+    /// <param name="roles">The built-in Cognitive Services roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
+    /// <example>
+    /// Assigns the CognitiveServicesOpenAIContributor role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(aiFoundry, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor)
+    ///   .WithReference(aiFoundry);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureAIFoundryResource> target,
+        params CognitiveServicesBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, CognitiveServicesBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
     private static IResourceBuilder<AzureAIFoundryResource> WithInitializer(this IResourceBuilder<AzureAIFoundryResource> builder)
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(builder.Resource, (@event, ct)
+        return builder.OnInitializeResource((resource, @event, ct)
             => Task.Run(async () =>
             {
-                var resource = (AzureAIFoundryResource)@event.Resource;
                 var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
                 var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
                 var logger = @event.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
@@ -153,7 +215,7 @@ public static class AzureAIFoundryExtensions
                 }
                 catch (Exception e)
                 {
-                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started. Error: {Error}", e.Message);
+                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started (Error: {Error}).", e.Message);
                 }
 
                 if (manager.IsServiceRunning)
@@ -176,8 +238,6 @@ public static class AzureAIFoundryExtensions
                 }
 
             }, ct));
-
-        return builder;
     }
 
     /// <summary>
@@ -188,7 +248,6 @@ public static class AzureAIFoundryExtensions
         ArgumentNullException.ThrowIfNull(deployment, nameof(deployment));
 
         var foundryResource = builder.Resource.Parent;
-
         builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(foundryResource, (@event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
@@ -213,8 +272,11 @@ public static class AzureAIFoundryExtensions
                 {
                     if (progress.IsCompleted && progress.ModelInfo is not null)
                     {
-                        deployment.DeploymentName = progress.ModelInfo.ModelId;
-                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.DeploymentName);
+                        // Set the model id that was actually downloaded. This is the value that is used in the
+                        // connection string
+
+                        deployment.ModelId = progress.ModelInfo.ModelId;
+                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.ModelId);
 
                         // Re-publish the connection string since the model id is now known
                         var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(deployment, @event.Services);
@@ -222,7 +284,7 @@ public static class AzureAIFoundryExtensions
 
                         await rns.PublishUpdateAsync(deployment, state => state with
                         {
-                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({progress.ModelInfo.ModelId})")]
+                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({deployment.ModelId})")]
                         }).ConfigureAwait(false);
 
                         await rns.PublishUpdateAsync(deployment, state => state with
@@ -232,7 +294,7 @@ public static class AzureAIFoundryExtensions
 
                         try
                         {
-                            _ = await manager.LoadModelAsync(deployment.DeploymentName, ct: ct).ConfigureAwait(false);
+                            _ = await manager.LoadModelAsync(deployment.ModelId, ct: ct).ConfigureAwait(false);
 
                             await rns.PublishUpdateAsync(deployment, state => state with
                             {
@@ -277,7 +339,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new LocalModelHealthCheck(modelAlias: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new LocalModelHealthCheck(modelId: deployment.ModelId, sp.GetRequiredService<FoundryLocalManager>()),
                     failureStatus: default,
                     tags: default,
                     timeout: default
@@ -299,7 +361,6 @@ public static class AzureAIFoundryExtensions
                 },
                 (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    Name = Take(Interpolate($"{infrastructure.AspireResource.GetBicepIdentifier()}{GetUniqueString(GetResourceGroup().Id)}"), 64),
                     Kind = "AIServices",
                     Sku = new CognitiveServicesSku()
                     {
@@ -318,13 +379,19 @@ public static class AzureAIFoundryExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-        var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
-            (BicepExpression)cogServicesAccount.Properties.Endpoints!,
-            "AI Foundry API");
         infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
         {
-            Value = inferenceEndpoint
+            Value = (BicepValue<string>)new IndexExpression(
+                (BicepExpression)cogServicesAccount.Properties.Endpoints!,
+                "AI Foundry API")
         });
+
+        infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string))
+        {
+            Value = cogServicesAccount.Properties.Endpoint
+        });
+
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name });
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
 

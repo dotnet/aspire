@@ -7,24 +7,24 @@
         <target state="translated">Dağıtım iptal edildi.</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+      <trans-unit id="Description">
+        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
+        <target state="translated">Bir Aspire AppHost içeriğini tanımlanan dağıtım hedeflerine dağıtın. (Önizleme)</target>
         <note />
       </trans-unit>
-      <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="translated">Desteklenen dağıtım hedeflerine bir Aspire uygulama ana işlemi projesi dağıtın.</target>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="translated">DAĞITIM TAMAMLANDI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT FAILED</source>
+        <target state="translated">DAĞITIM BAŞARISIZ OLDU</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">Dağıtım yapıtları için çıktı yolu.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">Başarıyla dağıtıldı. Yapıtlar şurada mevcuttur: {0}</target>
+        <source>The optional output path for deployment artifacts.</source>
+        <target state="translated">Dağıtım yapıtları için isteğe bağlı çıktı yolu.</target>
         <note />
       </trans-unit>
     </body>

@@ -1,47 +1,47 @@
 # Aspire.Template.Tests
 
-The purpose of the `Aspire.Template.Tests` project is to to exercise the `aspire` workload and run end-to-end tests against pre-built NuGet packages (nupkgs). These tests validate the ability to create projects from templates just like a user would, and then build, run, and interact with Aspire projects to ensure compatibility with CI pipelines and local development environments.
+The purpose of the `Aspire.Template.Tests` project is to run end-to-end tests against pre-built NuGet packages (nupkgs). These tests validate the ability to create projects from templates just like a user would, and then build, run, and interact with Aspire projects to ensure compatibility with CI pipelines and local development environments.
 
 For pull-requests in CI the tests are run via GitHub actions defined in `tests-templates.yml`.
 
 ## TL;DR or How do I use this?
 
-1. [Install the sdk+workload](#install-the-sdkworkload)
-2. Run/debug the tests normally now, and they will be using the sdk
+1. [Install the SDK](#install-the-sdk)
+2. Run/debug the tests normally now, and they will be using the SDK
 
-## (details) What are *workload* tests?
+## (details) What are *template* tests?
 
 The individual tests need to create projects from templates just like a user would, and then run, and validate them. For this we need:
-    - a sdk installation with the `aspire` workload installed
-    - the workload should use packs from the locally built NuGet packages
-    - and the non-workload NuGet packages should be used from the locally built ones
+    - a SDK installation with the necessary components installed
+    - the components should use packages from the locally built NuGet packages
+    - and the NuGet packages should be used from the locally built ones
 
-### Solution (sdk+workload):
+### Solution (SDK):
 
 - SDK is installed with `$(SdkVersionForTemplateTesting)` set to the version in `global.json` by default.
-- The Aspire workload manifest is installed using a NuGet package from `artifacts/packages/*/Shipping`
-- Then, with a custom `nuget.config` which points to the built NuGet packages in `artifacts`, we run `dotnet workload install aspire`
-    - which installs the workload using the NuGet packages from the `artifacts` into `artifacts/bin/dotnet-tests`
-- This simulates the workload being installed on a user's machine, and being independent of the aspire repo.
-- At this point the sdk is usable from outside the repo by using `source /path-to-aspire-repo/dogfood.sh`
+- The necessary Aspire components are installed using NuGet packages from `artifacts/packages/*/Shipping`
+- Then, with a custom `nuget.config` which points to the built NuGet packages in `artifacts`, the SDK is configured to use local packages
+    - which installs the components using the NuGet packages from the `artifacts` into `artifacts/bin/dotnet-tests`
+- This simulates the SDK being installed on a user's machine, and being independent of the aspire repo.
+- At this point the SDK is usable from outside the repo by using `source /path-to-aspire-repo/dogfood.sh`
 - The nuget versions for the locally built packages are like `8.0.0-dev` or `8.0.0-ci`.
 
 ### Helix
 
-- The sdk+workload is sent to helix, and used by all the tests for creating/running projects.
+- The SDK is sent to helix, and used by all the tests for creating/running projects.
 
-## Install the sdk+workload
+## Install the SDK
 
 1. `.\build.cmd -pack` - to build all the NuGet packages (or `./build.sh -pack`)
 2. `dotnet build tests/workloads.proj /p:Configuration=<config>`
-    - this will install the sdk, and the `aspire` workload using the NuGet packages from `artifacts/packages/*/Shipping` into `artifacts/bin/dotnet-tests`
-    - note: `artifacts/bin/dotnet-none` contains the sdk+aspire workload manifest but NO workload
+    - this will install the SDK, and the necessary components using the NuGet packages from `artifacts/packages/*/Shipping` into `artifacts/bin/dotnet-tests`
+    - note: `artifacts/bin/dotnet-none` contains the SDK with component manifests but NO components
 
-The sdk in `artifacts/bin/dotnet-tests` is usable outside the repo at this point.
+The SDK in `artifacts/bin/dotnet-tests` is usable outside the repo at this point.
 
-## Using the sdk+workload outside the repo
+## Using the SDK outside the repo
 
-- Follow the steps to [install the sdk+workload](#install-the-sdkworkload).
+- Follow the steps to [install the SDK](#install-the-sdk).
 
 - The environment needs to be set up to use this. It can be done manually with:
     - Add `/path-to-aspire-repo/artifacts/bin/dotnet-tests` to `PATH`.

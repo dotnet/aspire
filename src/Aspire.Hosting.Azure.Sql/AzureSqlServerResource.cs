@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
-using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
@@ -116,8 +115,28 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = SqlServer.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a SqlServer with the same identifier already exists
+        var existingStore = resources.OfType<SqlServer>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = SqlServer.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }
@@ -157,12 +176,12 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         foreach (var (resource, database) in Databases)
         {
             var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{resource}");
-            var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
+            var scriptResource = new AzurePowerShellScript($"script_{uniqueScriptIdentifier}")
             {
                 Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(resource), BicepFunction.GetResourceGroup().Id)}"), 24),
-                Kind = "AzurePowerShell",
+                RetentionInterval = TimeSpan.FromHours(1),
                 // List of supported versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list
-                AZPowerShellVersion = "10.0"
+                AzPowerShellVersion = "10.0"
             };
 
             // Run the script as the administrator
@@ -172,11 +191,11 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
             // Script don't support Bicep expression, they need to be passed as ENVs
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "ID", Value = userId });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "DBNAME", Value = database });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "ID", Value = userId });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"

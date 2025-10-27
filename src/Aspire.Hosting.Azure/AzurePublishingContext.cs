@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -24,12 +25,15 @@ namespace Aspire.Hosting.Azure;
 public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
+    IServiceProvider serviceProvider,
     ILogger logger,
-    IPublishingActivityProgressReporter progressReporter)
+    IPipelineActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityProgressReporter ProgressReporter => progressReporter;
+    private IPipelineActivityReporter ActivityReporter => activityReporter;
+
+    private IServiceProvider ServiceProvider => serviceProvider;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -58,6 +62,15 @@ public sealed class AzurePublishingContext(
     public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
 
     /// <summary>
+    /// Gets a dictionary that provides direct lookup of output references based on bicep identifier.
+    /// </summary>
+    /// <remarks>
+    /// This reverse lookup map allows efficient retrieval of <see cref="BicepOutputReference"/>
+    /// instances using their corresponding bicep identifier strings.
+    /// </remarks>
+    internal Dictionary<string, BicepOutputReference> ReverseOutputLookup { get; } = [];
+
+    /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
@@ -75,8 +88,8 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        var step = await ProgressReporter.CreateStepAsync(
-            "Publishing Azure Bicep templates",
+        var step = await ActivityReporter.CreateStepAsync(
+            "publish-bicep",
             cancellationToken
         ).ConfigureAwait(false);
 
@@ -92,7 +105,7 @@ public sealed class AzurePublishingContext(
 
                     await SaveToDiskAsync(outputPath).ConfigureAwait(false);
 
-                    await writeTask.CompleteAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
+                    await writeTask.SucceedAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -105,7 +118,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IReportingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -117,9 +130,9 @@ public sealed class AzurePublishingContext(
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
 
-        MapParameter(environment.ResourceGroupName);
-        MapParameter(environment.Location);
-        MapParameter(environment.PrincipalId);
+        await MapParameterAsync(environment.ResourceGroupName, cancellationToken).ConfigureAwait(false);
+        await MapParameterAsync(environment.Location, cancellationToken).ConfigureAwait(false);
+        await MapParameterAsync(environment.PrincipalId, cancellationToken).ConfigureAwait(false);
 
         var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
         MainInfrastructure.Add(resourceGroupParam);
@@ -163,21 +176,21 @@ public sealed class AzurePublishingContext(
             // Map parameters from existing resources
             if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
             {
-                Visit(existingAnnotation.ResourceGroup, MapParameter);
-                Visit(existingAnnotation.Name, MapParameter);
+                await VisitAsync(existingAnnotation.ResourceGroup, MapParameterAsync, cancellationToken).ConfigureAwait(false);
+                await VisitAsync(existingAnnotation.Name, MapParameterAsync, cancellationToken).ConfigureAwait(false);
             }
 
             // Map parameters for the resource itself
             foreach (var parameter in resource.Parameters)
             {
-                Visit(parameter.Value, MapParameter);
+                await VisitAsync(parameter.Value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
             }
         }
 
         static BicepValue<string> GetOutputs(ModuleImport module, string outputName) =>
             new MemberExpression(new MemberExpression(new IdentifierExpression(module.BicepIdentifier), "outputs"), outputName);
 
-        BicepFormatString EvalExpr(ReferenceExpression expr)
+        FormattableString EvalExpr(ReferenceExpression expr)
         {
             var args = new object[expr.ValueProviders.Count];
 
@@ -186,7 +199,7 @@ public sealed class AzurePublishingContext(
                 args[i] = Eval(expr.ValueProviders[i]);
             }
 
-            return new BicepFormatString(expr.Format, args);
+            return FormattableStringFactory.Create(expr.Format, args);
         }
 
         object Eval(object? value) => value switch
@@ -207,7 +220,7 @@ public sealed class AzurePublishingContext(
                 BicepValue<string> s => s,
                 string s => s,
                 ProvisioningParameter p => p,
-                BicepFormatString fs => BicepFunction2.Interpolate(fs),
+                FormattableString fs => BicepFunction.Interpolate(fs),
                 _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
             };
         }
@@ -250,6 +263,11 @@ public sealed class AzurePublishingContext(
                     module.Parameters.Add(parameter.Key, principalId);
                     continue;
                 }
+                if (parameter.Key == AzureBicepResource.KnownParameters.PrincipalId && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, principalId);
+                    continue;
+                }
 
                 var value = ResolveValue(Eval(parameter.Value));
 
@@ -269,12 +287,7 @@ public sealed class AzurePublishingContext(
         };
 
         // Report the completion of the compute environment task.
-        await ProgressReporter.CompleteTaskAsync(
-            computeEnvironmentTask,
-            state,
-            message,
-            cancellationToken: cancellationToken
-        ).ConfigureAwait(false);
+        await computeEnvironmentTask.CompleteAsync(message, state, cancellationToken).ConfigureAwait(false);
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 
@@ -300,8 +313,28 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
-                var task = await ProgressReporter.CreateTaskAsync(
-                    step,
+                // Materialize Dockerfile factory if present
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = ServiceProvider,
+                        Resource = resource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
+                    Directory.CreateDirectory(outputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
+                var task = await step.CreateTaskAsync(
                     $"Processing deployment target {resource.Name}",
                     cancellationToken: default
                 )
@@ -361,11 +394,12 @@ public sealed class AzurePublishingContext(
             };
 
             OutputLookup[output] = bicepOutput;
+            ReverseOutputLookup[bicepOutput.BicepIdentifier] = output;
             MainInfrastructure.Add(bicepOutput);
         }
     }
 
-    private void MapParameter(object? candidate)
+    private async Task MapParameterAsync(object candidate, CancellationToken cancellationToken = default)
     {
         if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
         {
@@ -378,7 +412,11 @@ public sealed class AzurePublishingContext(
 
             if (!p.Secret && p.Default is not null)
             {
-                pp.Value = p.Value;
+                var value = await p.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                if (value is not null)
+                {
+                    pp.Value = value;
+                }
             }
 
             ParameterLookup[p] = pp;
@@ -402,6 +440,27 @@ public sealed class AzurePublishingContext(
             foreach (var reference in vwr.References)
             {
                 Visit(reference, visitor, visited);
+            }
+        }
+    }
+
+    private static Task VisitAsync(object? value, Func<object, CancellationToken, Task> visitor, CancellationToken cancellationToken = default) =>
+        VisitAsync(value, visitor, [], cancellationToken);
+
+    private static async Task VisitAsync(object? value, Func<object, CancellationToken, Task> visitor, HashSet<object> visited, CancellationToken cancellationToken = default)
+    {
+        if (value is null || !visited.Add(value))
+        {
+            return;
+        }
+
+        await visitor(value, cancellationToken).ConfigureAwait(false);
+
+        if (value is IValueWithReferences vwr)
+        {
+            foreach (var reference in vwr.References)
+            {
+                await VisitAsync(reference, visitor, visited, cancellationToken).ConfigureAwait(false);
             }
         }
     }

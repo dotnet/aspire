@@ -25,7 +25,20 @@ public class ResourceCommandService
     /// <summary>
     /// Execute a command for the specified resource.
     /// </summary>
-    /// <param name="resourceId">The id of the resource.</param>
+    /// <remarks>
+    /// <para>
+    /// A resource id can be either the unique id of the resource or the displayed resource name.
+    /// </para>
+    /// <para>
+    /// Projects, executables and containers typically have a unique id that combines the display name and a unique suffix. For example, a resource named <c>cache</c> could have a resource id of <c>cache-abcdwxyz</c>.
+    /// This id is used to uniquely identify the resource in the app host.
+    /// </para>
+    /// <para>
+    /// The resource name can be also be used to retrieve the resource state, but it must be unique. If there are multiple resources with the same name, then this method will not return a match.
+    /// For example, if a resource named <c>cache</c> has multiple replicas, then specifing <c>cache</c> won't return a match.
+    /// </para>
+    /// </remarks>
+    /// <param name="resourceId">The resource id. This id can either exactly match the unique id of the resource or the displayed resource name if the resource name doesn't have duplicates (i.e. replicas).</param>
     /// <param name="commandName">The command name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
@@ -62,24 +75,37 @@ public class ResourceCommandService
             tasks.Add(ExecuteCommandCoreAsync(name, resource, commandName, cancellationToken));
         }
 
-        // Check for failures.
+        // Check for failures and cancellations.
         var results = await Task.WhenAll(tasks).ConfigureAwait(false);
         var failures = new List<(string resourceId, ExecuteCommandResult result)>();
+        var cancellations = new List<(string resourceId, ExecuteCommandResult result)>();
         for (var i = 0; i < results.Length; i++)
         {
             if (!results[i].Success)
             {
-                failures.Add((names[i], results[i]));
+                if (results[i].Canceled)
+                {
+                    cancellations.Add((names[i], results[i]));
+                }
+                else
+                {
+                    failures.Add((names[i], results[i]));
+                }
             }
         }
 
-        if (failures.Count == 0)
+        if (failures.Count == 0 && cancellations.Count == 0)
         {
             return new ExecuteCommandResult { Success = true };
         }
+        else if (failures.Count == 0 && cancellations.Count > 0)
+        {
+            // All non-successful commands were cancelled
+            return new ExecuteCommandResult { Success = false, Canceled = true };
+        }
         else
         {
-            // Aggregate error results together.
+            // There were actual failures (possibly with some cancellations)
             var errorMessage = $"{failures.Count} command executions failed.";
             errorMessage += Environment.NewLine + string.Join(Environment.NewLine, failures.Select(f => $"Resource '{f.resourceId}' failed with error message: {f.result.ErrorMessage}"));
 
@@ -115,11 +141,21 @@ public class ResourceCommandService
                     logger.LogInformation("Successfully executed command '{CommandName}'.", commandName);
                     return result;
                 }
+                else if (result.Canceled)
+                {
+                    logger.LogDebug("Command '{CommandName}' was canceled.", commandName);
+                    return result;
+                }
                 else
                 {
                     logger.LogInformation("Failure executing command '{CommandName}'. Error message: {ErrorMessage}", commandName, result.ErrorMessage);
                     return result;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogDebug("Command '{CommandName}' was canceled.", commandName);
+                return CommandResults.Canceled();
             }
             catch (Exception ex)
             {

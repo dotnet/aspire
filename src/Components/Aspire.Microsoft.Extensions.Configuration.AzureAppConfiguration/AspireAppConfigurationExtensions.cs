@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Common;
 using Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
+using Azure.Core.Pipeline;
+using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Aspire.Azure.Common;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -17,7 +19,22 @@ public static class AspireAppConfigurationExtensions
 {
     internal const string DefaultConfigSectionName = "Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration";
     internal const string ActivitySourceName = "Microsoft.Extensions.Configuration.AzureAppConfiguration";
-    
+
+    internal sealed class RemoveAuthorizationHeaderPolicy : HttpPipelinePolicy
+    {
+        public override void Process(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+        {
+            message.Request.Headers.Remove("Authorization");
+            ProcessNext(message, pipeline);
+        }
+
+        public override ValueTask ProcessAsync(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+        {
+            message.Request.Headers.Remove("Authorization");
+            return ProcessNextAsync(message, pipeline);
+        }
+    }
+
     /// <summary>
     /// Adds the Azure App Configuration to be configuration in the <paramref name="builder"/>.
     /// </summary>
@@ -48,15 +65,28 @@ public static class AspireAppConfigurationExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (settings.Endpoint is null)
+        if (settings.Endpoint is null && settings.ConnectionString is null)
         {
-            throw new InvalidOperationException($"Endpoint is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'Endpoint' key in the '{DefaultConfigSectionName}' configuration section.");
+            throw new InvalidOperationException($"Endpoint and connection string are missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'Endpoint' and 'ConnectionString' key in the '{DefaultConfigSectionName}' configuration section.");
         }
 
         builder.Configuration.AddAzureAppConfiguration(
             options =>
             {
-                options.Connect(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential());
+                if (settings.ConnectionString is null)
+                {
+                    options.Connect(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential());
+                }
+                else
+                {
+                    options.Connect(settings.ConnectionString);
+                    if (settings.AnonymousAccess)
+                    {
+                        // remove the Authorization header to send anonymous requests
+                        options.ConfigureClientOptions(clientOptions =>
+                            clientOptions.AddPolicy(new RemoveAuthorizationHeaderPolicy(), HttpPipelinePosition.PerRetry));
+                    }
+                }
                 configureOptions?.Invoke(options);
             },
             settings.Optional);
@@ -68,6 +98,12 @@ public static class AspireAppConfigurationExtensions
             builder.Services.AddOpenTelemetry()
                 .WithTracing(traceBuilder =>
                     traceBuilder.AddSource(ActivitySourceName));
+        }
+
+        if (!settings.DisableHealthChecks)
+        {
+            builder.Services.AddHealthChecks()
+                .AddAzureAppConfiguration(name: connectionName);
         }
     }
 }

@@ -6,16 +6,19 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3">
-    @if (ViewModel.Id?.Type is OtlpApplicationType.ResourceGrouping)
+    @if (ViewModel.Id?.Type is OtlpResourceType.ResourceGrouping)
     {
         <FluentIcon Icon="Icons.Regular.Size20.AppsList"
                     Color="Color.Accent"
                     Style="vertical-align: text-bottom;"/>
-        <span>@ViewModel.Name (<span class="resource-select-application-label">@Loc[nameof(ControlsStrings.ApplicationLower)]</span>)</span>
+        <span>@ViewModel.Name (<span class="resource-select-resource-label">@Loc[nameof(ControlsStrings.ApplicationLower)]</span>)</span>
     }
-    else if (ViewModel.Id?.Type is OtlpApplicationType.Instance)
+    else if (ViewModel.Id?.Type is OtlpResourceType.Instance)
     {
-        <span style="padding-left: 20px;" aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
+        <FluentIcon Icon="Icons.Regular.Size20.ArrowTurnDownRight"
+                    Color="Color.Accent"
+                    Style="vertical-align: text-bottom;" />
+        <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
     }
     else
     {

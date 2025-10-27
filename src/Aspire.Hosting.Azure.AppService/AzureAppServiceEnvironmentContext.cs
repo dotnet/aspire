@@ -10,13 +10,16 @@ namespace Aspire.Hosting.Azure;
 internal sealed class AzureAppServiceEnvironmentContext(
     ILogger logger,
     DistributedApplicationExecutionContext executionContext,
-    AzureAppServiceEnvironmentResource environment)
+    AzureAppServiceEnvironmentResource environment,
+    IServiceProvider serviceProvider)
 {
     public ILogger Logger => logger;
 
     public DistributedApplicationExecutionContext ExecutionContext => executionContext;
 
     public AzureAppServiceEnvironmentResource Environment => environment;
+
+    public IServiceProvider ServiceProvider => serviceProvider;
 
     private readonly Dictionary<IResource, AzureAppServiceWebsiteContext> _appServices = new(new ResourceNameComparer());
 
@@ -38,7 +41,7 @@ internal sealed class AzureAppServiceEnvironmentContext(
             await context.ProcessAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildWebSite)
+        var provisioningResource = new AzureAppServiceWebSiteResource(resource.Name, context.BuildWebSite, resource)
         {
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };

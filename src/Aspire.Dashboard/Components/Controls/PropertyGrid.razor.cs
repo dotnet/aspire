@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -142,6 +143,9 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     [Parameter]
     public string? Class { get; set; }
 
+    [Parameter]
+    public Dictionary<string, ComponentMetadata>? ValueComponents { get; set; }
+
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
@@ -160,5 +164,15 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
         item.IsValueMasked = isValueMasked;
 
         await IsValueMaskedChanged.InvokeAsync(item);
+    }
+
+    private ComponentMetadata? GetComponentMetadata(TItem item)
+    {
+        if (ValueComponents is null)
+        {
+            return null;
+        }
+        ValueComponents.TryGetValue(item.Key as string ?? item.Name, out var metadata);
+        return metadata;
     }
 }

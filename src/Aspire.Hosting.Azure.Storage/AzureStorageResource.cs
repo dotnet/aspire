@@ -23,7 +23,13 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
+    internal IResourceBuilder<AzureBlobStorageResource>? BlobStorageBuilder { get; set; }
+    internal IResourceBuilder<AzureQueueStorageResource>? QueueStorageBuilder { get; set; }
+    internal IResourceBuilder<AzureTableStorageResource>? TableStorageBuilder { get; set; }
+
     internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
+
+    internal List<AzureQueueStorageQueueResource> Queues { get; } = [];
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
@@ -98,8 +104,28 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var account = StorageAccount.FromExisting(this.GetBicepIdentifier());
-        account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a StorageAccount with the same identifier already exists
+        var existingAccount = resources.OfType<StorageAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
+        
+        if (existingAccount is not null)
+        {
+            return existingAccount;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var account = StorageAccount.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            account))
+        {
+            account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(account);
         return account;
     }

@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_identity_name": "{existing-identity-name.value}",
+    "existing_identity_rg": "{existing-identity-rg.value}"
+  }
+}

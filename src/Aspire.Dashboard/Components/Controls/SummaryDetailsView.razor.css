@@ -27,6 +27,10 @@
         "main";
 }
 
+::deep .details-container fluent-toolbar {
+    padding-left: calc(var(--design-unit) * 2px);
+}
+
 ::deep .details-container > header {
     height: auto;
     grid-row-start: 1;
@@ -62,6 +66,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    margin-bottom: 0;
 }
 
 ::deep .details-container > header > .header-actions {

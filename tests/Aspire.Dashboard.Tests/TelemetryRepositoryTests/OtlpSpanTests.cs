@@ -18,18 +18,19 @@ public class OtlpSpanTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
-        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var app1 = new OtlpResource("app1", "instance", uninstrumentedPeer: false, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
         var scope = TelemetryTestHelpers.CreateOtlpScope(context);
 
         var span = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
             statusCode: OtlpSpanStatusCode.Ok, statusMessage: "Status message!", attributes: [new KeyValuePair<string, string>(KnownTraceFields.StatusMessageField, "value")]);
 
         // Act
-        var properties = span.AllProperties();
+        var knownProperties = span.GetKnownProperties();
+        var attributeProperties = span.GetAttributeProperties();
 
         // Assert
-        Assert.Collection(properties,
+        Assert.Collection(knownProperties,
             a =>
             {
                 Assert.Equal("trace.spanid", a.Key);
@@ -54,11 +55,133 @@ public class OtlpSpanTests
             {
                 Assert.Equal("trace.statusmessage", a.Key);
                 Assert.Equal("Status message!", a.Value);
-            },
+            });
+        Assert.Collection(attributeProperties,
             a =>
             {
                 Assert.Equal("unknown-trace.statusmessage", a.Key);
                 Assert.Equal("value", a.Value);
             });
+    }
+
+    [Fact]
+    public void GetDestination_NoChildOrPeer_Null()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpResource("app1", "instance", uninstrumentedPeer: false, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+
+        var span = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime);
+
+        // Act
+        var destination = span.GetDestination();
+
+        // Assert
+        Assert.Null(destination);
+    }
+
+    [Fact]
+    public void GetDestination_HasPeer_ReturnPeerResource()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpResource("app1", "instance", uninstrumentedPeer: false, context);
+        var app2 = new OtlpResource("app2", "instance", uninstrumentedPeer: true, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+
+        var span = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
+            kind: OtlpSpanKind.Client, uninstrumentedPeer: app2);
+
+        // Act
+        var destination = span.GetDestination();
+
+        // Assert
+        Assert.Equal(app2, destination);
+    }
+
+    [Fact]
+    public void GetDestination_HasSingleChild_ReturnChildResource()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpResource("app1", "instance", uninstrumentedPeer: false, context);
+        var app2 = new OtlpResource("app2", "instance", uninstrumentedPeer: true, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+
+        var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
+            kind: OtlpSpanKind.Client);
+        var childSpan = TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "abc-2", parentSpanId: "abc", startDate: s_testTime,
+            kind: OtlpSpanKind.Server);
+
+        trace.AddSpan(parentSpan);
+        trace.AddSpan(childSpan);
+
+        // Act
+        var destination = parentSpan.GetDestination();
+
+        // Assert
+        Assert.Equal(app2, destination);
+    }
+
+    public static IEnumerable<object[]> DisplaySummary_SpanData =>
+        new List<object[]>
+        {
+            new object[]
+            {
+                "HTTP GET 200",
+                "SpanName!",
+                OtlpSpanKind.Client,
+                new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("http.request.method", "GET"),
+                    KeyValuePair.Create("http.response.status_code", "200")
+                }
+            },
+            new object[]
+            {
+                "HTTP GET 200",
+                "SpanName!",
+                OtlpSpanKind.Client,
+                new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("http.method", "GET"),
+                    KeyValuePair.Create("http.status_code", "200")
+                }
+            },
+            new object[]
+            {
+                "SpanName!",
+                "SpanName!",
+                OtlpSpanKind.Server,
+                new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("http.method", "GET"),
+                    KeyValuePair.Create("http.status_code", "200")
+                }
+            },
+        };
+
+    [Theory]
+    [MemberData(nameof(DisplaySummary_SpanData))]
+    public void GetDisplaySummary_SpanData_ReturnExpectedDisplaySummary(string expectedDisplaySummary, string spanName, OtlpSpanKind kind, KeyValuePair<string, string>[] attributes)
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app = new OtlpResource("app", "instance", uninstrumentedPeer: false, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+
+        var span = TelemetryTestHelpers.CreateOtlpSpan(app, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
+            kind: kind, attributes: attributes, spanName: spanName);
+
+        // Act
+        var displaySummary = span.GetDisplaySummary();
+
+        // Assert
+        Assert.Equal(expectedDisplaySummary, displaySummary);
     }
 }

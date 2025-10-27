@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -54,7 +56,20 @@ public class RoleAssignmentTests()
                 var openai = builder.AddAzureOpenAI("openai");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
-                    .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser);
+                    .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser, CognitiveServicesBuiltInRole.CognitiveServicesFaceRecognizer);
+            });
+    }
+
+    [Fact]
+    public Task AzureFoundrySupport()
+    {
+        return RoleAssignmentTest("ai",
+            builder =>
+            {
+                var openai = builder.AddAzureAIFoundry("ai");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesFaceRecognizer);
             });
     }
 
@@ -150,6 +165,19 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
+    public Task RedisEnterpriseSupport()
+    {
+        return RoleAssignmentTest("redis",
+            builder =>
+            {
+                var redis = builder.AddAzureRedisEnterprise("redis");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(redis);
+            });
+    }
+
+    [Fact]
     public Task PostgresSupport()
     {
         return RoleAssignmentTest("postgres",
@@ -168,16 +196,35 @@ public class RoleAssignmentTests()
         return RoleAssignmentTest("sql",
             builder =>
             {
-                var redis = builder.AddAzureSqlServer("sql");
+                var sql = builder.AddAzureSqlServer("sql")
+                    .AddDatabase("db");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
-                    .WithReference(redis);
+                    .WithReference(sql);
+            },
+            // scrub new lines since the test needs to run on Windows and Linux, and the new lines are different.
+            s => s.Replace("\\r\\n", "\\n"));
+    }
+
+    [Fact]
+    public Task KustoSupport()
+    {
+        return RoleAssignmentTest("kusto",
+            builder =>
+            {
+                var kusto = builder.AddAzureKustoCluster("kusto");
+                kusto.AddReadWriteDatabase("db1");
+                kusto.AddReadWriteDatabase("db2");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(kusto);
             });
     }
 
     private static async Task RoleAssignmentTest(
         string azureResourceName,
-        Action<IDistributedApplicationBuilder> configureBuilder
+        Action<IDistributedApplicationBuilder> configureBuilder,
+        Func<string, string?>? scrubLines = null
         )
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -195,9 +242,15 @@ public class RoleAssignmentTests()
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
 
-        await Verify(rolesManifest.ToString(), "json")
+        var verify = Verify(rolesManifest.ToString(), "json")
             .AppendContentAsFile(rolesBicep, "bicep");
-            
+
+        if (scrubLines is not null)
+        {
+            verify = verify.ScrubLinesWithReplace(scrubLines);
+        }
+
+        await verify;
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

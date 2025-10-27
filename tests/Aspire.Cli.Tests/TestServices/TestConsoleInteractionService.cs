@@ -10,9 +10,14 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestConsoleInteractionService : IInteractionService
 {
     public Action<string>? DisplayErrorCallback { get; set; }
+    public Action<string>? DisplaySubtleMessageCallback { get; set; }
+    public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
+    public Func<string, bool, bool>? ConfirmCallback { get; set; }
+    public Action<string>? ShowStatusCallback { get; set;  }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
+        ShowStatusCallback?.Invoke(statusText);
         return action();
     }
 
@@ -36,6 +41,16 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         return Task.FromResult(choices.First());
     }
 
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
+    }
+
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
     {
         return 0;
@@ -54,10 +69,6 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
-    {
-    }
-
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
     }
@@ -68,11 +79,12 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(true);
+        return Task.FromResult(ConfirmCallback != null? ConfirmCallback(promptText, defaultValue) : defaultValue);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
+        DisplaySubtleMessageCallback?.Invoke(message);
     }
 
     public void DisplayEmptyLine()
@@ -82,8 +94,21 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public void DisplayPlainText(string text)
     {
     }
-    
-    public void OpenNewProject(string projectPath)
+
+    public void DisplayMarkdown(string markdown)
     {
+    }
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        var output = $"[{(isErrorMessage ? "Error" : type ?? "Info")}] {message} (Line: {lineNumber})";
+        DisplayConsoleWriteLineMessage?.Invoke(output);
+    }
+
+    public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
+
+    public void DisplayVersionUpdateNotification(string newerVersion)
+    {
+        DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 }
