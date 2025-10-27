@@ -10,7 +10,8 @@ namespace Aspire.Hosting;
 /// </summary>
 internal static class OtlpEndpointResolver
 {
-    private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
+    private const int DashboardOtlpUrlDefaultPort = 18889;
+    private static readonly string s_dashboardOtlpUrlDefaultValue = $"http://localhost:{DashboardOtlpUrlDefaultPort}";
 
     /// <summary>
     /// Resolves the OTLP endpoint URL and protocol from configuration.
@@ -27,7 +28,7 @@ internal static class OtlpEndpointResolver
         // Check if a specific protocol is required
         if (requiredProtocol is OtlpProtocol.Grpc)
         {
-            return (dashboardOtlpGrpcUrl ?? DashboardOtlpUrlDefaultValue, "grpc");
+            return (dashboardOtlpGrpcUrl ?? s_dashboardOtlpUrlDefaultValue, "grpc");
         }
         else if (requiredProtocol is OtlpProtocol.HttpProtobuf)
         {
@@ -54,7 +55,7 @@ internal static class OtlpEndpointResolver
             else
             {
                 // No endpoints provided to host. Use default value for URL.
-                return (DashboardOtlpUrlDefaultValue, "grpc");
+                return (s_dashboardOtlpUrlDefaultValue, "grpc");
             }
         }
     }
@@ -74,6 +75,6 @@ internal static class OtlpEndpointResolver
         }
 
         // Fallback to default (should not normally reach here as ResolveOtlpEndpoint always returns a valid URL)
-        return ("http", 18889);
+        return ("http", DashboardOtlpUrlDefaultPort);
     }
 }
