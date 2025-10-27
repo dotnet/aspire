@@ -481,9 +481,9 @@ internal abstract class PipelineCommandBase : BaseCommand
                             "CRITICAL" => "CRT",
                             _ => "INF"
                         };
-
+                        
                         var prefixedMessage = $"[[{logPrefix}]] {message}";
-
+                        
                         // Map log levels to appropriate console logger methods
                         switch (logLevel.ToUpperInvariant())
                         {

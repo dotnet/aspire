@@ -1137,7 +1137,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Parse output - skip header lines (Project(s) and ----------)
         var projects = new List<FileInfo>();
         var startParsing = false;
-
+        
         foreach (var line in stdoutLines)
         {
             if (string.IsNullOrWhiteSpace(line))
