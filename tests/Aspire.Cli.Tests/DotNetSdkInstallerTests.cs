@@ -371,18 +371,14 @@ public class DotNetSdkInstallerTests
         Assert.True(powershellScriptResource.Length > 0, "PowerShell script should not be empty");
         
         // Verify scripts start with expected headers
-        using (var reader = new StreamReader(bashScriptResource))
-        {
-            var firstLine = reader.ReadLine();
-            Assert.NotNull(firstLine);
-            Assert.Contains("#!/", firstLine);
-        }
+        using var bashReader = new StreamReader(bashScriptResource);
+        var firstLine = bashReader.ReadLine();
+        Assert.NotNull(firstLine);
+        Assert.Contains("#!/", firstLine);
         
-        using (var reader = new StreamReader(powershellScriptResource))
-        {
-            var content = reader.ReadToEnd();
-            Assert.Contains("dotnet", content, StringComparison.OrdinalIgnoreCase);
-        }
+        using var powershellReader = new StreamReader(powershellScriptResource);
+        var content = powershellReader.ReadToEnd();
+        Assert.Contains("dotnet", content, StringComparison.OrdinalIgnoreCase);
     }
 }
 

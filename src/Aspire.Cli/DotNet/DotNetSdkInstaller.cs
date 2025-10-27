@@ -149,18 +149,14 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         // Extract the install script from embedded resources
         var scriptPath = Path.Combine(sdksDirectory, scriptFileName);
         var assembly = Assembly.GetExecutingAssembly();
-        using (var resourceStream = assembly.GetManifestResourceStream(resourceName))
+        using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+        if (resourceStream == null)
         {
-            if (resourceStream == null)
-            {
-                throw new InvalidOperationException($"Could not find embedded resource: {resourceName}");
-            }
-
-            using (var fileStream = File.Create(scriptPath))
-            {
-                await resourceStream.CopyToAsync(fileStream, cancellationToken);
-            }
+            throw new InvalidOperationException($"Could not find embedded resource: {resourceName}");
         }
+
+        using var fileStream = File.Create(scriptPath);
+        await resourceStream.CopyToAsync(fileStream, cancellationToken);
 
         // Make the script executable on Unix-like systems
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
