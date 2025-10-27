@@ -2055,9 +2055,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (_, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
             resourceLogger,
-            ReferenceExpression.Create($"{bundleOutputPath}"),
-            // TODO: Support certificate directories for executables
-            ReferenceExpression.Create($"{certificatesOutputPath}"),
+            (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
+            (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
@@ -2106,8 +2105,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var scope, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
             resourceLogger,
-            ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
-            ReferenceExpression.Create($"{string.Join(':', certificateDirsPaths!.Concat([certificatesDestination + "/certs"]))}"),
+            (scope) => ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
+            (scope) =>
+            {
+                var dirs = new List<string> { certificatesDestination + "/certs" };
+                if (scope == CertificateTrustScope.Append)
+                {
+                    // When appending to the default trust store, include the default certificate directories
+                    dirs.AddRange(certificateDirsPaths!);
+                }
+
+                // Build Linux PATH style colon-separated list of directories
+                return ReferenceExpression.Create($"{string.Join(':', dirs)}");
+            },
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)

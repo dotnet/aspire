@@ -375,16 +375,16 @@ public static class ResourceExtensions
     /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
     /// <param name="executionContext">The execution context used during the processing.</param>
     /// <param name="logger">The logger used for logging information during the processing.</param>
-    /// <param name="bundlePath">A ReferenceExpression representing the path to a custom certificate bundle for the resource.</param>
-    /// <param name="certificatesDirectoryPath">A ReferenceExpression representing the path to a directory containing the custom certificates for the resource.</param>
+    /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
+    /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
-        ReferenceExpression bundlePath,
-        ReferenceExpression certificatesDirectoryPath,
+        Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
+        Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
         CancellationToken cancellationToken = default)
     {
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
@@ -428,10 +428,13 @@ public static class ResourceExtensions
             return (scope, null);
         }
 
+        var bundlePath = bundlePathFactory(scope);
+        var certificateDirectoryPaths = certificateDirectoryPathsFactory(scope);
+
         // Apply default OpenSSL environment configuration for certificate trust
         var environment = new Dictionary<string, object>()
         {
-            { "SSL_CERT_DIR", certificatesDirectoryPath },
+            { "SSL_CERT_DIR", certificateDirectoryPaths },
         };
 
         if (scope != CertificateTrustScope.Append)
@@ -445,7 +448,7 @@ public static class ResourceExtensions
             Resource = resource,
             Scope = scope,
             CertificateBundlePath = bundlePath,
-            CertificateDirectoriesPath = certificatesDirectoryPath,
+            CertificateDirectoriesPath = certificateDirectoryPaths,
             Arguments = new(),
             EnvironmentVariables = environment,
             CancellationToken = cancellationToken,
