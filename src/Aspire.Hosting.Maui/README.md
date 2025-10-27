@@ -25,6 +25,12 @@ mauiApp.AddWindowsDevice();
 // macOS Catalyst
 mauiApp.AddMacCatalystDevice();
 
+// iOS Simulator
+mauiApp.AddiOSSimulator();
+
+// iOS Device
+mauiApp.AddiOSDevice();
+
 // Android Device
 mauiApp.AddAndroidDevice();
 
@@ -32,11 +38,22 @@ mauiApp.AddAndroidDevice();
 mauiApp.AddAndroidEmulator();
 ```
 
-You can optionally specify custom names:
+You can optionally specify custom names and device/simulator IDs:
 
 ```csharp
 mauiApp.AddWindowsDevice("my-windows-app");
-mauiApp.AddAndroidEmulator("pixel-7-emulator");
+
+// iOS with specific simulator UDID
+mauiApp.AddiOSSimulator("iphone-15-sim", "E25BBE37-69BA-4720-B6FD-D54C97791E79");
+
+// iOS with specific device UDID (requires device provisioning)
+mauiApp.AddiOSDevice("my-iphone", "00008030-001234567890123A");
+
+// Android with specific emulator
+mauiApp.AddAndroidEmulator("pixel-7-emulator", "Pixel_7_API_33");
+
+// Android with specific device serial
+mauiApp.AddAndroidDevice("my-pixel", "abc12345");
 ```
 
 ## OpenTelemetry Connectivity for Mobile Platforms
@@ -45,13 +62,23 @@ Mobile devices, Android emulators, and iOS simulators cannot reach `localhost` w
 
 ### Using Dev Tunnel
 
-Automatically create and configure a dev tunnel for the dashboard's OTLP endpoint, this is needed when running a .NET MAUI app on an Android emulator/device or iOS Simulator/device. By default, Aspire will send the OpenTelemetry data back to localhost, however localhost is different when running on a emulator/Simulator/device.
+Automatically create and configure a dev tunnel for the dashboard's OTLP endpoint. This is needed when running a .NET MAUI app on:
+- Android emulator or device
+- iOS simulator or device
 
-You should not need to use this when running on Windows or Mac Catalyst.
+You should not need this when running on Windows or Mac Catalyst (they can access localhost directly).
 
 ```csharp
-// Automatically creates a dev tunnel for OTLP
+// Android emulator with OTLP dev tunnel
 mauiApp.AddAndroidEmulator()
+    .WithOtlpDevTunnel();
+
+// iOS simulator with OTLP dev tunnel
+mauiApp.AddiOSSimulator()
+    .WithOtlpDevTunnel();
+
+// iOS device with OTLP dev tunnel
+mauiApp.AddiOSDevice()
     .WithOtlpDevTunnel();
 ```
 
@@ -107,7 +134,50 @@ mauiApp.AddAndroidDevice()
     .WithOtlpDevTunnel()
     .WithReference(apiService, apiTunnel);
 
+// iOS Simulator - needs dev tunnels for both API and OTLP
+mauiApp.AddiOSSimulator()
+    .WithOtlpDevTunnel() // For telemetry
+    .WithReference(apiService, apiTunnel); // For API calls
+
+// iOS Device - same configuration
+mauiApp.AddiOSDevice()
+    .WithOtlpDevTunnel()
+    .WithReference(apiService, apiTunnel);
+
 builder.Build().Run();
+```
+
+## Platform-Specific Notes
+
+### iOS
+
+**Finding Simulator UDIDs:**
+```bash
+# Using simctl
+/Applications/Xcode.app/Contents/Developer/usr/bin/simctl list
+
+# Or use Xcode: Window > Devices and Simulators
+```
+
+**Device Requirements:**
+- iOS development requires macOS
+- Physical devices require provisioning: [Microsoft Learn - iOS Device Provisioning](https://learn.microsoft.com/dotnet/maui/ios/device-provisioning)
+- Find device UDID in Xcode: Window > Devices and Simulators
+
+### Android
+
+**Finding Emulator Names:**
+```bash
+# List all available Android virtual devices
+%ANDROID_HOME%\emulator\emulator.exe -list-avds
+
+# Or use Android Studio: Tools > Device Manager
+```
+
+**Finding Device Serials:**
+```bash
+# List connected Android devices
+adb devices
 ```
 
 ## Requirements
