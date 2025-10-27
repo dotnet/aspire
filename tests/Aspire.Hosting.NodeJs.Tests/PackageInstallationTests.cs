@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -9,20 +11,20 @@ namespace Aspire.Hosting.NodeJs.Tests;
 public class PackageInstallationTests
 {
     /// <summary>
-    /// This test validates that the WithNpmPackageManager method creates
+    /// This test validates that the WithNpm method creates
     /// installer resources with proper arguments and relationships.
     /// </summary>
     [Fact]
-    public async Task WithNpmPackageManager_CanBeConfiguredWithInstallAndCIOptions()
+    public void WithNpm_CanBeConfiguredWithInstallAndCIOptions()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        var nodeApp2 = builder.AddNpmApp("test-app-ci", "./test-app-ci");
+        var nodeApp = builder.AddNpmApp("nodeApp", "./test-app");
+        var nodeApp2 = builder.AddNpmApp("nodeApp2", "./test-app-ci");
 
         // Test that both configurations can be set up without errors
-        nodeApp.WithNpmPackageManager(useCI: false); // Uses npm install
-        nodeApp2.WithNpmPackageManager(useCI: true);  // Uses npm ci
+        nodeApp.WithNpm(install: true); // Uses npm install
+        nodeApp2.WithNpm(install: false);
 
         using var app = builder.Build();
 
@@ -31,31 +33,25 @@ public class PackageInstallationTests
         var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
 
         Assert.Equal(2, nodeResources.Count);
-        Assert.Equal(2, installerResources.Count);
+        Assert.Single(installerResources);
         Assert.All(nodeResources, resource => Assert.Equal("npm", resource.Command));
 
-        // Verify install vs ci commands
-        var installResource = installerResources.Single(r => r.Name == "test-app-npm-install");
-        var ciResource = installerResources.Single(r => r.Name == "test-app-ci-npm-install");
+        // Verify the installer exists for nodeApp
+        var nodeAppInstallResource = installerResources.Single(r => r.Name == "nodeApp-installer");
+        Assert.NotNull(nodeAppInstallResource);
 
-        Assert.Equal("npm", installResource.Command);
-        var args = await installResource.GetArgumentValuesAsync();
-        Assert.Single(args);
-        Assert.Equal("install", args[0]);
-
-        Assert.Equal("npm", ciResource.Command);
-        args = await ciResource.GetArgumentValuesAsync();
-        Assert.Single(args);
-        Assert.Equal("ci", args[0]);
+        // Verify no installer for nodeApp2
+        var nodeApp2InstallResource = installerResources.SingleOrDefault(r => r.Name == "nodeApp2-installer");
+        Assert.Null(nodeApp2InstallResource);
     }
 
     [Fact]
-    public void WithNpmPackageManager_ExcludedFromPublishMode()
+    public void WithNpm_ExcludedFromPublishMode()
     {
         var builder = DistributedApplication.CreateBuilder(["Publishing:Publisher=manifest", "Publishing:OutputPath=./publish"]);
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        nodeApp.WithNpmPackageManager(useCI: false);
+        nodeApp.WithNpm(install: true);
 
         using var app = builder.Build();
 
@@ -74,48 +70,296 @@ public class PackageInstallationTests
     }
 
     [Fact]
-    public async Task WithNpmPackageManager_CanAcceptAdditionalArgs()
+    public void WithYarn_CreatesInstallerWhenInstallIsTrue()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        var nodeAppWithArgs = builder.AddNpmApp("test-app-args", "./test-app-args");
-
-        // Test npm install with additional args
-        nodeApp.WithNpmPackageManager(useCI: false, configureInstaller: installerBuilder =>
-        {
-            installerBuilder.WithArgs("--legacy-peer-deps");
-        });
-        nodeAppWithArgs.WithNpmPackageManager(useCI: true, configureInstaller: installerBuilder =>
-        {
-            installerBuilder.WithArgs("--verbose", "--no-optional");
-        });
+        nodeApp.WithYarn(install: true);
 
         using var app = builder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
 
-        Assert.Equal(2, installerResources.Count);
+        // Verify the NodeApp resource exists with yarn command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("yarn", nodeResource.Command);
 
-        var installResource = installerResources.Single(r => r.Name == "test-app-npm-install");
-        var ciResource = installerResources.Single(r => r.Name == "test-app-args-npm-install");
+        // Verify the install command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("yarn", installAnnotation.Command);
+        Assert.Equal(["install"], installAnnotation.Args);
 
-        // Verify install command with additional args
-        var installArgs = await installResource.GetArgumentValuesAsync();
-        Assert.Collection(
-            installArgs,
-            arg => Assert.Equal("install", arg),
-            arg => Assert.Equal("--legacy-peer-deps", arg)
-        );
+        // Verify the run command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var runAnnotation));
+        Assert.Equal(["run"], runAnnotation.Args);
 
-        // Verify ci command with additional args
-        var ciArgs = await ciResource.GetArgumentValuesAsync();
-        Assert.Collection(
-            ciArgs,
-            arg => Assert.Equal("ci", arg),
-            arg => Assert.Equal("--verbose", arg),
-            arg => Assert.Equal("--no-optional", arg)
-        );
+        // Verify the build command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+        Assert.Equal(["run", "build"], buildAnnotation.Args);
+
+        // Verify the installer resource was created
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
     }
+
+    [Fact]
+    public void WithYarn_DoesNotCreateInstallerWhenInstallIsFalse()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithYarn(install: false);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with yarn command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("yarn", nodeResource.Command);
+
+        // Verify annotations are set
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var _));
+
+        // Verify NO installer resource was created
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
+        Assert.Empty(installerResources);
+    }
+
+    [Fact]
+    public void WithPnpm_CreatesInstallerWhenInstallIsTrue()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithPnpm(install: true);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with pnpm command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("pnpm", nodeResource.Command);
+
+        // Verify the install command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("pnpm", installAnnotation.Command);
+        Assert.Equal(["install"], installAnnotation.Args);
+
+        // Verify the run command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var runAnnotation));
+        Assert.Equal(["run"], runAnnotation.Args);
+
+        // Verify the build command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("pnpm", buildAnnotation.Command);
+        Assert.Equal(["run", "build"], buildAnnotation.Args);
+
+        // Verify the installer resource was created
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void WithPnpm_DoesNotCreateInstallerWhenInstallIsFalse()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithPnpm(install: false);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with pnpm command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("pnpm", nodeResource.Command);
+
+        // Verify annotations are set
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var _));
+
+        // Verify NO installer resource was created
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
+        Assert.Empty(installerResources);
+    }
+
+    [Fact]
+    public void WithInstallCommand_CreatesInstallerWithCustomCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithInstallCommand("bun", ["install", "--frozen-lockfile"]);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation with custom command
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("bun", installAnnotation.Command);
+        Assert.Equal(["install", "--frozen-lockfile"], installAnnotation.Args);
+
+        // Verify the installer resource was created
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void WithBuildCommand_SetsCustomBuildCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithBuildCommand("bun", ["run", "build:prod"]);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the build command annotation with custom command
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("bun", buildAnnotation.Command);
+        Assert.Equal(["run", "build:prod"], buildAnnotation.Args);
+    }
+
+    [Fact]
+    public void WithInstallCommand_CanOverrideExistingInstallCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithNpm(install: false);
+        nodeApp.WithInstallCommand("yarn", ["install", "--production"]);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation was replaced
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("yarn", installAnnotation.Command);
+        Assert.Equal(["install", "--production"], installAnnotation.Args);
+
+        // Verify the installer resource was created
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void WithBuildCommand_CanOverrideExistingBuildCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithNpm(install: false);
+        nodeApp.WithBuildCommand("pnpm", ["build", "--watch"]);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the build command annotation was replaced
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("pnpm", buildAnnotation.Command);
+        Assert.Equal(["build", "--watch"], buildAnnotation.Args);
+    }
+
+    [Fact]
+    public void WithNpmInstallWithYarnNoInstall()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddViteApp("test-app", "./test-app")
+            .WithNpm(install: true)
+            .WithYarn(install: false);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation is correct - it should still be there
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+
+        // the installer resource should NOT be created
+        Assert.Empty(appModel.Resources.OfType<NodeInstallerResource>());
+    }
+
+    [Fact]
+    public void WithNpmNoInstallWithYarnInstall()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddViteApp("test-app", "./test-app")
+            .WithNpm(install: false)
+            .WithYarn(install: true);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation is correct - it should still be there
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+
+        // the installer resource should be created
+        Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+    }
+
+    [Fact]
+    public async Task WithNpmInstallWithYarnInstall()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.AddViteApp("test-app", "./test-app")
+            .WithNpm(install: true)
+            .WithYarn(install: true);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation is correct - it should still be there
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+
+        // a single installer resource should be created
+        var installer = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("yarn", installer.Command);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
+
 }
