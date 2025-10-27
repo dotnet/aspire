@@ -251,7 +251,7 @@ internal static class MauiEnvironmentHelper
         }
 
         // Create a temporary targets file
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "ios-env");
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "mlaunch-env");
         Directory.CreateDirectory(tempDirectory);
 
         // Prune old targets files
@@ -284,23 +284,34 @@ internal static class MauiEnvironmentHelper
             new XAttribute("Condition", "Exists('$(MSBuildExtensionsPath)/v$(MSBuildToolsVersion)/Custom.After.Microsoft.Common.targets')")
         ));
 
-        // Create a PropertyGroup to add environment variables to MtouchExtraArgs
-        // iOS apps need environment variables passed via the --setenv argument to mtouch/mlaunch
-        var propertyGroup = new XElement("PropertyGroup");
+        // Create an ItemGroup to add environment variables using MlaunchEnvironmentVariables
+        // iOS apps need environment variables passed to mlaunch as KEY=VALUE pairs
+        var itemGroup = new XElement("ItemGroup");
         
-        var envArgs = new StringBuilder();
         foreach (var (key, value) in environmentVariables.OrderBy(kvp => kvp.Key, StringComparer.Ordinal))
         {
-            // Each environment variable is passed as: --setenv=KEY=VALUE
-            // We need to properly escape the value
-            var escapedValue = value.Replace("\"", "\\\"", StringComparison.Ordinal);
-            envArgs.Append(CultureInfo.InvariantCulture, $" --setenv={key}={escapedValue}");
+            // Encode semicolons as %3B to prevent MSBuild from treating them as item separators
+            var encodedValue = value.Replace(";", "%3B", StringComparison.Ordinal);
+            
+            // Add as MlaunchEnvironmentVariables item with Include="KEY=VALUE"
+            itemGroup.Add(new XElement("MlaunchEnvironmentVariables", 
+                new XAttribute("Include", $"{key}={encodedValue}")));
         }
-
-        // Append to existing MtouchExtraArgs
-        propertyGroup.Add(new XElement("MtouchExtraArgs", $"$(MtouchExtraArgs){envArgs}"));
         
-        projectElement.Add(propertyGroup);
+        projectElement.Add(itemGroup);
+
+        // Add a diagnostic message target to show what's being forwarded
+        projectElement.Add(new XElement(
+            "Target",
+            new XAttribute("Name", "AspireLogMlaunchEnvironmentVariables"),
+            new XAttribute("AfterTargets", "PrepareForBuild"),
+            new XAttribute("Condition", "'@(MlaunchEnvironmentVariables)' != ''"),
+            new XElement(
+                "Message",
+                new XAttribute("Importance", "High"),
+                new XAttribute("Text", "Aspire forwarding mlaunch environment variables: @(MlaunchEnvironmentVariables, ', ')")
+            )
+        ));
 
         var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), projectElement);
 
