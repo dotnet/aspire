@@ -56,6 +56,12 @@ mauiApp.AddAndroidEmulator("pixel-7-emulator", "Pixel_7_API_33");
 mauiApp.AddAndroidDevice("my-pixel", "abc12345");
 ```
 
+> **Note on Device/Simulator ID Validation**: The iOS methods include validation to help detect common mistakes:
+> - `AddiOSDevice()` will fail at startup if you pass a GUID-format ID (which is typical for Simulator UDIDs)
+> - `AddiOSSimulator()` will fail at startup if you pass a non-GUID format ID (which is typical for device UDIDs)
+> 
+> These validation errors appear in the dashboard when you try to start the resource, making it clear if you've accidentally swapped device and simulator IDs.
+
 ## OpenTelemetry Connectivity for Mobile Platforms
 
 Mobile devices, Android emulators, and iOS simulators cannot reach `localhost` where the Aspire dashboard's OTLP endpoint typically runs. This library provides a simple way to configure OpenTelemetry connectivity using dev tunnels.
