@@ -6,7 +6,8 @@
     <PackageTags>aspire integration hosting yarp reverse-proxy api</PackageTags>
     <Description>YARP support for Aspire.</Description>
     <EnablePackageValidation>false</EnablePackageValidation>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>
