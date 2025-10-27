@@ -38,7 +38,17 @@ public class MauiPlatformExtensionsTests
         new PlatformTestConfig("AndroidEmulator", "Android", "android", "mauiapp-android-emulator", "net10.0-android",
             (maui) => maui.AddAndroidEmulator(),
             (maui, name) => maui.AddAndroidEmulator(name),
-            typeof(MauiAndroidEmulatorResource))
+            typeof(MauiAndroidEmulatorResource)),
+        
+        new PlatformTestConfig("iOSDevice", "iOS", "ios", "mauiapp-ios-device", "net10.0-ios",
+            (maui) => maui.AddiOSDevice(),
+            (maui, name) => maui.AddiOSDevice(name),
+            typeof(MauiiOSDeviceResource)),
+        
+        new PlatformTestConfig("iOSSimulator", "iOS", "ios", "mauiapp-ios-simulator", "net10.0-ios",
+            (maui) => maui.AddiOSSimulator(),
+            (maui, name) => maui.AddiOSSimulator(name),
+            typeof(MauiiOSSimulatorResource))
     };
 
     [Theory]
@@ -361,6 +371,154 @@ public class MauiPlatformExtensionsTests
         }
     }
 
+    [Fact]
+    public void AddiOSDevice_WithDeviceId_CreatesResourceWithCorrectName()
+    {
+        // Arrange
+        var projectContent = CreateProjectContent("net10.0-ios");
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+
+            // Act
+            var device = maui.AddiOSDevice("my-device", "00008030-001234567890123A");
+
+            // Assert
+            Assert.NotNull(device);
+            Assert.Equal("my-device", device.Resource.Name);
+            Assert.IsType<MauiiOSDeviceResource>(device.Resource);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
+    [Fact]
+    public void AddiOSSimulator_WithSimulatorId_CreatesResourceWithCorrectName()
+    {
+        // Arrange
+        var projectContent = CreateProjectContent("net10.0-ios");
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+
+            // Act
+            var simulator = maui.AddiOSSimulator("my-simulator", "E25BBE37-69BA-4720-B6FD-D54C97791E79");
+
+            // Assert
+            Assert.NotNull(simulator);
+            Assert.Equal("my-simulator", simulator.Resource.Name);
+            Assert.IsType<MauiiOSSimulatorResource>(simulator.Resource);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
+    [Fact]
+    public void AddiOSDeviceAndSimulator_CanCoexist()
+    {
+        // Arrange
+        var projectContent = CreateProjectContent("net10.0-ios");
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+
+            // Act
+            var device = maui.AddiOSDevice();
+            var simulator = maui.AddiOSSimulator();
+
+            // Assert
+            Assert.NotNull(device);
+            Assert.NotNull(simulator);
+            Assert.NotEqual(device.Resource.Name, simulator.Resource.Name);
+            Assert.IsType<MauiiOSDeviceResource>(device.Resource);
+            Assert.IsType<MauiiOSSimulatorResource>(simulator.Resource);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]  // Device
+    [InlineData(false)] // Simulator
+    public void AddiOS_HasEnvironmentAnnotation(bool isDevice)
+    {
+        // Arrange
+        var projectContent = CreateProjectContent("net10.0-ios");
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+
+            // Act
+            IResource resource;
+            if (isDevice)
+            {
+                resource = maui.AddiOSDevice().Resource;
+            }
+            else
+            {
+                resource = maui.AddiOSSimulator().Resource;
+            }
+
+            // Assert
+            var annotation = resource.Annotations.OfType<MauiiOSEnvironmentAnnotation>().FirstOrDefault();
+            Assert.NotNull(annotation);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task AddiOSSimulator_WithEnvironment_EnvironmentVariablesAreSet()
+    {
+        // Arrange
+        var projectContent = CreateProjectContent("net10.0-ios");
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+
+            // Act
+            var iosSimulator = maui.AddiOSSimulator()
+                .WithEnvironment("DEBUG_MODE", "true")
+                .WithEnvironment("API_TIMEOUT", "30");
+
+            // Assert
+            var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+                iosSimulator.Resource,
+                DistributedApplicationOperation.Run,
+                TestServiceProvider.Instance);
+
+            Assert.Contains(envVars, kvp => kvp.Key == "DEBUG_MODE" && kvp.Value == "true");
+            Assert.Contains(envVars, kvp => kvp.Key == "API_TIMEOUT" && kvp.Value == "30");
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
     [Theory]
     [InlineData(true)]  // Device
     [InlineData(false)] // Emulator
@@ -543,6 +701,8 @@ public class MauiPlatformExtensionsTests
                 nameof(MauiMacCatalystPlatformResource) => builder => ((IResourceBuilder<MauiMacCatalystPlatformResource>)builder).WithOtlpDevTunnel(),
                 nameof(MauiAndroidDeviceResource) => builder => ((IResourceBuilder<MauiAndroidDeviceResource>)builder).WithOtlpDevTunnel(),
                 nameof(MauiAndroidEmulatorResource) => builder => ((IResourceBuilder<MauiAndroidEmulatorResource>)builder).WithOtlpDevTunnel(),
+                nameof(MauiiOSDeviceResource) => builder => ((IResourceBuilder<MauiiOSDeviceResource>)builder).WithOtlpDevTunnel(),
+                nameof(MauiiOSSimulatorResource) => builder => ((IResourceBuilder<MauiiOSSimulatorResource>)builder).WithOtlpDevTunnel(),
                 _ => throw new NotSupportedException($"Unsupported resource type: {expectedResourceType.Name}")
             };
         }

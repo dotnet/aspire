@@ -15,5 +15,8 @@ internal static class MauiHostingExtensions
     {
         // Register the Android environment variable eventing subscriber
         builder.Services.TryAddEventingSubscriber<MauiAndroidEnvironmentSubscriber>();
+        
+        // Register the iOS environment variable eventing subscriber
+        builder.Services.TryAddEventingSubscriber<MauiiOSEnvironmentSubscriber>();
     }
 }
