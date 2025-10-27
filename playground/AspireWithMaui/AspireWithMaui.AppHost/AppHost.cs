@@ -14,6 +14,17 @@ mauiapp.AddWindowsDevice()
 mauiapp.AddMacCatalystDevice()
     .WithReference(weatherApi);
 
+// Add iOS simulator with default simulator (uses running or default simulator)
+mauiapp.AddiOSSimulator()
+    .WithOtlpDevTunnel() // Needed to get the OpenTelemetry data to "localhost"
+    .WithReference(weatherApi, publicDevTunnel); // Needs a dev tunnel to reach "localhost"
+
+// Add iOS device (requires device provisioning)
+// Uncomment to use with a physical iOS device:
+// mauiapp.AddiOSDevice()
+//     .WithOtlpDevTunnel() // Needed to get the OpenTelemetry data to "localhost"
+//     .WithReference(weatherApi, publicDevTunnel); // Needs a dev tunnel to reach "localhost"
+
 // Add Android emulator with default emulator (uses running or default emulator)
 mauiapp.AddAndroidEmulator()
     .WithOtlpDevTunnel() // Needed to get the OpenTelemetry data to "localhost"

@@ -211,4 +211,129 @@ internal static class MauiEnvironmentHelper
 
         return value.Replace(";", "%3B", StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Creates an MSBuild targets file for iOS that sets environment variables.
+    /// </summary>
+    /// <param name="resource">The resource to collect environment variables from.</param>
+    /// <param name="executionContext">The execution context.</param>
+    /// <param name="logger">Logger for diagnostic output.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The path to the generated targets file, or null if no environment variables are present.</returns>
+    public static async Task<string?> CreateiOSEnvironmentTargetsFileAsync(
+        IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        var environmentVariables = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        // Collect all environment variables from the resource
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (ex is not null || string.IsNullOrEmpty(key) || processed is not string value)
+                {
+                    return;
+                }
+
+                environmentVariables[key] = value;
+            },
+            logger,
+            cancellationToken: cancellationToken
+        ).ConfigureAwait(false);
+
+        // If no environment variables, return null
+        if (environmentVariables.Count == 0)
+        {
+            return null;
+        }
+
+        // Create a temporary targets file
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "ios-env");
+        Directory.CreateDirectory(tempDirectory);
+
+        // Prune old targets files
+        PruneOldTargetsiOS(tempDirectory, logger);
+
+        var sanitizedName = SanitizeFileName(resource.Name + "-ios");
+        var uniqueId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        var targetsFilePath = Path.Combine(tempDirectory, $"{sanitizedName}-{uniqueId}.targets");
+
+        // Generate the targets file content
+        var targetsContent = GenerateiOSTargetsFileContent(environmentVariables);
+
+        // Write the file
+        await File.WriteAllTextAsync(targetsFilePath, targetsContent, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+
+        return targetsFilePath;
+    }
+
+    /// <summary>
+    /// Generates the content of an MSBuild targets file for iOS environment variables.
+    /// </summary>
+    private static string GenerateiOSTargetsFileContent(Dictionary<string, string> environmentVariables)
+    {
+        var projectElement = new XElement("Project");
+
+        // Import the standard Custom.After.Microsoft.Common.targets if it exists
+        projectElement.Add(new XElement(
+            "Import",
+            new XAttribute("Project", "$(MSBuildExtensionsPath)/v$(MSBuildToolsVersion)/Custom.After.Microsoft.Common.targets"),
+            new XAttribute("Condition", "Exists('$(MSBuildExtensionsPath)/v$(MSBuildToolsVersion)/Custom.After.Microsoft.Common.targets')")
+        ));
+
+        // Create a PropertyGroup to add environment variables to MtouchExtraArgs
+        // iOS apps need environment variables passed via the --setenv argument to mtouch/mlaunch
+        var propertyGroup = new XElement("PropertyGroup");
+        
+        var envArgs = new StringBuilder();
+        foreach (var (key, value) in environmentVariables.OrderBy(kvp => kvp.Key, StringComparer.Ordinal))
+        {
+            // Each environment variable is passed as: --setenv=KEY=VALUE
+            // We need to properly escape the value
+            var escapedValue = value.Replace("\"", "\\\"", StringComparison.Ordinal);
+            envArgs.Append(CultureInfo.InvariantCulture, $" --setenv={key}={escapedValue}");
+        }
+
+        // Append to existing MtouchExtraArgs
+        propertyGroup.Add(new XElement("MtouchExtraArgs", $"$(MtouchExtraArgs){envArgs}"));
+        
+        projectElement.Add(propertyGroup);
+
+        var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), projectElement);
+
+        using var stringWriter = new StringWriter();
+        document.Save(stringWriter);
+        return stringWriter.ToString();
+    }
+
+    private static void PruneOldTargetsiOS(string directory, ILogger logger)
+    {
+        var expiration = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
+        var deletedFiles = new List<string>();
+
+        foreach (var file in Directory.EnumerateFiles(directory, "*.targets", SearchOption.TopDirectoryOnly))
+        {
+            try
+            {
+                var info = new FileInfo(file);
+                if (info.Exists && info.LastWriteTimeUtc < expiration)
+                {
+                    info.Delete();
+                    deletedFiles.Add(info.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to prune stale iOS environment targets file '{TargetsFile}'.", file);
+            }
+        }
+
+        if (deletedFiles.Count > 0)
+        {
+            logger.LogDebug("Pruned {Count} stale iOS environment targets file(s): {Files}", deletedFiles.Count, string.Join(", ", deletedFiles));
+        }
+    }
 }
