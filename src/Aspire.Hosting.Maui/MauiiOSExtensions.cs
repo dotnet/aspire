@@ -192,6 +192,24 @@ public static class MauiiOSExtensions
             "PhoneTablet",
             additionalArgs.ToArray());
 
+        // Validate device ID format before starting the resource
+        if (!string.IsNullOrWhiteSpace(deviceId))
+        {
+            resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>
+            {
+                // Validate that the device ID doesn't look like a simulator ID (which has GUID format)
+                if (IsLikelySimulatorId(deviceId))
+                {
+                    throw new DistributedApplicationException(
+                        $"Device ID '{deviceId}' for iOS device resource '{name}' appears to be an iOS Simulator UDID (GUID format). " +
+                        $"iOS physical devices typically use a different UDID format (e.g., 00008030-001234567890123A). " +
+                        $"If you intended to target an iOS Simulator, use AddiOSSimulator(\"{name}\", \"{deviceId}\") instead.");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
         return resourceBuilder;
     }
 
@@ -356,6 +374,35 @@ public static class MauiiOSExtensions
             "PhoneTablet",
             additionalArgs.ToArray());
 
+        // Validate simulator ID format before starting the resource
+        if (!string.IsNullOrWhiteSpace(simulatorId))
+        {
+            resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>
+            {
+                // Validate that the simulator ID looks like a GUID (expected format for iOS Simulator UDIDs)
+                if (!IsLikelySimulatorId(simulatorId))
+                {
+                    throw new DistributedApplicationException(
+                        $"Simulator ID '{simulatorId}' for iOS simulator resource '{name}' does not appear to be an iOS Simulator UDID (GUID format). " +
+                        "iOS Simulator UDIDs are typically GUIDs (e.g., E25BBE37-69BA-4720-B6FD-D54C97791E79). " +
+                        $"If you intended to target a physical iOS device, use AddiOSDevice(\"{name}\", \"{simulatorId}\") instead.");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
         return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Checks if a device ID appears to be an iOS Simulator UDID.
+    /// iOS Simulator UDIDs are standard GUIDs (8-4-4-4-12 format).
+    /// </summary>
+    private static bool IsLikelySimulatorId(string deviceId)
+    {
+        // iOS Simulator UDIDs are standard GUIDs (8-4-4-4-12 format)
+        // Example: E25BBE37-69BA-4720-B6FD-D54C97791E79
+        return Guid.TryParse(deviceId, out _);
     }
 }
