@@ -246,7 +246,13 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        
+        // Determine the update command based on how the CLI is running
+        var updateCommand = CliHostEnvironment.IsRunningAsDotNetTool() 
+            ? "dotnet tool update aspire.cli" 
+            : "aspire update --self";
+        
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion, updateCommand));
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

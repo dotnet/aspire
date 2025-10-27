@@ -280,4 +280,33 @@ public class ConsoleInteractionServiceTests
             interactionService.ConfirmAsync("Confirm?", true, CancellationToken.None));
         Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
+
+    [Fact]
+    public void DisplayVersionUpdateNotification_IncludesUpdateCommand()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        var version = "13.0.0-preview.1.25526.1";
+
+        // Act
+        interactionService.DisplayVersionUpdateNotification(version);
+
+        // Assert
+        var outputString = output.ToString();
+        Assert.Contains(version, outputString);
+        // The message should include an update command (either "aspire update --self" or "dotnet tool update aspire.cli")
+        Assert.True(
+            outputString.Contains("aspire update --self") || outputString.Contains("dotnet tool update aspire.cli"),
+            "Output should contain an update command");
+        Assert.Contains("https://aka.ms/aspire/update", outputString);
+    }
 }
