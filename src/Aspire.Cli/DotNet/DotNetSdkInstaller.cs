@@ -202,25 +202,19 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         // Capture and log stdout and stderr
         var stdoutTask = Task.Run(async () =>
         {
-            while (!installProcess.StandardOutput.EndOfStream)
+            string? line;
+            while ((line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
             {
-                var line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken);
-                if (line != null)
-                {
-                    logger.LogDebug("dotnet-install stdout: {Line}", line);
-                }
+                logger.LogDebug("dotnet-install stdout: {Line}", line);
             }
         }, cancellationToken);
 
         var stderrTask = Task.Run(async () =>
         {
-            while (!installProcess.StandardError.EndOfStream)
+            string? line;
+            while ((line = await installProcess.StandardError.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
             {
-                var line = await installProcess.StandardError.ReadLineAsync(cancellationToken);
-                if (line != null)
-                {
-                    logger.LogDebug("dotnet-install stderr: {Line}", line);
-                }
+                logger.LogDebug("dotnet-install stderr: {Line}", line);
             }
         }, cancellationToken);
 
