@@ -130,7 +130,7 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
-    builder.Services.AddSingleton<IDiskCache, DiskCache>();
+        builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
@@ -229,12 +229,27 @@ public class Program
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
+
         var settings = new AnsiConsoleSettings()
         {
-            Ansi = AnsiSupport.Detect,
-            Interactive = InteractionSupport.Detect,
-            ColorSystem = ColorSystemSupport.Detect
+            Ansi = isPlayground ? AnsiSupport.Yes : AnsiSupport.Detect,
+            Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
+            ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
         };
+
+        if (isPlayground)
+        {
+            // Enrichers interfere with interactive playground experience so
+            // this suppresses the default enrichers so that the CLI experience
+            // is more like what we would get in an interactive experience.
+            settings.Enrichment.UseDefaultEnrichers = false;
+            settings.Enrichment.Enrichers = new()
+            {
+                new AspirePlaygroundEnricher()
+            };
+        }
 
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
@@ -297,5 +312,30 @@ public class Program
                 return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
             });
         }
+    }
+}
+
+internal class AspirePlaygroundEnricher : IProfileEnricher
+{
+    public string Name => "Aspire Playground";
+
+    public bool Enabled(IDictionary<string, string> environmentVariables)
+    {
+        if (!environmentVariables.TryGetValue("ASPIRE_PLAYGROUND", out var value))
+        {
+            return false;
+        }
+
+        if (!bool.TryParse(value, out var isEnabled))
+        {
+            return false;
+        }
+
+        return isEnabled;
+    }
+
+    public void Enrich(Profile profile)
+    {
+        profile.Capabilities.Interactive = true;
     }
 }
