@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Eventing;
@@ -11,6 +12,33 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
 {
     private readonly ConcurrentDictionary<Type, List<DistributedApplicationEventSubscription>> _eventSubscriptionListLookup = new();
     private readonly ConcurrentDictionary<DistributedApplicationEventSubscription, Type> _subscriptionEventTypeLookup = new();
+    private readonly Channel<(Exception Exception, Type EventType, IResource? Resource)> _exceptionChannel = Channel.CreateUnbounded<(Exception, Type, IResource?)>();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplicationEventing"/> class.
+    /// </summary>
+    public DistributedApplicationEventing()
+    {
+        // Start a background task to process exceptions from the channel
+        _ = Task.Run(ProcessExceptionChannelAsync);
+    }
+
+    private async Task ProcessExceptionChannelAsync()
+    {
+        await foreach (var (exception, eventType, resource) in _exceptionChannel.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            try
+            {
+                var exceptionEvent = new EventPublishExceptionEvent(exception, eventType, resource);
+                // Use NonBlockingSequential to avoid potential deadlocks when publishing from within an event handler
+                await PublishAsync(exceptionEvent, EventDispatchBehavior.NonBlockingSequential).ConfigureAwait(false);
+            }
+            catch
+            {
+                // If we can't publish the exception event, there's nothing we can do
+            }
+        }
+    }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
@@ -25,26 +53,38 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
+            // Determine the resource associated with the event if it's a resource-specific event
+            var resource = @event is IDistributedApplicationResourceEvent resourceEvent ? resourceEvent.Resource : null;
+
             if (dispatchBehavior == EventDispatchBehavior.BlockingConcurrent || dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
             {
                 var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);
                 foreach (var subscription in subscriptions.ToArray())
                 {
-                    var pendingSubscriptionCallback = subscription.Callback(@event, cancellationToken);
-                    pendingSubscriptionCallbacks.Add(pendingSubscriptionCallback);
+                    // Wrap each callback to catch exceptions individually
+                    var wrappedCallback = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            PublishExceptionEventAsync(ex, typeof(T), resource);
+                            throw;
+                        }
+                    }, cancellationToken);
+                    pendingSubscriptionCallbacks.Add(wrappedCallback);
                 }
 
                 if (dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
                 {
-                    // Non-blocking concurrent.
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
-                    }, default);
+                    // Non-blocking concurrent - fire and forget
+                    _ = Task.WhenAll(pendingSubscriptionCallbacks);
                 }
                 else
                 {
-                    // Blocking concurrent.
+                    // Blocking concurrent - wait for all to complete
                     await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
                 }
             }
@@ -57,7 +97,15 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                     {
                         foreach (var subscription in subscriptions.ToArray())
                         {
-                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                PublishExceptionEventAsync(ex, typeof(T), resource);
+                                throw;
+                            }
                         }
                     }, default);
                 }
@@ -66,11 +114,31 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                     // Blocking sequential.
                     foreach (var subscription in subscriptions.ToArray())
                     {
-                        await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                        try
+                        {
+                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            PublishExceptionEventAsync(ex, typeof(T), resource);
+                            throw;
+                        }
                     }
                 }
             }
         }
+    }
+
+    private void PublishExceptionEventAsync(Exception exception, Type eventType, IResource? resource)
+    {
+        // Avoid infinite loop if EventPublishExceptionEvent handler throws
+        if (eventType == typeof(EventPublishExceptionEvent))
+        {
+            return;
+        }
+
+        // Write to the channel for async processing
+        _exceptionChannel.Writer.TryWrite((exception, eventType, resource));
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Subscribe{T}(Func{T, CancellationToken, Task})" />

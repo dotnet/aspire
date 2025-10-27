@@ -335,6 +335,168 @@ public class DistributedApplicationBuilderEventingTests
         await resourceStoppedTcs.Task.DefaultTimeout();
     }
 
+    [Fact]
+    public async Task ExceptionInEventHandlerIsPublishedAsEventPublishExceptionEvent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
+        var exceptionMessage = "Test exception in event handler";
+        var tcs = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
+        {
+            throw new InvalidOperationException(exceptionMessage);
+        });
+
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
+        {
+            capturedExceptionEvent = @event;
+            tcs.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        // The exception should be rethrown after being published
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingSequential);
+        });
+
+        // Wait for the async exception handler to complete
+        await tcs.Task.DefaultTimeout();
+
+        // The exception should have been caught and published
+        Assert.NotNull(capturedExceptionEvent);
+        Assert.IsType<InvalidOperationException>(capturedExceptionEvent.Exception);
+        Assert.Equal(exceptionMessage, capturedExceptionEvent.Exception.Message);
+        Assert.Equal(typeof(DummyEvent), capturedExceptionEvent.EventType);
+        Assert.Null(capturedExceptionEvent.Resource);
+        Assert.Equal(exceptionMessage, exception.Message);
+    }
+
+    [Fact]
+    public async Task ExceptionInResourceEventHandlerIncludesResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var testResource = builder.AddResource(new TestResource("test-resource"));
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
+        var tcs = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe(testResource.Resource, (ResourceReadyEvent @event, CancellationToken ct) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        });
+
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
+        {
+            capturedExceptionEvent = @event;
+            tcs.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+        
+        // The exception should be rethrown after being published
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await builder.Eventing.PublishAsync(new ResourceReadyEvent(testResource.Resource, app.Services), EventDispatchBehavior.BlockingSequential);
+        });
+
+        // Wait for the async exception handler to complete
+        await tcs.Task.DefaultTimeout();
+
+        Assert.NotNull(capturedExceptionEvent);
+        Assert.Equal(testResource.Resource, capturedExceptionEvent.Resource);
+        Assert.Equal(typeof(ResourceReadyEvent), capturedExceptionEvent.EventType);
+    }
+
+    [Fact]
+    public async Task ExceptionInNonBlockingSequentialHandlerIsPublished()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
+        var tcs = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        });
+
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
+        {
+            capturedExceptionEvent = @event;
+            tcs.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingSequential);
+
+        // Wait for the async handler to complete
+        await tcs.Task.DefaultTimeout();
+
+        Assert.NotNull(capturedExceptionEvent);
+        Assert.IsType<InvalidOperationException>(capturedExceptionEvent.Exception);
+    }
+
+    [Fact]
+    public async Task ExceptionInBlockingConcurrentHandlerIsPublished()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
+        var tcs = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        });
+
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
+        {
+            capturedExceptionEvent = @event;
+            tcs.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        // The exception should be rethrown after being published
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingConcurrent);
+        });
+
+        // Wait for the async exception handler to complete
+        await tcs.Task.DefaultTimeout();
+
+        Assert.NotNull(capturedExceptionEvent);
+        Assert.IsType<InvalidOperationException>(capturedExceptionEvent.Exception);
+    }
+
+    [Fact]
+    public async Task ExceptionInNonBlockingConcurrentHandlerIsPublished()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
+        var tcs = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        });
+
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
+        {
+            capturedExceptionEvent = @event;
+            tcs.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingConcurrent);
+
+        // Wait for the async handler to complete
+        await tcs.Task.DefaultTimeout();
+
+        Assert.NotNull(capturedExceptionEvent);
+        Assert.IsType<InvalidOperationException>(capturedExceptionEvent.Exception);
+    }
+
     public class DummyEvent : IDistributedApplicationEvent
     {
     }
