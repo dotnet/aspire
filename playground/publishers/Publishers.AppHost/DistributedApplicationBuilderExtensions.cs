@@ -5,7 +5,7 @@
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREINTERACTION001
 
-using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.Pipelines;
 
 internal static class IDistributedApplicationBuilderExtensions
 {
@@ -19,12 +19,21 @@ internal static class IDistributedApplicationBuilderExtensions
     {
         public PublishTestResource(string name) : base(name)
         {
-            Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+            Annotations.Add(new PipelineStepAnnotation(context =>
+            {
+                var step = new PipelineStep
+                {
+                    Name = $"publish-{name}",
+                    Action = PublishAsync
+                };
+                step.RequiredBy(WellKnownPipelineSteps.Publish);
+                return step;
+            }));
         }
 
-        private async Task PublishAsync(PublishingContext context)
+        private async Task PublishAsync(PipelineStepContext context)
         {
-            var reporter = context.ActivityReporter;
+            var reporter = context.ReportingStep;
             var interactionService = context.Services.GetRequiredService<IInteractionService>();
 
             // ALL PROMPTS FIRST - before any tasks are created
