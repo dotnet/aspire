@@ -1,15 +1,15 @@
-# Smoke Test Scenario
+# Smoke Test Scenario - Python/Vite Starter
 
-This scenario performs a comprehensive smoke test of an Aspire PR build by installing the Aspire CLI, creating a starter application, and verifying its functionality.
+This scenario performs a comprehensive smoke test of an Aspire PR build by installing the Aspire CLI, creating a Python starter application with Vite frontend, and verifying its functionality.
 
 ## Overview
 
 This smoke test validates that:
 1. The native AOT build of the Aspire CLI from the PR can be successfully acquired
-2. A new Aspire starter application can be created using the Blazor template via interactive flow
+2. A new Aspire Python starter application can be created using the Python/Vite template via interactive flow
 3. The application can be launched with `aspire run` (which handles restore, build, and execution automatically)
 4. The Aspire Dashboard is accessible and functional, with screenshots captured
-5. Application components (AppHost, API service, Blazor frontend) are running correctly
+5. Application components (AppHost, Python API service, Vite/React frontend) are running correctly
 6. Telemetry and logs are being collected properly
 7. Web UI is functional with screenshots captured for verification
 
@@ -17,8 +17,10 @@ This smoke test validates that:
 
 Before starting, ensure you have:
 - Docker installed and running (for container-based resources if used)
+- Python 3.11 or later installed (for the Python API service)
+- Node.js 18 or later installed (for the Vite frontend)
 - Sufficient disk space for the Aspire CLI and application artifacts
-- Network access to download NuGet packages
+- Network access to download NuGet packages, Python packages, and npm packages
 - Browser automation tools available (playwright) for capturing screenshots
 
 **Note**: The .NET SDK is not required as a prerequisite - the Aspire CLI will install it automatically.
@@ -37,9 +39,29 @@ aspire --version
 
 Expected output should show the version matching the PR build.
 
-## Step 2: Create a New Aspire Starter Application
+### 1.1 Enable SDK Install Feature Flag
 
-Create a new Aspire application using the Blazor-based starter template. The application will be created in the current git workspace so it becomes part of the PR when the scenario completes.
+Before proceeding, enable the `dotNetSdkInstallationEnabled` feature flag to force SDK installation for testing purposes. This ensures the Aspire CLI's SDK installation functionality is properly exercised.
+
+Set the configuration value:
+
+```bash
+aspire config set --global features.dotNetSdkInstallationEnabled true
+```
+
+Verify the configuration was set:
+
+```bash
+aspire config get --global features.dotNetSdkInstallationEnabled
+```
+
+Expected output: `true`
+
+**Note**: This feature flag forces the Aspire CLI to install the .NET SDK even if a compatible version is already available on the system. This is specifically for testing the SDK installation feature.
+
+## Step 2: Create a New Aspire Python Starter Application
+
+Create a new Aspire application using the Python/Vite starter template. The application will be created in the current git workspace so it becomes part of the PR when the scenario completes.
 
 ### 2.1 Run the Aspire New Command
 
@@ -50,12 +72,10 @@ aspire new
 ```
 
 **Follow the interactive prompts:**
-1. When prompted for a template, select the **"Aspire Starter App"** (template short name: `aspire-starter`)
-2. Provide a name for the application when prompted (suggestion: `AspireSmokeTest`)
+1. When prompted for a template, select the **"Aspire Python Starter App"** (template short name: `aspire-py-starter`)
+2. Provide a name for the application when prompted (suggestion: `AspirePySmokeTest`)
 3. Accept the default target framework (should be .NET 10.0)
-4. Select Blazor as the frontend technology
-5. Choose a test framework (suggestion: xUnit or MSTest)
-6. Optionally include Redis caching if prompted
+4. Optionally include Redis caching if prompted
 
 ### 2.2 Verify Project Structure
 
@@ -66,28 +86,33 @@ ls -la
 ```
 
 Expected structure:
-- `AspireSmokeTest.sln` - Solution file
-- `AspireSmokeTest.AppHost/` - The Aspire AppHost project
-- `AspireSmokeTest.ServiceDefaults/` - Shared service defaults
-- `AspireSmokeTest.ApiService/` - Backend API service
-- `AspireSmokeTest.Web/` - Blazor frontend
-- `AspireSmokeTest.Tests/` - Test project (if test framework was selected)
+- `AspirePySmokeTest.sln` - Solution file (if generated)
+- `AspirePySmokeTest.AppHost/` - The Aspire AppHost project (C#)
+- `app/` - Python backend API service
+- `frontend/` - Vite/React frontend
+- `apphost.run.json` - AppHost run configuration
 
 ### 2.3 Inspect Key Files
 
 Review key configuration files to understand the application structure:
 
 ```bash
-# View the AppHost Program.cs to see resource definitions
-cat AspireSmokeTest.AppHost/Program.cs
+# View the AppHost code to see resource definitions
+cat apphost.cs
 
-# View the solution structure
-cat AspireSmokeTest.sln
+# View the Python app files
+ls -la app/
+
+# View the frontend package.json
+cat frontend/package.json
+
+# View the Vite configuration
+cat frontend/vite.config.ts
 ```
 
 ## Step 3: Launch the Application with Aspire Run
 
-Launch the application using the `aspire run` command. The CLI will automatically find the AppHost project, restore dependencies, build, and run the application.
+Launch the application using the `aspire run` command. The CLI will automatically find the AppHost configuration, restore dependencies, build, and run the application.
 
 ### 3.1 Start the Application
 
@@ -98,27 +123,28 @@ aspire run
 ```
 
 The `aspire run` command will:
-- Locate the AppHost project in the current directory
-- Restore all NuGet dependencies
+- Locate the AppHost configuration in the current directory
+- Restore all dependencies (NuGet, Python packages, npm packages)
 - Build the solution
 - Start the Aspire AppHost and all resources
 
 **What to observe:**
 - The command should start the Aspire AppHost
 - You should see console output indicating:
-  - Dashboard starting (typically on http://localhost:18888)
+  - Dashboard starting with a randomly assigned port and access token
   - Resources being initialized
-  - Services starting up
+  - Python API service starting up
+  - Vite frontend dev server starting
   - No critical errors in the startup logs
 
 ### 3.2 Wait for Startup
 
 Allow 30-60 seconds for the application to fully start. Monitor the console output for:
-- "Dashboard running at: http://localhost:XXXXX" message
+- "Dashboard running at: http://localhost:XXXXX" message with the access token
 - "Application started" or similar success messages
 - All resources showing as "Running" status
 
-**Tip:** The dashboard URL will be displayed in the console. Note this URL for later steps.
+**Tip:** The dashboard URL with access token will be displayed in the console output from `aspire run`. Note this complete URL (including the token parameter) for later steps. The port is randomly selected each time a new project is created.
 
 ## Step 4: Verify the Aspire Dashboard
 
@@ -126,13 +152,14 @@ The Aspire Dashboard is the central monitoring interface. Let's verify it's acce
 
 ### 4.1 Access the Dashboard
 
-Open the dashboard URL in a browser (typically http://localhost:18888).
+The dashboard URL with access token is displayed in the output from `aspire run`. Use this URL to access the dashboard.
 
 **Use browser automation tools to access and capture screenshots:**
 
 ```bash
-# Navigate to the dashboard
-playwright-browser navigate http://localhost:18888
+# Navigate to the dashboard using the URL from aspire run output
+# Example: DASHBOARD_URL="http://localhost:12345?token=abc123"
+playwright-browser navigate $DASHBOARD_URL
 ```
 
 **Take a screenshot of the dashboard:**
@@ -149,11 +176,11 @@ playwright-browser take_screenshot --filename dashboard-main.png
 **If browser automation fails, use curl for diagnostics:**
 
 ```bash
-# Check if dashboard is accessible
-curl -I http://localhost:18888
+# Check if dashboard is accessible using the URL from aspire run output
+curl -I $DASHBOARD_URL
 
 # Get the HTML content to diagnose issues
-curl http://localhost:18888
+curl $DASHBOARD_URL
 ```
 
 ### 4.2 Navigate Dashboard Sections
@@ -164,8 +191,8 @@ Use browser automation to navigate through the dashboard sections and capture sc
 - Navigate to the "Resources" page
 - **Take a screenshot showing all resources**
 - Verify all expected resources are listed:
-  - `apiservice` - The API backend
-  - `webfrontend` - The Blazor web application
+  - `app` - The Python API backend
+  - `frontend` - The Vite/React frontend application
   - Any other resources (Redis, if included)
 - Check that each resource shows:
   - Status: "Running" (green indicator)
@@ -234,13 +261,13 @@ For each listed resource in the dashboard:
 2. Verify the resource is accessible at that endpoint
 3. Check for healthy responses
 
-## Step 5: Test the API Service
+## Step 5: Test the Python API Service
 
-Verify the API service is functioning correctly.
+Verify the Python API service is functioning correctly.
 
 ### 5.1 Identify API Endpoint
 
-From the dashboard Resources view, note the endpoint URL for the `apiservice` resource (typically http://localhost:XXXX).
+From the dashboard Resources view, note the endpoint URL for the `app` resource (typically http://localhost:XXXX).
 
 ### 5.2 Call the API
 
@@ -250,40 +277,41 @@ Test the API endpoints:
 # Replace <api-url> with the actual endpoint from the dashboard
 API_URL="http://localhost:5001"  # Example, use actual URL
 
-# Test the weather forecast endpoint (common in starter template)
-curl $API_URL/weatherforecast
+# Test a common Python API endpoint
+curl $API_URL/
 
-# Or if specific API paths are documented
-curl $API_URL/api/health
+# Or test health/info endpoints if available
+curl $API_URL/health
+curl $API_URL/info
 ```
 
 **Expected response:**
 - HTTP 200 OK status
-- Valid JSON response with weather data or appropriate API response
+- Valid JSON response or appropriate API response
 - No error messages
 
 ### 5.3 Verify API Telemetry
 
 After making API calls:
 1. Return to the Dashboard
-2. Check the Structured Logs for new log entries from the API service
+2. Check the Structured Logs for new log entries from the Python API service
 3. Verify traces were created for the API requests
 4. Check metrics show the API request counts increased
 
-## Step 6: Test the Blazor Web Frontend
+## Step 6: Test the Vite/React Frontend
 
-Verify the web frontend is accessible and functional.
+Verify the Vite frontend is accessible and functional.
 
-### 6.1 Identify Web Frontend Endpoint
+### 6.1 Identify Frontend Endpoint
 
-From the dashboard Resources view, note the endpoint URL for the `webfrontend` resource (typically http://localhost:XXXX).
+From the dashboard Resources view, note the endpoint URL for the `frontend` resource (typically http://localhost:XXXX).
 
 ### 6.2 Access the Web Application
 
-Use browser automation to navigate to the web frontend and capture screenshots:
+Use browser automation to navigate to the frontend and capture screenshots:
 
 ```bash
-WEB_URL="http://localhost:5000"  # Example, use actual URL
+WEB_URL="http://localhost:5173"  # Example, use actual URL
 
 # Navigate to the web app
 playwright-browser navigate $WEB_URL
@@ -296,7 +324,7 @@ playwright-browser take_screenshot --filename web-home-page.png
 ```
 
 **Expected response:**
-- Blazor application loads successfully
+- Vite/React application loads successfully
 - Home page displays correctly
 - Screenshot captures the web UI
 
@@ -305,20 +333,20 @@ playwright-browser take_screenshot --filename web-home-page.png
 Use browser automation to interact with the application and capture screenshots:
 
 1. **Home Page**: Verify the home page loads and take a screenshot
-2. **Navigation**: Test navigating between pages (Home, Weather, etc.)
-3. **Weather Page**: Navigate to the weather forecast page
+2. **Navigation**: Test navigating between pages (if multiple pages exist)
+3. **API Integration**: Test pages that call the Python API
    ```bash
-   # Take screenshot of Weather page
-   playwright-browser take_screenshot --filename web-weather-page.png
+   # Take screenshot showing data from the API
+   playwright-browser take_screenshot --filename web-api-data.png
    ```
-   - Verify the page loads and displays data from the API
-   - Capture screenshot showing the weather data
-4. **Interactive Elements**: Test any interactive Blazor components
+   - Verify the page loads and displays data from the Python API
+   - Capture screenshot showing the data
+4. **Interactive Elements**: Test any interactive React components
 
-### 6.4 Verify Web Telemetry
+### 6.4 Verify Frontend Telemetry
 
 After interacting with the web application:
-1. Check the Dashboard for web frontend logs
+1. Check the Dashboard for frontend logs
 2. Verify traces showing frontend → API calls
 3. Check that both frontend and backend telemetry is correlated
 
@@ -329,18 +357,18 @@ Verify the end-to-end integration between components.
 ### 7.1 Test Frontend-to-API Communication
 
 From the web frontend:
-1. Navigate to a page that calls the API (e.g., Weather page)
+1. Navigate to a page that calls the Python API
 2. Verify data is successfully retrieved and displayed
 3. Check the Dashboard traces to see the complete request flow:
-   - Web frontend initiates request
-   - API service receives and processes request
+   - Vite frontend initiates request
+   - Python API service receives and processes request
    - Response returns to frontend
    - Trace shows the complete distributed transaction
 
 ### 7.2 Verify Service Discovery
 
 The starter app uses Aspire's service discovery. Verify:
-1. The frontend can resolve and call the API service by name
+1. The frontend can resolve and call the Python API service by name
 2. No hardcoded URLs are needed in the application code
 3. Service discovery is working through the Aspire infrastructure
 
@@ -362,12 +390,19 @@ Monitor the console where `aspire run` is executing:
 - Check that log levels are appropriate (Info, Warning, Error)
 - Ensure structured logging format is maintained
 
-### 8.2 Hot Reload (if applicable)
+### 8.2 Hot Reload
 
-If the project supports hot reload:
-1. Make a small change to the code (e.g., modify a string in the API)
+Test hot reload capabilities:
+
+**Python Hot Reload:**
+1. Make a small change to the Python API code (e.g., modify a response string)
 2. Save the file
-3. Verify the change is reflected without full restart
+3. Verify the change is reflected without full restart (if supported)
+
+**Vite Hot Module Replacement (HMR):**
+1. Make a small change to the React frontend (e.g., modify text in a component)
+2. Save the file
+3. Verify the browser automatically updates without page reload
 4. Check that the dashboard shows the reload event
 
 ### 8.3 Resource Management
@@ -394,71 +429,56 @@ Press `Ctrl+C` in the terminal where `aspire run` is running.
 ### 9.2 Verify Cleanup
 
 After shutdown:
-1. Verify no orphaned processes are running
+1. Verify no orphaned processes are running (Python, Node.js)
 2. Check that containers (if any) are stopped
 3. Confirm ports are released
 
-## Step 10: Run Tests (Optional)
-
-If the application includes tests, run them to verify test infrastructure.
-
-### 10.1 Run Unit Tests
-
-```bash
-dotnet test AspireSmokeTest.Tests
-```
-
-**Expected outcome:**
-- All tests pass
-- Test output shows proper test discovery and execution
-- Integration tests (if any) can start and test the app
-
-## Step 11: Final Verification Checklist
+## Step 10: Final Verification Checklist
 
 Go through this final checklist to ensure all smoke test requirements are met:
 
 - [ ] Aspire CLI acquired successfully from PR build (native AOT version)
-- [ ] Starter application created using `aspire new` with Blazor template (interactive flow)
+- [ ] Python starter application created using `aspire new` with Python/Vite template (interactive flow)
 - [ ] Application launches successfully with `aspire run` (automatic restore and build)
 - [ ] Aspire Dashboard is accessible at the designated URL
 - [ ] **Screenshots captured**: Dashboard main view, Resources, Console Logs, Structured Logs, Traces, Metrics
-- [ ] Dashboard Resources view shows all expected resources as "Running"
+- [ ] Dashboard Resources view shows all expected resources as "Running" (Python API, Vite frontend)
 - [ ] Console logs are visible for all resources
 - [ ] Structured logs are being collected and displayed
 - [ ] Traces are being collected (if applicable)
 - [ ] Metrics are being collected (if applicable)
-- [ ] API service responds correctly to HTTP requests
-- [ ] Blazor web frontend is accessible and displays correctly
-- [ ] **Screenshots captured**: Web home page, Weather page showing API data
-- [ ] Frontend successfully calls and receives data from API
+- [ ] Python API service responds correctly to HTTP requests
+- [ ] Vite/React frontend is accessible and displays correctly
+- [ ] **Screenshots captured**: Web home page, pages showing data from Python API
+- [ ] Frontend successfully calls and receives data from Python API
 - [ ] Service discovery is working between components
 - [ ] End-to-end traces show complete request flow
+- [ ] Hot reload works for both Python and Vite (if applicable)
 - [ ] Application shuts down cleanly without errors
-- [ ] Tests run successfully (if included)
 
 ## Success Criteria
 
 The smoke test is considered **PASSED** if:
 
 1. **Installation**: Aspire CLI from PR build acquired successfully (native AOT version)
-2. **Creation**: New project created successfully with all expected files (using interactive flow)
+2. **Creation**: New Python/Vite project created successfully with all expected files (using interactive flow)
 3. **Launch**: Application starts and all resources reach "Running" state (automatic restore, build, and run)
 4. **Dashboard**: Dashboard is accessible and all sections are functional
 5. **Screenshots**: All required screenshots captured showing dashboard and web UI
-6. **API**: API service responds correctly to requests
-7. **Frontend**: Web frontend loads and displays data from API
+6. **Python API**: Python API service responds correctly to requests
+7. **Vite Frontend**: Vite/React frontend loads and displays data from Python API
 8. **Telemetry**: Logs, traces, and metrics are being collected
-9. **Integration**: End-to-end request flow works correctly
+9. **Integration**: End-to-end request flow works correctly between Vite frontend and Python API
 10. **Shutdown**: Application stops cleanly without errors
 
 The smoke test is considered **FAILED** if:
 
 - CLI installation fails or produces errors
 - Project creation fails or generates incomplete/corrupt project structure
-- Build fails with errors
+- Build fails with errors (Python dependencies, npm dependencies, or .NET build)
 - Application fails to start or resources remain in error state
 - Dashboard is not accessible or shows critical errors
-- API or frontend services are not accessible
+- Python API or Vite frontend services are not accessible
 - Telemetry collection is not working
 - Errors occur during normal operation or shutdown
 
@@ -473,13 +493,26 @@ If issues occur during the smoke test:
 
 ### Build Failures
 - Check NuGet package restore completed successfully
-- Verify all package sources are accessible
+- Verify Python dependencies installed correctly (check requirements.txt)
+- Verify npm packages installed correctly (check package.json)
 - Review build error messages for specific issues
 - Verify the Aspire CLI successfully installed the required .NET SDK
 
+### Python Service Issues
+- Verify Python 3.11+ is installed: `python --version` or `python3 --version`
+- Check Python virtual environment is created correctly
+- Verify Python packages installed: look for `venv` or `.venv` directory
+- Check Python service logs for import errors or dependency issues
+
+### Vite Frontend Issues
+- Verify Node.js is installed: `node --version`
+- Check npm dependencies installed correctly: `ls frontend/node_modules`
+- Verify Vite dev server is running: check for port binding messages
+- Check browser console for JavaScript errors
+
 ### Startup Failures
 - Check Docker is running (if using containers)
-- Verify ports are not already in use (18888, 5000, 5001, etc.)
+- Verify ports are not already in use by other applications
 - Review console output for specific error messages
 - Check system resources (disk space, memory)
 
@@ -501,6 +534,8 @@ After completing the smoke test, provide a summary report including:
 
 1. **Test Environment**:
    - OS and version
+   - Python version
+   - Node.js version
    - .NET SDK version (auto-installed by Aspire CLI)
    - Docker version (if applicable)
    - Aspire CLI version tested
@@ -512,13 +547,13 @@ After completing the smoke test, provide a summary report including:
 
 3. **Performance Notes**:
    - Application startup time
-   - Build duration
+   - Build duration (including Python and npm package installation)
    - Resource consumption
 
 4. **Screenshots/Evidence**:
    - Dashboard showing all resources running
-   - API response examples
-   - Web frontend screenshot
+   - Python API response examples
+   - Vite/React frontend screenshot
    - Trace view showing end-to-end request
 
 5. **Issues Found** (if any):
@@ -546,11 +581,12 @@ When executing this scenario as an automated agent:
 
 1. **Capture Output**: Save console output, logs, and screenshots at each major step
 2. **Error Handling**: If any step fails, capture detailed error information before continuing or stopping
-3. **Timing**: Allow adequate time for operations (startup, requests, shutdown)
+3. **Timing**: Allow adequate time for operations (startup, package installation, requests, shutdown)
 4. **Validation**: Perform actual HTTP requests and verifications, not just syntax checks
 5. **Evidence**: Collect concrete evidence of success (response codes, content verification, etc.)
 6. **Reporting**: Provide clear, detailed reporting on test outcomes
+7. **Python/Node.js**: Ensure Python and Node.js are available in the environment
 
 ---
 
-**End of Smoke Test Scenario**
+**End of Smoke Test Scenario - Python/Vite Starter**
