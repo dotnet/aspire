@@ -848,7 +848,7 @@ public class PublishingActivityReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act
-        step.Log(logLevel, logMessage);
+        step.Log(logLevel, logMessage, enableMarkdown: true);
 
         // Assert
         // Verify activity was emitted
@@ -862,6 +862,7 @@ public class PublishingActivityReporterTests
         Assert.True(activity.Data.IsComplete);
         Assert.False(activity.Data.IsError);
         Assert.False(activity.Data.IsWarning);
+        Assert.True(activity.Data.EnableMarkdown);
     }
 
     [Fact]
@@ -878,7 +879,7 @@ public class PublishingActivityReporterTests
         while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
 
         // Act - Step is completed, so logging should be a no-op
-        step.Log(LogLevel.Information, "Test log");
+        step.Log(LogLevel.Information, "Test log", enableMarkdown: false);
 
         // Assert - No new activity should be emitted
         Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));

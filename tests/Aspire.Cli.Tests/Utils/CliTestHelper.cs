@@ -103,6 +103,7 @@ internal static class CliTestHelper
         services.AddTransient<ExecCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<DeployCommand>();
+        services.AddTransient<DoCommand>();
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
@@ -211,8 +212,7 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry, features);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)

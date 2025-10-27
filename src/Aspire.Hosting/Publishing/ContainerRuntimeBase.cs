@@ -82,7 +82,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     {
         var spec = CreateProcessSpec(arguments);
         
-        _logger.LogInformation("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
@@ -131,7 +131,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             }
         }
         
-        _logger.LogInformation("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
@@ -214,11 +214,11 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             Arguments = arguments,
             OnOutputData = output =>
             {
-                _logger.LogInformation("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
             },
             OnErrorData = error =>
             {
-                _logger.LogInformation("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true

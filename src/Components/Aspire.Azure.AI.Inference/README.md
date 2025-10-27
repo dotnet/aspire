@@ -11,7 +11,7 @@ Registers [ChatCompletionsClient](https://learn.microsoft.com/dotnet/api/azure.a
 
 ### Install the package
 
-Install the .NET Aspire Azure Inference library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Inference library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.AI.Inference
@@ -40,7 +40,7 @@ See the [Azure AI Foundry SDK quickstarts](https://learn.microsoft.com/azure/ai-
 
 ## Configuration
 
-The .NET Aspire Azure AI Inference library provides multiple options to configure the Azure AI Foundry Service based on the requirements and conventions of your project. Note that either an `Endpoint` and a deployment identifier (`Deployment` or `Model`), or a `ConnectionString` is required to be supplied.
+The Aspire Azure AI Inference library provides multiple options to configure the Azure AI Foundry Service based on the requirements and conventions of your project. Note that either an `Endpoint` and a deployment identifier (`Deployment` or `Model`), or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
@@ -87,7 +87,7 @@ Only one of these keys should be present in a connection string. If multiple are
 
 ### Use configuration providers
 
-The .NET Aspire Azure AI Inference library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `ChatCompletionsClientSettings` and `AzureAIInferenceClientOptions` from configuration by using the `Aspire:Azure:AI:Inference` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure AI Inference library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `ChatCompletionsClientSettings` and `AzureAIInferenceClientOptions` from configuration by using the `Aspire:Azure:AI:Inference` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

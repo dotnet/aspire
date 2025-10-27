@@ -28,6 +28,11 @@ public static class DistributedApplicationModelExtensions
                 continue;
             }
 
+            if (r.IsBuildOnlyContainer())
+            {
+                continue;
+            }
+
             yield return r;
         }
     }

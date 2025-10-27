@@ -10,7 +10,7 @@ Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Clien
 
 ### Install the package
 
-Install the .NET Aspire NATS library with [NuGet](https://www.nuget.org):
+Install the Aspire NATS library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.NATS.Net
@@ -37,7 +37,7 @@ public ProductsController(INatsConnection connection)
 
 ## Configuration
 
-The .NET Aspire NATS component provides multiple options to configure the NATS connection based on the requirements and conventions of your project.
+The Aspire NATS component provides multiple options to configure the NATS connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://docs.nats.io/using-nats/develop
 
 ### Use configuration providers
 
-The .NET Aspire NATS component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NatsClientSettings` from configuration by using the `Aspire:Nats:Client` key. Example `appsettings.json` that configures some of the options:
+The Aspire NATS component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NatsClientSettings` from configuration by using the `Aspire:Nats:Client` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

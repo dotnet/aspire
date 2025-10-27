@@ -388,7 +388,7 @@ internal sealed class ConsoleActivityLogger
         _ => symbol
     };
 
-    // Messages are already converted from Markdown to Spectre markup in PublishCommandBase.
+    // Messages are already converted from Markdown to Spectre markup in PipelineCommandBase.
     // When interactive output is not supported, we need to convert Spectre link markup
     // back to plain text since clickable links won't work. Show the URL for accessibility.
     private string HighlightMessage(string message)

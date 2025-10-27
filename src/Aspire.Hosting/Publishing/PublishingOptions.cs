@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Represents the options for publishing an application.
 /// </summary>
+[Obsolete("PublishingOptions is obsolete. Use PipelineOptions where applicable.")]
 public class PublishingOptions
 {
     /// <summary>
@@ -37,4 +38,11 @@ public class PublishingOptions
     /// </summary>
     [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public bool ClearCache { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of a specific deployment step to run.
+    /// When specified, only this step and its dependencies will be executed.
+    /// </summary>
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public string? Step { get; set; }
 }

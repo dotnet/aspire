@@ -91,11 +91,11 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 Arguments = arguments,
                 OnOutputData = output =>
                 {
-                    Logger.LogInformation("docker buildx (stdout): {Output}", output);
+                    Logger.LogDebug("docker buildx (stdout): {Output}", output);
                 },
                 OnErrorData = error =>
                 {
-                    Logger.LogInformation("docker buildx (stderr): {Error}", error);
+                    Logger.LogDebug("docker buildx (stderr): {Error}", error);
                 },
                 ThrowOnNonZeroReturnCode = false,
                 InheritEnv = true,
@@ -110,7 +110,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 }
             }
 
-            Logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
+            Logger.LogDebug("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
             var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
             await using (processDisposable)

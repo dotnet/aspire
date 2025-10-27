@@ -156,7 +156,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    internal void Log(ReportingStep step, LogLevel logLevel, string message)
+    internal void Log(ReportingStep step, LogLevel logLevel, string message, bool enableMarkdown)
     {
         if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
@@ -181,7 +181,8 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 CompletionState = ToBackchannelCompletionState(CompletionState.Completed),
                 StepId = step.Id,
                 LogLevel = logLevel.ToString(),
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = DateTimeOffset.UtcNow,
+                EnableMarkdown = enableMarkdown
             }
         };
 

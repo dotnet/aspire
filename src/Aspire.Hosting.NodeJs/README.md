@@ -1,12 +1,12 @@
 # Aspire.Hosting.Node.js library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a Node.js project.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a Node.js project.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Node.js library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Node.js library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.NodeJs

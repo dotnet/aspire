@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable CS0618 // Type or member is obsolete
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -41,7 +42,6 @@ internal static class ProvisioningTestHelpers
         ITenantResource? tenant = null,
         AzureLocation? location = null,
         UserPrincipal? principal = null,
-        JsonObject? userSecrets = null,
         DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ProvisioningContext(
@@ -52,7 +52,6 @@ internal static class ProvisioningTestHelpers
             tenant ?? new TestTenantResource(),
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
-            userSecrets ?? [],
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
@@ -595,18 +594,21 @@ internal sealed class TestBicepCompiler : IBicepCompiler
 
 internal sealed class TestUserSecretsManager : IDeploymentStateManager
 {
-    private JsonObject _userSecrets = [];
+    private readonly JsonObject _state = [];
 
     public string? StateFilePath => null;
 
-    public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
+    public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_userSecrets);
+        var sectionData = _state.TryGetPropertyValue(sectionName, out var node) && node is JsonObject obj
+            ? obj
+            : new JsonObject();
+        return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
     }
 
-    public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
     {
-        _userSecrets = userSecrets;
+        _state[section.SectionName] = section.Data;
         return Task.CompletedTask;
     }
 }

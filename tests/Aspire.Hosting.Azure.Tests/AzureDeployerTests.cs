@@ -5,58 +5,34 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using Aspire.Hosting.Utils;
-using Aspire.Hosting.Tests;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
-using System.Text.Json.Nodes;
-using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Tests;
+using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Pipelines;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureDeployerTests(ITestOutputHelper output)
+public class AzureDeployerTests
 {
-    [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11105")]
-    public void DeployAsync_DoesNotEmitPublishedResources()
-    {
-        // Arrange
-        var tempDir = Directory.CreateTempSubdirectory(".azure-deployer-test");
-        output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName, isDeploy: true);
-        // Configure Azure settings to avoid prompting during deployment for this test case
-        ConfigureTestServices(builder, bicepProvisioner: new NoOpBicepProvisioner());
-
-        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
-
-        // Act
-        using var app = builder.Build();
-        app.Run();
-
-        // Assert files exist but don't verify contents
-        var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
-        Assert.False(File.Exists(mainBicepPath));
-        var envBicepPath = Path.Combine(tempDir.FullName, "env", "env.bicep");
-        Assert.False(File.Exists(envBicepPath));
-
-        tempDir.Delete(recursive: true);
-    }
-
     [Fact]
     public async Task DeployAsync_PromptsViaInteractionService()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner(), setDefaultProvisioningOptions: false);
 
@@ -131,12 +107,131 @@ public class AzureDeployerTests(ITestOutputHelper output)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
     }
 
+    /// <summary>
+    /// Verifies that deploying an application with resources that define their own build steps does not trigger default
+    /// image build and they have the correct pipeline configuration.
+    /// </summary>
+    [Fact]
+    public async Task DeployAsync_WithResourcesWithBuildSteps()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+
+        var configCalled = false;
+
+        // Add a compute resource with its own build step
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithPipelineStepFactory(factoryContext =>
+            {
+                return
+                [
+                    new PipelineStep
+                    {
+                        Name = "api-build",
+                        Action = _ => Task.CompletedTask,
+                        Tags = [WellKnownPipelineTags.BuildCompute]
+                    }
+                ];
+            })
+            .WithPipelineConfiguration(configContext =>
+            {
+                var mainBuildStep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
+                    .Where(s => s.Name == "build-container-images")
+                    .Single();
+
+                Assert.Contains("api-build", mainBuildStep.DependsOnSteps);
+
+                var apiBuildStep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
+                    .Where(s => s.Name == "api-build")
+                    .Single();
+
+                Assert.Contains("default-image-tags", apiBuildStep.DependsOnSteps);
+
+                configCalled = true;
+            });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.True(configCalled);
+
+        // Assert - Verify MockImageBuilder was NOT called because the project resource has its own build step
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.BuildImagesCalled);
+        Assert.Empty(mockImageBuilder.BuildImageResources);
+    }
+
+    /// <summary>
+    /// Verifies that deploying an application with resources that are build-only containers only builds
+    /// the containers and does not attempt to push them.
+    /// </summary>
+    [Fact]
+    public async Task DeployAsync_WithBuildOnlyContainers()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+
+        // Add a build-only container resource
+        builder.AddExecutable("exe", "exe", ".")
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    var dockerBuilder = dockerfileContext.Builder
+                        .From("scratch");
+                });
+
+                var dockerFileAnnotation = c.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+                dockerFileAnnotation.HasEntrypoint = false;
+            });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert - Verify MockImageBuilder was only called to build an image and not push it
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.True(mockImageBuilder.BuildImagesCalled);
+        var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
+        Assert.Equal("exe", builtImage.Name);
+        Assert.False(mockImageBuilder.PushImageCalled);
+    }
+
     [Fact]
     public async Task DeployAsync_WithAzureStorageResourcesWorks()
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -183,7 +278,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -231,7 +326,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -288,7 +383,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -345,7 +440,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -443,7 +538,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithUnresolvedParameters_PromptsForParameterValues()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -483,7 +578,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithResolvedParameters_SkipsPrompting()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
         builder.Configuration["Parameters:test-param-2"] = "resolved-value-2";
@@ -505,7 +600,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithCustomInputGeneratorParameter_RespectsInputGenerator()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -560,7 +655,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var mockActivityReporter = new TestPublishingActivityReporter();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -602,8 +697,8 @@ public class AzureDeployerTests(ITestOutputHelper output)
                    cmd.Arguments == "acr login --name testregistry");
 
         // Assert that deploying steps executed
-        Assert.Contains("deploy-compute", mockActivityReporter.CreatedSteps);
-        Assert.Contains(("deploy-compute", "Deploying **cache**"), mockActivityReporter.CreatedTasks);
+        Assert.Contains("deploy-compute-resources", mockActivityReporter.CreatedSteps);
+        Assert.Contains(("deploy-compute-resources", "Deploying **cache**"), mockActivityReporter.CreatedTasks);
     }
 
     [Fact]
@@ -613,7 +708,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var mockActivityReporter = new TestPublishingActivityReporter();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
@@ -657,7 +752,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithGeneratedParameters_DoesNotPromptsForParameterValues()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -677,7 +772,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithParametersInEnvironmentVariables_DiscoversAndPromptsForParameters()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -722,7 +817,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithParametersInArguments_DiscoversAndPromptsForParameters()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -769,7 +864,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
         {
             string name when name.StartsWith("env") => new Dictionary<string, object>
@@ -905,9 +1000,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         public string? StateFilePath => null;
 
-        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+            => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
 
-        public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class NoOpBicepProvisioner : IBicepProvisioner
@@ -928,7 +1024,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         // Arrange
         var activityReporter = new TestPublishingActivityReporter();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -1005,9 +1101,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var appHostSha = "testsha1first";
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
@@ -1094,10 +1190,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var appHostSha = "testsha3clear";
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
-            $"Publishing:ClearCache=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:ClearCache=true",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
@@ -1127,9 +1222,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var appHostSha = "testsha4stage";
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            "AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner(), environmentName: "Staging");
@@ -1244,7 +1339,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
             }
 
-            public void Log(LogLevel logLevel, string message)
+            public void Log(LogLevel logLevel, string message, bool enableMarkdown)
             {
                 // For testing purposes, we just track that Log was called
                 _ = logLevel;

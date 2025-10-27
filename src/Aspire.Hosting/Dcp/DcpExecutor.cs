@@ -1269,7 +1269,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException();
         }
 
-        (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
+        (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(resourceLogger, er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
             if (certificateArgs.Count > 0)
@@ -1282,10 +1282,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 spec.Env ??= [];
                 spec.Env.AddRange(certificateEnv);
             }
-        }
-        else
-        {
-            resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied arguments or environment that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", er.ModelResource.Name);
         }
 
         try
@@ -1544,7 +1540,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException();
         }
 
-        (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
+        (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(resourceLogger, modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
             if (certificateArgs.Count > 0)
@@ -1558,10 +1554,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 spec.Env.AddRange(certificateEnv);
             }
             spec.CreateFiles.AddRange(certificateFiles);
-        }
-        else
-        {
-            resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied arguments or environment that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelContainerResource.Name);
         }
 
         if (_dcpInfo is not null)
@@ -2073,12 +2065,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <summary>
     /// Build up the certificate authority trust configuration for an executable.
     /// </summary>
+    /// <param name="resourceLogger">The logger for the resource.</param>
     /// <param name="modelResource">The executable IResource.</param>
     /// <param name="resourceArguments">The existing list of executable command line arguments.</param>
     /// <param name="resourceEnvironment">The existing list of executable environment variables.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>A tuple containing additional command line arguments and environment variables, as well as a boolean indicating whether the operation was successful.</returns>
-    private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
+    private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(ILogger resourceLogger, IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
         bool trustDevCert = _developerCertificateService.TrustCertificate;
@@ -2137,8 +2130,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var arg in context.CertificateTrustArguments)
             {
-                if (resourceArguments.Contains(arg))
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), false);
                 }
@@ -2148,8 +2143,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var arg in context.CertificateBundleArguments)
             {
-                if (resourceArguments.Contains(arg))
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), false);
                 }
@@ -2161,8 +2158,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the required environment variables to configure the resource to trust the custom certificates
             foreach (var caFileEnv in context.CertificateBundleEnvironment)
             {
-                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.OrdinalIgnoreCase)))
                 {
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
+
                     // If any of the certificate environment variables are already present in the existing env list, then we
                     // assume the user has already done custom certificate configuration and we won't do automatic
                     // configuration.
@@ -2204,12 +2203,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <summary>
     /// Build up the certificate authority trust configuration for a container.
     /// </summary>
+    /// <param name="resourceLogger">The logger for the resource.</param>
     /// <param name="modelResource">The container IResource.</param>
     /// <param name="resourceArguments">The existing list of container arguments.</param>
     /// <param name="resourceEnvironment">The existing list of container environment variables.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>A tuple containing additional command line arguments, environment variables, and container file entries required to configure certificate authority trust, as well as a boolean indicating whether the operation was successful.</returns>
-    private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
+    private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(ILogger resourceLogger, IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
         bool trustDevCert = _developerCertificateService.TrustCertificate;
@@ -2279,8 +2279,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var arg in context.CertificateTrustArguments)
             {
-                if (resourceArguments.Contains(arg))
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), createFiles, false);
                 }
@@ -2290,8 +2292,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var arg in context.CertificateBundleArguments)
             {
-                if (resourceArguments.Contains(arg))
+                if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), createFiles, false);
                 }
@@ -2303,8 +2307,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the required environment variables to configure the resource to trust the custom certificates
             foreach (var caFileEnv in context.CertificateBundleEnvironment)
             {
-                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.OrdinalIgnoreCase)))
                 {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
+
                     // If any of the certificate environment variables are already present in the existing env list, then we
                     // assume the user has already done custom certificate configuration and we won't do automatic
                     // configuration.
@@ -2329,8 +2335,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var caDirEnv in context.CertificatesDirectoryEnvironment)
             {
-                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.Ordinal)))
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.OrdinalIgnoreCase)))
                 {
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caDirEnv);
+
                     // If any of the certificate environment variables are already present in the existing env list, then we
                     // assume the user has already done custom certificate configuration and we won't do automatic
                     // configuration.

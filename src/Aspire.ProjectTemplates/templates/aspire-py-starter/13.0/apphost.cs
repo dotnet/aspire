@@ -4,7 +4,6 @@
 #if UseRedisCache
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!
 #endif
-#:package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions@9.8.0
 
 #pragma warning disable ASPIREHOSTINGPYTHON001
 
@@ -14,23 +13,20 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 #endif
-var apiService = builder.AddPythonScript("app", "./app", "app.py")
+var app = builder.AddUvicornApp("app", "./app", "app:app")
     .WithUvEnvironment()
-    .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .WithHttpHealthCheck("/health")
 #if UseRedisCache
     .WithReference(cache)
     .WaitFor(cache)
 #endif
-    .PublishAsDockerFile(c =>
-    {
-        c.WithDockerfile(".");
-    });
+    .WithHttpHealthCheck("/health");
 
-builder.AddViteApp("frontend", "./frontend")
-    .WithNpmPackageInstallation()
-    .WithReference(apiService)
-    .WaitFor(apiService);
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithNpmPackageManager()
+    .WithReference(app)
+    .WaitFor(app);
+
+app.PublishWithContainerFiles(frontend, "./static");
 
 builder.Build().Run();

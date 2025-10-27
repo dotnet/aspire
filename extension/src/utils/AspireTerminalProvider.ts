@@ -4,6 +4,7 @@ import { extensionLogOutputChannel } from './logging';
 import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
+import { EnvironmentVariables } from './environment';
 
 export const enum AnsiColors {
     Green = '\x1b[32m'
@@ -54,7 +55,16 @@ export class AspireTerminalProvider implements vscode.Disposable {
         this._dcpServerConnectionInfo = value;
     }
 
-    sendToAspireTerminal(command: string, showTerminal: boolean = true) {
+    sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true) {
+        let command = `${this.getAspireCliExecutablePath()} ${subcommand}`;
+        if (this.isCliDebugLoggingEnabled()) {
+            command += ' --debug';
+        }
+
+        if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
+            command += ' --cli-wait-for-debugger';
+        }
+
         const aspireTerminal = this.getAspireTerminal();
         extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
         aspireTerminal.terminal.sendText(command);
@@ -163,5 +173,26 @@ export class AspireTerminalProvider implements vscode.Disposable {
         for (const terminal of this._terminalByDebugSessionId.values()) {
             terminal.dispose();
         }
+    }
+
+
+    getAspireCliExecutablePath(surroundWithQuotes: boolean = true): string {
+        const aspireCliPath = vscode.workspace.getConfiguration('aspire').get<string>('aspireCliExecutablePath', '');
+        if (aspireCliPath && aspireCliPath.trim().length > 0) {
+            extensionLogOutputChannel.debug(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
+            const path = shellEscapeSingleQuotes(aspireCliPath.trim());
+            return surroundWithQuotes ? `'${path}'` : path;
+        }
+
+        extensionLogOutputChannel.debug('No user-configured Aspire CLI path found');
+        return "aspire";
+
+        function shellEscapeSingleQuotes(str: string): string {
+            return str.replace(/'/g, `'\\''`);
+        }
+    }
+
+    isCliDebugLoggingEnabled(): boolean {
+        return vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireCliDebugLogging', false);
     }
 }

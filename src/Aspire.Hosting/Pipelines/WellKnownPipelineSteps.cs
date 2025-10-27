@@ -6,23 +6,26 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Defines well-known pipeline step names used in the deployment process.
+/// Defines well-known pipeline step names used in the deployment pipeline.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class WellKnownPipelineSteps
 {
     /// <summary>
-    /// The step that provisions infrastructure resources.
+    /// The meta-step that coordinates all publish operations.
+    /// All publish steps should be required by this step.
     /// </summary>
-    public const string ProvisionInfrastructure = "provision-infra";
+    public const string Publish = "publish";
 
     /// <summary>
-    /// The step that builds compute resources.
+    /// The meta-step that coordinates all deploy operations.
+    /// All deploy steps should be required by this step.
     /// </summary>
-    public const string BuildCompute = "build-compute";
+    public const string Deploy = "deploy";
 
     /// <summary>
-    /// The step that deploys to compute infrastructure.
+    /// The well-known step for prompting for parameters.
     /// </summary>
-    public const string DeployCompute = "deploy-compute";
+
+    public const string ParameterPrompt = "parameter-prompt";
 }

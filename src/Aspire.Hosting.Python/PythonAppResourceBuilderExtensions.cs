@@ -4,6 +4,9 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -233,6 +236,45 @@ public static class PythonAppResourceBuilderExtensions
             .WithArgs(scriptArgs);
     }
 
+    /// <summary>
+    /// Adds a Uvicorn-based Python application to the distributed application builder with HTTP endpoint configuration.
+    /// </summary>
+    /// <remarks>This method configures the application to use Uvicorn as the server and exposes an HTTP
+    /// endpoint. When publishing, it sets the entry point to use the Uvicorn executable with appropriate arguments for
+    /// host and port.</remarks>
+    /// <param name="builder">The distributed application builder to which the Uvicorn application resource will be added.</param>
+    /// <param name="name">The unique name of the Uvicorn application resource.</param>
+    /// <param name="appDirectory">The directory containing the Python application files.</param>
+    /// <param name="app">The ASGI app import path which informs Uvicorn which module and variable to load as your web application.
+    /// For example, "main:app" means "main.py" file and variable named "app".</param>
+    /// <returns>A resource builder for further configuration of the Uvicorn Python application resource.</returns>
+    public static IResourceBuilder<PythonAppResource> AddUvicornApp(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
+    {
+        var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn")
+            .WithHttpEndpoint(env: "PORT")
+            .WithArgs(c =>
+            {
+                c.Args.Add(app);
+
+                c.Args.Add("--host");
+                var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("0.0.0.0");
+                }
+                else
+                {
+                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
+                }
+
+                c.Args.Add("--port");
+                c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+            });
+
+        return resourceBuilder;
+    }
+
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
         IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
         string entrypoint, string virtualEnvironmentPath)
@@ -410,6 +452,10 @@ public static class PythonAppResourceBuilderExtensions
                         _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
                     };
 
+                    // Check if uv.lock exists in the working directory
+                    var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
+                    var hasUvLock = File.Exists(uvLockPath);
+
                     var builderStage = context.Builder
                         .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
                         .EmptyLine()
@@ -418,24 +464,50 @@ public static class PythonAppResourceBuilderExtensions
                         .Env("UV_LINK_MODE", "copy")
                         .EmptyLine()
                         .WorkDir("/app")
-                        .EmptyLine()
-                        .Comment("Install dependencies first for better layer caching")
-                        .Comment("Uses BuildKit cache mounts to speed up repeated builds")
-                        .RunWithMounts(
-                            "uv sync --locked --no-install-project --no-dev",
-                            "type=cache,target=/root/.cache/uv",
-                            "type=bind,source=uv.lock,target=uv.lock",
-                            "type=bind,source=pyproject.toml,target=pyproject.toml")
-                        .EmptyLine()
-                        .Comment("Copy the rest of the application source and install the project")
-                        .Copy(".", "/app")
-                        .RunWithMounts(
-                            "uv sync --locked --no-dev",
-                            "type=cache,target=/root/.cache/uv");
+                        .EmptyLine();
+
+                    if (hasUvLock)
+                    {
+                        // If uv.lock exists, use locked mode for reproducible builds
+                        builderStage
+                            .Comment("Install dependencies first for better layer caching")
+                            .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                            .RunWithMounts(
+                                "uv sync --locked --no-install-project --no-dev",
+                                "type=cache,target=/root/.cache/uv",
+                                "type=bind,source=uv.lock,target=uv.lock",
+                                "type=bind,source=pyproject.toml,target=pyproject.toml")
+                            .EmptyLine()
+                            .Comment("Copy the rest of the application source and install the project")
+                            .Copy(".", "/app")
+                            .RunWithMounts(
+                                "uv sync --locked --no-dev",
+                                "type=cache,target=/root/.cache/uv");
+                    }
+                    else
+                    {
+                        // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
+                        builderStage
+                            .Comment("Copy pyproject.toml to install dependencies")
+                            .Copy("pyproject.toml", "/app/")
+                            .EmptyLine()
+                            .Comment("Install dependencies and generate lock file")
+                            .Comment("Uses BuildKit cache mount to speed up repeated builds")
+                            .RunWithMounts(
+                                "uv sync --no-install-project --no-dev",
+                                "type=cache,target=/root/.cache/uv")
+                            .EmptyLine()
+                            .Comment("Copy the rest of the application source and install the project")
+                            .Copy(".", "/app")
+                            .RunWithMounts(
+                                "uv sync --no-dev",
+                                "type=cache,target=/root/.cache/uv");
+                    }
 
                     var runtimeBuilder = context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")
                         .EmptyLine()
+                        .AddContainerFiles(context.Resource, "/app")
                         .Comment("------------------------------")
                         .Comment("🚀 Runtime stage")
                         .Comment("------------------------------")
@@ -475,7 +547,75 @@ public static class PythonAppResourceBuilderExtensions
                 });
         });
 
+        resourceBuilder.WithPipelineStepFactory(factoryContext =>
+        {
+            List<PipelineStep> steps = [];
+            var buildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-build-compute", factoryContext.Resource);
+            steps.Add(buildStep);
+
+            // ensure any static file references' images are built first
+            if (factoryContext.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+            {
+                foreach (var containerFile in containerFilesAnnotations)
+                {
+                    var source = containerFile.Source;
+                    var staticFileBuildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
+                    buildStep.DependsOn(staticFileBuildStep);
+                    steps.Add(staticFileBuildStep);
+                }
+            }
+
+            return steps;
+        });
+
         return resourceBuilder;
+    }
+
+    private static PipelineStep CreateBuildImageBuildStep(string stepName, IResource resource) =>
+        new()
+        {
+            Name = stepName,
+            Action = async ctx =>
+            {
+                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                await containerImageBuilder.BuildImageAsync(
+                    resource,
+                    new ContainerBuildOptions
+                    {
+                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                    },
+                    ctx.CancellationToken).ConfigureAwait(false);
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        };
+
+    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
+    {
+        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
+        {
+            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
+            {
+                // get image name
+                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
+                {
+                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
+                }
+
+                var destinationPath = containerFileDestination.DestinationPath;
+                if (!destinationPath.StartsWith('/'))
+                {
+                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
+                }
+
+                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                {
+                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
+                }
+            }
+
+            stage.EmptyLine();
+        }
+        return stage;
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)

@@ -1,17 +1,17 @@
 # Aspire.Hosting.Azure.Functions library (Preview)
 
-Provides methods to the .NET Aspire hosting model for Azure functions.
+Provides methods to the Aspire hosting model for Azure functions.
 
 ## Getting started
 
 ### Prerequisites
 
-* A .NET Aspire project based on the starter template.
+* An Aspire project based on the starter template.
 * A .NET-based Azure Functions worker project.
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Azure Functions Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Functions Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Functions --prerelease

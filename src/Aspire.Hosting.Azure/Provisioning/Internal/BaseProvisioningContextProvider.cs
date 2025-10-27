@@ -1,10 +1,11 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -25,6 +26,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
 {
     internal const string LocationName = "Location";
@@ -73,7 +75,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject deploymentState, CancellationToken cancellationToken = default)
+    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -86,8 +88,6 @@ internal abstract partial class BaseProvisioningContextProvider(
 
         var armClient = _armClientProvider.GetArmClient(credential, subscriptionId);
 
-        _logger.LogInformation("Getting default subscription and tenant...");
-
         var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
@@ -97,6 +97,9 @@ internal abstract partial class BaseProvisioningContextProvider(
         {
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
+
+        // Acquire Azure state section for reading/writing configuration
+        var azureStateSection = await deploymentStateManager.AcquireSectionAsync("Azure", cancellationToken).ConfigureAwait(false);
 
         string resourceGroupName;
         bool createIfAbsent;
@@ -109,7 +112,7 @@ internal abstract partial class BaseProvisioningContextProvider(
 
             createIfAbsent = true;
 
-            deploymentState.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            azureStateSection.Data["ResourceGroup"] = resourceGroupName;
         }
         else
         {
@@ -158,7 +161,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
         // Persist the provisioning options to deployment state so they can be reused in the future
-        var azureSection = deploymentState.Prop("Azure");
+        var azureSection = azureStateSection.Data;
         azureSection["Location"] = _options.Location;
         azureSection["SubscriptionId"] = _options.SubscriptionId;
         azureSection["ResourceGroup"] = resourceGroupName;
@@ -171,6 +174,8 @@ internal abstract partial class BaseProvisioningContextProvider(
             azureSection["AllowResourceGroupCreation"] = _options.AllowResourceGroupCreation.Value;
         }
 
+        await deploymentStateManager.SaveSectionAsync(azureStateSection, cancellationToken).ConfigureAwait(false);
+
         return new ProvisioningContext(
                     credential,
                     armClient,
@@ -179,7 +184,6 @@ internal abstract partial class BaseProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    deploymentState,
                     _distributedApplicationExecutionContext);
     }
 
@@ -200,17 +204,17 @@ internal abstract partial class BaseProvisioningContextProvider(
             if (tenantList.Count > 0)
             {
                 tenantOptions = tenantList
-                    .Select(t => 
+                    .Select(t =>
                     {
                         var tenantId = t.TenantId?.ToString() ?? "";
-                        
+
                         // Build display name: prefer DisplayName, fall back to domain, then to "Unknown"
-                        var displayName = !string.IsNullOrEmpty(t.DisplayName) 
-                            ? t.DisplayName 
-                            : !string.IsNullOrEmpty(t.DefaultDomain) 
-                                ? t.DefaultDomain 
+                        var displayName = !string.IsNullOrEmpty(t.DisplayName)
+                            ? t.DisplayName
+                            : !string.IsNullOrEmpty(t.DefaultDomain)
+                                ? t.DefaultDomain
                                 : "Unknown";
-                        
+
                         // Build full description
                         var description = displayName;
                         if (!string.IsNullOrEmpty(t.DefaultDomain) && t.DisplayName != t.DefaultDomain)
@@ -218,7 +222,7 @@ internal abstract partial class BaseProvisioningContextProvider(
                             description += $" ({t.DefaultDomain})";
                         }
                         description += $" — {tenantId}";
-                        
+
                         return KeyValuePair.Create(tenantId, description);
                     })
                     .OrderBy(kvp => kvp.Value)

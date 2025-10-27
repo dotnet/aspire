@@ -356,23 +356,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Registers an async callback which is invoked when publishing is performed for the app model.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">Callback method which takes a <see cref="PublishingContext"/> which can be used to publish assets.</param>
-    /// <returns></returns>
-    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithPublishingCallback<T>(this IResourceBuilder<T> builder, Func<PublishingContext, Task> callback) where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        // You can only ever have one publishing callback, so it must be a replace operation.
-        return builder.WithAnnotation(new PublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
     /// Registers an async callback which is invoked when manifest is generated for the app model.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -1268,6 +1251,34 @@ public static class ResourceBuilderExtensions
         });
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the resource to copy container files from the specified source resource during publishing.
+    /// </summary>
+    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IResource"/>.</typeparam>
+    /// <param name="builder">The resource builder to which container files will be copied to.</param>
+    /// <param name="source">The resource which contains the container files to be copied.</param>
+    /// <param name="destinationPath">The destination path within the resource's container where the files will be copied.</param>
+    public static IResourceBuilder<T> PublishWithContainerFiles<T>(
+         this IResourceBuilder<T> builder,
+         IResourceBuilder<IResourceWithContainerFiles> source,
+         string destinationPath) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(destinationPath);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        return builder.WithAnnotation(new ContainerFilesDestinationAnnotation()
+        {
+            Source = source.Resource,
+            DestinationPath = destinationPath
+        });
     }
 
     /// <summary>

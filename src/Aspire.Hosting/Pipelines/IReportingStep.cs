@@ -25,7 +25,8 @@ public interface IReportingStep : IAsyncDisposable
     /// </summary>
     /// <param name="logLevel">The log level for the message.</param>
     /// <param name="message">The message to log.</param>
-    void Log(LogLevel logLevel, string message);
+    /// <param name="enableMarkdown">Whether to enable Markdown formatting for the message.</param>
+    void Log(LogLevel logLevel, string message, bool enableMarkdown);
 
     /// <summary>
     /// Completes the step with the specified completion text and state.

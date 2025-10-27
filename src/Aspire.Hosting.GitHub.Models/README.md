@@ -1,6 +1,6 @@
 # Aspire.Hosting.GitHub.Models library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure GitHub Models.
+Provides extension methods and resource definitions for an Aspire AppHost to configure GitHub Models.
 
 ## Getting started
 
@@ -11,7 +11,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire GitHub Models Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire GitHub Models Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.GitHub.Models

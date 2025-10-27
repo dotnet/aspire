@@ -1,12 +1,12 @@
 # Aspire.Hosting.MongoDB library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a MongoDB resource.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a MongoDB resource.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire MongoDB Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire MongoDB Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.MongoDB

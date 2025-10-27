@@ -3,7 +3,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -45,11 +47,12 @@ public sealed class PipelineStepContext
     /// </summary>
     public IServiceProvider Services => PipelineContext.Services;
 
+    internal PipelineLoggingOptions PipelineLoggingOptions => Services.GetRequiredService<IOptions<PipelineLoggingOptions>>().Value;
+
     /// <summary>
     /// Gets the logger for pipeline operations that writes to both the pipeline logger and the step logger.
     /// </summary>
-    public ILogger Logger => _logger ??= new StepLogger(PipelineContext.Logger, ReportingStep);
-    private ILogger? _logger;
+    public ILogger Logger => field ??= new StepLogger(ReportingStep, PipelineLoggingOptions);
 
     /// <summary>
     /// Gets the cancellation token for the pipeline operation.
@@ -63,47 +66,34 @@ public sealed class PipelineStepContext
 }
 
 /// <summary>
-/// An ILogger implementation that writes to both the pipeline logger and the step logger.
+/// A logger that writes to the step logger.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class StepLogger : ILogger
+internal sealed class StepLogger(IReportingStep step, PipelineLoggingOptions options) : ILogger
 {
-    private readonly ILogger _pipelineLogger;
-    private readonly IReportingStep _step;
-
-    public StepLogger(ILogger pipelineLogger, IReportingStep step)
-    {
-        _pipelineLogger = pipelineLogger;
-        _step = step;
-    }
+    private readonly IReportingStep _step = step;
+    private readonly PipelineLoggingOptions _options = options;
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {
-        return _pipelineLogger.BeginScope(state);
+        return null;
     }
 
     public bool IsEnabled(LogLevel logLevel)
     {
-        return _pipelineLogger.IsEnabled(logLevel);
+        return true;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        if (!IsEnabled(logLevel))
-        {
-            return;
-        }
-
-        // Log to the pipeline logger first
-        _pipelineLogger.Log(logLevel, eventId, state, exception, formatter);
-
         // Also log to the step logger (for publishing output display)
         var message = formatter(state, exception);
-        if (exception != null)
+
+        if (_options.IncludeExceptionDetails && exception != null)
         {
             message = $"{message} {exception}";
         }
-        
-        _step.Log(logLevel, message);
+
+        _step.Log(logLevel, message, enableMarkdown: false);
     }
 }

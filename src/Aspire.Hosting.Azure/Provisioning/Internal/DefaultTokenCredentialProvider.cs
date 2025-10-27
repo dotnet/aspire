@@ -57,15 +57,6 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
 
     internal void LogCredentialType()
     {
-        if (_credential.GetType() == typeof(DefaultAzureCredential))
-        {
-            _logger.LogInformation(
-                "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
-                "See https://aka.ms/azsdk/net/identity/credential-chains#defaultazurecredential-overview for more information.");
-        }
-        else
-        {
-            _logger.LogInformation("Using {credentialType} for provisioning.", _credential.GetType().Name);
-        }
+        _logger.LogInformation("Using {credentialType} for provisioning.", _credential.GetType().Name);
     }
 }

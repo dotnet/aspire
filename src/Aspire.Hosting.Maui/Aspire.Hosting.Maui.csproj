@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <Description>MAUI integration for Aspire (local dev only)</Description>
+    <IsPackable>true</IsPackable>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <PackageTags>aspire maui hosting</PackageTags>
+    <PackageIconFullPath>$(SharedDir)Maui_265x.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Maui.Tests" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Include="..\Shared\PathNormalizer.cs" Link="Shared\PathNormalizer.cs" />
+    <Compile Include="..\Shared\StringComparers.cs" Link="Shared\StringComparers.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+</Project>

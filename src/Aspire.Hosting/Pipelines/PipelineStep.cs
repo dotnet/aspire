@@ -30,8 +30,14 @@ public class PipelineStep
 
     /// <summary>
     /// Gets or initializes the list of step names that require this step to complete before they can finish.
+    /// This is used internally during pipeline construction and is converted to DependsOn relationships.
     /// </summary>
-    public List<string> RequiredBySteps { get; init; } = [];
+    internal List<string> RequiredBySteps { get; init; } = [];
+
+    /// <summary>
+    /// Gets or initializes the list of tags that categorize this step.
+    /// </summary>
+    public List<string> Tags { get; init; } = [];
 
     /// <summary>
     /// Adds a dependency on another step.
@@ -53,6 +59,7 @@ public class PipelineStep
 
     /// <summary>
     /// Specifies that this step is required by another step.
+    /// This creates the inverse relationship where the other step will depend on this step.
     /// </summary>
     /// <param name="stepName">The name of the step that requires this step.</param>
     public void RequiredBy(string stepName)
@@ -62,6 +69,7 @@ public class PipelineStep
 
     /// <summary>
     /// Specifies that this step is required by another step.
+    /// This creates the inverse relationship where the other step will depend on this step.
     /// </summary>
     /// <param name="step">The step that requires this step.</param>
     public void RequiredBy(PipelineStep step)
