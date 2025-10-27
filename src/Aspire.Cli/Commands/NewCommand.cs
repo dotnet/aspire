@@ -4,8 +4,10 @@
 using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.CodingAgent;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -31,6 +33,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly IGitCliRunner _gitCliRunner;
+    private readonly ICodingAgentConfigurator _codingAgentConfigurator;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -53,7 +57,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        IGitCliRunner gitCliRunner,
+        ICodingAgentConfigurator codingAgentConfigurator)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -64,6 +71,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(gitCliRunner);
+        ArgumentNullException.ThrowIfNull(codingAgentConfigurator);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -75,6 +84,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _gitCliRunner = gitCliRunner;
+        _codingAgentConfigurator = codingAgentConfigurator;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -133,6 +144,20 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        
+        // Prompt for coding agent configuration if template was successful and we have an output path
+        if (templateResult.ExitCode == 0 && templateResult.OutputPath is not null)
+        {
+            var outputDirectory = new DirectoryInfo(templateResult.OutputPath);
+            await CodingAgentPromptHelper.PromptForCodingAgentConfigurationAsync(
+                outputDirectory,
+                _gitCliRunner,
+                _codingAgentConfigurator,
+                InteractionService,
+                _features,
+                cancellationToken);
+        }
+        
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
             extensionInteractionService.OpenEditor(templateResult.OutputPath);

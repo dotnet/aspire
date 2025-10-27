@@ -4,8 +4,10 @@
 using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.CodingAgent;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -34,6 +36,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly IGitCliRunner _gitCliRunner;
+    private readonly ICodingAgentConfigurator _codingAgentConfigurator;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -56,8 +60,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
-        IInteractionService interactionService)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        IInteractionService interactionService,
+        IGitCliRunner gitCliRunner,
+        ICodingAgentConfigurator codingAgentConfigurator)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -69,6 +76,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(gitCliRunner);
+        ArgumentNullException.ThrowIfNull(codingAgentConfigurator);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -82,6 +91,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _gitCliRunner = gitCliRunner;
+        _codingAgentConfigurator = codingAgentConfigurator;
 
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
@@ -476,6 +487,16 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
+
+            // Prompt for coding agent configuration if feature is enabled
+            await CodingAgentPromptHelper.PromptForCodingAgentConfigurationAsync(
+                initContext.SolutionDirectory,
+                _gitCliRunner,
+                _codingAgentConfigurator,
+                InteractionService,
+                _features,
+                cancellationToken);
+
             return ExitCodeConstants.Success;
         }
         finally
@@ -505,6 +526,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
+
+            // Prompt for coding agent configuration if feature is enabled
+            await CodingAgentPromptHelper.PromptForCodingAgentConfigurationAsync(
+                ExecutionContext.WorkingDirectory,
+                _gitCliRunner,
+                _codingAgentConfigurator,
+                InteractionService,
+                _features,
+                cancellationToken);
         }
 
         return result.ExitCode;
