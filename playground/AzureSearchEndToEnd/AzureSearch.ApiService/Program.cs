@@ -13,15 +13,23 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddAzureSearchClient("search");
-
+builder.AddAzureSearchIndexerClient("search");
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
 var logger = app.Logger;
 // Configure the HTTP request pipeline.
-app.MapGet("/", async (SearchIndexClient searchIndexClient, CancellationToken cancellationToken) =>
+app.MapGet("/", async (SearchIndexerClient searchIndexerClient, SearchIndexClient searchIndexClient, CancellationToken cancellationToken) =>
 {
+    logger.LogInformation("Listing indexers...");
+
+    var indexNames = searchIndexClient.GetIndexNames(cancellationToken);
+    foreach(var name in indexNames)
+    {
+        logger.LogInformation("Index name: {0}", name);
+    }
+
     var indexName = "my-index";
 
     logger.LogInformation("Deleting if exists");
@@ -39,7 +47,9 @@ app.MapGet("/", async (SearchIndexClient searchIndexClient, CancellationToken ca
     await RunQueriesAsync(logger, searchClient, cancellationToken);
 });
 
+#pragma warning disable S6966 // Awaitable method should be used
 app.Run();
+#pragma warning restore S6966 // Awaitable method should be used
 
 static async Task DeleteIfExistsAsync(ILogger logger, string indexName, SearchIndexClient searchIndexClient, CancellationToken cancellationToken)
 {
@@ -57,6 +67,7 @@ static async Task DeleteIfExistsAsync(ILogger logger, string indexName, SearchIn
     }
 }
 
+#pragma warning disable S1172 // Unused method parameters should be removed
 static async Task CreateIndexAsync(ILogger logger, string indexName, SearchIndexClient indexClient, CancellationToken cancellationToken)
 {
     var fieldBuilder = new FieldBuilder();
@@ -66,12 +77,15 @@ static async Task CreateIndexAsync(ILogger logger, string indexName, SearchIndex
 
     await indexClient.CreateOrUpdateIndexAsync(definition, cancellationToken: cancellationToken);
 }
+#pragma warning restore S1172 // Unused method parameters should be removed
 
 static async Task WriteDocumentsAsync(ILogger logger, SearchResults<Hotel> searchResults, CancellationToken cancellationToken)
 {
     await foreach (var result in searchResults.GetResultsAsync().WithCancellation(cancellationToken))
     {
+#pragma warning disable S6678 // Use PascalCase for named placeholders
         logger.LogInformation("Document {@document}", result.Document);
+#pragma warning restore S6678 // Use PascalCase for named placeholders
     }
 }
 
@@ -149,7 +163,9 @@ static async Task UploadDocumentsAsync(ILogger logger, SearchClient searchClient
     var hotels = await JsonSerializer.DeserializeAsync<List<Hotel>>(openStream, cancellationToken: cancellationToken);
     if (hotels is null)
     {
+#pragma warning disable S6678 // Use PascalCase for named placeholders
         logger.LogError("Failed to import the index data from {file}", hotelsJson);
+#pragma warning restore S6678 // Use PascalCase for named placeholders
         return;
     }
 
@@ -158,7 +174,9 @@ static async Task UploadDocumentsAsync(ILogger logger, SearchClient searchClient
 
     try
     {
+#pragma warning disable S1481 // Unused local variables should be removed
         IndexDocumentsResult result = await searchClient.IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
+#pragma warning restore S1481 // Unused local variables should be removed
     }
     catch (Exception ex)
     {

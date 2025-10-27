@@ -6,15 +6,22 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Azure.Search.Documents;
 
-// TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
-// https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2156
+/// <summary>
+/// Performs a health check on an Azure Cognitive Search index by verifying the availability of the search service.
+/// </summary>
+/// <remarks>This health check attempts to retrieve service statistics from the associated Azure Cognitive Search
+/// index to determine if the service is responsive. It is intended for use with health monitoring frameworks to report
+/// the operational status of the search index. The check does not validate the existence or state of specific documents
+/// within the index.</remarks>
 internal sealed class AzureSearchIndexHealthCheck : IHealthCheck
 {
     private readonly SearchIndexClient _searchIndexClient;
 
     public AzureSearchIndexHealthCheck(SearchIndexClient indexClient)
     {
+#pragma warning disable S3236 // Caller information arguments should not be provided explicitly
         ArgumentNullException.ThrowIfNull(indexClient, nameof(indexClient));
+#pragma warning restore S3236 // Caller information arguments should not be provided explicitly
         _searchIndexClient = indexClient;
     }
 
