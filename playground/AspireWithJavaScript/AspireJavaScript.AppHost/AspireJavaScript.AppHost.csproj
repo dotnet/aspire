@@ -12,6 +12,7 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
   </ItemGroup>
 
   <ItemGroup>

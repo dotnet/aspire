@@ -1202,7 +1202,7 @@ public static class ProjectResourceBuilderExtensions
             var outputLines = new List<string>();
             var spec = new ProcessSpec("dotnet")
             {
-                Arguments = $"msbuild -c Release -getProperty:PublishDir \"{projectPath}\"",
+                Arguments = $"msbuild -p:Configuration=Release -getProperty:PublishDir \"{projectPath}\"",
                 OnOutputData = output =>
                 {
                     if (!string.IsNullOrWhiteSpace(output))
