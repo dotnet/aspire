@@ -13,6 +13,7 @@ internal interface ICliUpdateNotifier
 {
     Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken);
     void NotifyIfUpdateAvailable();
+    bool IsUpdateAvailable();
 }
 
 internal class CliUpdateNotifier(
@@ -49,8 +50,43 @@ internal class CliUpdateNotifier(
 
         if (newerVersion is not null)
         {
-            interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
+            var updateCommand = IsRunningAsDotNetTool() 
+                ? "dotnet tool update -g Aspire.Cli.Tool" 
+                : "aspire update --self";
+            
+            interactionService.DisplayVersionUpdateNotification(newerVersion.ToString(), updateCommand);
         }
+    }
+
+    public bool IsUpdateAvailable()
+    {
+        if (_availablePackages is null)
+        {
+            return false;
+        }
+
+        var currentVersion = GetCurrentVersion();
+        if (currentVersion is null)
+        {
+            return false;
+        }
+
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+        return newerVersion is not null;
+    }
+
+    private static bool IsRunningAsDotNetTool()
+    {
+        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
+        // When running as a native binary, it points to "aspire" or "aspire.exe"
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(processPath))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(processPath);
+        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
     }
 
     protected virtual SemVersion? GetCurrentVersion()

@@ -137,6 +137,11 @@
         <target state="translated">正在停止 Aspire。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToUpdateRunCommand">
+        <source>[dim]To update, run: {0}[/]</source>
+        <target state="new">[dim]To update, run: {0}[/]</target>
+        <note>Do not translate [dim]. Also leave [/] as-is. {0} is the command to run</note>
+      </trans-unit>
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">信任憑證...</target>
