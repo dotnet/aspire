@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
 using ModelContextProtocol.Protocol;
 
 namespace Aspire.Dashboard.Mcp;
@@ -11,9 +12,13 @@ public static class McpExtensions
     {
         var builder = services.AddMcpServer(options =>
         {
-            options.ServerInfo = new Implementation { Name = "Aspire MCP Server", Version = "1.0.0" };
+            options.ServerInfo = new Implementation
+            {
+                Name = "Aspire MCP",
+                Version = VersionHelpers.DashboardDisplayVersion ?? "1.0.0"
+            };
             options.ServerInstructions =
-            """
+                """
                 ## Description
                 This MCP Server provides various tools for managing Aspire resources, logs, traces and commands.
 
@@ -23,10 +28,10 @@ public static class McpExtensions
 
                 ## Tools
 
-            """;
+                """;
         }).WithHttpTransport();
 
-        builder.WithTools<DashboardTools>();
+        builder.WithTools<AspireMcpTools>();
 
         return builder;
     }

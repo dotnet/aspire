@@ -15,13 +15,13 @@ using ModelContextProtocol.Server;
 namespace Aspire.Dashboard.Mcp;
 
 [McpServerToolType]
-internal sealed class DashboardTools
+internal sealed class AspireMcpTools
 {
     private readonly TelemetryRepository _telemetryRepository;
     private readonly IDashboardClient _dashboardClient;
     private readonly IEnumerable<IOutgoingPeerResolver> _outgoingPeerResolvers;
 
-    public DashboardTools(TelemetryRepository telemetryRepository, IDashboardClient dashboardClient, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    public AspireMcpTools(TelemetryRepository telemetryRepository, IDashboardClient dashboardClient, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
         _telemetryRepository = telemetryRepository;
         _dashboardClient = dashboardClient;
