@@ -242,7 +242,7 @@ public class Program
         if (isPlayground)
         {
             // Enrichers interfere with interactive playground experience so
-            // this suppresses the default enrichers so that the CLI experince
+            // this suppresses the default enrichers so that the CLI experience
             // is more like what we would get in an interactive experience.
             settings.Enrichment.UseDefaultEnrichers = false;
             settings.Enrichment.Enrichers = new()
