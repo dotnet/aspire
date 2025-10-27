@@ -3,7 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREDEPLOYMENT001
+#pragma warning disable ASPIREPIPELINES002
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;

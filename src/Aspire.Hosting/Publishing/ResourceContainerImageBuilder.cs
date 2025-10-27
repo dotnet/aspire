@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREIMGBUILD001
+#pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics.CodeAnalysis;
@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Specifies the format for container images.
 /// </summary>
-[Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public enum ContainerImageFormat
 {
     /// <summary>
@@ -36,7 +36,7 @@ public enum ContainerImageFormat
 /// <summary>
 /// Specifies the target platform for container images.
 /// </summary>
-[Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public enum ContainerTargetPlatform
 {
     /// <summary>
@@ -73,7 +73,7 @@ public enum ContainerTargetPlatform
 /// <summary>
 /// Options for building container images.
 /// </summary>
-[Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class ContainerBuildOptions
 {
     /// <summary>
@@ -95,7 +95,7 @@ public class ContainerBuildOptions
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
-[Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IResourceContainerImageBuilder
 {
     /// <summary>
@@ -500,7 +500,7 @@ internal sealed class ResourceContainerImageBuilder(
 /// <summary>
 /// Extension methods for <see cref="ContainerTargetPlatform"/>.
 /// </summary>
-[Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal static class ContainerTargetPlatformExtensions
 {
     /// <summary>

@@ -3,7 +3,7 @@
 
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPIPELINES001
-#pragma warning disable ASPIREDEPLOYMENT001
+#pragma warning disable ASPIREPIPELINES002
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;

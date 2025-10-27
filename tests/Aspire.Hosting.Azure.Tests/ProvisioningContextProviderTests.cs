@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREDEPLOYMENT001
+#pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES001
 
 using System.Reflection;

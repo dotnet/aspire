@@ -1238,7 +1238,7 @@ namespace Aspire.Hosting.ApplicationModel
         public string LaunchProfileName { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREDEPLOYMENT001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class DeployingCallbackAnnotation : IResourceAnnotation
     {
         public DeployingCallbackAnnotation(System.Func<DeployingContext, System.Threading.Tasks.Task> callback) { }
@@ -1246,7 +1246,7 @@ namespace Aspire.Hosting.ApplicationModel
         public System.Func<DeployingContext, System.Threading.Tasks.Task> Callback { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREDEPLOYMENT001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class DeployingContext
     {
         public DeployingContext(DistributedApplicationModel model, DistributedApplicationExecutionContext executionContext, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, System.Threading.CancellationToken cancellationToken, string? outputPath) { }
@@ -2585,7 +2585,7 @@ namespace Aspire.Hosting.Publishing
         CompletedWithError = 3
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial class ContainerBuildOptions
     {
         public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
@@ -2595,14 +2595,14 @@ namespace Aspire.Hosting.Publishing
         public ContainerTargetPlatform? TargetPlatform { get { throw null; } init { } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public enum ContainerImageFormat
     {
         Docker = 0,
         Oci = 1
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public enum ContainerTargetPlatform
     {
         LinuxAmd64 = 0,
@@ -2639,7 +2639,7 @@ namespace Aspire.Hosting.Publishing
         System.Threading.Tasks.Task UpdateAsync(string statusText, System.Threading.CancellationToken cancellationToken = default);
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREIMGBUILD001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IResourceContainerImageBuilder
     {
         System.Threading.Tasks.Task BuildImageAsync(ApplicationModel.IResource resource, ContainerBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
@@ -2704,7 +2704,7 @@ namespace Aspire.Hosting.Publishing
     public partial class PublishingOptions
     {
         public const string Publishing = "Publishing";
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREDEPLOYMENT001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public bool Deploy { get { throw null; } set { } }
 
         public string? OutputPath { get { throw null; } set { } }

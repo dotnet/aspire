@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable ASPIREDEPLOYMENT001
+#pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable IDE0005
 
