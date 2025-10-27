@@ -19,7 +19,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         // Arrange
         var tempDir = Directory.CreateTempSubdirectory(".azure-environment-resource-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
@@ -51,7 +51,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         // Arrange
         var tempDir = Directory.CreateTempSubdirectory(".azure-environment-resource-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
         var locationParam = builder.AddParameter("location", "eastus2");
         var resourceGroupParam = builder.AddParameter("resourceGroup", "my-rg");
@@ -84,8 +84,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory(".azure-environment-resource-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
-            publisher: "default",
-            outputPath: tempDir.FullName);
+            tempDir.FullName);
 
         builder.AddAzureContainerAppEnvironment("acaEnv");
 
@@ -133,8 +132,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory(".azure-environment-resource-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
-            publisher: "default",
-            outputPath: tempDir.FullName);
+            tempDir.FullName);
         builder.AddAzureContainerAppEnvironment("acaEnv");
         var storageSku = builder.AddParameter("storage-Sku", "Standard_LRS", publishValueAsDefault: true);
         var description = builder.AddParameter("skuDescription", "The sku is ", publishValueAsDefault: true);
@@ -189,8 +187,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         // Arrange
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
-            publisher: "default",
-            outputPath: tempDir.Path);
+            tempDir.Path);
 
         // Add an Azure storage resource that will be included
         var includedStorage = builder.AddAzureStorage("included-storage");
@@ -223,7 +220,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
@@ -238,7 +235,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
         Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
         var actualContent = await File.ReadAllTextAsync(dockerfilePath);
-        
+
         await Verify(actualContent);
     }
 

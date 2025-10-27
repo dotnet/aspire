@@ -1058,7 +1058,7 @@ public static class ProjectResourceBuilderExtensions
 
     private static string ParseKestrelHost(string host)
     {
-        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        if (EndpointHostHelpers.IsLocalhost(host))
         {
             // Localhost is used as-is rather than being resolved to a specific loopback IP address.
             return "localhost";

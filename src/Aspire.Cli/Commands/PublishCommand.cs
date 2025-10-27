@@ -30,7 +30,7 @@ internal class PublishCommandPrompter(IInteractionService interactionService) : 
     }
 }
 
-internal sealed class PublishCommand : PublishCommandBase
+internal sealed class PublishCommand : PipelineCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
@@ -47,7 +47,7 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
-        var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
+        var baseArgs = new List<string> { "--operation", "publish", "--step", "publish" };
 
         var targetPath = fullyQualifiedOutputPath is not null
             ? fullyQualifiedOutputPath
@@ -76,5 +76,5 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string GetCanceledMessage() => InteractionServiceStrings.OperationCancelled;
 
-    protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
+    protected override string GetProgressMessage(ParseResult parseResult) => "Executing step \"publish\"";
 }

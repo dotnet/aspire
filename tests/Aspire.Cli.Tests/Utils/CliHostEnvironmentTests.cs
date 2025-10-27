@@ -209,4 +209,190 @@ public class CliHostEnvironmentTests
         // Assert
         Assert.True(env.SupportsAnsi);
     }
+
+    [Fact]
+    public void SupportsInteractiveInput_ReturnsTrue_WhenPlaygroundModeSet()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsInteractiveInput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveOutput_ReturnsTrue_WhenPlaygroundModeSet()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsInteractiveOutput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveInput_ReturnsTrue_WhenPlaygroundModeSet_EvenInCI()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should override CI environment detection
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true",
+                ["CI"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsInteractiveInput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveOutput_ReturnsTrue_WhenPlaygroundModeSet_EvenInCI()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should override CI environment detection
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true",
+                ["GITHUB_ACTIONS"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsInteractiveOutput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveInput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
+        Assert.True(env.SupportsInteractiveInput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveOutput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
+        Assert.True(env.SupportsInteractiveOutput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveInput_ReturnsFalse_WhenPlaygroundModeSetToFalse()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "false",
+                ["CI"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.False(env.SupportsInteractiveInput);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_EvenWithNO_COLOR()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should override NO_COLOR
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true",
+                ["NO_COLOR"] = "1"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_WithNonInteractive()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should enable ANSI even with --non-interactive
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
 }

@@ -206,19 +206,17 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             // Backup current executable if it exists
-            var backupPath = $"{targetExePath}.old";
+            var unixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var backupPath = $"{targetExePath}.old.{unixTimestamp}";
             if (File.Exists(targetExePath))
             {
                 InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
                 _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
 
-                // Remove old backup if it exists
-                if (File.Exists(backupPath))
-                {
-                    File.Delete(backupPath);
-                }
+                // Clean up old backup files
+                CleanupOldBackupFiles(targetExePath);
 
-                // Rename current executable to .old
+                // Rename current executable to .old.[timestamp]
                 File.Move(targetExePath, backupPath);
             }
 
@@ -242,12 +240,8 @@ internal sealed class UpdateCommand : BaseCommand
                     throw new InvalidOperationException("New CLI executable failed verification test.");
                 }
 
-                // If we get here, the update was successful, remove the backup
-                if (File.Exists(backupPath))
-                {
-                    _logger.LogDebug("Update successful, removing backup");
-                    File.Delete(backupPath);
-                }
+                // If we get here, the update was successful, clean up old backups
+                CleanupOldBackupFiles(targetExePath);
 
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))
@@ -365,6 +359,39 @@ internal sealed class UpdateCommand : BaseCommand
         catch
         {
             return null;
+        }
+    }
+
+    internal void CleanupOldBackupFiles(string targetExePath)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(targetExePath);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return;
+            }
+
+            var exeName = Path.GetFileName(targetExePath);
+            var searchPattern = $"{exeName}.old.*";
+
+            var oldBackupFiles = Directory.GetFiles(directory, searchPattern);
+            foreach (var backupFile in oldBackupFiles)
+            {
+                try
+                {
+                    File.Delete(backupFile);
+                    _logger.LogDebug("Deleted old backup file: {BackupFile}", backupFile);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to delete old backup file: {BackupFile}", backupFile);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to cleanup old backup files for: {TargetExePath}", targetExePath);
         }
     }
 

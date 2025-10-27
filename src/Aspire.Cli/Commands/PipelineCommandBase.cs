@@ -17,7 +17,7 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
-internal abstract class PublishCommandBase : BaseCommand
+internal abstract class PipelineCommandBase : BaseCommand
 {
     private const string CustomChoiceValue = "__CUSTOM_CHOICE";
 
@@ -51,7 +51,7 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -91,7 +91,7 @@ internal abstract class PublishCommandBase : BaseCommand
     protected abstract string GetOutputPathDescription();
     protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
     protected abstract string GetCanceledMessage();
-    protected abstract string GetProgressMessage();
+    protected abstract string GetProgressMessage(ParseResult parseResult);
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -210,7 +210,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage()}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage(parseResult)}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });

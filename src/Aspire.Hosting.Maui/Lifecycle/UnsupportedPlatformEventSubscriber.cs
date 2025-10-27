@@ -12,6 +12,10 @@ namespace Aspire.Hosting.Maui.Lifecycle;
 /// Event subscriber that sets the "Unsupported" state for MAUI platform resources 
 /// marked with <see cref="UnsupportedPlatformAnnotation"/>.
 /// </summary>
+/// <remarks>
+/// This subscriber handles all MAUI platform resources (Windows, Android, iOS, Mac Catalyst)
+/// by checking for the <see cref="IMauiPlatformResource"/> marker interface.
+/// </remarks>
 /// <param name="notificationService">The notification service for publishing resource state updates.</param>
 internal sealed class UnsupportedPlatformEventSubscriber(ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
 {
@@ -23,7 +27,7 @@ internal sealed class UnsupportedPlatformEventSubscriber(ResourceNotificationSer
             // Find all MAUI platform resources with the UnsupportedPlatformAnnotation
             foreach (var resource in @event.Model.Resources)
             {
-                if (resource is MauiWindowsPlatformResource && 
+                if (resource is IMauiPlatformResource && 
                     resource.TryGetLastAnnotation<UnsupportedPlatformAnnotation>(out var annotation))
                 {
                     // Set the state to "Unsupported" with a warning style and the reason
