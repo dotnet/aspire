@@ -10,7 +10,5 @@
   "symbols/appHostHttpsPort/description": "Číslo portu, který se má použít pro koncový bod HTTPS v launchSettings.json projektu AppHost. Tato možnost se dá použít jenom v případě, že se nepoužívá parametr no-https.",
   "symbols/appHostOtlpHttpsPort/description": "Číslo portu, který se má použít pro koncový bod HTTPS OTLP v launchSettings.json projektu AppHost.",
   "symbols/appHostResourceHttpsPort/description": "Číslo portu, který se má použít pro koncový bod HTTPS služby prostředků v launchSettings.json projektu AppHost.",
-  "symbols/NoHttps/description": "Určuje, jestli se má vypnout protokol HTTPS.",
-  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
-  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
+  "symbols/NoHttps/description": "Určuje, jestli se má vypnout protokol HTTPS."
 }
