@@ -4,8 +4,10 @@
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.CodingAgent;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -92,6 +94,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
         services.AddSingleton(options.CliDownloaderFactory);
+        services.AddSingleton(options.GitCliRunnerFactory);
+        services.AddSingleton(options.CodingAgentConfiguratorFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -343,6 +347,18 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
         return new TestCliDownloader(tmpDirectory);
+    };
+
+    public Func<IServiceProvider, IGitCliRunner> GitCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<GitCliRunner>>();
+        return new GitCliRunner(logger);
+    };
+
+    public Func<IServiceProvider, ICodingAgentConfigurator> CodingAgentConfiguratorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<CodingAgentConfigurator>>();
+        return new CodingAgentConfigurator(logger);
     };
 }
 
