@@ -39,7 +39,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="azureCloudName">The name of the Azure cloud to deploy to. Default is "Azure".</param>
+    /// <param name="azureCloudName">The name of the Azure cloud to deploy to. Default is "AzurePublic".</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name, AzureCloudName azureCloudName = AzureCloudName.AzurePublic)
     {

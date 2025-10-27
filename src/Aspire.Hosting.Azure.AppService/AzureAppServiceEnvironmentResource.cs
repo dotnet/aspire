@@ -64,12 +64,12 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
     /// <summary>
-    /// 
+    /// Azure cloud name for the App Service Environment.
     /// </summary>
     internal AzureCloudName AzureCloudName { get; set; } = AzureCloudName.AzurePublic;
 
     /// <summary>
-    /// Gets or sets a value indicating the name of Azure cloud name.
+    /// Gets a value indicating the DNS Suffix of Azure cloud.
     /// </summary>
     internal string AzureAppServiceDnsSuffix
     {
