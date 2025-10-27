@@ -1048,11 +1048,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
                     if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
-                        projectArgs.AddRange([
-                            "run",
-                            projectMetadata.IsFileBasedApp ? "--file" : "--project",
-                            projectMetadata.ProjectPath,
-                        ]);
+                        projectArgs.Add("run");
+                        projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
+                        projectArgs.Add(projectMetadata.ProjectPath);
+                        if (projectMetadata.IsFileBasedApp)
+                        {
+                            projectArgs.Add("--no-cache");
+                        }
                         if (projectMetadata.SuppressBuild)
                         {
                             projectArgs.Add("--no-build");

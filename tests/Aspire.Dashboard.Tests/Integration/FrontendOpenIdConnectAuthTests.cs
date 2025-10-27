@@ -87,7 +87,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
         var log = testSink.Writes.Single(s => s.LoggerName == typeof(FrontendCompositeAuthenticationHandler).FullName && s.EventId.Name == "AuthenticationSchemeNotAuthenticatedWithFailure");
-        Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection type Frontend is not enabled on this connection.", log.Message);
+        Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection types 'Frontend' are not enabled on this connection.", log.Message);
 
         await app.StopAsync().DefaultTimeout();
     }

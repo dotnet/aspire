@@ -65,26 +65,6 @@ public class ResourceCreationTests
     }
 
     [Fact]
-    public void ViteAppHasExposedHttpsEndpoints()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        builder.AddViteApp("vite", "vite", useHttps: true);
-
-        using var app = builder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var resource = appModel.Resources.OfType<NodeAppResource>().SingleOrDefault();
-
-        Assert.NotNull(resource);
-
-        Assert.True(resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints));
-
-        Assert.Contains(endpoints, e => e.UriScheme == "https");
-    }
-
-    [Fact]
     public void ViteAppDoesNotExposeExternalHttpEndpointsByDefault()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -105,14 +85,14 @@ public class ResourceCreationTests
     }
 
     [Fact]
-    public async Task WithNpmPackageManagerDefaultsToInstallCommand()
+    public void WithNpmDefaultsToInstallCommand()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
-        // Add package installation with default settings (should use npm install, not ci)
-        nodeApp.WithNpmPackageManager(useCI: false);
+        // Add package installation with default settings (should use npm install)
+        nodeApp.WithNpm(install: true);
 
         using var app = builder.Build();
 
@@ -124,49 +104,12 @@ public class ResourceCreationTests
 
         // Verify the installer resource was created
         var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
-        Assert.Equal("test-app-npm-install", installerResource.Name);
-        Assert.Equal("npm", installerResource.Command);
-        var args = await installerResource.GetArgumentValuesAsync();
-        Assert.Single(args);
-        Assert.Equal("install", args[0]);
+        Assert.Equal("test-app-installer", installerResource.Name);
 
-        // Verify the parent-child relationship
-        Assert.True(installerResource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        var relationship = Assert.Single(relationships);
-        Assert.Same(nodeResource, relationship.Resource);
-        Assert.Equal("Parent", relationship.Type);
-
-        // Verify the wait annotation on the parent
-        Assert.True(nodeResource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
-        var waitAnnotation = Assert.Single(waitAnnotations);
-        Assert.Same(installerResource, waitAnnotation.Resource);
-    }
-
-    [Fact]
-    public async Task WithNpmPackageManagerCanUseCICommand()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-
-        // Add package installation with CI enabled
-        nodeApp.WithNpmPackageManager(useCI: true);
-
-        using var app = builder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        // Verify the NodeApp resource exists
-        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
-        Assert.Equal("npm", nodeResource.Command);
-
-        // Verify the installer resource was created with CI enabled
-        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
-        Assert.Equal("test-app-npm-install", installerResource.Name);
-        Assert.Equal("npm", installerResource.Command);
-        var args = await installerResource.GetArgumentValuesAsync();
-        Assert.Single(args);
-        Assert.Equal("ci", args[0]);
+        // Verify the install command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("npm", installAnnotation.Command);
+        Assert.Equal(["install"], installAnnotation.Args);
 
         // Verify the parent-child relationship
         Assert.True(installerResource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
@@ -210,5 +153,39 @@ public class ResourceCreationTests
             arg => Assert.Equal("--port", arg),
             arg => Assert.IsType<EndpointReferenceExpression>(arg)
         );
+    }
+
+    [Fact]
+    public void WithNpmInstallFalseDoesNotCreateInstaller()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+
+        // Configure npm without installing packages
+        nodeApp.WithNpm(install: false);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with npm command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("npm", nodeResource.Command);
+
+        // Verify the package manager annotations are set
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var _));
+
+        // Verify NO installer resource was created
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
+        Assert.Empty(installerResources);
+
+        // Verify no wait annotations were added
+        Assert.False(nodeResource.TryGetAnnotationsOfType<WaitAnnotation>(out _));
+
+        // Verify no package installer annotation was added
+        Assert.False(nodeResource.TryGetLastAnnotation<JavaScriptPackageInstallerAnnotation>(out _));
     }
 }

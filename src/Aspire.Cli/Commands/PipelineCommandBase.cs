@@ -91,7 +91,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     protected abstract string GetOutputPathDescription();
     protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
     protected abstract string GetCanceledMessage();
-    protected abstract string GetProgressMessage();
+    protected abstract string GetProgressMessage(ParseResult parseResult);
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -210,7 +210,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage()}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage(parseResult)}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });

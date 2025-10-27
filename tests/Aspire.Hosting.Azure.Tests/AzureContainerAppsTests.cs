@@ -272,6 +272,8 @@ public class AzureContainerAppsTests
         var db = builder.AddAzureCosmosDB("mydb");
         db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
+        var pgContainer = builder.AddPostgres("pgc");
+
         // Postgres uses secret outputs + a literal connection string
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
 
@@ -295,7 +297,8 @@ public class AzureContainerAppsTests
             .WithEnvironment("SecretVal", secretValue)
             .WithEnvironment("secret_value_1", secretValue)
             .WithEnvironment("Value", value)
-            .WithEnvironment("CS", rawCs);
+            .WithEnvironment("CS", rawCs)
+            .WithEnvironment("DATABASE_URL", pgContainer.Resource.UriExpression);
 
         project.WithEnvironment(context =>
         {

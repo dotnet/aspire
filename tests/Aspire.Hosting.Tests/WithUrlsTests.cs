@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -228,6 +229,44 @@ public class WithUrlsTests
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "test");
+
+        await app.StopAsync();
+    }
+
+    [Theory]
+    [InlineData("myapp.dev.localhost", "-myapp.dev.localhost")]
+    [InlineData("myapp-apphost.dev.localhost", "-myapp.dev.localhost")]
+    [InlineData("myapp_apphost.dev.localhost", "-myapp.dev.localhost")]
+    [InlineData("myapp.apphost.dev.localhost", "-myapp.dev.localhost")]
+    public async Task EndpointsGetDevLocalhostUrlsWhenDashboardHasDevLocalhostUrl(string dashboardHost, string expectedHostSuffix)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.Configure<DashboardOptions>(options =>
+        {
+            options.DashboardUrl = $"http://{dashboardHost}:12345";
+        });
+
+        var tcs = new TaskCompletionSource();
+        var projectB = builder.AddProject<ProjectB>("projectb")
+            .WithEndpoint(scheme: "tcp")
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task.DefaultTimeout();
+
+        var urls = projectB.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Equal(3, urls.Count());
+        Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "http" && u.DisplayLocation == UrlDisplayLocation.DetailsOnly);
+        Assert.Single(urls, u => u.Url.StartsWith($"http://{projectB.Resource.Name.ToLowerInvariant()}{expectedHostSuffix}") && u.Url.EndsWith("/sub-path")
+                                 && u.Endpoint?.EndpointName == "http" && u.DisplayLocation == UrlDisplayLocation.SummaryAndDetails);
+
+        Assert.Single(urls, u => u.Url.StartsWith("tcp://localhost") && u.Endpoint?.EndpointName == "tcp");
+        Assert.DoesNotContain(urls, u => u.Url.Contains(expectedHostSuffix) && u.Endpoint?.EndpointName == "tcp");
 
         await app.StopAsync();
     }
