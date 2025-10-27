@@ -595,6 +595,9 @@ public class DcpExecutorTests
         var watchLogsEnumerator = watchLogs.GetAsyncEnumerator(watchCts.Token);
 
         var moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
+        Assert.True(await moveNextTask);
+
+        moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
         Assert.False(moveNextTask.IsCompletedSuccessfully, "No logs yet.");
 
         await watchSubscribersEnumerator.MoveNextAsync();
@@ -611,7 +614,7 @@ public class DcpExecutorTests
         Assert.True(await moveNextTask);
         var logLine = watchLogsEnumerator.Current.Single();
         Assert.Equal("2024-08-19T06:10:33.4732759Z Hello world", logLine.Content);
-        Assert.Equal(1, logLine.LineNumber);
+        Assert.Equal(2, logLine.LineNumber);
         Assert.False(logLine.IsErrorMessage);
 
         moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
@@ -622,13 +625,14 @@ public class DcpExecutorTests
         Assert.True(await moveNextTask);
         logLine = watchLogsEnumerator.Current.Single();
         Assert.Equal("2024-08-19T06:10:32.6610000Z Next", logLine.Content);
-        Assert.Equal(2, logLine.LineNumber);
+        Assert.Equal(3, logLine.LineNumber);
         Assert.True(logLine.IsErrorMessage);
 
         var loggerState = resourceLoggerService.GetResourceLoggerState(exeResource.Metadata.Name);
         Assert.Collection(loggerState.GetBacklogSnapshot(),
             l => Assert.Equal("Next", l.Content),
-            l => Assert.Equal("Hello world", l.Content));
+            l => Assert.Equal("Hello world", l.Content),
+            l => { });
 
         // Stop watching.
         moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
@@ -691,7 +695,7 @@ public class DcpExecutorTests
         var watchSubscribers = resourceLoggerService.WatchAnySubscribersAsync();
         var watchSubscribersEnumerator = watchSubscribers.GetAsyncEnumerator();
         var watchLogs1 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
-        var watchLogsTask1 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs1, targetLogCount: 7);
+        var watchLogsTask1 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs1, targetLogCount: 8);
 
         Assert.False(watchLogsTask1.IsCompletedSuccessfully, "Logs not available yet.");
 
@@ -703,7 +707,7 @@ public class DcpExecutorTests
         kubernetesService.PushResourceModified(exeResource);
 
         var watchLogsResults1 = await watchLogsTask1;
-        Assert.Equal(7, watchLogsResults1.Count);
+        Assert.Equal(8, watchLogsResults1.Count);
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("First"));
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("Second"));
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("Third"));
