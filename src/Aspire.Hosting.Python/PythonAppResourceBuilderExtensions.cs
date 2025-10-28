@@ -283,26 +283,28 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Flask-based Python application to the distributed application builder with HTTP endpoint configuration.
+    /// Adds a Gunicorn-based Python WSGI application to the distributed application builder with HTTP endpoint configuration.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This method configures the application to use Flask's development server with the 'flask run' command
-    /// and automatically configures the host and port based on the HTTP endpoint.
-    /// When not publishing, it sets FLASK_ENV=development for development mode features.
+    /// This method configures the application to use Gunicorn in production and Flask's development server in development mode.
+    /// In development (non-publish mode), it runs <c>flask run</c> with automatic reloading and sets FLASK_ENV=development.
+    /// In production (publish mode), it runs <c>gunicorn</c> for better performance and scalability.
+    /// The host and port are automatically configured based on the HTTP endpoint.
     /// </para>
     /// </remarks>
-    /// <param name="builder">The distributed application builder to which the Flask application resource will be added.</param>
-    /// <param name="name">The unique name of the Flask application resource.</param>
+    /// <param name="builder">The distributed application builder to which the WSGI application resource will be added.</param>
+    /// <param name="name">The unique name of the WSGI application resource.</param>
     /// <param name="appDirectory">The directory containing the Python application files.</param>
-    /// <param name="flaskApp">The Flask app module path (e.g., "main:app" or "myapp"). This value will be set as the FLASK_APP environment variable.</param>
-    /// <returns>A resource builder for further configuration of the Flask Python application resource.</returns>
+    /// <param name="app">The WSGI app import path (e.g., "main:app" or "myapp:create_app()").
+    /// For Flask, this is set as FLASK_APP in development mode. For Gunicorn, this is passed as the app module.</param>
+    /// <returns>A resource builder for further configuration of the Python WSGI application resource.</returns>
     /// <example>
     /// Add a Flask application using the application factory pattern:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var flaskApp = builder.AddFlaskApp("flask-app", "../flask-app", "app:create_app");
+    /// var flaskApp = builder.AddGunicornApp("flask-app", "../flask-app", "app:create_app");
     ///
     /// builder.Build().Run();
     /// </code>
@@ -312,43 +314,51 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var flaskApp = builder.AddFlaskApp("flask-app", "../flask-app", "myapp:app")
+    /// var flaskApp = builder.AddGunicornApp("flask-app", "../flask-app", "myapp:app")
     ///     .WithUvEnvironment();
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<PythonAppResource> AddFlaskApp(
-        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string flaskApp)
+    public static IResourceBuilder<PythonAppResource> AddGunicornApp(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
-        ArgumentException.ThrowIfNullOrEmpty(flaskApp);
+        ArgumentException.ThrowIfNullOrEmpty(app);
 
-        var resourceBuilder = builder.AddPythonModule(name, appDirectory, "flask")
-            .WithHttpEndpoint(env: "PORT")
-            .WithEnvironment("FLASK_APP", flaskApp)
-            .WithArgs(c =>
-            {
-                c.Args.Add("run");
+        IResourceBuilder<PythonAppResource> resourceBuilder;
 
-                c.Args.Add("--host");
-                var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
-                if (builder.ExecutionContext.IsPublishMode)
-                {
-                    c.Args.Add("0.0.0.0");
-                }
-                else
-                {
-                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
-                }
-
-                c.Args.Add("--port");
-                c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
-            });
-
-        // Set FLASK_ENV=development in non-publish mode for development features
-        if (!builder.ExecutionContext.IsPublishMode)
+        if (builder.ExecutionContext.IsPublishMode)
         {
-            resourceBuilder.WithEnvironment("FLASK_ENV", "development");
+            // Production: Use Gunicorn
+            resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "gunicorn", true)
+                .WithHttpEndpoint(env: "PORT")
+                .WithArgs(c =>
+                {
+                    c.Args.Add("--bind");
+                    var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
+                    c.Args.Add($"0.0.0.0:{endpoint.Property(EndpointProperty.TargetPort)}");
+
+                    c.Args.Add(app);
+                });
+        }
+        else
+        {
+            // Development: Use Flask dev server
+            resourceBuilder = builder.AddPythonModule(name, appDirectory, "flask")
+                .WithHttpEndpoint(env: "PORT")
+                .WithEnvironment("FLASK_APP", app)
+                .WithEnvironment("FLASK_ENV", "development")
+                .WithArgs(c =>
+                {
+                    c.Args.Add("run");
+
+                    c.Args.Add("--host");
+                    var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
+                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
+
+                    c.Args.Add("--port");
+                    c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+                });
         }
 
         return resourceBuilder;

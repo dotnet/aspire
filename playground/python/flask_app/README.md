@@ -1,6 +1,6 @@
 # Flask App Example for Aspire
 
-This is a simple Flask application that demonstrates integration with .NET Aspire.
+This is a simple Flask application that demonstrates integration with .NET Aspire using Gunicorn in production and Flask's dev server in development.
 
 ## Features
 
@@ -8,6 +8,7 @@ This is a simple Flask application that demonstrates integration with .NET Aspir
 - Multiple endpoints (/, /health, /api/data)
 - OpenTelemetry instrumentation
 - JSON responses
+- Gunicorn for production, Flask dev server for development
 
 ## Endpoints
 
@@ -17,12 +18,15 @@ This is a simple Flask application that demonstrates integration with .NET Aspir
 
 ## Running with Aspire
 
-This app is configured to run via the Python.AppHost project:
+This app is configured to run via the Python.AppHost project using `AddGunicornApp`:
 
 ```csharp
-var flaskApp = builder.AddFlaskApp("flask-app", "../flask_app", "app:create_app")
-    .WithHttpEndpoint(port: 5000);
+var flaskApp = builder.AddGunicornApp("flask-app", "../flask_app", "app:create_app")
+    .WithUvEnvironment();
 ```
+
+In development mode (non-publish), this uses Flask's development server with auto-reload.
+In production mode (publish), this uses Gunicorn for better performance.
 
 ## Local Development
 

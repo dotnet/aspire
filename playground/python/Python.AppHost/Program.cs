@@ -18,8 +18,8 @@ builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn", 
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8001")
     .WithHttpEndpoint(targetPort: 8001);
 
-// Flask app using the AddFlaskApp method
-builder.AddFlaskApp("flask-app", "../flask_app", "app:create_app")
+// Flask app using the AddGunicornApp method (uses Flask dev server in development, Gunicorn in production)
+builder.AddGunicornApp("flask-app", "../flask_app", "app:create_app")
     .WithUvEnvironment();
 
 // Uvicorn app using the AddUvicornApp method
