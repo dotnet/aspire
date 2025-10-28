@@ -39,8 +39,8 @@ public class PackageChannelTests
         var aspireSource = "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json";
         var mappings = new[]
         {
-            new PackageMapping("Aspire*", aspireSource),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
+            new PackageMapping("Aspire*", aspireSource, MappingType.Primary),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting)
         };
 
         // Act
@@ -59,8 +59,8 @@ public class PackageChannelTests
         var prHivePath = "/Users/davidfowler/.aspire/hives/pr-10981";
         var mappings = new[]
         {
-            new PackageMapping("Aspire*", prHivePath),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
+            new PackageMapping("Aspire*", prHivePath, MappingType.Primary),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting)
         };
 
         // Act
@@ -79,8 +79,8 @@ public class PackageChannelTests
         var stagingUrl = "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-48a11dae/nuget/v3/index.json";
         var mappings = new[]
         {
-            new PackageMapping("Aspire*", stagingUrl),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
+            new PackageMapping("Aspire*", stagingUrl, MappingType.Primary),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting)
         };
 
         // Act
@@ -105,5 +105,50 @@ public class PackageChannelTests
         // Assert
         Assert.Equal(PackagingStrings.BasedOnNuGetConfig, channel.SourceDetails);
         Assert.Equal(PackageChannelType.Explicit, channel.Type);
+    }
+
+    [Fact]
+    public void PackageMapping_HasTypeProperty_WithPrimaryValue()
+    {
+        // Arrange & Act
+        var mapping = new PackageMapping("Aspire*", "https://example.com/feed", MappingType.Primary);
+
+        // Assert
+        Assert.Equal("Aspire*", mapping.PackageFilter);
+        Assert.Equal("https://example.com/feed", mapping.Source);
+        Assert.Equal(MappingType.Primary, mapping.Type);
+    }
+
+    [Fact]
+    public void PackageMapping_HasTypeProperty_WithSupportingValue()
+    {
+        // Arrange & Act
+        var mapping = new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting);
+
+        // Assert
+        Assert.Equal("*", mapping.PackageFilter);
+        Assert.Equal("https://api.nuget.org/v3/index.json", mapping.Source);
+        Assert.Equal(MappingType.Supporting, mapping.Type);
+    }
+
+    [Fact]
+    public void PackageChannel_MappingsHaveCorrectTypes()
+    {
+        // Arrange
+        var cache = new FakeNuGetPackageCache();
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://example.com/aspire", MappingType.Primary),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting)
+        };
+
+        // Act
+        var channel = PackageChannel.CreateExplicitChannel("test", PackageChannelQuality.Stable, mappings, cache);
+
+        // Assert
+        Assert.NotNull(channel.Mappings);
+        Assert.Equal(2, channel.Mappings.Length);
+        Assert.Equal(MappingType.Primary, channel.Mappings[0].Type);
+        Assert.Equal(MappingType.Supporting, channel.Mappings[1].Type);
     }
 }

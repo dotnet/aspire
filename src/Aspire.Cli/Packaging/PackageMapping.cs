@@ -3,9 +3,10 @@
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageMapping(string PackageFilter, string source)
+internal class PackageMapping(string PackageFilter, string source, MappingType type)
 {
     public const string AllPackages = "*";
     public string PackageFilter { get; } = PackageFilter;
     public string Source { get; } = source;
+    public MappingType Type { get; } = type;
 }

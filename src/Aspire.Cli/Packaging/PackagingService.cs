@@ -21,13 +21,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         
         var stableChannel = PackageChannel.CreateExplicitChannel("stable", PackageChannelQuality.Stable, new[]
         {
-            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
+            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json", MappingType.Primary)
         }, nuGetPackageCache, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/ga/daily");
 
         var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Prerelease, new[]
         {
-            new PackageMapping("Aspire*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
-            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
+            new PackageMapping("Aspire*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json", MappingType.Primary),
+            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json", MappingType.Supporting)
         }, nuGetPackageCache, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/daily");
 
         var prPackageChannels = new List<PackageChannel>();
@@ -43,8 +43,8 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             {
                 var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, PackageChannelQuality.Prerelease, new[]
                 {
-                    new PackageMapping("Aspire*", prHive.FullName),
-                    new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
+                    new PackageMapping("Aspire*", prHive.FullName, MappingType.Primary),
+                    new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json", MappingType.Supporting)
                 }, nuGetPackageCache);
 
                 prPackageChannels.Add(prChannel);
@@ -78,8 +78,8 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
 
         var stagingChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, new[]
         {
-            new PackageMapping("Aspire*", stagingFeedUrl),
-            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
+            new PackageMapping("Aspire*", stagingFeedUrl, MappingType.Primary),
+            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json", MappingType.Supporting)
         }, nuGetPackageCache, configureGlobalPackagesFolder: true, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily");
 
         return stagingChannel;

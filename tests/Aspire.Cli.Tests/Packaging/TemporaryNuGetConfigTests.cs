@@ -14,9 +14,9 @@ public class TemporaryNuGetConfigTests
         // Arrange
         var mappings = new PackageMapping[]
         {
-            new("Aspire.*", "https://example.com/feed1"),
-            new(PackageMapping.AllPackages, "https://example.com/feed2"), // "*" filter
-            new("Microsoft.*", "https://example.com/feed1")
+            new("Aspire.*", "https://example.com/feed1", MappingType.Primary),
+            new(PackageMapping.AllPackages, "https://example.com/feed2", MappingType.Supporting), // "*" filter
+            new("Microsoft.*", "https://example.com/feed1", MappingType.Primary)
         };
 
         // Act
@@ -54,8 +54,8 @@ public class TemporaryNuGetConfigTests
         // Arrange
         var mappings = new PackageMapping[]
         {
-            new(PackageMapping.AllPackages, "https://feed1.example.com"),
-            new(PackageMapping.AllPackages, "https://feed2.example.com")
+            new(PackageMapping.AllPackages, "https://feed1.example.com", MappingType.Primary),
+            new(PackageMapping.AllPackages, "https://feed2.example.com", MappingType.Primary)
         };
 
         // Act

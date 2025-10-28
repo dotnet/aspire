@@ -68,7 +68,7 @@ public class DotNetTemplateFactoryTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://test.feed.example.com")
+            new PackageMapping("Aspire.*", "https://test.feed.example.com", MappingType.Primary)
         };
         var channel = CreateExplicitChannel(mappings);
 
@@ -100,7 +100,7 @@ public class DotNetTemplateFactoryTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://test.feed.example.com")
+            new PackageMapping("Aspire.*", "https://test.feed.example.com", MappingType.Primary)
         };
         var channel = CreateExplicitChannel(mappings);
 
@@ -137,7 +137,7 @@ public class DotNetTemplateFactoryTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://test.feed.example.com")
+            new PackageMapping("Aspire.*", "https://test.feed.example.com", MappingType.Primary)
         };
         var channel = CreateExplicitChannel(mappings);
 
@@ -180,7 +180,7 @@ public class DotNetTemplateFactoryTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://test.feed.example.com")
+            new PackageMapping("Aspire.*", "https://test.feed.example.com", MappingType.Primary)
         };
         var channel = CreateExplicitChannel(mappings);
 
@@ -206,7 +206,7 @@ public class DotNetTemplateFactoryTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://test.feed.example.com")
+            new PackageMapping("Aspire.*", "https://test.feed.example.com", MappingType.Primary)
         };
         var channel = CreateExplicitChannel(mappings);
 

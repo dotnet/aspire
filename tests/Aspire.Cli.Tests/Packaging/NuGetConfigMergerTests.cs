@@ -55,8 +55,8 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping(PackageMapping.AllPackages, "https://feed2.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary),
+            new PackageMapping(PackageMapping.AllPackages, "https://feed2.example", MappingType.Supporting)
         };
 
     var channel = CreateChannel(mappings);
@@ -79,8 +79,8 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping(PackageMapping.AllPackages, "https://feed2.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary),
+            new PackageMapping(PackageMapping.AllPackages, "https://feed2.example", MappingType.Supporting)
         };
 
     var channel = CreateChannel(mappings);
@@ -123,8 +123,8 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping("Microsoft.*", "https://feed2.example") // feed2 missing
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary),
+            new PackageMapping("Microsoft.*", "https://feed2.example", MappingType.Supporting) // feed2 missing
         };
 
     var channel = CreateChannel(mappings);
@@ -163,7 +163,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Lib.*", "https://new.example")
+            new PackageMapping("Lib.*", "https://new.example", MappingType.Primary)
         };
 
     var channel = CreateChannel(mappings);
@@ -202,8 +202,8 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping("Microsoft.*", "https://feed2.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary),
+            new PackageMapping("Microsoft.*", "https://feed2.example", MappingType.Supporting)
         };
 
     var channel = CreateChannel(mappings);
@@ -220,7 +220,7 @@ public class NuGetConfigMergerTests
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
-    var mappings = new[] { new PackageMapping("Aspire.*", "https://feed.example") };
+    var mappings = new[] { new PackageMapping("Aspire.*", "https://feed.example", MappingType.Primary) };
     var channel = CreateChannel(mappings);
     Assert.True(NuGetConfigMerger.HasMissingSources(root, channel));
     }
@@ -249,7 +249,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed2.example") // should be feed2, but config has feed1
+            new PackageMapping("Aspire.*", "https://feed2.example", MappingType.Primary) // should be feed2, but config has feed1
         };
 
     var channel = CreateChannel(mappings);
@@ -283,8 +283,8 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping("Microsoft.*", "https://feed2.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary),
+            new PackageMapping("Microsoft.*", "https://feed2.example", MappingType.Supporting)
         };
 
     var channel = CreateChannel(mappings);
@@ -312,8 +312,8 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://example.com/aspire-feed"),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json") // Should map to existing "nuget" key
+            new PackageMapping("Aspire.*", "https://example.com/aspire-feed", MappingType.Primary),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting) // Should map to existing "nuget" key
         };
 
         var channel = CreateChannel(mappings);
@@ -363,7 +363,7 @@ public class NuGetConfigMergerTests
         // aspire update adds specific mappings but doesn't include a wildcard
         var mappings = new[]
         {
-            new PackageMapping("Aspire*", "https://example.com/aspire-daily")
+            new PackageMapping("Aspire*", "https://example.com/aspire-daily", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
@@ -431,8 +431,8 @@ public class NuGetConfigMergerTests
         // aspire update adds specific mappings for Aspire packages to a new channel
         var mappings = new[]
         {
-            new PackageMapping("Aspire*", "https://example.com/aspire-daily"),
-            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://example.com/aspire-daily")
+            new PackageMapping("Aspire*", "https://example.com/aspire-daily", MappingType.Primary),
+            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://example.com/aspire-daily", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
@@ -496,9 +496,9 @@ public class NuGetConfigMergerTests
         // New mappings that remap Aspire patterns to nuget.org and add a wildcard
         var mappings = new[]
         {
-            new PackageMapping("Aspire*", "https://api.nuget.org/v3/index.json"),
-            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://api.nuget.org/v3/index.json"),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
+            new PackageMapping("Aspire*", "https://api.nuget.org/v3/index.json", MappingType.Primary),
+            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://api.nuget.org/v3/index.json", MappingType.Primary),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json", MappingType.Supporting)
         };
 
         var channel = CreateChannel(mappings);
@@ -551,7 +551,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
@@ -590,7 +590,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
@@ -631,7 +631,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
@@ -683,7 +683,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
@@ -713,7 +713,7 @@ public class NuGetConfigMergerTests
 
         var mappings = new[]
         {
-            new PackageMapping("Aspire.*", "https://feed1.example")
+            new PackageMapping("Aspire.*", "https://feed1.example", MappingType.Primary)
         };
 
         var channel = CreateChannel(mappings);
