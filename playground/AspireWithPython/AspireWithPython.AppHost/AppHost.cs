@@ -1,6 +1,4 @@
-﻿#pragma warning disable ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
