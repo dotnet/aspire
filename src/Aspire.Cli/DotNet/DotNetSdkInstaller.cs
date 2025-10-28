@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -607,7 +608,7 @@ file sealed class DownloadedColumn : ProgressColumn
 file sealed class TransferSpeedColumn : ProgressColumn
 {
     private const double SpeedUpdateIntervalSeconds = 0.5;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
+    private readonly ConcurrentDictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
 
     /// <inheritdoc />
     public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
