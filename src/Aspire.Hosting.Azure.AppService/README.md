@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.AppService library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure App Service for the compute resources (like project).
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure App Service for the compute resources (like project).
 
 ## Getting started
 
