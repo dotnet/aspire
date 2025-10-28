@@ -63,6 +63,19 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             imageName).ConfigureAwait(false);
     }
 
+    public virtual async Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"rmi \"{imageName}\"";
+        
+        await ExecuteContainerCommandAsync(
+            arguments, 
+            $"{Name} rmi for {{ImageName}} failed with exit code {{ExitCode}}.",
+            $"{Name} rmi for {{ImageName}} succeeded.",
+            $"{Name} rmi failed with exit code {{0}}.",
+            cancellationToken,
+            imageName).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Executes a container runtime command with standard logging and error handling.
     /// </summary>

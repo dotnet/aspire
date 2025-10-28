@@ -203,8 +203,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             }
 
             // Remove the temporary tagged image
-            //logger.LogDebug("Removing temporary image {TempImageName}", tempImageName);
-            //await containerRuntime.RemoveImageAsync(tempImageName, ctx.CancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Removing temporary image {TempImageName}", tempImageName);
+            await containerRuntime.RemoveImageAsync(tempImageName, ctx.CancellationToken).ConfigureAwait(false);
         }
     }
 }
