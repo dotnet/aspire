@@ -186,10 +186,7 @@ If the `aspire update` command fails:
    - Missing package sources
    - Network issues downloading packages
 3. **Fail the test** - If `aspire update` fails, the scenario should fail
-4. **Report the failure** with details:
-   - Exit code from `aspire update`
-   - Full error output
-   - Which packages it attempted to update (if visible in output)
+4. **Report the failure** including: exit code, full error output, and attempted package updates (if visible)
 
 **If `aspire update` fails, STOP HERE and report the failure. Do not proceed to Step 5.**
 
@@ -266,9 +263,7 @@ dotnet add <project-path> package <package-name>
 ```
 
 **Keep track of all manual package updates:**
-- Create a list of packages that required manual intervention
-- Note the old version and new version for each
-- Document why the automatic update didn't handle it
+- Create a list in the format specified in section 5.2.4 documenting each manual package update as you make it
 
 After fixing package issues, try building again:
 
@@ -347,8 +342,7 @@ sleep 60
 Navigate to the Resources view in the dashboard to see all services:
 
 ```bash
-# If needed, click on Resources tab
-playwright-browser click "Resources"
+playwright-browser click "text=Resources"
 ```
 
 ### 6.4 Take a Screenshot
