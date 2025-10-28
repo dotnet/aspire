@@ -23,6 +23,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : TemplateTestsBase
     [RequiresPlaywright]
     [Trait("category", "basic-build")]
     [OuterLoop("playwright test")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8011")]
     public async Task TemplatesForIndividualTestFrameworks(string prefix)
     {
         var id = $"{prefix}-{_testTemplateName}";
