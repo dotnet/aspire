@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IReportingStep : IAsyncDisposable
 {
     /// <summary>

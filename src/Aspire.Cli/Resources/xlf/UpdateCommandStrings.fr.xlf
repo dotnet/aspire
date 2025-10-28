@@ -77,6 +77,11 @@
         <target state="translated">Échec de la mise à jour de la référence de package pour {0} dans le projet {1}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FallbackParsingWarning">
+        <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
+        <target state="new">Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MappingAddedFormat">
         <source>   Mapping: {0} (added)</source>
         <target state="translated">   Mappage : {0} (ajouté)</target>

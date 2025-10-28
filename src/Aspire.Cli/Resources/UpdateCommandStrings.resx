@@ -111,4 +111,7 @@
   <data name="MappingRetainedFormat" xml:space="preserve">
     <value>   Mapping: {0}</value>
   </data>
+  <data name="FallbackParsingWarning" xml:space="preserve">
+    <value>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</value>
+  </data>
 </root>

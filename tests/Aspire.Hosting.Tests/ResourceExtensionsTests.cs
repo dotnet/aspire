@@ -323,7 +323,7 @@ public class ResourceExtensionsTests
     public async Task WithDeploymentImageTag_AddsDeploymentImageTagCallbackAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        
+
         var containerResource = builder.AddContainer("test-container", "nginx")
             .WithDeploymentImageTag(_ => "test-tag");
 

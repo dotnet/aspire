@@ -61,7 +61,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .NET Aspire.
+        ///   Looks up a localized string similar to Aspire.
         /// </summary>
         public static string MainLayoutAspire {
             get {
@@ -79,7 +79,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .NET Aspire repo.
+        ///   Looks up a localized string similar to Aspire repo.
         /// </summary>
         public static string MainLayoutAspireRepoLink {
             get {
