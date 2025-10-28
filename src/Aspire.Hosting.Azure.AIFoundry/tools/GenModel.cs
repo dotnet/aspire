@@ -512,7 +512,10 @@ public class ModelClient : IDisposable
             // Exclude models that are not listed by foundry local (TBD)
             // c.f. https://github.com/microsoft/Foundry-Local/issues/245#issuecomment-3404022929
             allModels.RemoveAll(m => m.Annotations?.Tags?.TryGetValue("alias", out var alias) is true && alias is not null &&
-                (alias.Contains("whisper") || alias == "phi-4-reasoning"));
+                (alias.Contains("whisper") ||
+                alias == "phi-4-reasoning" ||
+                alias == "qwen2.5-1.5b-instruct-test-qnn-npu" ||
+                alias == "qwen2.5-1.5b-instruct-test-openvino-npu"));
         }
         else
         {
