@@ -289,13 +289,14 @@ Before proceeding or failing, create a comprehensive list of all packages that r
 **Format:**
 ```
 Manual Package Updates Required:
-1. Package: <package-name>
-   Project: <project-path>
+1. File: <path-to-csproj-or-Directory.Packages.props>
+   Package: <package-name>
    Old Version: <version> (or "not installed")
    New Version: <version>
    Reason: <why manual update was needed>
 
-2. Package: <package-name>
+2. File: <path-to-csproj-or-Directory.Packages.props>
+   Package: <package-name>
    ...
 ```
 
@@ -448,13 +449,19 @@ No packages required manual updating. All updates were handled by `aspire update
 <If some:>
 The following packages required manual intervention:
 
-1. Package: Aspire.Hosting.Azure.Storage
-   Project: eShop.AppHost/eShop.AppHost.csproj
+1. File: eShop.AppHost/eShop.AppHost.csproj
+   Package: Aspire.Hosting.Azure.Storage
    Old Version: 9.0.0
    New Version: 10.0.0-preview.1.12345
    Reason: Version conflict with Azure.Storage.Blobs dependency
 
-2. ...
+2. File: Directory.Packages.props
+   Package: Microsoft.Extensions.Http
+   Old Version: 9.0.0
+   New Version: 10.0.0-preview.1.12345
+   Reason: Required by updated Aspire packages
+
+3. ...
 ```
 
 ## Step 8: Cleanup
