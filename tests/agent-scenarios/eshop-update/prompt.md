@@ -5,13 +5,14 @@ This scenario tests the Aspire CLI's update functionality on the dotnet/eshop re
 ## Overview
 
 This test validates that:
-1. The Aspire CLI from the PR build can be successfully acquired
-2. The dotnet/eshop repository can be downloaded and integrated into the workspace
-3. The `aspire update` command can update the eshop repository to use PR build versions
-4. If update succeeds, the application can be launched with `aspire run`
-5. The Aspire Dashboard is accessible and all services start successfully
-6. Any build errors due to package dependencies can be identified and fixed
-7. All packages that required manual updating are enumerated
+1. .NET 9.x and .NET 10.x SDKs can be installed using the dotnet-install script
+2. The Aspire CLI from the PR build can be successfully acquired
+3. The dotnet/eshop repository can be downloaded and integrated into the workspace
+4. The `aspire update` command can update the eshop repository to use PR build versions
+5. If update succeeds, the application can be launched with `aspire run`
+6. The Aspire Dashboard is accessible and all services start successfully
+7. Any build errors due to package dependencies can be identified and fixed
+8. All packages that required manual updating are enumerated
 
 ## Prerequisites
 
@@ -21,9 +22,53 @@ Before starting, ensure you have:
 - Network access to download NuGet packages and GitHub tarballs
 - Browser automation tools available (playwright) for capturing screenshots
 
-**Note**: The .NET SDK is not required as a prerequisite - the Aspire CLI will install it automatically.
+## Step 1: Install .NET SDKs
 
-## Step 1: Install the Aspire CLI from the PR Build
+The eShop repository requires both .NET 9.x and .NET 10.x SDKs. Install them using the standard dotnet-install script.
+
+### 1.1 Download the dotnet-install script
+
+```bash
+curl -sSL -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
+chmod +x dotnet-install.sh
+```
+
+### 1.2 Install .NET 9.x SDK
+
+Install the latest version from the .NET 9.0 channel:
+
+```bash
+./dotnet-install.sh --channel 9.0 --install-dir ~/.dotnet
+```
+
+### 1.3 Install .NET 10.x SDK
+
+Install the latest version from the .NET 10 channel:
+
+```bash
+./dotnet-install.sh --channel 10.0 --install-dir ~/.dotnet
+```
+
+### 1.4 Configure PATH
+
+Ensure the installed SDKs are in your PATH:
+
+```bash
+export DOTNET_ROOT=$HOME/.dotnet
+export PATH=$DOTNET_ROOT:$PATH
+```
+
+### 1.5 Verify SDK Installation
+
+Verify both SDKs are installed correctly:
+
+```bash
+dotnet --list-sdks
+```
+
+Expected output should show both .NET 9.x and .NET 10.x SDK versions.
+
+## Step 2: Install the Aspire CLI from the PR Build
 
 The first step is to acquire the Aspire CLI from this PR build. The aspire-playground repository includes comprehensive instructions for acquiring different versions of the CLI, including PR builds.
 
@@ -37,11 +82,11 @@ aspire --version
 
 Expected output should show the version matching the PR build.
 
-## Step 2: Download and Unpack the eShop Repository
+## Step 3: Download and Unpack the eShop Repository
 
 Download the latest version of the dotnet/eshop repository as a tarball and unpack it into the working directory.
 
-### 2.1 Download the eShop Tarball
+### 3.1 Download the eShop Tarball
 
 Download the tarball from GitHub:
 
@@ -49,7 +94,7 @@ Download the tarball from GitHub:
 curl -L -o eshop.tar.gz https://github.com/dotnet/eshop/tarball/HEAD
 ```
 
-### 2.2 Unpack the Tarball
+### 3.2 Unpack the Tarball
 
 Extract the contents of the tarball. Note that GitHub tarballs create a top-level directory with a name like `dotnet-eshop-<commit-hash>`:
 
@@ -57,7 +102,7 @@ Extract the contents of the tarball. Note that GitHub tarballs create a top-leve
 tar -xzf eshop.tar.gz
 ```
 
-### 2.3 Move Files to Working Directory
+### 3.3 Move Files to Working Directory
 
 List the extracted directory to identify the exact name:
 
@@ -81,7 +126,7 @@ shopt -u dotglob
 rm eshop.tar.gz
 ```
 
-### 2.4 Verify eShop Files
+### 3.4 Verify eShop Files
 
 Verify that the eShop repository files are now in the working directory:
 
@@ -96,7 +141,7 @@ Expected files:
 - `src/` directory with service implementations
 - `README.md` with eShop documentation
 
-### 2.5 Commit the eShop Files
+### 3.5 Commit the eShop Files
 
 Commit all the eShop files to the current branch:
 
@@ -107,11 +152,11 @@ git commit -m "Add eShop repository for update testing"
 
 **Important**: Ensure all files are committed before proceeding. The `aspire update` command may modify files, and we need a clean baseline.
 
-## Step 3: Run Aspire Update
+## Step 4: Run Aspire Update
 
 Now run the `aspire update` command to update the eShop repository to use the PR build versions of Aspire packages.
 
-### 3.1 Execute Aspire Update
+### 4.1 Execute Aspire Update
 
 From the workspace directory (which now contains the eShop files), run:
 
@@ -131,7 +176,7 @@ The `aspire update` command will:
 - It should show which packages are being updated and to which versions
 - The command should complete with exit code 0 for success
 
-### 3.2 Handle Update Failures
+### 4.2 Handle Update Failures
 
 If the `aspire update` command fails:
 
@@ -146,9 +191,9 @@ If the `aspire update` command fails:
    - Full error output
    - Which packages it attempted to update (if visible in output)
 
-**If `aspire update` fails, STOP HERE and report the failure. Do not proceed to Step 4.**
+**If `aspire update` fails, STOP HERE and report the failure. Do not proceed to Step 5.**
 
-### 3.3 Verify Update Results
+### 4.3 Verify Update Results
 
 If the update succeeds, verify what was changed:
 
@@ -169,11 +214,11 @@ git add .
 git commit -m "Apply aspire update to use PR build packages"
 ```
 
-## Step 4: Launch the Application with Aspire Run
+## Step 5: Launch the Application with Aspire Run
 
 If `aspire update` succeeded, attempt to launch the eShop application using `aspire run`.
 
-### 4.1 Start the Application
+### 5.1 Start the Application
 
 From the workspace directory, run:
 
@@ -195,11 +240,11 @@ The `aspire run` command will:
   - Services starting up
   - Watch for any build errors or runtime errors
 
-### 4.2 Handle Build Errors
+### 5.2 Handle Build Errors
 
 If `aspire run` fails with build errors, analyze them carefully:
 
-#### 4.2.1 Identify Build Error Types
+#### 5.2.1 Identify Build Error Types
 
 Common build error types:
 1. **Package dependency mismatches** - Package version conflicts or missing packages
@@ -207,7 +252,7 @@ Common build error types:
 3. **Configuration issues** - Missing or invalid configuration
 4. **Other errors** - Unrelated to packages
 
-#### 4.2.2 Fix Package Dependency Issues
+#### 5.2.2 Fix Package Dependency Issues
 
 If the build errors are **only** package dependency issues, attempt to fix them:
 
@@ -231,7 +276,7 @@ After fixing package issues, try building again:
 aspire run
 ```
 
-#### 4.2.3 Fail on Non-Package Errors
+#### 5.2.3 Fail on Non-Package Errors
 
 If the build errors are **NOT** package dependency issues (e.g., breaking API changes, code compilation errors), do NOT attempt to fix them:
 
@@ -242,7 +287,7 @@ If the build errors are **NOT** package dependency issues (e.g., breaking API ch
    - Provide relevant error messages
    - Explain that these are not simple package updates
 
-#### 4.2.4 Enumerate Manual Package Updates
+#### 5.2.4 Enumerate Manual Package Updates
 
 Before proceeding or failing, create a comprehensive list of all packages that required manual updating:
 
@@ -261,7 +306,7 @@ Manual Package Updates Required:
 
 **Include this list in the final report regardless of success or failure.**
 
-### 4.3 Wait for Startup
+### 5.3 Wait for Startup
 
 If the build succeeds, allow 60-120 seconds for the application to fully start. eShop has many services and may take longer than simpler apps.
 
@@ -273,11 +318,11 @@ Monitor the console output for:
 
 **Tip:** The dashboard URL with access token will be displayed in the console output from `aspire run`. Note this complete URL (including the token parameter) for later steps.
 
-## Step 5: Verify the Aspire Dashboard
+## Step 6: Verify the Aspire Dashboard
 
 Once the application is running, access the Aspire Dashboard to verify service health.
 
-### 5.1 Access the Dashboard
+### 6.1 Access the Dashboard
 
 The dashboard URL with access token is displayed in the output from `aspire run`. Use this URL to access the dashboard.
 
@@ -289,7 +334,7 @@ The dashboard URL with access token is displayed in the output from `aspire run`
 playwright-browser navigate $DASHBOARD_URL
 ```
 
-### 5.2 Wait for Services to Start
+### 6.2 Wait for Services to Start
 
 Wait for approximately 60 seconds to allow all services sufficient time to start:
 
@@ -297,7 +342,7 @@ Wait for approximately 60 seconds to allow all services sufficient time to start
 sleep 60
 ```
 
-### 5.3 Navigate to Resources View
+### 6.3 Navigate to Resources View
 
 Navigate to the Resources view in the dashboard to see all services:
 
@@ -306,7 +351,7 @@ Navigate to the Resources view in the dashboard to see all services:
 playwright-browser click "Resources"
 ```
 
-### 5.4 Take a Screenshot
+### 6.4 Take a Screenshot
 
 Capture a screenshot of the dashboard showing all resources:
 
@@ -314,7 +359,7 @@ Capture a screenshot of the dashboard showing all resources:
 playwright-browser take_screenshot --filename dashboard-eshop-resources.png
 ```
 
-### 5.5 Analyze Service Status
+### 6.5 Analyze Service Status
 
 Examine the dashboard (via screenshot or browser inspection) to determine:
 
@@ -334,11 +379,11 @@ Examine the dashboard (via screenshot or browser inspection) to determine:
 - Various databases (PostgreSQL, Redis, etc.)
 - Message queues (RabbitMQ, etc.)
 
-## Step 6: Report Results
+## Step 7: Report Results
 
 Provide a comprehensive summary of the scenario execution.
 
-### 6.1 Success Criteria
+### 7.1 Success Criteria
 
 The scenario is successful if:
 - `aspire update` completed successfully
@@ -346,7 +391,7 @@ The scenario is successful if:
 - The Aspire Dashboard is accessible
 - All or most services started successfully or completed without error
 
-### 6.2 Summary Report Format
+### 7.2 Summary Report Format
 
 Provide a report in the following format:
 
@@ -388,7 +433,7 @@ Provide a report in the following format:
 <Brief summary of whether the scenario met success criteria>
 ```
 
-### 6.3 Screenshot Analysis
+### 7.3 Screenshot Analysis
 
 Include specific observations from the dashboard screenshot:
 - Which services are green (running/healthy)
@@ -396,7 +441,7 @@ Include specific observations from the dashboard screenshot:
 - Any services that failed to start
 - Overall health assessment
 
-### 6.4 Package Update Enumeration
+### 7.4 Package Update Enumeration
 
 **ALWAYS** include a complete enumeration of packages that required manual updating, even if the list is empty:
 
@@ -418,11 +463,11 @@ The following packages required manual intervention:
 2. ...
 ```
 
-## Step 7: Cleanup
+## Step 8: Cleanup
 
 After completing the scenario (whether success or failure):
 
-### 7.1 Stop the Application
+### 8.1 Stop the Application
 
 If `aspire run` is still running, stop it gracefully:
 
@@ -431,7 +476,7 @@ If `aspire run` is still running, stop it gracefully:
 pkill -f "aspire run" || true
 ```
 
-### 7.2 Final Commit
+### 8.2 Final Commit
 
 Ensure all changes are committed:
 
