@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -20,8 +21,9 @@ using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
-using System.Security.Cryptography;
 
 namespace Aspire.Cli.DotNet;
 
@@ -564,6 +566,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         // Configure DOTNET_ROOT to point to the private SDK installation if it exists
         ConfigurePrivateSdkEnvironment(startInfo);
+
+        // Propagate trace context to child processes for distributed tracing correlation
+        if (activity is not null && activity.Context != default)
+        {
+            var propagator = new TraceContextPropagator();
+            propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), startInfo.EnvironmentVariables, (carrier, key, value) =>
+            {
+                carrier[key] = value;
+            });
+        }
 
         if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {

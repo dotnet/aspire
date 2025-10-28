@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Cli.Backchannel;
@@ -27,12 +28,11 @@ using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
-
-#if DEBUG
+using Azure.Monitor.OpenTelemetry.Exporter;
 using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-#endif
 
 namespace Aspire.Cli;
 
@@ -80,7 +80,6 @@ public class Program
             logging.IncludeScopes = true;
         });
 
-#if DEBUG
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
             .WithTracing(tracing =>
@@ -97,7 +96,20 @@ public class Program
             //       has to finish sending telemetry.
             otelBuilder.UseOtlpExporter();
         }
-#endif
+
+        // Add Azure Monitor exporter for production telemetry
+        // Connection string will be configured after privacy review
+        otelBuilder.WithTracing(tracing =>
+        {
+            tracing.AddAzureMonitorTraceExporter(options =>
+            {
+                // TODO: Connection string will be added after privacy review
+                // For now, the exporter is added but will not send data without a connection string
+                options.EnableLiveMetrics = false;
+                var aspirePath = GetUsersAspirePath();
+                options.StorageDirectory = Path.Combine(aspirePath, "telemetry");
+            });
+        });
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
 
@@ -272,12 +284,58 @@ public class Program
         };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
-        using var activity = telemetry.ActivitySource.StartActivity();
+        
+        // Derive parent activity context from environment variables for distributed tracing
+        var (parentActivityContext, activityKind) = DeriveParentActivityContextFromEnv();
+        
+        // Create a parent activity span for all CLI operations
+        using var activity = telemetry.ActivitySource.StartActivity("aspire-cli", activityKind, parentActivityContext);
+        activity?.SetStartTime(Process.GetCurrentProcess().StartTime);
+        activity?.AddTag("process.pid", Environment.ProcessId);
+        activity?.AddTag("process.executable.name", "aspire");
+        
         var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig);
 
         await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
+    }
+
+    /// <summary>
+    /// Uses the OpenTelemetry SDK's Propagation API to derive the parent activity context and kind
+    /// from the TRACEPARENT and TRACESTATE environment variables.
+    /// </summary>
+    private static (ActivityContext parentActivityContext, ActivityKind kind) DeriveParentActivityContextFromEnv()
+    {
+        var traceParent = Environment.GetEnvironmentVariable("TRACEPARENT");
+        var traceState = Environment.GetEnvironmentVariable("TRACESTATE");
+
+        if (string.IsNullOrEmpty(traceParent))
+        {
+            return (default, ActivityKind.Internal);
+        }
+
+        var carrierMap = new Dictionary<string, IEnumerable<string>?> { { "traceparent", new[] { traceParent } } };
+        if (!string.IsNullOrEmpty(traceState))
+        {
+            carrierMap.Add("tracestate", new[] { traceState });
+        }
+
+        // Use the OpenTelemetry Propagator to extract the parent activity context and kind
+        Sdk.SetDefaultTextMapPropagator(new CompositeTextMapPropagator(new TextMapPropagator[]
+        {
+            new TraceContextPropagator(),
+            new BaggagePropagator()
+        }));
+        var parentActivityContext = Propagators.DefaultTextMapPropagator.Extract(default, carrierMap, GetValueFromCarrier);
+        var kind = parentActivityContext.ActivityContext.IsRemote ? ActivityKind.Server : ActivityKind.Internal;
+
+        return (parentActivityContext.ActivityContext, kind);
+
+        static IEnumerable<string>? GetValueFromCarrier(Dictionary<string, IEnumerable<string>?> carrier, string key)
+        {
+            return carrier.TryGetValue(key, out var value) ? value : null;
+        }
     }
 
     private static void AddInteractionServices(HostApplicationBuilder builder)
