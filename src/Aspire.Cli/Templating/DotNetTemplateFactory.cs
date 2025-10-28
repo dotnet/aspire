@@ -13,10 +13,19 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
+using System.Diagnostics;
 
 namespace Aspire.Cli.Templating;
 
-internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, IPackagingService packagingService, INewCommandPrompter prompter, CliExecutionContext executionContext, IFeatures features) : ITemplateFactory
+internal class DotNetTemplateFactory(
+    IInteractionService interactionService,
+    IDotNetCliRunner runner,
+    ICertificateService certificateService,
+    IPackagingService packagingService,
+    INewCommandPrompter prompter,
+    CliExecutionContext executionContext,
+    IFeatures features)
+    : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -24,19 +33,21 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return GetTemplatesCore(showAllTemplates);
     }
 
-    public IEnumerable<ITemplate> GetAllTemplates()
+    public IEnumerable<ITemplate> GetInitTemplates()
     {
-        return GetTemplatesCore(showAllTemplates: true);
+        return GetTemplatesCore(showAllTemplates: true, nonInteractive: true);
     }
 
-    private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates)
+    private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates, bool nonInteractive = false)
     {
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
             projectName => $"./{projectName}",
             ApplyExtraAspireStarterOptions,
-            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
         // Single-file AppHost templates
@@ -45,7 +56,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             TemplatingStrings.AspirePyStarter_Description,
             projectName => $"./{projectName}",
             ApplyDevLocalhostTldOption,
-            (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
+            nonInteractive
+                ? ApplySingleFileTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
             );
 
         yield return new CallbackTemplate(
@@ -53,7 +66,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             TemplatingStrings.AspireAppHostSingleFile_Description,
             projectName => $"./{projectName}",
             ApplyDevLocalhostTldOption,
-            (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
+            nonInteractive
+                ? ApplySingleFileTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
             );
 
         if (showAllTemplates)
@@ -107,7 +122,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             TemplatingStrings.AspireXUnit_Description,
             projectName => $"./{projectName}",
             _ => { },
-            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
             );
 
         // Prepends a test framework selection step then calls the
@@ -321,6 +338,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 cancellationToken
                 );
         }
+    }
+
+    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ApplySingleFileTemplate(
+            template,
+            parseResult,
+            (_, _) => Task.FromResult(Array.Empty<string>()),
+            cancellationToken);
     }
 
     private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
