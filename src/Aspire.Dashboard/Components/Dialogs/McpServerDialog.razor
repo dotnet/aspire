@@ -15,7 +15,7 @@
     {
         <p>
             @Loc[nameof(Resources.Dialogs.McpServerDialogIntroduction)]
-            For more information, see <a href="" target="_blank">@Loc[nameof(Resources.Dialogs.McpServerDialogLearnMoreLink)]</a>.
+            For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Resources.Dialogs.McpServerDialogLearnMoreLink)]</a>.
         </p>
         <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
@@ -40,7 +40,7 @@
                         </a>
                     </p>
                     <p>
-                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVisualStudio)], "https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022#options-for-adding-an-mcp-server"))
+                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVisualStudio)], "https://aka.ms/aspire/mcp-add-client-vs"))
                     </p>
                     <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
                 </div>
@@ -78,7 +78,7 @@
                         </a>
                     </p>
                     <p>
-                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVSCode)], "https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server"))
+                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVSCode)], "https://aka.ms/aspire/mcp-add-client-vscode"))
                     </p>
                     <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
                     @if (_isHttps)
