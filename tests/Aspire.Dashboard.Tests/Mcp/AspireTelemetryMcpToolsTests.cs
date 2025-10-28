@@ -12,7 +12,7 @@ using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.Mcp;
 
-public class AspireMcpToolsTests
+public class AspireTelemetryMcpToolsTests
 {
     [Fact]
     public void ListTraces_NoResources_ReturnsEmptyResult()
