@@ -158,8 +158,11 @@
     <value>An error occurred while adding the package: {0}</value>
   </data>
   <data name="SelectAVersionOfPackage" xml:space="preserve">
-    <value>Select a version of {0}:</value>
-    <comment>{0} is the package name.</comment>
+    <value>Select a version of {0} from the {1} channel:</value>
+    <comment>{0} is the package name, {1} is the channel name.</comment>
+  </data>
+  <data name="SelectAChannel" xml:space="preserve">
+    <value>Select a channel</value>
   </data>
   <data name="SelectAnIntegrationToAdd" xml:space="preserve">
     <value>Select an integration to add:</value>

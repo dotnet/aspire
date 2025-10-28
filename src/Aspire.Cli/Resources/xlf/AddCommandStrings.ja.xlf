@@ -62,10 +62,15 @@
         <target state="translated">Aspire 統合を検索しています...</target>
         <note />
       </trans-unit>
+      <trans-unit id="SelectAChannel">
+        <source>Select a channel</source>
+        <target state="new">Select a channel</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">
-        <source>Select a version of {0}:</source>
-        <target state="translated">{0} のバージョンを選択します:</target>
-        <note>{0} is the package name.</note>
+        <source>Select a version of {0} from the {1} channel:</source>
+        <target state="new">Select a version of {0} from the {1} channel:</target>
+        <note>{0} is the package name, {1} is the channel name.</note>
       </trans-unit>
       <trans-unit id="SelectAnIntegrationToAdd">
         <source>Select an integration to add:</source>

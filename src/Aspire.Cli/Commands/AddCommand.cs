@@ -295,7 +295,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                 .ToArray();
 
             var selection = await interactionService.PromptForSelectionAsync(
-                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, channel.Name),
+                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id, channel.Name),
                 choices,
                 c => c.Label,
                 ct);
@@ -318,7 +318,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                 .ToArray();
 
             var channelSelection = await interactionService.PromptForSelectionAsync(
-                "Select a channel",
+                AddCommandStrings.SelectAChannel,
                 channelChoices,
                 c => c.Label,
                 ct);

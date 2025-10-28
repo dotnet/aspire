@@ -173,6 +173,14 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+        public static string SelectAChannel
+        {
+            get
+            {
+                return ResourceManager.GetString("SelectAChannel", resourceCulture);
+            }
+        }
+
         public static string NoPackagesMatchedSearchTerm
         {
             get
