@@ -1,0 +1,215 @@
+name: Test Scenario Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cleanup-playground:
+    # Run when a PR is closed OR when the comment is /test-scenario-cleanup on a PR
+    if: >-
+      ${{
+        github.event_name == 'pull_request' ||
+        (startsWith(github.event.comment.body, '/test-scenario-cleanup') &&
+         github.event.issue.pull_request)
+      }}
+    runs-on: ubuntu-latest
+    env:
+      REPO_OWNER: dotnet
+      REPO_NAME: aspire-playground
+      GH_CLI_VERSION: 2.81.0
+      GH_PLAYGROUND_TOKEN: ${{ secrets.GH_PLAYGROUND_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Get PR number
+        id: get_pr_number
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.issue.number }}"
+          fi
+          echo "PR number: $PR_NUMBER"
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Download and install GitHub CLI
+        run: |
+          CURRENT_VERSION=""
+          if command -v gh &> /dev/null; then
+            CURRENT_VERSION=$(gh --version | \
+              grep -oP 'gh version \K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            echo "Current GitHub CLI version: $CURRENT_VERSION"
+          fi
+
+          if [ "$CURRENT_VERSION" = "$GH_CLI_VERSION" ]; then
+            echo "GitHub CLI v${GH_CLI_VERSION} already installed"
+          else
+            echo "Downloading GitHub CLI v${GH_CLI_VERSION}..."
+            DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}"
+            ARCHIVE_NAME="gh_${GH_CLI_VERSION}_linux_amd64.tar.gz"
+            curl -fsSL "${DOWNLOAD_URL}/${ARCHIVE_NAME}" -o gh.tar.gz
+            tar -xzf gh.tar.gz
+            sudo mv "gh_${GH_CLI_VERSION}_linux_amd64/bin/gh" /usr/local/bin/
+            rm -rf gh.tar.gz "gh_${GH_CLI_VERSION}_linux_amd64"
+
+            echo "Verifying GitHub CLI installation..."
+            gh --version
+          fi
+
+      - name: Find and close linked playground items
+        id: cleanup
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.get_pr_number.outputs.pr_number }}"
+          SOURCE_REPO="${{ github.repository }}"
+          SOURCE_REPO_NAME=$(echo "$SOURCE_REPO" | cut -d'/' -f2)
+
+          echo "Finding linked issues/PRs in aspire-playground for PR #$PR_NUMBER..."
+
+          # Get the PR body and comments to find references to playground issues/PRs
+          # Use GraphQL to get the timeline and linked issues
+          QUERY='query($owner: String!, $repo: String!, $number: Int!) {
+            repository(owner: $owner, name: $repo) {
+              pullRequest(number: $number) {
+                closingIssuesReferences(first: 100) {
+                  nodes {
+                    number
+                    url
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                    labels(first: 100) {
+                      nodes {
+                        name
+                      }
+                    }
+                  }
+                }
+                body
+                comments(first: 100) {
+                  nodes {
+                    body
+                  }
+                }
+              }
+            }
+          }'
+
+          # Execute GraphQL query
+          RESULT=$(gh api graphql -f query="$QUERY" \
+            -F owner="${{ github.repository_owner }}" \
+            -F repo="$SOURCE_REPO_NAME" \
+            -F number="$PR_NUMBER")
+
+          echo "GraphQL response: $RESULT"
+
+          # Extract playground issues/PRs from body and comments
+          PR_BODY=$(echo "$RESULT" | jq -r '.data.repository.pullRequest.body // ""')
+          COMMENTS=$(echo "$RESULT" | jq -r '.data.repository.pullRequest.comments.nodes[].body // ""')
+
+          # Find playground issue/PR references in format: https://github.com/dotnet/aspire-playground/issues/123 or /pull/123
+          PLAYGROUND_REFS=$(echo -e "$PR_BODY\n$COMMENTS" | \
+            grep -oP "https://github\.com/${REPO_OWNER}/${REPO_NAME}/(issues|pull)/\K\d+" | \
+            sort -u)
+
+          echo "Found potential playground references: $PLAYGROUND_REFS"
+
+          # Auth using the playground token
+          gh auth login --with-token <<< "$GH_PLAYGROUND_TOKEN"
+
+          CLOSED_ITEMS=""
+          CLOSED_COUNT=0
+
+          # Process each referenced item
+          for ITEM_NUMBER in $PLAYGROUND_REFS; do
+            echo "Checking item #$ITEM_NUMBER in aspire-playground..."
+
+            # Check if it's an issue or PR and get labels
+            ITEM_INFO=$(gh api "/repos/${REPO_OWNER}/${REPO_NAME}/issues/$ITEM_NUMBER" 2>/dev/null || echo "")
+
+            if [ -z "$ITEM_INFO" ]; then
+              echo "  Item #$ITEM_NUMBER not found, skipping"
+              continue
+            fi
+
+            # Check if item is already closed
+            STATE=$(echo "$ITEM_INFO" | jq -r '.state')
+            if [ "$STATE" = "closed" ]; then
+              echo "  Item #$ITEM_NUMBER is already closed, skipping"
+              continue
+            fi
+
+            # Check for auto-close label
+            HAS_AUTO_CLOSE=$(echo "$ITEM_INFO" | jq -r '.labels[] | select(.name == "auto-close") | .name')
+
+            if [ -n "$HAS_AUTO_CLOSE" ]; then
+              echo "  Item #$ITEM_NUMBER has auto-close label, closing..."
+
+              # Determine if it's a PR or issue
+              IS_PR=$(echo "$ITEM_INFO" | jq -r '.pull_request // empty')
+
+              if [ -n "$IS_PR" ]; then
+                # Close PR
+                gh pr close "$ITEM_NUMBER" \
+                  --repo "${REPO_OWNER}/${REPO_NAME}" \
+                  --comment "Automatically closed because the linked PR ${SOURCE_REPO}#${PR_NUMBER} was closed."
+
+                ITEM_TYPE="PR"
+              else
+                # Close issue
+                gh issue close "$ITEM_NUMBER" \
+                  --repo "${REPO_OWNER}/${REPO_NAME}" \
+                  --comment "Automatically closed because the linked PR ${SOURCE_REPO}#${PR_NUMBER} was closed."
+
+                ITEM_TYPE="issue"
+              fi
+
+              ITEM_URL=$(echo "$ITEM_INFO" | jq -r '.html_url')
+              CLOSED_ITEMS="${CLOSED_ITEMS}\n- ${ITEM_TYPE} [#${ITEM_NUMBER}](${ITEM_URL})"
+              CLOSED_COUNT=$((CLOSED_COUNT + 1))
+
+              echo "  Successfully closed $ITEM_TYPE #$ITEM_NUMBER"
+            else
+              echo "  Item #$ITEM_NUMBER does not have auto-close label, skipping"
+            fi
+          done
+
+          echo "closed_items<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CLOSED_ITEMS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "closed_count=$CLOSED_COUNT" >> $GITHUB_OUTPUT
+
+          echo "Cleanup complete. Closed $CLOSED_COUNT item(s)."
+
+      - name: Comment on PR with cleanup summary
+        if: steps.cleanup.outputs.closed_count > 0 && github.event_name == 'issue_comment'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const closedItems = `${{ steps.cleanup.outputs.closed_items }}`;
+            const closedCount = '${{ steps.cleanup.outputs.closed_count }}';
+
+            const comment = `🧹 **Playground Cleanup Complete**
+
+            Closed ${closedCount} item(s) in aspire-playground with the auto-close label:
+            ${closedItems}`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
