@@ -45,8 +45,7 @@ app.MapGet("/api/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseFileServer();
 
 app.Run();
 

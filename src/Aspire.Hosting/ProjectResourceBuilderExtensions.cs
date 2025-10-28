@@ -8,12 +8,8 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
-using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -21,7 +17,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -709,28 +704,6 @@ public static class ProjectResourceBuilderExtensions
             httpEndpoint.TargetPort = httpsEndpoint.TargetPort = defaultEndpointTargetPort;
         }
 
-        // Add pipeline step factory to handle ContainerFilesDestinationAnnotation
-        builder.WithPipelineStepFactory(factoryContext =>
-        {
-            List<PipelineStep> steps = [];
-            var buildStep = CreateProjectBuildImageStep($"{factoryContext.Resource.Name}-build-compute", factoryContext.Resource);
-            steps.Add(buildStep);
-
-            // Ensure any static file references' images are built first
-            if (factoryContext.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
-            {
-                foreach (var containerFile in containerFilesAnnotations)
-                {
-                    var source = containerFile.Source;
-                    var staticFileBuildStep = CreateBuildImageStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
-                    buildStep.DependsOn(staticFileBuildStep);
-                    steps.Add(staticFileBuildStep);
-                }
-            }
-
-            return steps;
-        });
-
         return builder;
     }
 
@@ -1048,155 +1021,4 @@ public static class ProjectResourceBuilderExtensions
     {
         public override ResourceAnnotationCollection Annotations => pr.Annotations;
     }
-
-    private static PipelineStep CreateBuildImageStep(string stepName, IResource resource) =>
-        new()
-        {
-            Name = stepName,
-            Action = async ctx =>
-            {
-                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                await containerImageBuilder.BuildImageAsync(
-                    resource,
-                    new ContainerBuildOptions
-                    {
-                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                    },
-                    ctx.CancellationToken).ConfigureAwait(false);
-            },
-            Tags = [WellKnownPipelineTags.BuildCompute]
-        };
-
-    private static PipelineStep CreateProjectBuildImageStep(string stepName, IResource resource) =>
-        new()
-        {
-            Name = stepName,
-            Action = async ctx =>
-            {
-                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                var logger = ctx.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ProjectResourceBuilderExtensions));
-
-                // Check if we need to copy container files
-                var hasContainerFiles = resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations);
-
-                if (!hasContainerFiles)
-                {
-                    // No container files to copy, just build the image normally
-                    await containerImageBuilder.BuildImageAsync(
-                        resource,
-                        new ContainerBuildOptions
-                        {
-                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                        },
-                        ctx.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                // Build the container image for the project first
-                await containerImageBuilder.BuildImageAsync(
-                    resource,
-                    new ContainerBuildOptions
-                    {
-                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                    },
-                    ctx.CancellationToken).ConfigureAwait(false);
-
-                // Get the built image name
-                var originalImageName = resource.Name.ToLowerInvariant();
-
-                // Tag the built image with a temporary tag
-                var tempTag = $"temp-{Guid.NewGuid():N}";
-                var tempImageName = $"{originalImageName}:{tempTag}";
-
-                var dcpOptions = ctx.Services.GetRequiredService<IOptions<DcpOptions>>();
-                var containerRuntime = dcpOptions.Value.ContainerRuntime switch
-                {
-                    string rt => ctx.Services.GetRequiredKeyedService<IContainerRuntime>(rt),
-                    null => ctx.Services.GetRequiredKeyedService<IContainerRuntime>("docker")
-                };
-
-                logger.LogInformation("Tagging image {OriginalImageName} as {TempImageName}", originalImageName, tempImageName);
-                await containerRuntime.TagImageAsync(originalImageName, tempImageName, ctx.CancellationToken).ConfigureAwait(false);
-
-                // Generate a Dockerfile that layers the container files on top
-                var dockerfileBuilder = new DockerfileBuilder();
-                var stage = dockerfileBuilder.From(tempImageName);
-
-                // Add COPY --from: statements for each source
-                foreach (var containerFileDestination in containerFilesAnnotations!)
-                {
-                    var source = containerFileDestination.Source;
-
-                    if (!source.TryGetContainerImageName(out var sourceImageName))
-                    {
-                        logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
-                        continue;
-                    }
-
-                    var destinationPath = containerFileDestination.DestinationPath;
-                    if (!destinationPath.StartsWith('/'))
-                    {
-                        // Make it an absolute path relative to /app (typical .NET container working directory)
-                        destinationPath = $"/app/{destinationPath}";
-                    }
-
-                    foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                    {
-                        logger.LogInformation("Adding COPY --from={SourceImage} {SourcePath} {DestinationPath}",
-                            sourceImageName, containerFilesSource.SourcePath, destinationPath);
-                        stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, destinationPath);
-                    }
-                }
-
-                // Write the Dockerfile to a temporary location
-                var projectResource = (ProjectResource)resource;
-                var projectMetadata = projectResource.GetProjectMetadata();
-                var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-                var tempDockerfilePath = Path.Combine(projectDir, $"Dockerfile.{Guid.NewGuid():N}");
-
-                try
-                {
-                    using (var writer = new StreamWriter(tempDockerfilePath))
-                    {
-                        await dockerfileBuilder.WriteAsync(writer, ctx.CancellationToken).ConfigureAwait(false);
-                    }
-
-                    logger.LogDebug("Generated temporary Dockerfile at {DockerfilePath}", tempDockerfilePath);
-
-                    // Build the final image from the generated Dockerfile
-                    await containerRuntime.BuildImageAsync(
-                        projectDir,
-                        tempDockerfilePath,
-                        originalImageName,
-                        new ContainerBuildOptions
-                        {
-                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                        },
-                        new Dictionary<string, string?>(),
-                        new Dictionary<string, string?>(),
-                        null,
-                        ctx.CancellationToken).ConfigureAwait(false);
-
-                    logger.LogInformation("Successfully built final image {ImageName} with container files", originalImageName);
-                }
-                finally
-                {
-                    // Clean up the temporary Dockerfile
-                    if (File.Exists(tempDockerfilePath))
-                    {
-                        try
-                        {
-                            File.Delete(tempDockerfilePath);
-                            logger.LogDebug("Deleted temporary Dockerfile {DockerfilePath}", tempDockerfilePath);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogWarning(ex, "Failed to delete temporary Dockerfile {DockerfilePath}", tempDockerfilePath);
-                        }
-                    }
-                }
-            },
-            Tags = [WellKnownPipelineTags.BuildCompute]
-        };
-
 }
