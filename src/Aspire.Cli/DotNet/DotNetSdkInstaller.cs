@@ -23,6 +23,21 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// </summary>
     public const string MinimumSdkVersion = "10.0.100-rc.2.25502.107";
 
+    /// <summary>
+    /// The base URL for downloading .NET SDK archives.
+    /// </summary>
+    private const string DotNetBuildsBaseUrl = "https://dotnetbuilds.blob.core.windows.net/public/Sdk";
+
+    /// <summary>
+    /// The timeout for HTTP download operations.
+    /// </summary>
+    private static readonly TimeSpan s_downloadTimeout = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// The buffer size for downloading SDK archives.
+    /// </summary>
+    private const int DownloadBufferSize = 81920; // 80 KB
+
     /// <inheritdoc />
     public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -140,7 +155,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         var downloadUrl = GetSdkDownloadUrl(sdkVersion);
         logger.LogDebug("Downloading SDK from {Url}", downloadUrl);
 
-        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
+        using var httpClient = new HttpClient { Timeout = s_downloadTimeout };
         
         // Check if we're in an environment that supports progress display
         var supportsProgress = !executionContext.DebugMode && AnsiConsole.Profile.Capabilities.Ansi;
@@ -172,7 +187,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                     using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
                     using var fileStream = File.Create(destinationPath);
                     
-                    var buffer = new byte[81920]; // 80 KB buffer
+                    var buffer = new byte[DownloadBufferSize];
                     long totalBytesRead = 0;
                     int bytesRead;
                     
@@ -242,7 +257,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
         // Use the dotnetbuilds blob storage URL pattern
         // Format: https://dotnetbuilds.blob.core.windows.net/public/Sdk/{version}/dotnet-sdk-{version}-{rid}.{extension}
-        return $"https://dotnetbuilds.blob.core.windows.net/public/Sdk/{sdkVersion}/dotnet-sdk-{sdkVersion}-{rid}.{extension}";
+        return $"{DotNetBuildsBaseUrl}/{sdkVersion}/dotnet-sdk-{sdkVersion}-{rid}.{extension}";
     }
 
     /// <inheritdoc />
@@ -563,6 +578,8 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 /// </summary>
 file sealed class DownloadedColumn : ProgressColumn
 {
+    private static readonly string[] s_sizeUnits = ["B", "KB", "MB", "GB"];
+
     /// <inheritdoc />
     public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
     {
@@ -573,15 +590,14 @@ file sealed class DownloadedColumn : ProgressColumn
 
     private static string FormatBytes(long bytes)
     {
-        string[] sizes = ["B", "KB", "MB", "GB"];
         double len = bytes;
         int order = 0;
-        while (len >= 1024 && order < sizes.Length - 1)
+        while (len >= 1024 && order < s_sizeUnits.Length - 1)
         {
             order++;
             len = len / 1024;
         }
-        return $"{len:0.##} {sizes[order]}";
+        return $"{len:0.##} {s_sizeUnits[order]}";
     }
 }
 
@@ -590,7 +606,8 @@ file sealed class DownloadedColumn : ProgressColumn
 /// </summary>
 file sealed class TransferSpeedColumn : ProgressColumn
 {
-    private readonly Dictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
+    private const double SpeedUpdateIntervalSeconds = 0.5;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
 
     /// <inheritdoc />
     public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
@@ -605,7 +622,7 @@ file sealed class TransferSpeedColumn : ProgressColumn
         }
 
         var elapsed = (now - data.LastUpdate).TotalSeconds;
-        if (elapsed < 0.5) // Update speed every 0.5 seconds
+        if (elapsed < SpeedUpdateIntervalSeconds)
         {
             return new Markup("[dim]-- MB/s[/]");
         }
