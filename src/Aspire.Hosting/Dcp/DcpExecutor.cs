@@ -185,8 +185,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     containerNetwork == containerNetworkName
                 );
 
-                _logger.LogInformation($"Waiting for container network '{containerNetworkName}' tunnel intialization...");
-                // Container tunnel intialization can take a while if the container tunnel image needs to be built,
+                _logger.LogInformation($"Waiting for container network '{containerNetworkName}' tunnel initialization...");
+                // Container tunnel initialization can take a while if the container tunnel image needs to be built,
                 // expecially if the network is slow, hence 10 minute timeout here.
                 await UpdateWithEffectiveAddressInfo(tunnelServices, cancellationToken, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
                 _logger.LogInformation($"Tunnel for container network '{containerNetworkName}' initialized");
@@ -889,7 +889,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied)
                     {
-                        // This should never happen; if it does, we have a bug without a workaround for th the user.
+                        // This should never happen; if it does, we have a bug without a workaround for the user.
                         // We should have waited for the service to have a complete address before getting here.
                         throw new InvalidDataException($"Service {svc.Metadata.Name} should have valid address at this point");
                     }
@@ -940,7 +940,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     if (ts.Service?.HasCompleteAddress is not true)
                     {
-                        // This should never happen; if it does, we have a bug without a workaround for th the user.
+                        // This should never happen; if it does, we have a bug without a workaround for the user.
                         throw new InvalidDataException($"Container tunnel service {ts.Service?.Metadata.Name} should have valid address at this point");
                     }
 
@@ -1914,7 +1914,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return targetHost switch
         {
             null or "" => (KnownHostNames.Localhost, EndpointBindingMode.SingleAddress), // Default is localhost
-            var s when EndpointHostHelpers.IsLocalhostOrLocalhostTld(s) => (KnownHostNames.Localhost, EndpointBindingMode.SingleAddress), // Explicitly set to localhost or .localsost subdomain
+            var s when EndpointHostHelpers.IsLocalhostOrLocalhostTld(s) => (KnownHostNames.Localhost, EndpointBindingMode.SingleAddress), // Explicitly set to localhost or .localhost subdomain
 
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {

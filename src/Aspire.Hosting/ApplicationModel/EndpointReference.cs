@@ -59,7 +59,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default) => Property(EndpointProperty.Url).GetValueAsync(cancellationToken);
 
     /// <summary>
-    /// The ID of the network that serves as the context fot the EndpointReference.
+    /// The ID of the network that serves as the context for the EndpointReference.
     /// The reference will be resolved in the context of this network, which may be different
     /// from the network associated with the default network of the referenced Endpoint.
     /// </summary>
@@ -170,7 +170,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="endpoint">The endpoint annotation.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
     /// <remarks>
-    /// Most Aspire resources are accesed in the context of the "localhost" network (host proceses calling other host proceses,
+    /// Most Aspire resources are accessed in the context of the "localhost" network (host proceses calling other host processes,
     /// or host processes calling container via mapped ports). This is why EndpointReference assumes this
     /// context unless specified otherwise. However, for container-to-container, or container-to-host communication,
     /// you must specify a container network context for the EndpointReference to be resolved correctly.
@@ -194,7 +194,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="endpointName">The name of the endpoint.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
     /// <remarks>
-    /// Most Aspire resources are accesed in the context of the "localhost" network (host proceses calling other host proceses,
+    /// Most Aspire resources are accessed in the context of the "localhost" network (host proceses calling other host processes,
     /// or host processes calling container via mapped ports). This is why EndpointReference assumes this
     /// context unless specified otherwise. However, for container-to-container, or container-to-host communication,
     /// you must specify a container network context for the EndpointReference to be resolved correctly.
@@ -266,7 +266,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
             var effectiveContext = context ?? Endpoint.ContextNetworkID;
 
             // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
-            // and in future we might need some sort of polic to choose between them, but for now we just take the first one.
+            // and in future we might need some sort of policy to choose between them, but for now we just take the first one.
             var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == effectiveContext).FirstOrDefault();
             if (nes is null)
             {

@@ -196,12 +196,12 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets the <see cref="AllocatedEndpointSnapshot"/> for the drfault <see cref="AllocatedEndpoint"/>.
+    /// Gets the <see cref="AllocatedEndpointSnapshot"/> for the default <see cref="AllocatedEndpoint"/>.
     /// </summary>
     public ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot { get; } = new();
 
     /// <summary>
-    /// Gets the lits of all AllocatedEndpoints associated with this Endpoint.
+    /// Gets the list of all AllocatedEndpoints associated with this Endpoint.
     /// </summary>
     public NetworkEndpointSnapshotList AllAllocatedEndpoints { get; } = new();
 

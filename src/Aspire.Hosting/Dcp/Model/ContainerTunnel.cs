@@ -152,7 +152,6 @@ internal static class ContainerNetworkTunnelProxyState
     /// Equivalent to <see cref="Pending"/>.
     /// May be encountered when ContainerNetworkTunnelProxy status has not been initialized yet.
     /// </summary>
-    // 
     public const string Empty = "";
 
     /// <summary>
