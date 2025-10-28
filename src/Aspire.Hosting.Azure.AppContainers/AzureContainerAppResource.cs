@@ -68,15 +68,14 @@ public class AzureContainerAppResource : AzureProvisioningResource
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
-                // No endpoints to print, return only push step
-                return steps;
+                endpoints = [];
             }
 
             var anyPublicEndpoints = endpoints.Any(e => e.IsExternal);
 
-            var printResourceUrl = new PipelineStep
+            var printResourceSummary = new PipelineStep
             {
-                Name = $"print-{targetResource.Name}-url",
+                Name = $"print-{targetResource.Name}-summary",
                 Action = async ctx =>
                 {
                     var containerAppEnv = (AzureContainerAppEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
@@ -105,9 +104,9 @@ public class AzureContainerAppResource : AzureProvisioningResource
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
 
-            deployStep.DependsOn(printResourceUrl);
+            deployStep.DependsOn(printResourceSummary);
 
-            steps.Add(printResourceUrl);
+            steps.Add(printResourceSummary);
             steps.Add(deployStep);
 
             return steps;

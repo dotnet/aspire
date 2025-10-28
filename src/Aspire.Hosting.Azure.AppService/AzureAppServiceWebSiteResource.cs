@@ -68,12 +68,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
-                return steps;
+                endpoints = [];
             }
 
-            var printResourceUrl = new PipelineStep
+            var printResourceSummary = new PipelineStep
             {
-                Name = $"print-{targetResource.Name}-url",
+                Name = $"print-{targetResource.Name}-summary",
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
@@ -98,10 +98,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
 
-            deployStep.DependsOn(printResourceUrl);
+            deployStep.DependsOn(printResourceSummary);
 
             steps.Add(deployStep);
-            steps.Add(printResourceUrl);
+            steps.Add(printResourceSummary);
 
             return steps;
         }));
