@@ -19,7 +19,7 @@ public class AspireTelemetryMcpToolsTests
     {
         // Arrange
         var repository = CreateRepository();
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act
         var result = tools.ListTraces(resourceName: null);
@@ -35,7 +35,7 @@ public class AspireTelemetryMcpToolsTests
         // Arrange
         var repository = CreateRepository();
         AddResource(repository, "app1");
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act
         var result = tools.ListTraces(resourceName: "app1");
@@ -53,7 +53,7 @@ public class AspireTelemetryMcpToolsTests
         // Add multiple resources with the same name but different instance IDs
         AddResource(repository, "app1", instanceId: "instance1");
         AddResource(repository, "app1", instanceId: "instance2");
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act - This should not throw even though there are multiple matches
         var result = tools.ListTraces(resourceName: "app1");
@@ -70,7 +70,7 @@ public class AspireTelemetryMcpToolsTests
         // Arrange
         var repository = CreateRepository();
         AddResource(repository, "app1");
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act
         var result = tools.ListTraces(resourceName: "nonexistent");
@@ -85,7 +85,7 @@ public class AspireTelemetryMcpToolsTests
     {
         // Arrange
         var repository = CreateRepository();
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act
         var result = tools.ListStructuredLogs(resourceName: null);
@@ -101,7 +101,7 @@ public class AspireTelemetryMcpToolsTests
         // Arrange
         var repository = CreateRepository();
         AddResource(repository, "app1");
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act
         var result = tools.ListStructuredLogs(resourceName: "app1");
@@ -119,7 +119,7 @@ public class AspireTelemetryMcpToolsTests
         // Add multiple resources with the same name but different instance IDs
         AddResource(repository, "app1", instanceId: "instance1");
         AddResource(repository, "app1", instanceId: "instance2");
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act - This should not throw even though there are multiple matches
         var result = tools.ListStructuredLogs(resourceName: "app1");
@@ -136,7 +136,7 @@ public class AspireTelemetryMcpToolsTests
         // Arrange
         var repository = CreateRepository();
         AddResource(repository, "app1");
-        var tools = new AspireTelemetryMcpTools(repository, []);
+        var tools = CreateTools(repository);
 
         // Act
         var result = tools.ListTraceStructuredLogs(traceId: "test-trace-id");
@@ -144,6 +144,11 @@ public class AspireTelemetryMcpToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("# STRUCTURED LOGS DATA", result);
+    }
+
+    private static AspireTelemetryMcpTools CreateTools(TelemetryRepository repository)
+    {
+        return new AspireTelemetryMcpTools(repository, []);
     }
 
     private static TelemetryRepository CreateRepository()

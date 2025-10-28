@@ -18,7 +18,7 @@ public class AspireResourceMcpToolsTests
     {
         // Arrange
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: []);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act
         var result = tools.ListResources();
@@ -34,7 +34,7 @@ public class AspireResourceMcpToolsTests
         // Arrange
         var resource = ModelTestHelpers.CreateResource(resourceName: "app1");
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act
         var result = tools.ListResources();
@@ -51,7 +51,7 @@ public class AspireResourceMcpToolsTests
         var resource1 = ModelTestHelpers.CreateResource(resourceName: "app1");
         var resource2 = ModelTestHelpers.CreateResource(resourceName: "app2");
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource1, resource2]);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act
         var result = tools.ListResources();
@@ -67,7 +67,7 @@ public class AspireResourceMcpToolsTests
         // Arrange
         var resource = ModelTestHelpers.CreateResource(resourceName: "app1");
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act
         var result = await tools.ListConsoleLogsAsync("nonexistent", CancellationToken.None);
@@ -89,7 +89,7 @@ public class AspireResourceMcpToolsTests
             isEnabled: true,
             initialResources: [resource],
             consoleLogsChannelProvider: _ => logsChannel);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act
         var result = await tools.ListConsoleLogsAsync("app1", CancellationToken.None);
@@ -108,7 +108,7 @@ public class AspireResourceMcpToolsTests
         var resource1 = ModelTestHelpers.CreateResource(resourceName: "app1");
         var resource2 = ModelTestHelpers.CreateResource(resourceName: "app1"); // Same name
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource1, resource2]);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act
         var result = await tools.ListConsoleLogsAsync("app1", CancellationToken.None);
@@ -124,7 +124,7 @@ public class AspireResourceMcpToolsTests
     {
         // Arrange
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: []);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
@@ -139,12 +139,17 @@ public class AspireResourceMcpToolsTests
         // Arrange
         var resource = ModelTestHelpers.CreateResource(resourceName: "app1", commands: ImmutableArray<CommandViewModel>.Empty);
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
-        var tools = new AspireResourceMcpTools(dashboardClient);
+        var tools = CreateTools(dashboardClient);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
             async () => await tools.ExecuteResourceCommand("app1", "nonexistent-command"));
 
         Assert.Contains("Command 'nonexistent-command' not found", exception.Message);
+    }
+
+    private static AspireResourceMcpTools CreateTools(IDashboardClient dashboardClient)
+    {
+        return new AspireResourceMcpTools(dashboardClient);
     }
 }
