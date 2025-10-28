@@ -192,7 +192,7 @@
     <comment>{0} is the name of an IDE.</comment>
   </data>
   <data name="ChatRequestErrorForbiddenDescription" xml:space="preserve">
-    <value>To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</value>
+    <value>To use GitHub Copilot in Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</value>
   </data>
   <data name="ChatRequestErrorForbiddenVisualStudio" xml:space="preserve">
     <value>Sign into Visual Studio with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Add GitHub accounts to your Visual Studio keychain&lt;/a&gt;.</value>
