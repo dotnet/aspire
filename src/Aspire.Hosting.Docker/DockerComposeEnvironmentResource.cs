@@ -88,11 +88,6 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             // Expand deployment target steps for all compute resources
             foreach (var computeResource in model.GetComputeResources())
             {
-                if (factoryContext.Resource.IsExcludedFromPublish())
-                {
-                    return [];
-                }
-
                 var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
 
                 if (deploymentTarget != null && deploymentTarget.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var annotations))
