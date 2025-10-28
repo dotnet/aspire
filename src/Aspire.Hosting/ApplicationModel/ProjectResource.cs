@@ -122,6 +122,9 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var dockerfileBuilder = new DockerfileBuilder();
         var stage = dockerfileBuilder.From(tempImageName);
 
+        // Get the container working directory for the project
+        var containerWorkingDir = await GetContainerWorkingDirectoryAsync(logger, ctx.CancellationToken).ConfigureAwait(false);
+
         // Add COPY --from: statements for each source
         foreach (var containerFileDestination in containerFilesAnnotations)
         {
@@ -136,8 +139,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             var destinationPath = containerFileDestination.DestinationPath;
             if (!destinationPath.StartsWith('/'))
             {
-                // Make it an absolute path relative to /app (typical .NET container working directory)
-                destinationPath = $"/app/{destinationPath}";
+                // Make it an absolute path relative to the container working directory
+                destinationPath = $"{containerWorkingDir}/{destinationPath}";
             }
 
             foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
@@ -200,12 +203,69 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             }
             else
             {
-                logger.LogWarning("Failed build Dockerfile {DockerfilePath}", tempDockerfilePath);
+                // Keep the Dockerfile for debugging purposes
+                logger.LogDebug("Failed build - temporary Dockerfile left at {DockerfilePath} for debugging", tempDockerfilePath);
             }
 
             // Remove the temporary tagged image
             logger.LogDebug("Removing temporary image {TempImageName}", tempImageName);
             await containerRuntime.RemoveImageAsync(tempImageName, ctx.CancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<string> GetContainerWorkingDirectoryAsync(ILogger logger, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var projectMetadata = this.GetProjectMetadata();
+            var projectPath = projectMetadata.ProjectPath;
+
+            var outputLines = new List<string>();
+            var spec = new Dcp.Process.ProcessSpec("dotnet")
+            {
+                Arguments = $"msbuild -getProperty:ContainerWorkingDirectory \"{projectPath}\"",
+                OnOutputData = output =>
+                {
+                    if (!string.IsNullOrWhiteSpace(output))
+                    {
+                        outputLines.Add(output.Trim());
+                    }
+                },
+                OnErrorData = error => logger.LogDebug("dotnet msbuild (stderr): {Error}", error),
+                ThrowOnNonZeroReturnCode = false
+            };
+
+            logger.LogDebug("Getting ContainerWorkingDirectory for project {ProjectPath}", projectPath);
+            var (pendingResult, processDisposable) = Dcp.Process.ProcessUtil.Run(spec);
+
+            await using (processDisposable.ConfigureAwait(false))
+            {
+                var result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                if (result.ExitCode != 0)
+                {
+                    logger.LogDebug("Failed to get ContainerWorkingDirectory from dotnet msbuild for project {ProjectPath}. Exit code: {ExitCode}. Using default /app",
+                        projectPath, result.ExitCode);
+                    return "/app";
+                }
+
+                // The last non-empty line should contain the ContainerWorkingDirectory value
+                var workingDir = outputLines.LastOrDefault();
+
+                if (string.IsNullOrWhiteSpace(workingDir))
+                {
+                    logger.LogDebug("dotnet msbuild returned empty ContainerWorkingDirectory for project {ProjectPath}. Using default /app", projectPath);
+                    return "/app";
+                }
+
+                logger.LogDebug("Resolved ContainerWorkingDirectory for project {ProjectPath}: {WorkingDir}", projectPath, workingDir);
+                return workingDir;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error getting ContainerWorkingDirectory. Using default /app");
+            return "/app";
         }
     }
 }
