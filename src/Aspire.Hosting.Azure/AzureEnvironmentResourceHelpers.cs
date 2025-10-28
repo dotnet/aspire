@@ -3,6 +3,8 @@
 
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;

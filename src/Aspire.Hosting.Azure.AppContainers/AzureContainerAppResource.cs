@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREAZURE001
+#pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
@@ -52,6 +53,7 @@ public class AzureContainerAppResource : AzureProvisioningResource
                     Action = async ctx =>
                     {
                         var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
                         await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
                             registry,
                             targetResource,

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -42,6 +43,7 @@ public static class ContainerResourceBuilderExtensions
                 Action = async ctx =>
                 {
                     var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
                     await containerImageBuilder.BuildImageAsync(
                         builder.Resource,
                         new ContainerBuildOptions

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIREPIPELINES002
 
 using System.Diagnostics;
 using System.Globalization;
