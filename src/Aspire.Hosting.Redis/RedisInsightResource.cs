@@ -18,5 +18,5 @@ public class RedisInsightResource(string name) : ContainerResource(name)
     /// <summary>
     /// Gets the primary endpoint for the Redis Insight.
     /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 }
