@@ -271,6 +271,12 @@ public static class PythonAppResourceBuilderExtensions
 
                 c.Args.Add("--port");
                 c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+
+                // Add hot reload in non-publish mode
+                if (!builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("--reload");
+                }
             });
 
         return resourceBuilder;
