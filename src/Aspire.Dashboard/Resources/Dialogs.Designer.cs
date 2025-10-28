@@ -952,7 +952,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022#options-for-adding-an-mcp-server" target="_blank"&gt;Add an MCP server to Visual Studio&lt;/a&gt;.
+        ///   Looks up a localized string similar to For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="{0}" target="_blank"&gt;Add an MCP server to Visual Studio&lt;/a&gt;.
         /// </summary>
         public static string McpServerDialogOtherOptionsVisualStudio {
             get {
@@ -961,7 +961,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server" target="_blank"&gt;Add an MCP server to VS Code&lt;/a&gt;.
+        ///   Looks up a localized string similar to For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="{0}" target="_blank"&gt;Add an MCP server to VS Code&lt;/a&gt;.
         /// </summary>
         public static string McpServerDialogOtherOptionsVSCode {
             get {

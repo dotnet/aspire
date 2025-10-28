@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Model.Markdown
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Options
+@using System.Globalization
 @using System.Text.Encodings.Web
 @using System.Text.Json
 
@@ -39,7 +40,7 @@
                         </a>
                     </p>
                     <p>
-                        @((MarkupString)Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVisualStudio)].ToString())
+                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVisualStudio)], "https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022#options-for-adding-an-mcp-server"))
                     </p>
                     <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
                 </div>
@@ -77,7 +78,7 @@
                         </a>
                     </p>
                     <p>
-                        @((MarkupString)Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVSCode)].ToString())
+                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVSCode)], "https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server"))
                     </p>
                     <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
                     @if (_isHttps)
