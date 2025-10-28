@@ -360,12 +360,15 @@ public class AzureDeployerTests
             imageName.Contains("aspire-deploy-"));
     }
 
-    [Fact]
-    public async Task DeployAsync_WithMultipleComputeEnvironments_Works()
+    [Theory]
+    [InlineData("deploy")]
+    [InlineData("diagnostics")]
+    public async Task DeployAsync_WithMultipleComputeEnvironments_Works(string step)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
+        var mockActivityReporter = new TestPublishingActivityReporter();
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -389,7 +392,7 @@ public class AzureDeployerTests
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
         var aasEnv = builder.AddAzureAppServiceEnvironment("aas-env");
@@ -406,8 +409,19 @@ public class AzureDeployerTests
 
         // Act
         using var app = builder.Build();
-        await app.StartAsync();
-        await app.WaitForShutdownAsync();
+        await app.RunAsync();
+
+        if (step == "diagnostics")
+        {
+            // In diagnostics mode, just verify logs match snapshot
+            var logs = mockActivityReporter.LoggedMessages
+                            .Where(s => s.StepTitle == "diagnostics")
+                            .Select(s => s.Message)
+                            .ToList();
+
+            await Verify(logs);
+            return;
+        }
 
         // Assert ACA environment outputs are properly set
         Assert.Equal("acaregistry", acaEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
@@ -1167,6 +1181,7 @@ public class AzureDeployerTests
         public List<(string StepTitle, string CompletionText, CompletionState CompletionState)> CompletedSteps { get; } = [];
         public List<(string TaskStatusText, string? CompletionMessage, CompletionState CompletionState)> CompletedTasks { get; } = [];
         public List<(string TaskStatusText, string StatusText)> UpdatedTasks { get; } = [];
+        public List<(string StepTitle, LogLevel LogLevel, string Message)> LoggedMessages { get; } = [];
 
         public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
         {
@@ -1208,9 +1223,7 @@ public class AzureDeployerTests
 
             public void Log(LogLevel logLevel, string message, bool enableMarkdown)
             {
-                // For testing purposes, we just track that Log was called
-                _ = logLevel;
-                _ = message;
+                _reporter.LoggedMessages.Add((_title, logLevel, message));
             }
         }
 
