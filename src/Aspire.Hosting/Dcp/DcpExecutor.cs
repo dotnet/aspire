@@ -836,7 +836,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
     }
-    
+
     private Task CreateAllDcpObjectsAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
         var toCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
@@ -1481,26 +1481,31 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             spec.Args.AddRange(projectArgs);
         }
 
-        await PrepareExecutableCertificateTrustConfigAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
-
         // Get args from app host model resource.
         (var appHostArgs, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
-        var launchArgs = BuildLaunchArgs(er, spec, appHostArgs);
+        // Build environment variables
+        (var env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
+        // Build certificate trust configuration (args and env vars)
+        (var certificateArgs, var certificateEnv, var failedToApplyCertificateConfig) = await BuildExecutableCertificateTrustConfigAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+
+        appHostArgs.AddRange(certificateArgs);
+        var launchArgs = BuildLaunchArgs(er, spec, appHostArgs);
         var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
         if (executableArgs.Count > 0)
         {
             spec.Args ??= [];
             spec.Args.AddRange(executableArgs);
         }
-
         // Arg annotations are what is displayed in the dashboard.
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        env.AddRange(certificateEnv);
 
-        if (failedToApplyConfiguration || failedToApplyArgs)
+        spec.Env = env;
+
+        if (failedToApplyConfiguration || failedToApplyArgs || failedToApplyCertificateConfig)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -1715,28 +1720,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
-        spec.CreateFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
-
-        var certificateFiles = await BuildContainerCertificateAuthorityTrustAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
-        if (certificateFiles?.Any() == true)
-        {
-            spec.CreateFiles.AddRange(certificateFiles);
-        }
-
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
+        // Build the arguments to pass to the container entrypoint
         (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+
+        // Build the environment variables to apply to the container
+        (var env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+
+        // Build files that need to be created inside the container
+        var createFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
+
+        // Build certificate specific arguments, environment variables, and files
+        (var certificateArgs, var certificateEnv, var certificateFiles, var failedToApplyCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+
+        args.AddRange(certificateArgs);
+        env.AddRange(certificateEnv);
+        createFiles.AddRange(certificateFiles);
+
+        // Set the final args, env vars, and create files on the container spec
         spec.Args = args.Select(a => a.Value).ToList();
         dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
-
-        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        spec.Env = env;
+        spec.CreateFiles = createFiles;
 
         if (modelContainerResource is ContainerResource containerResource)
         {
             spec.Command = containerResource.Entrypoint;
         }
 
-        if (failedToApplyRunArgs || failedToApplyArgs || failedToApplyConfiguration)
+        if (failedToApplyRunArgs || failedToApplyArgs || failedToApplyConfiguration || failedToApplyCertificateConfig)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -2229,7 +2242,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <param name="modelResource">The executable IResource.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    private async ValueTask PrepareExecutableCertificateTrustConfigAsync(
+    private async Task<(List<(string, bool)>, List<EnvVar>, bool)> BuildExecutableCertificateTrustConfigAsync(
         ILogger resourceLogger,
         IResource modelResource,
         CancellationToken cancellationToken)
@@ -2238,11 +2251,44 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
         var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
 
+        bool failedToApplyConfig = false;
+        var args = new List<(string Value, bool IsSensitive)>();
+        var env = new List<EnvVar>();
+
         (_, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
+            (unprocessed, value, ex, isSensitive) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
+                }
+                else if (value is { } argument)
+                {
+                    args.Add((argument, isSensitive));
+                }
+            },
+            (key, unprocessed, value, ex) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
+                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, modelResource.Name);
+                }
+                else if (value is string s)
+                {
+                    env.Add(new EnvVar { Name = key, Value = s });
+                }
+            },
             resourceLogger,
             (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
             (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
+            networkContext: null,
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
@@ -2262,6 +2308,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             File.WriteAllText(bundleOutputPath, caBundleBuilder.ToString());
         }
+
+        return (args, env, failedToApplyConfig);
     }
 
     /// <summary>
@@ -2271,7 +2319,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <param name="modelResource">The container IResource.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    private async Task<List<ContainerCreateFileSystem>?> BuildContainerCertificateAuthorityTrustAsync(
+    private async Task<(List<(string Value, bool isSensitive)>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(
         ILogger resourceLogger,
         IResource modelResource,
         CancellationToken cancellationToken)
@@ -2287,9 +2335,42 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             certificateDirsPaths ??= pathsAnnotation.DefaultCertificateDirectories;
         }
 
+        bool failedToApplyConfig = false;
+        var args = new List<(string Value, bool IsSensitive)>();
+        var env = new List<EnvVar>();
+        var createFiles = new List<ContainerCreateFileSystem>();
+
         var pathsProvider = new CertificateTrustConfigurationPathsProvider();
         (var scope, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
+            (unprocessed, value, ex, isSensitive) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
+                }
+                else if (value is { } argument)
+                {
+                    args.Add((argument, isSensitive));
+                }
+            },
+            (key, unprocessed, value, ex) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
+                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, modelResource.Name);
+                }
+                else if (value is string s)
+                {
+                    env.Add(new EnvVar { Name = key, Value = s });
+                }
+            },
             resourceLogger,
             (scope) => ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
             (scope) =>
@@ -2304,6 +2385,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // Build Linux PATH style colon-separated list of directories
                 return ReferenceExpression.Create($"{string.Join(':', dirs)}");
             },
+            networkContext: null,
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
@@ -2324,12 +2406,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 });
             }
 
-            var createFiles = new List<ContainerCreateFileSystem>
+            createFiles.Add(new()
             {
-                new ContainerCreateFileSystem
-                {
-                    Destination = certificatesDestination,
-                    Entries = [
+                Destination = certificatesDestination,
+                Entries = [
                     new ContainerFileSystemEntry
                     {
                         Name = "cert.pem",
@@ -2342,8 +2422,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         Entries = certificateFiles.ToList(),
                     }
                 ],
-                }
-            };
+            });
 
             if (scope != CertificateTrustScope.Append)
             {
@@ -2364,11 +2443,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     });
                 }
             }
-
-            return createFiles;
         }
 
-        return null;
+        return (args, env, createFiles, failedToApplyConfig);
     }
 
     private string[]? GetSupportedLaunchConfigurations()

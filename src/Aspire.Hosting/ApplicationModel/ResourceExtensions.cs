@@ -383,17 +383,25 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
     /// <param name="executionContext">The execution context used during the processing.</param>
+    /// <param name="processArgumentValue">A function that processes argument values.</param>
+    /// <param name="processEnvironmentVariableValue">A function that processes environment variable values.</param>
     /// <param name="logger">The logger used for logging information during the processing.</param>
     /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
     /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
+    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
+        // (unprocessed, processed, exception, isSensitive)
+        Action<object?, string?, Exception?, bool> processArgumentValue,
+        // (key, unprocessed, processed, exception)
+        Action<string, object?, string?, Exception?> processEnvironmentVariableValue,
         ILogger logger,
         Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
         Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
+        NetworkIdentifier? networkContext = null,
         CancellationToken cancellationToken = default)
     {
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
@@ -482,23 +490,38 @@ public static class ResourceExtensions
             logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
         }
 
-        if (context.Arguments.Any())
+        foreach (var a in context.Arguments)
         {
-            resource.Annotations.Add(new CommandLineArgsCallbackAnnotation((args) =>
+            try
             {
-                args.AddRange(context.Arguments);
-            }));
+                var resolvedValue = await ResolveValueAsync(executionContext, logger, a, null, networkContext, cancellationToken).ConfigureAwait(false);
+
+                if (resolvedValue?.Value != null)
+                {
+                    processArgumentValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
+                }
+            }
+            catch (Exception ex)
+            {
+                processArgumentValue(a, a.ToString(), ex, false);
+            }
         }
 
-        if (context.EnvironmentVariables.Any())
+        foreach (var (key, expr) in context.EnvironmentVariables)
         {
-            resource.Annotations.Add(new EnvironmentCallbackAnnotation((env) =>
+            try
             {
-                foreach (var (key, value) in context.EnvironmentVariables)
+                var resolvedValue = await ResolveValueAsync(executionContext, logger, expr, key, networkContext, cancellationToken).ConfigureAwait(false);
+
+                if (resolvedValue?.Value is not null)
                 {
-                    env[key] = value;
+                    processEnvironmentVariableValue(key, expr, resolvedValue.Value, null);
                 }
-            }));
+            }
+            catch (Exception ex)
+            {
+                processEnvironmentVariableValue(key, expr, expr?.ToString(), ex);
+            }
         }
 
         return (scope, certificates);
@@ -670,7 +693,7 @@ public static class ResourceExtensions
     /// <returns>An <see cref="EndpointReference"/>object providing resolvable reference for the specified endpoint.</returns>
     public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName, NetworkIdentifier? contextNetworkID = null)
     {
-    
+
         var endpoint = resource.TryGetEndpoints(out var endpoints) ?
             endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName)) :
             null;
