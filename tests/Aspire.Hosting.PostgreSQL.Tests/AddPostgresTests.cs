@@ -79,7 +79,7 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
-                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums", env.Value);
             },
             env =>
             {
@@ -133,7 +133,7 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
-                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums", env.Value);
             },
             env =>
             {
@@ -226,7 +226,7 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
-                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums", env.Value);
             },
             env =>
             {
@@ -257,7 +257,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
                 "POSTGRES_USER": "postgres",
                 "POSTGRES_PASSWORD": "{pg-password.value}"
               },
@@ -300,7 +300,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
                 "POSTGRES_USER": "{user.value}",
                 "POSTGRES_PASSWORD": "{pass.value}"
               },
@@ -326,7 +326,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
                 "POSTGRES_USER": "{user.value}",
                 "POSTGRES_PASSWORD": "{pg2-password.value}"
               },
@@ -352,7 +352,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
                 "POSTGRES_USER": "postgres",
                 "POSTGRES_PASSWORD": "{pass.value}"
               },
