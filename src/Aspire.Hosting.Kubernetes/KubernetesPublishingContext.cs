@@ -20,7 +20,7 @@ internal sealed class KubernetesPublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Kubernetes publishing.");
+    public readonly string OutputPath = outputPath;
 
     private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
