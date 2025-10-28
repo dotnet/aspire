@@ -287,7 +287,7 @@ If the build errors are **NOT** package dependency issues (e.g., breaking API ch
 Before proceeding or failing, create a comprehensive list of all packages that required manual updating:
 
 **Format:**
-```
+```markdown
 Manual Package Updates Required:
 1. File: <path-to-csproj-or-Directory.Packages.props>
    Package: <package-name>
