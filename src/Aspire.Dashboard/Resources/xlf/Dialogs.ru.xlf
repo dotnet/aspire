@@ -332,6 +332,101 @@
         <target state="translated">ОК</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogConfigurationHeading">
+        <source>Aspire MCP configuration</source>
+        <target state="new">Aspire MCP configuration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
+        <source>VS Code: Install Aspire MCP Server</source>
+        <target state="new">VS Code: Install Aspire MCP Server</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCodeInsiders">
+        <source>VS Code Insiders: Install Aspire MCP Server</source>
+        <target state="new">VS Code Insiders: Install Aspire MCP Server</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVisualStudio">
+        <source>Visual Studio: Install Aspire MCP Server</source>
+        <target state="new">Visual Studio: Install Aspire MCP Server</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogIntroduction">
+        <source>Aspire MCP connects AI assistants to Aspire app data. AI can use Aspire MCP to get information about app resources, health checks, commands, console logs and real-time telemetry.</source>
+        <target state="new">Aspire MCP connects AI assistants to Aspire app data. AI can use Aspire MCP to get information about app resources, health checks, commands, console logs and real-time telemetry.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogLearnMoreLink">
+        <source>Use Aspire MCP with AI</source>
+        <target state="new">Use Aspire MCP with AI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherDescription">
+        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
+        <target state="new">Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherInstructions">
+        <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
+        <target state="new">Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherOptionsVSCode">
+        <source>For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server" target="_blank"&gt;Add an MCP server to VS Code&lt;/a&gt;.</source>
+        <target state="new">For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server" target="_blank"&gt;Add an MCP server to VS Code&lt;/a&gt;.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherOptionsVisualStudio">
+        <source>For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022#options-for-adding-an-mcp-server" target="_blank"&gt;Add an MCP server to Visual Studio&lt;/a&gt;.</source>
+        <target state="new">For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022#options-for-adding-an-mcp-server" target="_blank"&gt;Add an MCP server to Visual Studio&lt;/a&gt;.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherTab">
+        <source>Other</source>
+        <target state="new">Other</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogQuicklyAddVSCode">
+        <source>Quickly add Aspire MCP to VS Code using a browser install button:</source>
+        <target state="new">Quickly add Aspire MCP to VS Code using a browser install button:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogQuicklyAddVisualStudio">
+        <source>Quickly add Aspire MCP to Visual Studio using a browser install button:</source>
+        <target state="new">Quickly add Aspire MCP to Visual Studio using a browser install button:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeTab">
+        <source>VS Code</source>
+        <target state="new">VS Code</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningInstructions">
+        <source>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS—for example, by launching the app host with the &lt;code&gt;http&lt;/code&gt; profile.</source>
+        <target state="new">To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS—for example, by launching the app host with the &lt;code&gt;http&lt;/code&gt; profile.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningMessage">
+        <source>As of October 2025, VS Code does not support using Aspire MCP over HTTPS.</source>
+        <target state="new">As of October 2025, VS Code does not support using Aspire MCP over HTTPS.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningMoreInfo">
+        <source>More information</source>
+        <target state="new">More information</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningTitle">
+        <source>VS Code limitation</source>
+        <target state="new">VS Code limitation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioTab">
+        <source>Visual Studio</source>
+        <target state="new">Visual Studio</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
         <target state="translated">Открыть в визуализаторе текста</target>
