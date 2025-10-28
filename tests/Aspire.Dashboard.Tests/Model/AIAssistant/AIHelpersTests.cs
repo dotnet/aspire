@@ -9,6 +9,76 @@ namespace Aspire.Dashboard.Tests.Model.AIAssistant;
 public class AIHelpersTests
 {
     [Fact]
+    public void TryGetSingleResult_NoMatches_ReturnsFalse()
+    {
+        // Arrange
+        var items = new List<int> { 1, 2, 3, 4, 5 };
+
+        // Act
+        var result = AIHelpers.TryGetSingleResult(items, x => x > 10, out var value);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal(0, value);
+    }
+
+    [Fact]
+    public void TryGetSingleResult_SingleMatch_ReturnsTrueWithValue()
+    {
+        // Arrange
+        var items = new List<int> { 1, 2, 3, 4, 5 };
+
+        // Act
+        var result = AIHelpers.TryGetSingleResult(items, x => x == 3, out var value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(3, value);
+    }
+
+    [Fact]
+    public void TryGetSingleResult_MultipleMatches_ReturnsFalse()
+    {
+        // Arrange
+        var items = new List<int> { 1, 2, 3, 4, 5 };
+
+        // Act
+        var result = AIHelpers.TryGetSingleResult(items, x => x > 2, out var value);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal(0, value);
+    }
+
+    [Fact]
+    public void TryGetSingleResult_ReferenceType_SingleMatch_ReturnsTrueWithValue()
+    {
+        // Arrange
+        var items = new List<string> { "one", "two", "three" };
+
+        // Act
+        var result = AIHelpers.TryGetSingleResult(items, x => x == "two", out var value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("two", value);
+    }
+
+    [Fact]
+    public void TryGetSingleResult_ReferenceType_MultipleMatches_ReturnsFalse()
+    {
+        // Arrange
+        var items = new List<string> { "one", "two", "three" };
+
+        // Act
+        var result = AIHelpers.TryGetSingleResult(items, x => x.Length == 3, out var value);
+
+        // Assert
+        Assert.False(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
     public void LimitLength_UnderLimit_ReturnFullValue()
     {
         var value = AIHelpers.LimitLength("How now brown cow?");

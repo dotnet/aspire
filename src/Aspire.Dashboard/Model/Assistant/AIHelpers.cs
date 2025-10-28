@@ -325,16 +325,38 @@ internal static class AIHelpers
         }
     }
 
+    public static bool TryGetSingleResult<T>(IEnumerable<T> source, Func<T, bool> predicate, [NotNullWhen(true)] out T? result)
+    {
+        result = default;
+        var found = false;
+
+        foreach (var item in source)
+        {
+            if (predicate(item))
+            {
+                if (found)
+                {
+                    // Multiple results found
+                    result = default;
+                    return false;
+                }
+
+                result = item;
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
     public static bool TryGetResource(IReadOnlyList<OtlpResource> resources, string resourceName, [NotNullWhen(true)] out OtlpResource? resource)
     {
-        if (resources.Count(r => r.ResourceName == resourceName) == 1)
+        if (TryGetSingleResult(resources, r => r.ResourceName == resourceName, out resource))
         {
-            resource = resources.First(r => r.ResourceName == resourceName);
             return true;
         }
-        else if (resources.Count(r => r.ResourceKey.ToString() == resourceName) == 1)
+        else if (TryGetSingleResult(resources, r => r.ResourceKey.ToString() == resourceName, out resource))
         {
-            resource = resources.First(r => r.ResourceKey.ToString() == resourceName);
             return true;
         }
 
@@ -344,14 +366,12 @@ internal static class AIHelpers
 
     public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
     {
-        if (resources.Count(r => r.Name == resourceName) == 1)
+        if (TryGetSingleResult(resources, r => r.Name == resourceName, out resource))
         {
-            resource = resources.First(r => r.Name == resourceName);
             return true;
         }
-        else if (resources.Count(r => r.DisplayName == resourceName) == 1)
+        else if (TryGetSingleResult(resources, r => r.DisplayName == resourceName, out resource))
         {
-            resource = resources.First(r => r.DisplayName == resourceName);
             return true;
         }
 
