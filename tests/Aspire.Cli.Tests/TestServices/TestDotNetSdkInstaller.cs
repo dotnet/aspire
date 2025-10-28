@@ -8,7 +8,7 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestDotNetSdkInstaller : IDotNetSdkInstaller
 {
     public Func<CancellationToken, (bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)>? CheckAsyncCallback { get; set; }
-    public Func<CancellationToken, Task>? InstallAsyncCallback { get; set; }
+    public Func<Action<long, long>?, CancellationToken, Task>? InstallAsyncCallback { get; set; }
 
     public Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -17,10 +17,10 @@ internal sealed class TestDotNetSdkInstaller : IDotNetSdkInstaller
             : Task.FromResult<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)>((true, "9.0.302", "9.0.302", false)); // Default to SDK available
     }
 
-    public Task InstallAsync(CancellationToken cancellationToken = default)
+    public Task InstallAsync(Action<long, long>? progressCallback = null, CancellationToken cancellationToken = default)
     {
         return InstallAsyncCallback != null
-            ? InstallAsyncCallback(cancellationToken)
+            ? InstallAsyncCallback(progressCallback, cancellationToken)
             : throw new NotImplementedException();
     }
 

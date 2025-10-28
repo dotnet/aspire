@@ -18,9 +18,10 @@ internal interface IDotNetSdkInstaller
     /// <summary>
     /// Installs the .NET SDK. This method is reserved for future extensibility.
     /// </summary>
+    /// <param name="progressCallback">Optional callback to report download progress. Parameters: bytesDownloaded, totalBytes.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task InstallAsync(CancellationToken cancellationToken = default);
+    Task InstallAsync(Action<long, long>? progressCallback = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the effective minimum SDK version based on configuration and feature flags.

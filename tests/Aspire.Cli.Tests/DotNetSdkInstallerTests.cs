@@ -132,7 +132,7 @@ public class DotNetSdkInstallerTests
         
         // For now, we just verify the method signature exists and doesn't throw
         // ArgumentNullException or similar for valid inputs
-        var installTask = installer.InstallAsync(CancellationToken.None);
+        var installTask = installer.InstallAsync(cancellationToken: CancellationToken.None);
         
         // We expect this to either succeed or fail with a network/download error,
         // but not throw NotImplementedException anymore

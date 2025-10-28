@@ -6,6 +6,8 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Utils;
 
@@ -81,15 +83,52 @@ internal static class SdkInstallHelper
                 {
                     try
                     {
-                        await interactionService.ShowStatusAsync(
-                            string.Format(CultureInfo.InvariantCulture,
-                                "Downloading and installing .NET SDK {0}... This may take a few minutes.",
-                                minimumRequiredVersion),
-                            async () =>
-                            {
-                                await sdkInstaller.InstallAsync(cancellationToken);
-                                return 0; // Return dummy value for ShowStatusAsync
-                            });
+                        // Check if we're in an environment that supports progress display
+                        var supportsProgress = hostEnvironment?.SupportsInteractiveOutput == true && 
+                                             hostEnvironment?.SupportsAnsi == true;
+                        
+                        if (supportsProgress)
+                        {
+                            await AnsiConsole.Progress()
+                                .AutoClear(false)
+                                .HideCompleted(false)
+                                .Columns(
+                                    new TaskDescriptionColumn(),
+                                    new ProgressBarColumn(),
+                                    new PercentageColumn(),
+                                    new DownloadedColumn(),
+                                    new TransferSpeedColumn())
+                                .StartAsync(async ctx =>
+                                {
+                                    var downloadTask = ctx.AddTask($"Downloading .NET SDK {minimumRequiredVersion}", maxValue: 100);
+                                    
+                                    await sdkInstaller.InstallAsync(
+                                        progressCallback: (bytesDownloaded, totalBytes) =>
+                                        {
+                                            if (totalBytes > 0 && downloadTask.MaxValue != totalBytes)
+                                            {
+                                                downloadTask.MaxValue = totalBytes;
+                                            }
+                                            downloadTask.Value = bytesDownloaded;
+                                        },
+                                        cancellationToken: cancellationToken);
+                                    
+                                    downloadTask.StopTask();
+                                });
+                        }
+                        else
+                        {
+                            // Fallback for non-interactive environments
+                            await interactionService.ShowStatusAsync(
+                                string.Format(CultureInfo.InvariantCulture,
+                                    "Downloading and installing .NET SDK {0}... This may take a few minutes.",
+                                    minimumRequiredVersion),
+                                async () =>
+                                {
+                                    await sdkInstaller.InstallAsync(cancellationToken: cancellationToken);
+                                    return 0;
+                                });
+                        }
 
                         interactionService.DisplaySuccess(
                             string.Format(CultureInfo.InvariantCulture,
@@ -114,5 +153,80 @@ internal static class SdkInstallHelper
         }
 
         return true;
+    }
+}
+
+/// <summary>
+/// A progress column that displays the number of bytes downloaded.
+/// </summary>
+file sealed class DownloadedColumn : ProgressColumn
+{
+    private static readonly string[] s_sizeUnits = ["B", "KB", "MB", "GB"];
+
+    /// <inheritdoc />
+    public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
+    {
+        var downloaded = FormatBytes((long)task.Value);
+        var total = task.MaxValue > 0 ? FormatBytes((long)task.MaxValue) : "?";
+        return new Markup($"[cyan]{downloaded}[/]/[dim]{total}[/]");
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < s_sizeUnits.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {s_sizeUnits[order]}";
+    }
+}
+
+/// <summary>
+/// A progress column that displays the transfer speed.
+/// </summary>
+file sealed class TransferSpeedColumn : ProgressColumn
+{
+    private const double SpeedUpdateIntervalSeconds = 0.5;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
+
+    /// <inheritdoc />
+    public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
+    {
+        var now = DateTime.UtcNow;
+        var currentBytes = (long)task.Value;
+
+        if (!_taskData.TryGetValue(task.Id, out var data))
+        {
+            _taskData[task.Id] = (currentBytes, now);
+            return new Markup("[dim]-- MB/s[/]");
+        }
+
+        var elapsed = (now - data.LastUpdate).TotalSeconds;
+        if (elapsed < SpeedUpdateIntervalSeconds)
+        {
+            return new Markup("[dim]-- MB/s[/]");
+        }
+
+        var bytesPerSecond = elapsed > 0 ? (currentBytes - data.BytesRead) / elapsed : 0;
+        _taskData[task.Id] = (currentBytes, now);
+
+        var speed = FormatSpeed(bytesPerSecond);
+        return new Markup($"[yellow]{speed}[/]");
+    }
+
+    private static string FormatSpeed(double bytesPerSecond)
+    {
+        if (bytesPerSecond < 1024)
+        {
+            return $"{bytesPerSecond:0.##} B/s";
+        }
+        if (bytesPerSecond < 1024 * 1024)
+        {
+            return $"{bytesPerSecond / 1024:0.##} KB/s";
+        }
+        return $"{bytesPerSecond / (1024 * 1024):0.##} MB/s";
     }
 }

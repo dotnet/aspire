@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -9,8 +8,6 @@ using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
-using Spectre.Console;
-using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.DotNet;
 
@@ -149,69 +146,32 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// </summary>
     /// <param name="sdkVersion">The SDK version to download.</param>
     /// <param name="destinationPath">The path where the archive should be saved.</param>
+    /// <param name="progressCallback">Optional callback to report download progress. Parameters: bytesDownloaded, totalBytes.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous download operation.</returns>
-    private async Task DownloadSdkArchiveAsync(string sdkVersion, string destinationPath, CancellationToken cancellationToken)
+    private async Task DownloadSdkArchiveAsync(string sdkVersion, string destinationPath, Action<long, long>? progressCallback, CancellationToken cancellationToken)
     {
         var downloadUrl = GetSdkDownloadUrl(sdkVersion);
         logger.LogDebug("Downloading SDK from {Url}", downloadUrl);
 
         using var httpClient = new HttpClient { Timeout = s_downloadTimeout };
+        using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
         
-        // Check if we're in an environment that supports progress display
-        var supportsProgress = !executionContext.DebugMode && AnsiConsole.Profile.Capabilities.Ansi;
+        var totalBytes = response.Content.Headers.ContentLength ?? 0;
         
-        if (supportsProgress)
+        using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var fileStream = File.Create(destinationPath);
+        
+        var buffer = new byte[DownloadBufferSize];
+        long totalBytesRead = 0;
+        int bytesRead;
+        
+        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
         {
-            await AnsiConsole.Progress()
-                .AutoClear(false)
-                .HideCompleted(false)
-                .Columns(
-                    new TaskDescriptionColumn(),
-                    new ProgressBarColumn(),
-                    new PercentageColumn(),
-                    new DownloadedColumn(),
-                    new TransferSpeedColumn())
-                .StartAsync(async ctx =>
-                {
-                    var downloadTask = ctx.AddTask($"Downloading .NET SDK {sdkVersion}", maxValue: 100);
-                    
-                    using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                    response.EnsureSuccessStatusCode();
-                    
-                    var totalBytes = response.Content.Headers.ContentLength ?? 0;
-                    if (totalBytes > 0)
-                    {
-                        downloadTask.MaxValue = totalBytes;
-                    }
-                    
-                    using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                    using var fileStream = File.Create(destinationPath);
-                    
-                    var buffer = new byte[DownloadBufferSize];
-                    long totalBytesRead = 0;
-                    int bytesRead;
-                    
-                    while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
-                    {
-                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-                        totalBytesRead += bytesRead;
-                        downloadTask.Value = totalBytesRead;
-                    }
-                    
-                    downloadTask.StopTask();
-                });
-        }
-        else
-        {
-            // Fallback for non-interactive environments
-            logger.LogDebug("Downloading SDK without progress indicator");
-            using var response = await httpClient.GetAsync(downloadUrl, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            
-            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var fileStream = File.Create(destinationPath);
-            await contentStream.CopyToAsync(fileStream, cancellationToken);
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+            totalBytesRead += bytesRead;
+            progressCallback?.Invoke(totalBytesRead, totalBytes);
         }
         
         logger.LogDebug("SDK archive downloaded to {Path}", destinationPath);
@@ -262,7 +222,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     }
 
     /// <inheritdoc />
-    public async Task InstallAsync(CancellationToken cancellationToken = default)
+    public async Task InstallAsync(Action<long, long>? progressCallback = null, CancellationToken cancellationToken = default)
     {
         var sdkVersion = GetEffectiveMinimumSdkVersion();
         var sdksDirectory = GetSdksDirectory();
@@ -321,7 +281,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             // Download if the archive doesn't already exist
             if (!File.Exists(archivePath))
             {
-                await DownloadSdkArchiveAsync(sdkVersion, archivePath, cancellationToken);
+                await DownloadSdkArchiveAsync(sdkVersion, archivePath, progressCallback, cancellationToken);
             }
             else
             {
@@ -577,80 +537,5 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
         // For all other requirements, use strict version comparison
         return SemVersion.ComparePrecedence(installedVersion, requiredVersion) >= 0;
-    }
-}
-
-/// <summary>
-/// A progress column that displays the number of bytes downloaded.
-/// </summary>
-file sealed class DownloadedColumn : ProgressColumn
-{
-    private static readonly string[] s_sizeUnits = ["B", "KB", "MB", "GB"];
-
-    /// <inheritdoc />
-    public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
-    {
-        var downloaded = FormatBytes((long)task.Value);
-        var total = task.MaxValue > 0 ? FormatBytes((long)task.MaxValue) : "?";
-        return new Markup($"[cyan]{downloaded}[/]/[dim]{total}[/]");
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        double len = bytes;
-        int order = 0;
-        while (len >= 1024 && order < s_sizeUnits.Length - 1)
-        {
-            order++;
-            len = len / 1024;
-        }
-        return $"{len:0.##} {s_sizeUnits[order]}";
-    }
-}
-
-/// <summary>
-/// A progress column that displays the transfer speed.
-/// </summary>
-file sealed class TransferSpeedColumn : ProgressColumn
-{
-    private const double SpeedUpdateIntervalSeconds = 0.5;
-    private readonly ConcurrentDictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
-
-    /// <inheritdoc />
-    public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
-    {
-        var now = DateTime.UtcNow;
-        var currentBytes = (long)task.Value;
-
-        if (!_taskData.TryGetValue(task.Id, out var data))
-        {
-            _taskData[task.Id] = (currentBytes, now);
-            return new Markup("[dim]-- MB/s[/]");
-        }
-
-        var elapsed = (now - data.LastUpdate).TotalSeconds;
-        if (elapsed < SpeedUpdateIntervalSeconds)
-        {
-            return new Markup("[dim]-- MB/s[/]");
-        }
-
-        var bytesPerSecond = elapsed > 0 ? (currentBytes - data.BytesRead) / elapsed : 0;
-        _taskData[task.Id] = (currentBytes, now);
-
-        var speed = FormatSpeed(bytesPerSecond);
-        return new Markup($"[yellow]{speed}[/]");
-    }
-
-    private static string FormatSpeed(double bytesPerSecond)
-    {
-        if (bytesPerSecond < 1024)
-        {
-            return $"{bytesPerSecond:0.##} B/s";
-        }
-        if (bytesPerSecond < 1024 * 1024)
-        {
-            return $"{bytesPerSecond / 1024:0.##} KB/s";
-        }
-        return $"{bytesPerSecond / (1024 * 1024):0.##} MB/s";
     }
 }
