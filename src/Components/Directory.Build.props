@@ -11,5 +11,7 @@
     <ComponentDatabasePackageTags>$(ComponentCommonPackageTags) data database</ComponentDatabasePackageTags>
     <ComponentEfCorePackageTags>$(ComponentDatabasePackageTags) ef efcore entityframework entityframeworkcore entity-framework-core o/rm</ComponentEfCorePackageTags>
     <ComponentAzurePackageTags>$(ComponentCommonPackageTags) azure</ComponentAzurePackageTags>
+    <AllTargetFrameworks>net8.0;net9.0;net10.0</AllTargetFrameworks>
+    <DefaultTargetFramework>net8.0</DefaultTargetFramework>
   </PropertyGroup>
 </Project>
