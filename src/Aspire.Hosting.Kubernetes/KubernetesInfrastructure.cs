@@ -42,12 +42,10 @@ internal sealed class KubernetesInfrastructure(
                 var serviceResource = await environmentContext.CreateKubernetesResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
                 // Add deployment target annotation to the resource
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
                 {
                     ComputeEnvironment = environment
                 });
-#pragma warning restore ASPIRECOMPUTE001
             }
         }
     }

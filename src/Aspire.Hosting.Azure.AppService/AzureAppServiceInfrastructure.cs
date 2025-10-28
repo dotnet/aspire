@@ -48,13 +48,11 @@ internal sealed class AzureAppServiceInfrastructure(
 
                 var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 resource.Annotations.Add(new DeploymentTargetAnnotation(website)
                 {
                     ContainerRegistry = appServiceEnvironment,
                     ComputeEnvironment = appServiceEnvironment
                 });
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
             }
         }
     }

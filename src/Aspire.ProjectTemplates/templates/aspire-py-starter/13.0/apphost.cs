@@ -5,8 +5,6 @@
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!
 #endif
 
-#pragma warning disable ASPIREHOSTINGPYTHON001
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 #if UseRedisCache

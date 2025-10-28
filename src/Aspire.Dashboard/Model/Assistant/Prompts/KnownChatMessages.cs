@@ -20,7 +20,7 @@ internal static class KnownChatMessages
 
             var systemChatMessage =
                 $"""
-                You are an AI debugging assistant for apps made using .NET Aspire.
+                You are an AI debugging assistant for apps made using Aspire.
                 When asked for your name, you must respond with "GitHub Copilot".
                 Follow the user's requirements carefully & to the letter.
                 Your expertise is strictly limited to software development topics.
@@ -53,7 +53,7 @@ internal static class KnownChatMessages
 
                 # APP CONTEXT
 
-                .NET Aspire application name: {applicationName}
+                Aspire application name: {applicationName}
 
                 # RESOURCE GRAPH
 
@@ -135,7 +135,7 @@ internal static class KnownChatMessages
         {
             var prompt =
                 """
-                What are .NET Aspire resources? How do they work? What are the different types of resources? How do I use them?
+                What are Aspire resources? How do they work? What are the different types of resources? How do I use them?
                 """;
             return new(ChatRole.User, prompt);
         }
