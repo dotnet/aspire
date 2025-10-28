@@ -60,10 +60,10 @@ logger = logging.getLogger(__name__)
 
 
 if not os.path.exists("static"):
-    @app.get("/")
+    @app.get("/", response_class=fastapi.responses.HTMLResponse)
     async def root():
         """Root endpoint."""
-        return "API service is running. Navigate to /weatherforecast to see sample data."
+        return "API service is running. Navigate to <a href='/api/weatherforecast'>/api/weatherforecast</a> to see sample data."
 
 @app.get("/api/weatherforecast")
 //#if UseRedisCache
