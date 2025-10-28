@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using System.Globalization;
 using System.IO.Pipelines;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -153,7 +154,6 @@ public class DcpExecutorTests
         await appExecutor.RunApplicationAsync();
 
         var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-
         var exe = Assert.Single(executables);
 
         // Ignore dotnet specific args for .NET project in process execution.
@@ -595,6 +595,9 @@ public class DcpExecutorTests
         var watchLogsEnumerator = watchLogs.GetAsyncEnumerator(watchCts.Token);
 
         var moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
+        Assert.True(await moveNextTask);
+
+        moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
         Assert.False(moveNextTask.IsCompletedSuccessfully, "No logs yet.");
 
         await watchSubscribersEnumerator.MoveNextAsync();
@@ -611,7 +614,7 @@ public class DcpExecutorTests
         Assert.True(await moveNextTask);
         var logLine = watchLogsEnumerator.Current.Single();
         Assert.Equal("2024-08-19T06:10:33.4732759Z Hello world", logLine.Content);
-        Assert.Equal(1, logLine.LineNumber);
+        Assert.Equal(2, logLine.LineNumber);
         Assert.False(logLine.IsErrorMessage);
 
         moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
@@ -622,13 +625,14 @@ public class DcpExecutorTests
         Assert.True(await moveNextTask);
         logLine = watchLogsEnumerator.Current.Single();
         Assert.Equal("2024-08-19T06:10:32.6610000Z Next", logLine.Content);
-        Assert.Equal(2, logLine.LineNumber);
+        Assert.Equal(3, logLine.LineNumber);
         Assert.True(logLine.IsErrorMessage);
 
         var loggerState = resourceLoggerService.GetResourceLoggerState(exeResource.Metadata.Name);
         Assert.Collection(loggerState.GetBacklogSnapshot(),
             l => Assert.Equal("Next", l.Content),
-            l => Assert.Equal("Hello world", l.Content));
+            l => Assert.Equal("Hello world", l.Content),
+            l => { });
 
         // Stop watching.
         moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
@@ -691,7 +695,7 @@ public class DcpExecutorTests
         var watchSubscribers = resourceLoggerService.WatchAnySubscribersAsync();
         var watchSubscribersEnumerator = watchSubscribers.GetAsyncEnumerator();
         var watchLogs1 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
-        var watchLogsTask1 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs1, targetLogCount: 7);
+        var watchLogsTask1 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs1, targetLogCount: 8);
 
         Assert.False(watchLogsTask1.IsCompletedSuccessfully, "Logs not available yet.");
 
@@ -703,7 +707,7 @@ public class DcpExecutorTests
         kubernetesService.PushResourceModified(exeResource);
 
         var watchLogsResults1 = await watchLogsTask1;
-        Assert.Equal(7, watchLogsResults1.Count);
+        Assert.Equal(8, watchLogsResults1.Count);
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("First"));
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("Second"));
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("Third"));
@@ -713,7 +717,7 @@ public class DcpExecutorTests
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("Seventh"));
 
         var watchLogs2 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
-        var watchLogsTask2 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs2, targetLogCount: 7);
+        var watchLogsTask2 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs2, targetLogCount: 8);
 
         var watchLogsResults2 = await watchLogsTask2;
         Assert.Contains(watchLogsResults2, l => l.Content.Contains("First"));
@@ -2015,7 +2019,7 @@ public class DcpExecutorTests
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
-        var options = new DistributedApplicationOptions();
+        var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false);
 
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
@@ -2025,18 +2029,19 @@ public class DcpExecutorTests
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
-            options,
+            new DistributedApplicationOptions(),
             Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
                 ServiceProvider = new TestServiceProvider(configuration)
+                    .AddService<IDeveloperCertificateService>(developerCertificateService)
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
-            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance, configuration, options));
+            developerCertificateService);
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);

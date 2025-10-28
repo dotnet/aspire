@@ -1,14 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Specifies the format for container images.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public enum ContainerImageFormat
 {
     /// <summary>
@@ -35,7 +35,7 @@ public enum ContainerImageFormat
 /// <summary>
 /// Specifies the target platform for container images.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public enum ContainerTargetPlatform
 {
     /// <summary>
@@ -72,7 +72,7 @@ public enum ContainerTargetPlatform
 /// <summary>
 /// Options for building container images.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class ContainerBuildOptions
 {
     /// <summary>
@@ -94,7 +94,7 @@ public class ContainerBuildOptions
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IResourceContainerImageBuilder
 {
     /// <summary>
@@ -133,9 +133,11 @@ public interface IResourceContainerImageBuilder
 internal sealed class ResourceContainerImageBuilder(
     ILogger<ResourceContainerImageBuilder> logger,
     IOptions<DcpOptions> dcpOptions,
-    IServiceProvider serviceProvider,
-    IPipelineActivityReporter activityReporter) : IResourceContainerImageBuilder
+    IServiceProvider serviceProvider) : IResourceContainerImageBuilder
 {
+    // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
+    private readonly SemaphoreSlim _throttle = new(1);
+
     private IContainerRuntime? _containerRuntime;
     private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch
     {
@@ -145,57 +147,34 @@ internal sealed class ResourceContainerImageBuilder(
 
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var step = await activityReporter.CreateStepAsync(
-            "build-images",
-            cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Starting to build container images");
 
-        await using (step.ConfigureAwait(false))
+        // Only check container runtime health if there are resources that need it
+        if (ResourcesRequireContainerRuntime(resources, options))
         {
-            // Only check container runtime health if there are resources that need it
-            if (ResourcesRequireContainerRuntime(resources, options))
+            logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
+
+            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!containerRuntimeHealthy)
             {
-                var task = await step.CreateTaskAsync(
-                    $"Checking {ContainerRuntime.Name} health",
-                    cancellationToken).ConfigureAwait(false);
-
-                await using (task.ConfigureAwait(false))
-                {
-                    var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
-
-                    if (!containerRuntimeHealthy)
-                    {
-                        logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
-
-                        await task.FailAsync(
-                            $"{ContainerRuntime.Name} is not running or is unhealthy.",
-                            cancellationToken).ConfigureAwait(false);
-
-                        await step.CompleteAsync("Building container images failed", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
-                        throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
-                    }
-
-                    await task.SucceedAsync(
-                        $"{ContainerRuntime.Name} is healthy.",
-                        cancellationToken).ConfigureAwait(false);
-                }
+                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
+                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
             }
 
-            foreach (var resource in resources)
-            {
-                // TODO: Consider parallelizing this.
-                await BuildImageAsync(step, resource, options, cancellationToken).ConfigureAwait(false);
-            }
-
-            await step.CompleteAsync("Building container images completed", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
         }
+
+        foreach (var resource in resources)
+        {
+            // TODO: Consider parallelizing this.
+            await BuildImageAsync(resource, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        logger.LogDebug("Building container images completed");
     }
 
-    public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        return BuildImageAsync(step: null, resource, options, cancellationToken);
-    }
-
-    private async Task BuildImageAsync(IReportingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
@@ -205,7 +184,6 @@ internal sealed class ResourceContainerImageBuilder(
             // using the .NET SDK.
             await BuildProjectContainerImageAsync(
                 resource,
-                step,
                 options,
                 cancellationToken).ConfigureAwait(false);
             return;
@@ -222,7 +200,6 @@ internal sealed class ResourceContainerImageBuilder(
                 resource,
                 dockerfileBuildAnnotation,
                 imageName,
-                step,
                 options,
                 cancellationToken).ConfigureAwait(false);
             return;
@@ -230,7 +207,7 @@ internal sealed class ResourceContainerImageBuilder(
         else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var _))
         {
             // This resource already has a container image associated with it so no build is needed.
-            logger.LogInformation("Resource {ResourceName} already has a container image associated and no build annotation. Skipping build.", resource.Name);
+            logger.LogDebug("Resource {ResourceName} already has a container image associated and no build annotation. Skipping build.", resource.Name);
             return;
         }
         else
@@ -239,34 +216,30 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, IReportingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var publishingTask = await CreateTaskAsync(
-            step,
-            $"Building image: {resource.Name}",
-            cancellationToken
-            ).ConfigureAwait(false);
+        await _throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
-
-        if (publishingTask is not null)
+        try
         {
-            await using (publishingTask.ConfigureAwait(false))
+
+            logger.LogInformation("Building image: {ResourceName}", resource.Name);
+
+            var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
+
+            if (!success)
             {
-                if (!success)
-                {
-                    await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
-                }
+                logger.LogError("Building image for {ResourceName} failed", resource.Name);
+                throw new DistributedApplicationException($"Failed to build container image.");
+            }
+            else
+            {
+                logger.LogInformation("Building image for {ResourceName} completed", resource.Name);
             }
         }
-
-        if (!success)
+        finally
         {
-            throw new DistributedApplicationException($"Failed to build container image.");
+            _throttle.Release();
         }
     }
 
@@ -318,7 +291,7 @@ internal sealed class ResourceContainerImageBuilder(
             }
         };
 
-        logger.LogInformation(
+        logger.LogDebug(
             "Starting .NET CLI with arguments: {Arguments}",
             string.Join(" ", spec.Arguments)
             );
@@ -346,13 +319,9 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IReportingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var publishingTask = await CreateTaskAsync(
-            step,
-            $"Building image: {resource.Name}",
-            cancellationToken
-            ).ConfigureAwait(false);
+        logger.LogInformation("Building image: {ResourceName}", resource.Name);
 
         // If there's a factory, generate the Dockerfile content and write it to the specified path
         if (dockerfileBuildAnnotation.DockerfileFactory is not null)
@@ -387,52 +356,24 @@ internal sealed class ResourceContainerImageBuilder(
             Directory.CreateDirectory(outputPath);
         }
 
-        if (publishingTask is not null)
+        try
         {
-            await using (publishingTask.ConfigureAwait(false))
-            {
-                try
-                {
-                    await ContainerRuntime.BuildImageAsync(
-                        dockerfileBuildAnnotation.ContextPath,
-                        dockerfileBuildAnnotation.DockerfilePath,
-                        imageName,
-                        options,
-                        resolvedBuildArguments,
-                        resolvedBuildSecrets,
-                        dockerfileBuildAnnotation.Stage,
-                        cancellationToken).ConfigureAwait(false);
+            await ContainerRuntime.BuildImageAsync(
+                dockerfileBuildAnnotation.ContextPath,
+                dockerfileBuildAnnotation.DockerfilePath,
+                imageName,
+                options,
+                resolvedBuildArguments,
+                resolvedBuildSecrets,
+                dockerfileBuildAnnotation.Stage,
+                cancellationToken).ConfigureAwait(false);
 
-                    await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                    await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
-                    throw;
-                }
-            }
+            logger.LogInformation("Building image for {ResourceName} completed", resource.Name);
         }
-        else
+        catch (Exception ex)
         {
-            // Handle case when publishingTask is null (no step provided)
-            try
-            {
-                await ContainerRuntime.BuildImageAsync(
-                    dockerfileBuildAnnotation.ContextPath,
-                    dockerfileBuildAnnotation.DockerfilePath,
-                    imageName,
-                    options,
-                    resolvedBuildArguments,
-                    resolvedBuildSecrets,
-                    dockerfileBuildAnnotation.Stage,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                throw;
-            }
+            logger.LogError(ex, "Failed to build container image from Dockerfile for {ResourceName}", resource.Name);
+            throw;
         }
     }
 
@@ -457,20 +398,6 @@ internal sealed class ResourceContainerImageBuilder(
             // and we should fallback to resolving it from environment variables.
             return null;
         }
-    }
-
-    private static async Task<IReportingTask?> CreateTaskAsync(
-        IReportingStep? step,
-        string description,
-        CancellationToken cancellationToken)
-    {
-
-        if (step is null)
-        {
-            return null;
-        }
-
-        return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
@@ -499,7 +426,7 @@ internal sealed class ResourceContainerImageBuilder(
 /// <summary>
 /// Extension methods for <see cref="ContainerTargetPlatform"/>.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal static class ContainerTargetPlatformExtensions
 {
     /// <summary>

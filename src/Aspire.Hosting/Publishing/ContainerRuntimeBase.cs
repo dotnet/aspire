@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
@@ -147,7 +147,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
                 return processResult.ExitCode;
             }
 
-            _logger.LogInformation(successLogTemplate, logArguments);
+            _logger.LogDebug(successLogTemplate, logArguments);
             return processResult.ExitCode;
         }
     }

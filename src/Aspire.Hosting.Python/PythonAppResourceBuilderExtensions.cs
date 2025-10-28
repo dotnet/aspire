@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -330,7 +329,7 @@ public static class PythonAppResourceBuilderExtensions
         // way to simply append additional certificates to default Python trust stores such as certifi.
         resourceBuilder
             .WithCertificateTrustScope(CertificateTrustScope.System)
-            .WithExecutableCertificateTrustCallback(ctx =>
+            .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {
@@ -342,21 +341,16 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     // Override default certificates path for the requests module.
                     // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                    ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+                    ctx.EnvironmentVariables["REQUESTS_CA_BUNDLE"] = ctx.CertificateBundlePath;
 
                     // Requests also supports CURL_CA_BUNDLE as an alternative config (lower priority than REQUESTS_CA_BUNDLE).
                     // Setting it to be as complete as possible and avoid potential issues with conflicting configurations.
-                    ctx.CertificateBundleEnvironment.Add("CURL_CA_BUNDLE");
-
-                    // Override default certificates path for Python modules that honor OpenSSL style paths.
-                    // This has been tested with urllib, urllib3, httpx, and aiohttp.
-                    // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
-                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+                    ctx.EnvironmentVariables["CURL_CA_BUNDLE"] = ctx.CertificateBundlePath;
                 }
 
                 // Override default opentelemetry-python certificate bundle path
                 // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
-                ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_CERTIFICATE");
+                ctx.EnvironmentVariables["OTEL_EXPORTER_OTLP_CERTIFICATE"] = ctx.CertificateBundlePath;
 
                 return Task.CompletedTask;
             });
@@ -547,47 +541,21 @@ public static class PythonAppResourceBuilderExtensions
                 });
         });
 
-        resourceBuilder.WithPipelineStepFactory(factoryContext =>
+        resourceBuilder.WithPipelineConfiguration(context =>
         {
-            List<PipelineStep> steps = [];
-            var buildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-build-compute", factoryContext.Resource);
-            steps.Add(buildStep);
-
-            // ensure any static file references' images are built first
-            if (factoryContext.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+            if (resourceBuilder.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
             {
+                var buildSteps = context.GetSteps(resourceBuilder.Resource, WellKnownPipelineTags.BuildCompute);
+
                 foreach (var containerFile in containerFilesAnnotations)
                 {
-                    var source = containerFile.Source;
-                    var staticFileBuildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
-                    buildStep.DependsOn(staticFileBuildStep);
-                    steps.Add(staticFileBuildStep);
+                    buildSteps.DependsOn(context.GetSteps(containerFile.Source, WellKnownPipelineTags.BuildCompute));
                 }
             }
-
-            return steps;
         });
 
         return resourceBuilder;
     }
-
-    private static PipelineStep CreateBuildImageBuildStep(string stepName, IResource resource) =>
-        new()
-        {
-            Name = stepName,
-            Action = async ctx =>
-            {
-                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                await containerImageBuilder.BuildImageAsync(
-                    resource,
-                    new ContainerBuildOptions
-                    {
-                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                    },
-                    ctx.CancellationToken).ConfigureAwait(false);
-            },
-            Tags = [WellKnownPipelineTags.BuildCompute]
-        };
 
     private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
     {

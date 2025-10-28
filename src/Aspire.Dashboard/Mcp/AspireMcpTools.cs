@@ -221,9 +221,9 @@ internal sealed class AspireMcpTools
         return consoleLogsData;
     }
 
-    [McpServerTool(Name = "execute_command")]
+    [McpServerTool(Name = "execute_resource_command")]
     [Description("Executes a command on a resource. If a resource needs to be restarted and is currently stopped, use the start command instead.")]
-    public static async Task ExecuteCommand(IDashboardClient dashboardClient, [Description("The resource name")] string resourceName, [Description("The command name")] string commandName)
+    public static async Task ExecuteResourceCommand(IDashboardClient dashboardClient, [Description("The resource name")] string resourceName, [Description("The command name")] string commandName)
     {
         var resource = dashboardClient.GetResource(resourceName);
 
@@ -240,12 +240,12 @@ internal sealed class AspireMcpTools
         }
 
         // Block execution when command isn't available.
-        if (command.State == Model.CommandViewModelState.Hidden)
+        if (command.State == CommandViewModelState.Hidden)
         {
             throw new McpProtocolException($"Command '{commandName}' is not available for resource '{resourceName}'.", McpErrorCode.InvalidParams);
         }
 
-        if (command.State == Model.CommandViewModelState.Disabled)
+        if (command.State == CommandViewModelState.Disabled)
         {
             if (command.Name == "resource-restart" && resource.Commands.Any(c => c.Name == "resource-start" && c.State == CommandViewModelState.Enabled))
             {
@@ -261,11 +261,11 @@ internal sealed class AspireMcpTools
 
             switch (response.Kind)
             {
-                case Model.ResourceCommandResponseKind.Succeeded:
+                case ResourceCommandResponseKind.Succeeded:
                     return;
-                case Model.ResourceCommandResponseKind.Cancelled:
+                case ResourceCommandResponseKind.Cancelled:
                     throw new McpProtocolException($"Command '{commandName}' was cancelled.", McpErrorCode.InternalError);
-                case Model.ResourceCommandResponseKind.Failed:
+                case ResourceCommandResponseKind.Failed:
                 default:
                     var message = response.ErrorMessage is { Length: > 0 } ? response.ErrorMessage : "Unknown error. See logs for details.";
                     throw new McpProtocolException($"Command '{commandName}' failed for resource '{resourceName}': {message}", McpErrorCode.InternalError);

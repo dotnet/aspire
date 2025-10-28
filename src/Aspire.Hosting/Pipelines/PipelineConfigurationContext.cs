@@ -20,14 +20,25 @@ public class PipelineConfigurationContext
     /// <summary>
     /// Gets the list of pipeline steps collected during the first pass.
     /// </summary>
-    public required IReadOnlyList<PipelineStep> Steps { get; init; }
+    public required IReadOnlyList<PipelineStep> Steps
+    {
+        get;
+        init
+        {
+            field = value;
+            // IMPORTANT: The ResourceNameComparer must be used here to ensure correct lookup behavior
+            // based on resource names, NOT the default reference equality. This is because resources
+            // may be swapped out (referred to as bait-and-switch) during model transformations.
+            StepToResourceMap = field.ToLookup(s => s.Resource, s => s, new ResourceNameComparer());
+        }
+    }
 
     /// <summary>
     /// Gets the distributed application model containing all resources.
     /// </summary>
     public required DistributedApplicationModel Model { get; init; }
 
-    internal IReadOnlyDictionary<PipelineStep, IResource>? StepToResourceMap { get; init; }
+    internal ILookup<IResource?, PipelineStep>? StepToResourceMap { get; init; }
 
     /// <summary>
     /// Gets all pipeline steps with the specified tag.
@@ -48,7 +59,8 @@ public class PipelineConfigurationContext
     public IEnumerable<PipelineStep> GetSteps(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
-        return StepToResourceMap?.Where(kvp => kvp.Value == resource).Select(kvp => kvp.Key) ?? [];
+
+        return StepToResourceMap?[resource] ?? [];
     }
 
     /// <summary>

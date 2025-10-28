@@ -429,22 +429,16 @@ public static class ProjectResourceBuilderExtensions
             builder.WithCertificateTrustScope(CertificateTrustScope.None);
         }
 
-        builder.WithExecutableCertificateTrustCallback(ctx =>
+        builder.WithCertificateTrustConfiguration(ctx =>
         {
             if (ctx.Scope != CertificateTrustScope.None && OperatingSystem.IsWindows())
             {
+                // Log if the user attempts to enable certificate trust customization on Windows for .NET projects.
                 var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
                 var logger = resourceLogger.GetLogger(builder.Resource);
                 logger.LogWarning("Certificate trust scope is set to '{Scope}', but the feature is not supported for .NET projects on Windows. No certificate trust customization will be applied. Set the certificate trust scope to 'None' to disable this warning.", Enum.GetName(ctx.Scope));
                 return Task.CompletedTask;
             }
-
-            if (ctx.Scope != CertificateTrustScope.Append)
-            {
-                ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
-            }
-
-            ctx.CertificatesDirectoryEnvironment.Add("SSL_CERT_DIR");
 
             return Task.CompletedTask;
         });
@@ -862,24 +856,6 @@ public static class ProjectResourceBuilderExtensions
         // so that the container resource is written to the manifest
         return builder.WithManifestPublishingCallback(context =>
             context.WriteContainerAsync(container));
-    }
-
-    /// <summary>
-    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that
-    /// is invoked when a project resource needs to configure itself for custom certificate trust. This is only supported in run mode;
-    /// certificate trust customization is not supported in publish or deploy.
-    /// </summary>
-    /// <typeparam name="TResource">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
-    /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithExecutableCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ExecutableCertificateTrustCallbackAnnotationContext, Task> callback)
-        where TResource : ProjectResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ExecutableCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static IConfiguration GetConfiguration(ProjectResource projectResource)

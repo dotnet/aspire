@@ -83,7 +83,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   }
 }
 
-resource container1_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource container1_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: env_outputs_azure_website_contributor_managed_identity_principal_id

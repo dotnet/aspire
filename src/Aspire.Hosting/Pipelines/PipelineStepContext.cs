@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Pipelines;
 /// This context combines the shared pipeline context with a step-specific publishing step,
 /// allowing each step to track its own tasks and completion state independently.
 /// </remarks>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PipelineStepContext
 {
     /// <summary>
@@ -68,7 +68,7 @@ public sealed class PipelineStepContext
 /// <summary>
 /// A logger that writes to the step logger.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal sealed class StepLogger(IReportingStep step, PipelineLoggingOptions options) : ILogger
 {
     private readonly IReportingStep _step = step;

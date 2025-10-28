@@ -792,7 +792,7 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithParentRelationship<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> parent)
             where T : ApplicationModel.IResource { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<T> WithPublishingCallback<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Func<ApplicationModel.PublishingContext, System.Threading.Tasks.Task> callback)
             where T : ApplicationModel.IResource { throw null; }
 
@@ -1238,7 +1238,7 @@ namespace Aspire.Hosting.ApplicationModel
         public string LaunchProfileName { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class DeployingCallbackAnnotation : IResourceAnnotation
     {
         public DeployingCallbackAnnotation(System.Func<DeployingContext, System.Threading.Tasks.Task> callback) { }
@@ -1246,7 +1246,7 @@ namespace Aspire.Hosting.ApplicationModel
         public System.Func<DeployingContext, System.Threading.Tasks.Task> Callback { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class DeployingContext
     {
         public DeployingContext(DistributedApplicationModel model, DistributedApplicationExecutionContext executionContext, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, System.Threading.CancellationToken cancellationToken, string? outputPath) { }
@@ -1981,7 +1981,7 @@ namespace Aspire.Hosting.ApplicationModel
         public required bool ProxyEnabled { get { throw null; } set { } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class PublishingCallbackAnnotation : IResourceAnnotation
     {
         public PublishingCallbackAnnotation(System.Func<PublishingContext, System.Threading.Tasks.Task> callback) { }
@@ -1989,7 +1989,7 @@ namespace Aspire.Hosting.ApplicationModel
         public System.Func<PublishingContext, System.Threading.Tasks.Task> Callback { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class PublishingContext
     {
         public PublishingContext(DistributedApplicationModel model, DistributedApplicationExecutionContext executionContext, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, System.Threading.CancellationToken cancellationToken, string outputPath) { }
@@ -2576,7 +2576,7 @@ namespace Aspire.Hosting.Publishing
         public System.IServiceProvider Services { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public enum CompletionState
     {
         InProgress = 0,
@@ -2585,7 +2585,7 @@ namespace Aspire.Hosting.Publishing
         CompletedWithError = 3
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial class ContainerBuildOptions
     {
         public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
@@ -2595,14 +2595,14 @@ namespace Aspire.Hosting.Publishing
         public ContainerTargetPlatform? TargetPlatform { get { throw null; } init { } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public enum ContainerImageFormat
     {
         Docker = 0,
         Oci = 1
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public enum ContainerTargetPlatform
     {
         LinuxAmd64 = 0,
@@ -2618,28 +2618,28 @@ namespace Aspire.Hosting.Publishing
         System.Threading.Tasks.Task PublishAsync(ApplicationModel.DistributedApplicationModel model, System.Threading.CancellationToken cancellationToken);
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IPublishingActivityReporter
     {
         System.Threading.Tasks.Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task<IPublishingStep> CreateStepAsync(string title, System.Threading.CancellationToken cancellationToken = default);
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IPublishingStep : System.IAsyncDisposable
     {
         System.Threading.Tasks.Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task<IPublishingTask> CreateTaskAsync(string statusText, System.Threading.CancellationToken cancellationToken = default);
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IPublishingTask : System.IAsyncDisposable
     {
         System.Threading.Tasks.Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task UpdateAsync(string statusText, System.Threading.CancellationToken cancellationToken = default);
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IResourceContainerImageBuilder
     {
         System.Threading.Tasks.Task BuildImageAsync(ApplicationModel.IResource resource, ContainerBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
@@ -2675,7 +2675,7 @@ namespace Aspire.Hosting.Publishing
         public System.Threading.Tasks.Task WriteEnvironmentVariablesAsync(ApplicationModel.IResource resource) { throw null; }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class NullPublishingActivityReporter : IPublishingActivityReporter
     {
         public System.Threading.Tasks.Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, System.Threading.CancellationToken cancellationToken = default) { throw null; }
@@ -2683,7 +2683,7 @@ namespace Aspire.Hosting.Publishing
         public System.Threading.Tasks.Task<IPublishingStep> CreateStepAsync(string title, System.Threading.CancellationToken cancellationToken = default) { throw null; }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static partial class PublishingExtensions
     {
         public static System.Threading.Tasks.Task<IPublishingStep> FailAsync(this IPublishingStep step, string? errorMessage = null, System.Threading.CancellationToken cancellationToken = default) { throw null; }
@@ -2704,7 +2704,7 @@ namespace Aspire.Hosting.Publishing
     public partial class PublishingOptions
     {
         public const string Publishing = "Publishing";
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public bool Deploy { get { throw null; } set { } }
 
         public string? OutputPath { get { throw null; } set { } }

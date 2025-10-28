@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography.X509Certificates;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -297,16 +300,7 @@ public static class ResourceExtensions
             {
                 try
                 {
-                    var resolvedValue = (executionContext.Operation, a) switch
-                    {
-                        (_, string s) => new(s, false),
-                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
-                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
-                        (_, { } o) => new(o.ToString(), false),
-                        (_, null) => new(null, false),
-                    };
+                    var resolvedValue = await ResolveValueAsync(resource, executionContext, logger, a, containerHostName, key: null, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                     if (resolvedValue?.Value != null)
                     {
@@ -356,16 +350,7 @@ public static class ResourceExtensions
             {
                 try
                 {
-                    var resolvedValue = (executionContext.Operation, expr) switch
-                    {
-                        (_, string s) => new(s, false),
-                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
-                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
-                        (_, { } o) => new(o.ToString(), false),
-                        (_, null) => new(null, false),
-                    };
+                    var resolvedValue = await ResolveValueAsync(resource, executionContext, logger, expr, containerHostName, key, cancellationToken).ConfigureAwait(false);
 
                     if (resolvedValue?.Value is not null)
                     {
@@ -378,6 +363,157 @@ public static class ResourceExtensions
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Processes trusted certificates configuration for the specified resource within the given execution context.
+    /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
+    /// annotations on the resource to configure certificate trust as needed and therefore must be run before
+    /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, string?, CancellationToken)"/>
+    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, string?, CancellationToken)"/> are called.
+    /// </summary>
+    /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
+    /// <param name="executionContext">The execution context used during the processing.</param>
+    /// <param name="logger">The logger used for logging information during the processing.</param>
+    /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
+    /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
+        Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
+        CancellationToken cancellationToken = default)
+    {
+        var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+        var trustDevCert = developerCertificateService.TrustCertificate;
+
+        var certificates = new X509Certificate2Collection();
+        var scope = CertificateTrustScope.Append;
+        if (resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+        {
+            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
+            {
+                certificates.AddRange(certCollection.Certificates);
+            }
+
+            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
+            scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            return (scope, null);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
+        }
+
+        if (executionContext.IsRunMode && trustDevCert)
+        {
+            foreach (var cert in developerCertificateService.Certificates)
+            {
+                certificates.Add(cert);
+            }
+        }
+
+        if (!certificates.Any())
+        {
+            logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
+            return (scope, null);
+        }
+
+        var bundlePath = bundlePathFactory(scope);
+        var certificateDirectoryPaths = certificateDirectoryPathsFactory(scope);
+
+        // Apply default OpenSSL environment configuration for certificate trust
+        var environment = new Dictionary<string, object>()
+        {
+            { "SSL_CERT_DIR", certificateDirectoryPaths },
+        };
+
+        if (scope != CertificateTrustScope.Append)
+        {
+            environment["SSL_CERT_FILE"] = bundlePath;
+        }
+
+        var context = new CertificateTrustConfigurationCallbackAnnotationContext
+        {
+            ExecutionContext = executionContext,
+            Resource = resource,
+            Scope = scope,
+            CertificateBundlePath = bundlePath,
+            CertificateDirectoriesPath = certificateDirectoryPaths,
+            Arguments = new(),
+            EnvironmentVariables = environment,
+            CancellationToken = cancellationToken,
+        };
+
+        if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
+        {
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+        }
+
+        if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
+        {
+            logger.LogInformation("No certificate trust configuration was provided for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
+            return (scope, null);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
+        }
+
+        if (context.Arguments.Any())
+        {
+            resource.Annotations.Add(new CommandLineArgsCallbackAnnotation((args) =>
+            {
+                args.AddRange(context.Arguments);
+            }));
+        }
+
+        if (context.EnvironmentVariables.Any())
+        {
+            resource.Annotations.Add(new EnvironmentCallbackAnnotation((env) =>
+            {
+                foreach (var (key, value) in context.EnvironmentVariables)
+                {
+                    env[key] = value;
+                }
+            }));
+        }
+
+        return (scope, certificates);
+    }
+
+    private static async ValueTask<ResolvedValue?> ResolveValueAsync(
+        IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        object value,
+        string? containerHostName = null,
+        string? key = null,
+        CancellationToken cancellationToken = default)
+    {
+        return (executionContext.Operation, value) switch
+        {
+            (_, string s) => new(s, false),
+            (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+            (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+            (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+            (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
+            (_, { } o) => new(o.ToString(), false),
+            (_, null) => new(null, false),
+        };
     }
 
     /// <summary>

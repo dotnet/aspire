@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// Interface for reporting publishing activities.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IPipelineActivityReporter
 {
     /// <summary>
