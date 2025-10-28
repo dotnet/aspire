@@ -403,8 +403,8 @@
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVSCodeWarningInstructions">
-        <source>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS—for example, by launching the app host with the &lt;code&gt;http&lt;/code&gt; profile.</source>
-        <target state="new">To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS—for example, by launching the app host with the &lt;code&gt;http&lt;/code&gt; profile.</target>
+        <source>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS. Note that this will remove transport security from Aspire MCP communication and could allow data to be read by a third party.</source>
+        <target state="new">To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS. Note that this will remove transport security from Aspire MCP communication and could allow data to be read by a third party.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVSCodeWarningMessage">

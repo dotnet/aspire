@@ -438,7 +438,7 @@
     <value>As of October 2025, VS Code does not support using Aspire MCP over HTTPS.</value>
   </data>
   <data name="McpServerDialogVSCodeWarningInstructions" xml:space="preserve">
-    <value>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS—for example, by launching the app host with the &lt;code&gt;http&lt;/code&gt; profile.</value>
+    <value>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS. Note that this will remove transport security from Aspire MCP communication and could allow data to be read by a third party.</value>
   </data>
   <data name="McpServerDialogVSCodeWarningMoreInfo" xml:space="preserve">
     <value>More information</value>
