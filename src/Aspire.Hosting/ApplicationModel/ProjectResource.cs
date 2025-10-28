@@ -102,8 +102,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             ctx.CancellationToken).ConfigureAwait(false);
 
         // Check if we need to copy container files
-        var hasContainerFiles = this.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations);
-        if (!hasContainerFiles)
+        if (!this.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
         {
             // No container files to copy, just build the image normally
             return;
@@ -131,7 +130,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var stage = dockerfileBuilder.From(tempImageName);
 
         // Add COPY --from: statements for each source
-        foreach (var containerFileDestination in containerFilesAnnotations!)
+        foreach (var containerFileDestination in containerFilesAnnotations)
         {
             var source = containerFileDestination.Source;
 
@@ -159,7 +158,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         // Write the Dockerfile to a temporary location
         var projectMetadata = this.GetProjectMetadata();
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-        var tempDockerfilePath = Path.Combine(projectDir, $"Dockerfile.{Guid.NewGuid():N}");
+        var tempDockerfilePath = Path.GetTempFileName();
 
         try
         {
