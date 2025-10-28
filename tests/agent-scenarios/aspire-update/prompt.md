@@ -17,7 +17,6 @@ This test validates that:
 
 Before starting, ensure you have:
 - Docker installed and running (for container-based resources if used)
-- Sufficient disk space for multiple CLI versions and application artifacts
 - Network access to download NuGet packages and CLI builds
 - Browser automation tools available (playwright) for verification
 
@@ -208,7 +207,7 @@ Run the update command again with the PR build CLI.
 aspire update
 ```
 
-**Expected behavior (NEW in this PR):**
+**Expected behavior:**
 - The project should be detected as up-to-date (no package updates needed since we just updated to daily)
 - A prompt should appear: **"An update is available for the Aspire CLI. Would you like to update it now?"**
 
