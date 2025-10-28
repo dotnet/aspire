@@ -520,10 +520,39 @@ Navigate to the Dashboard using the URL from the output:
 
 \```bash
 playwright-browser navigate $DASHBOARD_URL
-playwright-browser take_screenshot --filename dashboard.png
 \```
 
-Expected: Dashboard loads successfully and screenshot shows all resources running.
+**Wait for resources to stabilize**: Allow 10-30 seconds for resources to reach either "Running" or "Failed" state before capturing screenshots.
+
+\```bash
+# Wait for resources to be ready
+sleep 15
+
+# Take initial screenshot
+playwright-browser take_screenshot --filename dashboard-initial.png
+\```
+
+**If resources take longer than expected** (>60 seconds): Take intermediate screenshots to capture the progression:
+
+\```bash
+# After 30 seconds
+playwright-browser take_screenshot --filename dashboard-30s.png
+
+# After 60 seconds
+playwright-browser take_screenshot --filename dashboard-60s.png
+\```
+
+**If any resources fail**: Expand error details before taking screenshots to capture useful diagnostic information:
+
+\```bash
+# Click on failed resource to expand error details
+playwright-browser click --element "failed resource row" --ref "[appropriate selector]"
+
+# Take screenshot showing expanded error details
+playwright-browser take_screenshot --filename dashboard-failure-details.png
+\```
+
+Expected: Dashboard loads successfully and screenshot shows all resources in "Running" state, or clear error details if any resource failed.
 ```
 
 ### Pattern: Capturing Screenshots
