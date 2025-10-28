@@ -332,7 +332,7 @@ public static class PythonAppResourceBuilderExtensions
         if (builder.ExecutionContext.IsPublishMode)
         {
             // Production: Use Gunicorn
-            resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "gunicorn", true)
+            resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "gunicorn", false)
                 .WithHttpEndpoint(env: "PORT")
                 .WithArgs(c =>
                 {
