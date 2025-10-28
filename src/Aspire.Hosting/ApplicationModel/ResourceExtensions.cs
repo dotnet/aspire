@@ -325,13 +325,15 @@ public static class ResourceExtensions
     /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        NetworkIdentifier? networkContext = null)
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
@@ -346,7 +348,7 @@ public static class ResourceExtensions
                 await callback.Callback(context).ConfigureAwait(false);
             }
 
-            var networkContext = resource.GetDefaultResourceNetwork();
+            networkContext ??= resource.GetDefaultResourceNetwork();
 
             foreach (var (key, expr) in config)
             {
@@ -377,7 +379,7 @@ public static class ResourceExtensions
     /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
     /// annotations on the resource to configure certificate trust as needed and therefore must be run before
     /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, CancellationToken, NetworkIdentifier?)"/>
-    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, CancellationToken)"/> are called.
+    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, CancellationToken, NetworkIdentifier?)"/> are called.
     /// </summary>
     /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
     /// <param name="executionContext">The execution context used during the processing.</param>
