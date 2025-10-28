@@ -295,7 +295,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                 .ToArray();
 
             var selection = await interactionService.PromptForSelectionAsync(
-                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id, channel.Name),
+                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackageFromChannel, firstPackage.Package.Id, channel.Name),
                 choices,
                 c => c.Label,
                 ct);

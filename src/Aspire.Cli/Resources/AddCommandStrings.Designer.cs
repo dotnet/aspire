@@ -165,6 +165,14 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+        public static string SelectAVersionOfPackageFromChannel
+        {
+            get
+            {
+                return ResourceManager.GetString("SelectAVersionOfPackageFromChannel", resourceCulture);
+            }
+        }
+
         public static string SelectAnIntegrationToAdd
         {
             get
