@@ -44,7 +44,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             "aspire-py-starter",
             TemplatingStrings.AspirePyStarter_Description,
             projectName => $"./{projectName}",
-            _ => { },
+            ApplyDevLocalhostTldOption,
             (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
             );
 
@@ -52,7 +52,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             "aspire-apphost-singlefile",
             TemplatingStrings.AspireAppHostSingleFile_Description,
             projectName => $"./{projectName}",
-            _ => { },
+            ApplyDevLocalhostTldOption,
             (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
             );
 
@@ -62,7 +62,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 "aspire",
                 TemplatingStrings.AspireEmpty_Description,
                 projectName => $"./{projectName}",
-                _ => { },
+                ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync
                 );
 
@@ -70,7 +70,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 "aspire-apphost",
                 TemplatingStrings.AspireAppHost_Description,
                 projectName => $"./{projectName}",
-                _ => { },
+                ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync
                 );
 
@@ -270,10 +270,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
     private static void ApplyExtraAspireStarterOptions(Command command)
     {
-        var useLocalhostTldOption = new Option<bool?>("--localhost-tld");
-        useLocalhostTldOption.Description = TemplatingStrings.UseLocalhostTld_Description;
-        useLocalhostTldOption.DefaultValueFactory = _ => false;
-        command.Options.Add(useLocalhostTldOption);
+        ApplyDevLocalhostTldOption(command);
 
         var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
         useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
@@ -287,6 +284,14 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var xunitVersionOption = new Option<string?>("--xunit-version");
         xunitVersionOption.Description = TemplatingStrings.EnterXUnitVersion_Description;
         command.Options.Add(xunitVersionOption);
+    }
+
+    private static void ApplyDevLocalhostTldOption(Command command)
+    {
+        var useLocalhostTldOption = new Option<bool?>("--localhost-tld");
+        useLocalhostTldOption.Description = TemplatingStrings.UseLocalhostTld_Description;
+        useLocalhostTldOption.DefaultValueFactory = _ => false;
+        command.Options.Add(useLocalhostTldOption);
     }
 
     private async Task<TemplateResult> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
