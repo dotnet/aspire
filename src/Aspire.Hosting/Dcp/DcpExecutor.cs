@@ -168,29 +168,58 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 .Where(sr => !sr.HasCompleteAddress && sr.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless);
             await UpdateWithEffectiveAddressInfo(proxiedWithNoAddress, cancellationToken).ConfigureAwait(false);
 
-            var creationQueue = BuildResourceCreationQueue();
-            while (true)
+            await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(cancellationToken).ConfigureAwait(false);
+
+            var containerTunnelProxies = _appResources.Where(r => r.DcpResource is ContainerNetworkTunnelProxy { }).ToImmutableArray();
+            foreach (var ctp in containerTunnelProxies)
             {
-                var batch = creationQueue.GetCreationBatch();
-                if (!batch.Any())
-                {
-                    creationQueue.ThrowIfUncreatedItemsRemain();
-                    break;
-                }
+                var containerNetworkName = (ctp.DcpResource as ContainerNetworkTunnelProxy)?.Spec.ContainerNetworkName;
 
-                await Task.WhenAll(
-                    batch.Select(i => Task.Run(async () => await i.DoCreate(i.Resource, cancellationToken).ConfigureAwait(false), cancellationToken))
-                ).WaitAsync(cancellationToken).ConfigureAwait(false);
+                // Need to wait for all tunnels to start before advertising AllocatedEndpoints that the tunnel proxy projected
+                // from host network into container network(s).
+                var tunnelServices = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (Service)r.DcpResource)
+                .Where(
+                    sr => !sr.HasCompleteAddress &&
+                    sr.Metadata.Annotations?.TryGetValue(CustomResource.ContainerTunnelClientServiceAnnotation, out var _) is true &&
+                    sr.Metadata.Annotations?.TryGetValue(CustomResource.ContainerNetworkAnnotation, out var containerNetwork) is true &&
+                    containerNetwork == containerNetworkName
+                );
 
-                creationQueue.MarkItemsCreated(batch);
+                _logger.LogInformation($"Waiting for container network '{containerNetworkName}' tunnel intialization...");
+                // Container tunnel intialization can take a while if the container tunnel image needs to be built,
+                // expecially if the network is slow, hence 10 minute timeout here.
+                await UpdateWithEffectiveAddressInfo(tunnelServices, cancellationToken, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
+                _logger.LogInformation($"Tunnel for container network '{containerNetworkName}' initialized");
             }
 
+            var executables = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Executable);
+            AddAllocatedEndpointInfo(executables, AllocatedEndpointsMode.All);
+            var containers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
+            AddAllocatedEndpointInfo(containers, AllocatedEndpointsMode.Workload);
             var containerExes = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is ContainerExec);
-            await CreateContainerExecutablesAsync(containerExes, cancellationToken).ConfigureAwait(false);
-
             await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
-            
 
+            // Ensure we fire the event only once for each app model resource. There may be multiple physical replicas of
+            // the same app model resource which can result in the event being fired multiple times.
+            HashSet<string> allocatedEndpointsAdvertised = new(StringComparers.ResourceName);
+
+            foreach (var resource in executables.Concat(containers))
+            {
+                if (allocatedEndpointsAdvertised.Add(resource.ModelResource.Name))
+                {
+                    await _distributedApplicationEventing.PublishAsync(
+                        new ResourceEndpointsAllocatedEvent(resource.ModelResource, _executionContext.ServiceProvider),
+                        EventDispatchBehavior.NonBlockingConcurrent,
+                        cancellationToken
+                    ).ConfigureAwait(false);
+                }
+            }
+
+            await Task.WhenAll(
+                CreateExecutablesAsync(executables, cancellationToken),
+                CreateContainersAsync(containers, cancellationToken),
+                CreateContainerExecutablesAsync(containerExes, cancellationToken)
+            ).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -807,90 +836,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
     }
-
-    private ResourceCreationQueue BuildResourceCreationQueue()
-    {
-        var queue = new ResourceCreationQueue();
-
-        var containerTunnelProxies = _appResources.Where(r => r.DcpResource is ContainerNetworkTunnelProxy { }).ToImmutableArray();
-        var executables = _appResources.OfType<RenderedModelResource>().Where(r => r.DcpResource is Executable);
-
-        foreach (var ctp in containerTunnelProxies)
-        {
-            async Task createTunnel(AppResource _, CancellationToken cancellationToken)
-            {
-                await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(cancellationToken).ConfigureAwait(false);
-
-                // Need to wait for all tunnels to start before advertising AllocatedEndpoints that the tunnel proxy projected
-                // from host network into container network(s).
-                var tunnelServices = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (Service)r.DcpResource)
-                .Where(
-                    sr => !sr.HasCompleteAddress &&
-                    sr.Metadata.Annotations?.TryGetValue(CustomResource.ContainerTunnelClientServiceAnnotation, out var _) is true &&
-                    sr.Metadata.Annotations?.TryGetValue(CustomResource.ContainerNetworkAnnotation, out var containerNetwork) is true &&
-                    containerNetwork == (ctp.DcpResource as ContainerNetworkTunnelProxy)?.Spec.ContainerNetworkName
-                );
-                _logger.LogInformation("Waiting for container tunnel intialization...");
-                // Container tunnel intialization can take a while if the container tunnel image needs to be built,
-                // expecially if the network is slow, hence 10 minute timeout here.
-                await UpdateWithEffectiveAddressInfo(tunnelServices, cancellationToken, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
-                _logger.LogInformation("Container tunnel initialized");
-            }
-
-            // The tunnels do have an dependency on host resources, but we require they access these host resources via proxied endpoints,
-            // so from creation queue perspective they can be created right away.
-            var tunnelItem = new CreationQueueItem(ctp, createTunnel, []);
-            queue.AddRange([tunnelItem]);
-        }
-
-        var toCreate = _appResources.OfType<RenderedModelResource>().Where(r => r.DcpResource is (Executable or Container));
-
-        // Ensure we fire the event only once for each app model resource. There may be multiple physical replicas of
-        // the same app model resource which can result in the event being fired multiple times.
-        ConcurrentDictionary<string, bool> allocatedEndpointsAdvertised = new(StringComparers.ResourceName);
-
-        foreach (var cr in toCreate)
-        {
-            var createFunc = cr.DcpResource switch
-            {
-                (Executable) => DoCreateItem(AllocatedEndpointsMode.All, CreateExecutablesAsync, allocatedEndpointsAdvertised),
-                (Container) => DoCreateItem(AllocatedEndpointsMode.Workload, CreateContainersAsync, allocatedEndpointsAdvertised),
-                // Should never happen--see how we initialize toCreate expresssion above.
-                _ => throw new InvalidOperationException($"Unsupported resource type {cr.DcpResource.GetType().Name} in creation queue.")
-            };
-
-            var item = new CreationQueueItem(cr, createFunc, containerTunnelProxies);
-            queue.AddRange([item]);
-        }
-
-        return queue;
-    }
-
-    private Func<AppResource, CancellationToken, Task> DoCreateItem(
-        AllocatedEndpointsMode alMode,
-        Func<IEnumerable<RenderedModelResource>, CancellationToken, Task> createSingleKindItems,
-        ConcurrentDictionary<string, bool> allocatedEndpointsAdvertised
-    ) {
-        return (Func<AppResource, CancellationToken, Task>)(async (resource, cancellationToken) =>
-        {
-            RenderedModelResource[] resourceArr = [(RenderedModelResource)resource];
-            IResource modelResource = resourceArr[0].ModelResource;
-
-            AddAllocatedEndpointInfo(resourceArr, alMode);
-
-            if (allocatedEndpointsAdvertised.TryAdd(modelResource.Name, true))
-            {
-                await _distributedApplicationEventing.PublishAsync(
-                    new ResourceEndpointsAllocatedEvent(resourceArr[0].ModelResource, _executionContext.ServiceProvider),
-                    EventDispatchBehavior.NonBlockingConcurrent,
-                    cancellationToken
-                ).ConfigureAwait(false);
-            }
-
-            await createSingleKindItems(resourceArr, cancellationToken).ConfigureAwait(false);
-        });
-    }
-
+    
     private Task CreateAllDcpObjectsAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
         var toCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
@@ -1399,10 +1345,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
+    private Task CreateContainerExecutablesAsync(IEnumerable<RenderedModelResource> containerExecAppResources, CancellationToken cancellationToken)
+        => CreateRenderedResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
+
+    private Task CreateExecutablesAsync(IEnumerable<RenderedModelResource> execAppResources, CancellationToken cancellationToken)
+        => CreateRenderedResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
+
     private async Task CreateRenderedResourcesAsync(
-        Func<RenderedModelResource, ILogger, CancellationToken, Task> createResourceFunc,
-        IEnumerable<RenderedModelResource> executables,
-        CancellationToken cancellationToken)
+       Func<RenderedModelResource, ILogger, CancellationToken, Task> createResourceFunc,
+       IEnumerable<RenderedModelResource> executables,
+       CancellationToken cancellationToken)
     {
         var tasks = new List<Task>();
         var groups = executables.GroupBy(e => e.ModelResource).ToList();
@@ -1418,12 +1370,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
     }
-
-    private Task CreateContainerExecutablesAsync(IEnumerable<RenderedModelResource> containerExecAppResources, CancellationToken cancellationToken)
-        => CreateRenderedResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
-
-    private Task CreateExecutablesAsync(IEnumerable<RenderedModelResource> execAppResources, CancellationToken cancellationToken)
-        => CreateRenderedResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
 
     async Task CreateResourceExecutablesAsyncCore(
         IResource resource,
