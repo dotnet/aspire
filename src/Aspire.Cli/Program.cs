@@ -97,19 +97,22 @@ public class Program
             otelBuilder.UseOtlpExporter();
         }
 
-        // Add Azure Monitor exporter for production telemetry
+        // Add Azure Monitor exporter for production telemetry when connection string is configured
         // Connection string will be configured after privacy review
-        otelBuilder.WithTracing(tracing =>
+        var azureMonitorConnectionString = builder.Configuration["AZURE_MONITOR_CONNECTION_STRING"];
+        if (!string.IsNullOrEmpty(azureMonitorConnectionString))
         {
-            tracing.AddAzureMonitorTraceExporter(options =>
+            otelBuilder.WithTracing(tracing =>
             {
-                // TODO: Connection string will be added after privacy review
-                // For now, the exporter is added but will not send data without a connection string
-                options.EnableLiveMetrics = false;
-                var aspirePath = GetUsersAspirePath();
-                options.StorageDirectory = Path.Combine(aspirePath, "telemetry");
+                tracing.AddAzureMonitorTraceExporter(options =>
+                {
+                    options.ConnectionString = azureMonitorConnectionString;
+                    options.EnableLiveMetrics = false;
+                    var aspirePath = GetUsersAspirePath();
+                    options.StorageDirectory = Path.Combine(aspirePath, "telemetry");
+                });
             });
-        });
+        }
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
 

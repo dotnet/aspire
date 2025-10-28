@@ -44,8 +44,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" VersionOverride="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" VersionOverride="1.12.0" />
     <PackageReference Include="Semver" />
   </ItemGroup>
 

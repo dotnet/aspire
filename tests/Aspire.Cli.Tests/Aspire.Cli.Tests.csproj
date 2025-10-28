@@ -21,7 +21,9 @@
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
-  <PackageReference Include="Verify.XunitV3" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" VersionOverride="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" VersionOverride="1.12.0" />
+    <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
 </Project>
