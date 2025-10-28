@@ -35,10 +35,36 @@ internal sealed class EnvFile
 
     public void Add(string key, string? value, string? comment, bool onlyIfMissing = true)
     {
-        if (onlyIfMissing && _keys.Contains(key))
+        if (_keys.Contains(key))
         {
-            return;
+            if (onlyIfMissing)
+            {
+                return;
+            }
+
+            // If the key already exists and we want to update it (onlyIfMissing = false),
+            // we need to find and replace the existing entry
+            // Find the existing key-value line and replace it
+            for (var i = 0; i < _lines.Count; i++)
+            {
+                var line = _lines[i].TrimStart();
+                if (!line.StartsWith('#') && line.Contains('='))
+                {
+                    var eqIndex = line.IndexOf('=');
+                    if (eqIndex > 0)
+                    {
+                        var existingKey = line[..eqIndex].Trim();
+                        if (existingKey == key)
+                        {
+                            _lines[i] = value is not null ? $"{key}={value}" : $"{key}=";
+                            return;
+                        }
+                    }
+                }
+            }
         }
+
+        // Add new entry
         if (!string.IsNullOrWhiteSpace(comment))
         {
             _lines.Add($"# {comment}");

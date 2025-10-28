@@ -10,7 +10,6 @@ using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -25,7 +24,6 @@ namespace Aspire.Hosting.Docker;
 /// </remarks>
 internal sealed class DockerComposePublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
     IReportingStep reportingStep,
@@ -36,7 +34,6 @@ internal sealed class DockerComposePublishingContext(
         UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
-    public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Docker Compose publishing.");
 
     internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
@@ -78,17 +75,10 @@ internal sealed class DockerComposePublishingContext(
                 ? [r, .. model.Resources]
                 : model.Resources;
 
-        var containerImagesToBuild = new List<IResource>();
-
         foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
-                if (environment.BuildContainerImages)
-                {
-                    containerImagesToBuild.Add(serviceResource.TargetResource);
-                }
-
                 // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
                 if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
                     dockerfileBuildAnnotation.DockerfileFactory is not null)
@@ -143,12 +133,6 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        // Build container images for the services that require it
-        if (containerImagesToBuild.Count > 0)
-        {
-            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
-        }
-
         var writeTask = await reportingStep.CreateTaskAsync(
             "Writing the Docker Compose file to the output path.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -179,7 +163,23 @@ internal sealed class DockerComposePublishingContext(
                     // resolve the parameter's default value asynchronously
                     if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
                     {
-                        defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                        var (key, (description, defaultValue, source)) = entry;
+                        var onlyIfMissing = true;
+
+                        // Handle parameter resources by resolving their actual values
+                        if (source is ParameterResource parameter)
+                        {
+                            // For non-secret parameters, get the actual parameter value
+                            defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                        }
+
+                        if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
+                        {
+                            defaultValue = imageName;
+                            onlyIfMissing = false; // Always update the image name if it changes
+                        }
+
+                        envFile.Add(key, defaultValue, description, onlyIfMissing);
                     }
 
                     if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
