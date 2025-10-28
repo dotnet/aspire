@@ -273,7 +273,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -321,7 +320,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -378,7 +376,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -435,7 +432,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works()
     {
         // Arrange
@@ -649,7 +645,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
     {
         // Arrange
@@ -702,7 +697,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
@@ -859,7 +853,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
