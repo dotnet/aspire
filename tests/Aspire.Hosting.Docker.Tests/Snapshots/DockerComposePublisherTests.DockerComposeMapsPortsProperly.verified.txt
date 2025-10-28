@@ -1,6 +1,7 @@
 ﻿services:
   service:
     image: "${SERVICE_IMAGE}"
+    pull_policy: "never"
     environment:
       PORT: "8000"
     expose:

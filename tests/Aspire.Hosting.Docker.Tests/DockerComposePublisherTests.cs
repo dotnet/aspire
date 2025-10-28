@@ -25,8 +25,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
-        var param0 = builder.AddParameter("param0");
-        var param1 = builder.AddParameter("param1", secret: true);
+        var param0 = builder.AddParameter("param0", "default0");
+        var param1 = builder.AddParameter("param1", "defaultSecret", secret: true);
         var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
         var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
 
@@ -161,19 +161,16 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         await Verify(File.ReadAllText(composePath), "yaml");
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DockerComposeHandleImageBuilding(bool shouldBuildImages)
+    [Fact]
+    public void DockerComposePublishShouldNotHandleImageBuilding()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "publish-docker-compose", outputPath: tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
-        builder.AddDockerComposeEnvironment("docker-compose")
-               .WithProperties(e => e.BuildContainerImages = shouldBuildImages);
+        builder.AddDockerComposeEnvironment("docker-compose");
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -192,7 +189,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
-        Assert.Equal(shouldBuildImages, mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.BuildImageCalled);
     }
 
     [Fact]
@@ -260,7 +257,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
             builder.AddDockerComposeEnvironment("docker-compose");
-            var param = builder.AddParameter("param1");
+            var param = builder.AddParameter("param1", "default");
             builder.AddContainer("app", "busybox").WithEnvironment("param1", param);
             var app = builder.Build();
             app.Run();
@@ -292,7 +289,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
             builder.AddDockerComposeEnvironment("docker-compose");
 
-            var parmeters = paramNames.Select(name => builder.AddParameter(name).Resource).ToArray();
+            var parmeters = paramNames.Select(name => builder.AddParameter(name, $"{name}-value").Resource).ToArray();
 
             builder.AddContainer("app", "busybox")
                     .WithEnvironment(context =>
@@ -478,7 +475,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
         Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
         var actualContent = await File.ReadAllTextAsync(dockerfilePath);
-        
+
         await Verify(actualContent);
     }
 

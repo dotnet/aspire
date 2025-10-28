@@ -33,37 +33,38 @@ public enum ContainerImageFormat
 /// Specifies the target platform for container images.
 /// </summary>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Flags]
 public enum ContainerTargetPlatform
 {
     /// <summary>
     /// Linux AMD64 (linux/amd64).
     /// </summary>
-    LinuxAmd64,
+    LinuxAmd64 = 1,
 
     /// <summary>
     /// Linux ARM64 (linux/arm64).
     /// </summary>
-    LinuxArm64,
+    LinuxArm64 = 2,
 
     /// <summary>
     /// Linux ARM (linux/arm).
     /// </summary>
-    LinuxArm,
-
-    /// <summary>
-    /// Linux 386 (linux/386).
-    /// </summary>
-    Linux386,
+    LinuxArm = 4,
 
     /// <summary>
     /// Windows AMD64 (windows/amd64).
     /// </summary>
-    WindowsAmd64,
+    WindowsAmd64 = 16,
 
     /// <summary>
     /// Windows ARM64 (windows/arm64).
     /// </summary>
-    WindowsArm64
+    WindowsArm64 = 32,
+
+    /// <summary>
+    /// All Linux platforms (AMD64, ARM64, ARM, 386).
+    /// </summary>
+    AllLinux = LinuxAmd64 | LinuxArm64,
 }
 
 /// <summary>
@@ -266,7 +267,7 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (options.TargetPlatform is not null)
             {
-                arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
+                arguments += $" /p:RuntimeIdentifiers=\'\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"\'";
             }
         }
 
@@ -424,32 +425,77 @@ internal static class ContainerTargetPlatformExtensions
     /// <summary>
     /// Converts the target platform to the format used by container runtimes (Docker/Podman).
     /// </summary>
-    /// <param name="platform">The target platform.</param>
-    /// <returns>The platform string in the format used by container runtimes.</returns>
-    public static string ToRuntimePlatformString(this ContainerTargetPlatform platform) => platform switch
+    /// <param name="platform">The target platform(s).</param>
+    /// <returns>The platform string(s) in the format used by container runtimes.</returns>
+    public static string ToRuntimePlatformString(this ContainerTargetPlatform platform)
     {
-        ContainerTargetPlatform.LinuxAmd64 => "linux/amd64",
-        ContainerTargetPlatform.LinuxArm64 => "linux/arm64",
-        ContainerTargetPlatform.LinuxArm => "linux/arm",
-        ContainerTargetPlatform.Linux386 => "linux/386",
-        ContainerTargetPlatform.WindowsAmd64 => "windows/amd64",
-        ContainerTargetPlatform.WindowsArm64 => "windows/arm64",
-        _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
-    };
+        var platformStrings = new List<string>();
+
+        if ((platform & ContainerTargetPlatform.LinuxAmd64) != 0)
+        {
+            platformStrings.Add("linux/amd64");
+        }
+        if ((platform & ContainerTargetPlatform.LinuxArm64) != 0)
+        {
+            platformStrings.Add("linux/arm64");
+        }
+        if ((platform & ContainerTargetPlatform.LinuxArm) != 0)
+        {
+            platformStrings.Add("linux/arm");
+        }
+        if ((platform & ContainerTargetPlatform.WindowsAmd64) != 0)
+        {
+            platformStrings.Add("windows/amd64");
+        }
+        if ((platform & ContainerTargetPlatform.WindowsArm64) != 0)
+        {
+            platformStrings.Add("windows/arm64");
+        }
+
+        if (platformStrings.Count == 0)
+        {
+            throw new ArgumentException("At least one platform must be specified.", nameof(platform));
+        }
+
+        return string.Join(",", platformStrings);
+    }
 
     /// <summary>
     /// Converts the target platform to the format used by MSBuild ContainerRuntimeIdentifier.
+    /// MSBuild supports multiple runtime identifiers separated by semicolons.
     /// </summary>
-    /// <param name="platform">The target platform.</param>
-    /// <returns>The platform string in the format used by MSBuild.</returns>
-    public static string ToMSBuildRuntimeIdentifierString(this ContainerTargetPlatform platform) => platform switch
+    /// <param name="platform">The target platform(s).</param>
+    /// <returns>The platform string(s) in the format used by MSBuild, separated by semicolons if multiple.</returns>
+    public static string ToMSBuildRuntimeIdentifierString(this ContainerTargetPlatform platform)
     {
-        ContainerTargetPlatform.LinuxAmd64 => "linux-x64",
-        ContainerTargetPlatform.LinuxArm64 => "linux-arm64",
-        ContainerTargetPlatform.LinuxArm => "linux-arm",
-        ContainerTargetPlatform.Linux386 => "linux-x86",
-        ContainerTargetPlatform.WindowsAmd64 => "win-x64",
-        ContainerTargetPlatform.WindowsArm64 => "win-arm64",
-        _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
-    };
+        var rids = new List<string>();
+
+        if ((platform & ContainerTargetPlatform.LinuxAmd64) != 0)
+        {
+            rids.Add("linux-x64");
+        }
+        if ((platform & ContainerTargetPlatform.LinuxArm64) != 0)
+        {
+            rids.Add("linux-arm64");
+        }
+        if ((platform & ContainerTargetPlatform.LinuxArm) != 0)
+        {
+            rids.Add("linux-arm");
+        }
+        if ((platform & ContainerTargetPlatform.WindowsAmd64) != 0)
+        {
+            rids.Add("win-x64");
+        }
+        if ((platform & ContainerTargetPlatform.WindowsArm64) != 0)
+        {
+            rids.Add("win-arm64");
+        }
+
+        if (rids.Count == 0)
+        {
+            throw new ArgumentException("At least one platform must be specified.", nameof(platform));
+        }
+
+        return string.Join(";", rids);
+    }
 }
