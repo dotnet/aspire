@@ -12,7 +12,8 @@ builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
     .WithUvEnvironment();
 
 // Run the same app on another port using uvicorn directly
-builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn", true)
+builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn")
+    .WithDebugging()
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8001")
     .WithHttpEndpoint(targetPort: 8001);
 
