@@ -49,7 +49,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : TemplateTestsBase
                         .WithWorkingDirectory(testProjectDir)
                         .WithTimeout(TimeSpan.FromMinutes(3));
 
-        var res = await cmd.ExecuteAsync($"test -c {config}");
+        var res = await cmd.ExecuteAsync($"test -c {config} -- --diagnostic");
 
         Assert.True(res.ExitCode != 0, $"Expected the tests project run to fail");
         Assert.Matches("System.ArgumentException.*Resource 'webfrontend' not found.", res.Output);
