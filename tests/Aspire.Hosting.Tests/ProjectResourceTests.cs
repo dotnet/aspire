@@ -3,18 +3,21 @@
 
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
 
 using System.Text;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Tests;
 
@@ -792,11 +795,55 @@ public class ProjectResourceTests
         // Verify the ContainerFilesDestinationAnnotation was added
         var containerFilesAnnotation = Assert.Single(resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
         Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
-        Assert.Equal("./static", containerFilesAnnotation.DestinationPath);
+        Assert.Equal("./wwwroot", containerFilesAnnotation.DestinationPath);
 
-        // Verify the PipelineStepAnnotation was added by WithProjectDefaults
         var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
-        Assert.NotEmpty(pipelineStepAnnotations);
+        Assert.Single(pipelineStepAnnotations);
+    }
+
+    [Fact]
+    public async Task ProjectResourceWithContainerFilesDestinationAnnotationWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "build-projectName");
+        builder.Services.AddSingleton<IContainerRuntime, FakeContainerRuntime>();
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        // Add a project and annotate it with ContainerFilesDestinationAnnotation
+        builder.AddProject<TestProject>("projectName", launchProfileName: null)
+            .PublishWithContainerFiles(sourceContainer, "./wwwroot");
+
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        var mockImageBuilder = (MockImageBuilder)app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        Assert.True(mockImageBuilder.BuildImageCalled);
+        var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
+        Assert.Equal("projectName", builtImage.Name);
+        Assert.False(mockImageBuilder.PushImageCalled);
+
+        var fakeContainerRuntime = (FakeContainerRuntime)app.Services.GetRequiredService<IContainerRuntime>();
+        Assert.True(fakeContainerRuntime.WasTagImageCalled);
+        var tagCall = Assert.Single(fakeContainerRuntime.TagImageCalls);
+        Assert.Equal("projectname", tagCall.localImageName);
+        Assert.StartsWith("projectname:temp-", tagCall.targetImageName);
+
+        Assert.True(fakeContainerRuntime.WasBuildImageCalled);
+        var buildCall = Assert.Single(fakeContainerRuntime.BuildImageCalls);
+        Assert.Equal("projectname", buildCall.imageName);
+        Assert.Empty(buildCall.contextPath);
+        Assert.NotEmpty(buildCall.dockerfilePath);
+
+        Assert.True(fakeContainerRuntime.WasRemoveImageCalled);
+        var removeCall = Assert.Single(fakeContainerRuntime.RemoveImageCalls);
+        Assert.StartsWith("projectname:temp-", removeCall);
+        Assert.Equal(tagCall.targetImageName, removeCall);
     }
 
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)

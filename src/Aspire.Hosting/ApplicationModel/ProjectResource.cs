@@ -7,12 +7,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel.Docker;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -115,12 +113,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var tempTag = $"temp-{Guid.NewGuid():N}";
         var tempImageName = $"{originalImageName}:{tempTag}";
 
-        var dcpOptions = ctx.Services.GetRequiredService<IOptions<DcpOptions>>();
-        var containerRuntime = dcpOptions.Value.ContainerRuntime switch
-        {
-            string rt => ctx.Services.GetRequiredKeyedService<IContainerRuntime>(rt),
-            null => ctx.Services.GetRequiredKeyedService<IContainerRuntime>("docker")
-        };
+        var containerRuntime = ctx.Services.GetRequiredService<IContainerRuntime>();
 
         logger.LogDebug("Tagging image {OriginalImageName} as {TempImageName}", originalImageName, tempImageName);
         await containerRuntime.TagImageAsync(originalImageName, tempImageName, ctx.CancellationToken).ConfigureAwait(false);

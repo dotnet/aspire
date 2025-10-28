@@ -7,11 +7,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -132,18 +129,13 @@ public interface IResourceContainerImageBuilder
 
 internal sealed class ResourceContainerImageBuilder(
     ILogger<ResourceContainerImageBuilder> logger,
-    IOptions<DcpOptions> dcpOptions,
+    IContainerRuntime containerRuntime,
     IServiceProvider serviceProvider) : IResourceContainerImageBuilder
 {
     // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
     private readonly SemaphoreSlim _throttle = new(1);
 
-    private IContainerRuntime? _containerRuntime;
-    private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch
-    {
-        string rt => serviceProvider.GetRequiredKeyedService<IContainerRuntime>(rt),
-        null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
-    };
+    private IContainerRuntime ContainerRuntime { get; } = containerRuntime;
 
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
