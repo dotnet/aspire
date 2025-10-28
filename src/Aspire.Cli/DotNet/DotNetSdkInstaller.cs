@@ -316,111 +316,117 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         var extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "zip" : "tar.gz";
         var archivePath = Path.Combine(sdksDirectory, $"dotnet-sdk-{sdkVersion}.{extension}");
         
-        // Download if the archive doesn't already exist
-        if (!File.Exists(archivePath))
-        {
-            await DownloadSdkArchiveAsync(sdkVersion, archivePath, cancellationToken);
-        }
-        else
-        {
-            logger.LogDebug("SDK archive already exists at {Path}, skipping download", archivePath);
-        }
-
-        // Run the install script
-        var installProcess = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = scriptRunner,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            }
-        };
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // PowerShell script arguments with ZipPath
-            installProcess.StartInfo.Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\" -Version {sdkVersion} -InstallDir \"{sdkInstallPath}\" -NoPath -ZipPath \"{archivePath}\"";
-        }
-        else
-        {
-            // Bash script arguments with zip-path
-            installProcess.StartInfo.Arguments = $"\"{scriptPath}\" --version {sdkVersion} --install-dir \"{sdkInstallPath}\" --no-path --zip-path \"{archivePath}\"";
-        }
-
-        installProcess.Start();
-        
-        // Capture and log stdout and stderr
-        var stdoutTask = Task.Run(async () =>
-        {
-            while (!installProcess.StandardOutput.EndOfStream)
-            {
-                var line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken);
-                if (line != null)
-                {
-                    logger.LogDebug("dotnet-install stdout: {Line}", line);
-                }
-            }
-        }, cancellationToken);
-
-        var stderrTask = Task.Run(async () =>
-        {
-            while (!installProcess.StandardError.EndOfStream)
-            {
-                var line = await installProcess.StandardError.ReadLineAsync(cancellationToken);
-                if (line != null)
-                {
-                    logger.LogDebug("dotnet-install stderr: {Line}", line);
-                }
-            }
-        }, cancellationToken);
-
-        await installProcess.WaitForExitAsync(cancellationToken);
-        
-        // Wait for output capture to complete
-        await Task.WhenAll(stdoutTask, stderrTask);
-
-        if (installProcess.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"Failed to install .NET SDK {sdkVersion}. Exit code: {installProcess.ExitCode}");
-        }
-
-        // Clean up the install script and downloaded archive
         try
         {
-            File.Delete(scriptPath);
-            File.Delete(archivePath);
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
-        
-        // After installation, call dotnet nuget config paths to initialize NuGet
-        // This is important on Windows where NuGet needs to create initial config on first use
-        logger.LogDebug("Initializing NuGet configuration for private SDK installation");
-        try
-        {
-            var options = new DotNetCliRunnerInvocationOptions();
-            var (exitCode, _) = await dotNetCliRunner.GetNuGetConfigPathsAsync(
-                new DirectoryInfo(Environment.CurrentDirectory), 
-                options, 
-                cancellationToken);
-            
-            if (exitCode == 0)
+            // Download if the archive doesn't already exist
+            if (!File.Exists(archivePath))
             {
-                logger.LogDebug("NuGet configuration initialized successfully");
+                await DownloadSdkArchiveAsync(sdkVersion, archivePath, cancellationToken);
             }
             else
             {
-                logger.LogDebug("NuGet configuration initialization returned exit code {ExitCode}", exitCode);
+                logger.LogDebug("SDK archive already exists at {Path}, skipping download", archivePath);
+            }
+
+            // Run the install script
+            var installProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = scriptRunner,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // PowerShell script arguments with ZipPath
+                installProcess.StartInfo.Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\" -Version {sdkVersion} -InstallDir \"{sdkInstallPath}\" -NoPath -ZipPath \"{archivePath}\"";
+            }
+            else
+            {
+                // Bash script arguments with zip-path
+                installProcess.StartInfo.Arguments = $"\"{scriptPath}\" --version {sdkVersion} --install-dir \"{sdkInstallPath}\" --no-path --zip-path \"{archivePath}\"";
+            }
+
+            installProcess.Start();
+            
+            // Capture and log stdout and stderr
+            var stdoutTask = Task.Run(async () =>
+            {
+                while (!installProcess.StandardOutput.EndOfStream)
+                {
+                    var line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken);
+                    if (line != null)
+                    {
+                        logger.LogDebug("dotnet-install stdout: {Line}", line);
+                    }
+                }
+            }, cancellationToken);
+
+            var stderrTask = Task.Run(async () =>
+            {
+                while (!installProcess.StandardError.EndOfStream)
+                {
+                    var line = await installProcess.StandardError.ReadLineAsync(cancellationToken);
+                    if (line != null)
+                    {
+                        logger.LogDebug("dotnet-install stderr: {Line}", line);
+                    }
+                }
+            }, cancellationToken);
+
+            await installProcess.WaitForExitAsync(cancellationToken);
+            
+            // Wait for output capture to complete
+            await Task.WhenAll(stdoutTask, stderrTask);
+
+            if (installProcess.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"Failed to install .NET SDK {sdkVersion}. Exit code: {installProcess.ExitCode}");
+            }
+            
+            // After installation, call dotnet nuget config paths to initialize NuGet
+            // This is important on Windows where NuGet needs to create initial config on first use
+            logger.LogDebug("Initializing NuGet configuration for private SDK installation");
+            try
+            {
+                var options = new DotNetCliRunnerInvocationOptions();
+                var (exitCode, _) = await dotNetCliRunner.GetNuGetConfigPathsAsync(
+                    new DirectoryInfo(Environment.CurrentDirectory), 
+                    options, 
+                    cancellationToken);
+                
+                if (exitCode == 0)
+                {
+                    logger.LogDebug("NuGet configuration initialized successfully");
+                }
+                else
+                {
+                    logger.LogDebug("NuGet configuration initialization returned exit code {ExitCode}", exitCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to initialize NuGet configuration, continuing anyway");
             }
         }
-        catch (Exception ex)
+        finally
         {
-            logger.LogDebug(ex, "Failed to initialize NuGet configuration, continuing anyway");
+            // Clean up the install script and downloaded archive
+            // This runs even if an exception occurs during installation
+            try
+            {
+                File.Delete(scriptPath);
+                File.Delete(archivePath);
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
         }
     }
 
