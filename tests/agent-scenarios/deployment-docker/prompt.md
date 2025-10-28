@@ -200,6 +200,21 @@ cat docker-compose-output/docker-compose.yaml
 - Environment variable configurations
 - Network configurations
 
+### 5.3 Optional: Try Aspire Deploy Command
+
+The `aspire deploy` command is another part of the Aspire publishing pipeline. While Docker Compose deployments typically use `docker compose up` directly, you can optionally try the `aspire deploy` command to see its behavior:
+
+```bash
+aspire deploy -o docker-compose-output
+```
+
+**Note**: For Docker Compose deployments, the `aspire deploy` command may execute the deploy step of the publishing pipeline. However, the standard workflow is to use `docker compose up` with the generated files, which is what we'll do in the next step.
+
+**Observe the output:**
+- The command may execute deployment-related tasks
+- Check if any additional changes are made to the output directory
+- Compare the output with the `aspire publish` command
+
 ## Step 6: Deploy with Docker Compose
 
 Deploy the application using Docker Compose.
@@ -346,6 +361,7 @@ Go through this final checklist to ensure all test requirements are met:
 - [ ] AppHost updated with `AddDockerComposeEnvironment` call
 - [ ] `aspire publish` command executed successfully
 - [ ] Docker Compose files generated in output directory
+- [ ] (Optional) `aspire deploy` command executed and output observed
 - [ ] `docker-compose.yaml` file contains valid service definitions
 - [ ] `docker compose up` started all services successfully
 - [ ] All containers show "Up" status in `docker compose ps`
