@@ -6,14 +6,24 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDockerComposeEnvironment("env");
 
-var pythonapp = builder.AddPythonScript("instrumented-python-app", "../InstrumentedPythonProject", "app.py")
+var pythonScript = builder.AddPythonScript("instrumented-python-app", "../InstrumentedPythonProject", "app.py")
        .WithUvEnvironment()
        .WithHttpEndpoint(env: "PORT")
        .WithExternalHttpEndpoints();
 
 if (builder.ExecutionContext.IsRunMode && builder.Environment.IsDevelopment())
 {
-    pythonapp.WithEnvironment("DEBUG", "True");
+    pythonScript.WithEnvironment("DEBUG", "True");
 }
+
+var backend = builder.AddUvicornApp("app", "../app", "app:app")
+    .WithUvEnvironment()
+    .WithExternalHttpEndpoints()
+    .WithHttpHealthCheck("/health");
+
+builder.AddViteApp("frontend", "../frontend")
+    .WithNpmPackageManager()
+    .WithReference(backend)
+    .WaitFor(backend);
 
 builder.Build().Run();
