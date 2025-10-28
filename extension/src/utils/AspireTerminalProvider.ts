@@ -5,6 +5,7 @@ import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 import { EnvironmentVariables } from './environment';
+import path from 'path';
 
 export const enum AnsiColors {
     Green = '\x1b[32m'
@@ -135,6 +136,15 @@ export class AspireTerminalProvider implements vscode.Disposable {
             env.ASPIRE_EXTENSION_DEBUG_RUN_MODE = noDebug === false ? "Debug" : "NoDebug";
             env.DEBUG_SESSION_INFO = JSON.stringify(getRunSessionInfo());
             env.ASPIRE_EXTENSION_CAPABILITIES = getSupportedCapabilities().join(',');
+
+            // if DCP debug logging is enabled, set DCP-specific logging environment variables
+            const dcpDebugLoggingEnabled = vscode.workspace.getConfiguration('aspire').get<boolean>('enablAspireDcpDebugLogging', false);
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0];
+            if (dcpDebugLoggingEnabled && workspaceRoot) {
+                env.DCP_DIAGNOSTICS_LOG_LEVEL = "debug";
+                env.DCP_PRESERVE_EXECUTABLE_LOGS = "1";
+                env.DCP_DIAGNOSTICS_LOG_FOLDER = path.join(workspaceRoot.uri.fsPath, '.aspire', 'dcp', `logs-${debugSessionId}`);
+            }
         }
 
         return env;

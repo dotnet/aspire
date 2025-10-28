@@ -199,6 +199,12 @@
           "default": false,
           "description": "%configuration.aspire.enableAspireCliDebugLogging%",
           "scope": "window"
+        },
+        "aspire.enableAspireDcpDebugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.enableAspireDcpDebugLogging%",
+          "scope": "window"
         }
       }
     }

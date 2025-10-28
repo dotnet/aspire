@@ -79,6 +79,9 @@
     <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
       <source xml:lang="en">Don&apos;t show again</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.enableAspireDcpDebugLogging">
+      <source xml:lang="en">Enable Developer Control Plane (DCP) debug logging for Aspire applications. Logs will be stored in the workspace&apos;s .aspire/dcp/logs-{debugSessionId} folder.</source>
+    </trans-unit>
     <trans-unit id="configuration.aspire.enableSettingsFileCreationPromptOnStartup">
       <source xml:lang="en">Enable apphost discovery on extension activation and prompt to setup .aspire/settings.json.appHostPath if it does not exist in the workspace.</source>
     </trans-unit>
