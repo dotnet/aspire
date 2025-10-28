@@ -6,6 +6,7 @@
 #pragma warning disable ASPIREINTERACTION001
 
 using Aspire.Hosting.Pipelines;
+using Microsoft.Extensions.DependencyInjecton;
 
 internal static class IDistributedApplicationBuilderExtensions
 {
