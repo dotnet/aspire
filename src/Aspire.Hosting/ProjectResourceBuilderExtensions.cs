@@ -1099,10 +1099,10 @@ public static class ProjectResourceBuilderExtensions
             {
                 var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
                 var logger = ctx.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ProjectResourceBuilderExtensions));
-                
+
                 // Check if we need to copy container files
                 var hasContainerFiles = resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations);
-                
+
                 if (!hasContainerFiles)
                 {
                     // No container files to copy, just build the image normally
@@ -1115,7 +1115,7 @@ public static class ProjectResourceBuilderExtensions
                         ctx.CancellationToken).ConfigureAwait(false);
                     return;
                 }
-                
+
                 // Build the container image for the project first
                 await containerImageBuilder.BuildImageAsync(
                     resource,
@@ -1124,50 +1124,46 @@ public static class ProjectResourceBuilderExtensions
                         TargetPlatform = ContainerTargetPlatform.LinuxAmd64
                     },
                     ctx.CancellationToken).ConfigureAwait(false);
-                
+
                 // Get the built image name
-                if (!resource.TryGetContainerImageName(out var originalImageName))
-                {
-                    logger.LogError("Cannot get container image name for resource {ResourceName}", resource.Name);
-                    throw new InvalidOperationException($"Cannot get container image name for resource {resource.Name}");
-                }
-                
+                var originalImageName = resource.Name.ToLowerInvariant();
+
                 // Tag the built image with a temporary tag
                 var tempTag = $"temp-{Guid.NewGuid():N}";
-                var tempImageName = $"{originalImageName.Split(':')[0]}:{tempTag}";
-                
+                var tempImageName = $"{originalImageName}:{tempTag}";
+
                 var dcpOptions = ctx.Services.GetRequiredService<IOptions<DcpOptions>>();
                 var containerRuntime = dcpOptions.Value.ContainerRuntime switch
                 {
                     string rt => ctx.Services.GetRequiredKeyedService<IContainerRuntime>(rt),
                     null => ctx.Services.GetRequiredKeyedService<IContainerRuntime>("docker")
                 };
-                
+
                 logger.LogInformation("Tagging image {OriginalImageName} as {TempImageName}", originalImageName, tempImageName);
                 await containerRuntime.TagImageAsync(originalImageName, tempImageName, ctx.CancellationToken).ConfigureAwait(false);
-                
+
                 // Generate a Dockerfile that layers the container files on top
                 var dockerfileBuilder = new DockerfileBuilder();
                 var stage = dockerfileBuilder.From(tempImageName);
-                
+
                 // Add COPY --from: statements for each source
                 foreach (var containerFileDestination in containerFilesAnnotations!)
                 {
                     var source = containerFileDestination.Source;
-                    
+
                     if (!source.TryGetContainerImageName(out var sourceImageName))
                     {
                         logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
                         continue;
                     }
-                    
+
                     var destinationPath = containerFileDestination.DestinationPath;
                     if (!destinationPath.StartsWith('/'))
                     {
                         // Make it an absolute path relative to /app (typical .NET container working directory)
                         destinationPath = $"/app/{destinationPath}";
                     }
-                    
+
                     foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
                     {
                         logger.LogInformation("Adding COPY --from={SourceImage} {SourcePath} {DestinationPath}",
@@ -1175,22 +1171,22 @@ public static class ProjectResourceBuilderExtensions
                         stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, destinationPath);
                     }
                 }
-                
+
                 // Write the Dockerfile to a temporary location
                 var projectResource = (ProjectResource)resource;
                 var projectMetadata = projectResource.GetProjectMetadata();
                 var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
                 var tempDockerfilePath = Path.Combine(projectDir, $"Dockerfile.{Guid.NewGuid():N}");
-                
+
                 try
                 {
                     using (var writer = new StreamWriter(tempDockerfilePath))
                     {
                         await dockerfileBuilder.WriteAsync(writer, ctx.CancellationToken).ConfigureAwait(false);
                     }
-                    
+
                     logger.LogDebug("Generated temporary Dockerfile at {DockerfilePath}", tempDockerfilePath);
-                    
+
                     // Build the final image from the generated Dockerfile
                     await containerRuntime.BuildImageAsync(
                         projectDir,
@@ -1204,7 +1200,7 @@ public static class ProjectResourceBuilderExtensions
                         new Dictionary<string, string?>(),
                         null,
                         ctx.CancellationToken).ConfigureAwait(false);
-                    
+
                     logger.LogInformation("Successfully built final image {ImageName} with container files", originalImageName);
                 }
                 finally
