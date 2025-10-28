@@ -707,6 +707,6 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         var serverCertificate = _configuration[KnownConfigNames.ExtensionCert];
         Debug.Assert(!string.IsNullOrEmpty(serverCertificate));
         var data = Convert.FromBase64String(serverCertificate);
-        return new X509Certificate2(data);
+        return X509CertificateLoader.LoadCertificate(data);
     }
 }
