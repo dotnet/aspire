@@ -14,11 +14,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Needed until Pomelo MySQL EF supports net9.0 - https://github.com/dotnet/aspire/pull/6948 -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
-
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.MySql" />
+  </ItemGroup>
+
+  <!-- Match Pomelo MySQL EF version from component project for net9.0 and net10.0. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">
+    <PackageVersion Update="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore" Version="9.0.10" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.Relational" Version="9.0.10" />
+    <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.10" />
   </ItemGroup>
 
   <ItemGroup>

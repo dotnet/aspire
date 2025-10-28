@@ -14,10 +14,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Needed until Oracle supports net9.0 - https://github.com/dotnet/aspire/issues/7060 -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
-
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.Oracle" />
+  </ItemGroup>
+
+  <!-- Match Oracle EF version from component project for net9.0 and net10.0. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">
+    <PackageVersion Update="Oracle.EntityFrameworkCore" Version="9.23.80" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore" Version="9.0.10" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.Relational" Version="9.0.10" />
+    <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.10" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentEfCorePackageTags) oracle sql</PackageTags>
     <Description>An Oracle Database provider for Entity Framework Core that integrates with Aspire, including connection pooling, health check, logging, and telemetry.</Description>
@@ -21,6 +21,14 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Oracle.EntityFrameworkCore" />
     <PackageReference Include="Oracle.ManagedDataAccess.OpenTelemetry" />
+  </ItemGroup>
+
+  <!-- Oracle EF needs to match the same major version as EF Core. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">
+    <PackageVersion Update="Oracle.EntityFrameworkCore" Version="9.23.80" />
+    <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.10" />
+    <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.10" />
+    <PackageVersion Update="Microsoft.Extensions.Caching.Memory" Version="9.0.10" />
   </ItemGroup>
 
 </Project>
