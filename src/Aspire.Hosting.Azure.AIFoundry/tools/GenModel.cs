@@ -460,8 +460,7 @@ public class ModelClient : IDisposable
                             {"field": "type", "operator": "eq", "values": ["models"]},
                             {"field": "kind", "operator": "eq", "values": ["Versioned"]},
                             {"field": "labels", "operator": "eq", "values": ["latest"]},
-                            {"field": "annotations/archived", "operator": "ne", "values": ["false"]},
-                            {"field": "annotations/tags/foundryLocal", "operator": "eq", "values": [""]},
+                            {"field": "annotations/tags/foundryLocal", "operator": "eq", "values": ["", "test"]},
                             {"field": "properties/variantInfo/variantMetadata/device", "operator": "eq",
                                 "values": ["cpu", "gpu", "npu"]}
                         ],
@@ -510,9 +509,10 @@ public class ModelClient : IDisposable
     {
         if (_isFoundryLocal)
         {
-            // Exclude phi-4-reasoning as it is not listed by foundry local (TBD)
+            // Exclude models that are not listed by foundry local (TBD)
             // c.f. https://github.com/microsoft/Foundry-Local/issues/245#issuecomment-3404022929
-            allModels.RemoveAll(m => m.Annotations?.Tags?.TryGetValue("alias", out var alias) is not null && alias == "phi-4-reasoning");
+            allModels.RemoveAll(m => m.Annotations?.Tags?.TryGetValue("alias", out var alias) is true && alias is not null &&
+                (alias.Contains("whisper") || alias == "phi-4-reasoning"));
         }
         else
         {
