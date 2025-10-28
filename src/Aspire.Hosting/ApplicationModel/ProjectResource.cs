@@ -88,7 +88,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
     private async Task BuildProjectImage(PipelineStepContext ctx)
     {
         var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        var logger = ctx.Services.GetRequiredService<ILogger<ProjectResource>>();
+        var logger = ctx.Logger;
 
         // Build the container image for the project first
         await containerImageBuilder.BuildImageAsync(
@@ -153,6 +153,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
         var tempDockerfilePath = Path.GetTempFileName();
 
+        var builtSuccessfully = false;
         try
         {
             using (var writer = new StreamWriter(tempDockerfilePath))
@@ -177,21 +178,29 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 ctx.CancellationToken).ConfigureAwait(false);
 
             logger.LogDebug("Successfully built final image {ImageName} with container files", originalImageName);
+            builtSuccessfully = true;
         }
         finally
         {
-            // Clean up the temporary Dockerfile
-            if (File.Exists(tempDockerfilePath))
+            if (builtSuccessfully)
             {
-                try
+                // Clean up the temporary Dockerfile
+                if (File.Exists(tempDockerfilePath))
                 {
-                    File.Delete(tempDockerfilePath);
-                    logger.LogDebug("Deleted temporary Dockerfile {DockerfilePath}", tempDockerfilePath);
+                    try
+                    {
+                        File.Delete(tempDockerfilePath);
+                        logger.LogDebug("Deleted temporary Dockerfile {DockerfilePath}", tempDockerfilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to delete temporary Dockerfile {DockerfilePath}", tempDockerfilePath);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to delete temporary Dockerfile {DockerfilePath}", tempDockerfilePath);
-                }
+            }
+            else
+            {
+                logger.LogWarning("Failed build Dockerfile {DockerfilePath}", tempDockerfilePath);
             }
 
             // Remove the temporary tagged image

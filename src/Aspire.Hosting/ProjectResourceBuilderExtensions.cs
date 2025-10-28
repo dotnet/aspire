@@ -2,9 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
-#pragma warning disable ASPIREPIPELINES001
-#pragma warning disable ASPIREPIPELINES003
-#pragma warning disable ASPIREDOCKERFILEBUILDER001
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
