@@ -26,17 +26,17 @@ For each template:
 5. If supported TFMs changed between old previous version and new previous version, or old current version and new current version, add or update `AspireNetXVersion` options appropriately. Note that the `AspireVersion` option maps to the `net8.0` TFM.
 6. In all *.csproj* files in the content folder named for the new previous version, e.g. *./9.4/**/*.csproj*:
    1. Update all versions for Aspire-produced packages (and SDKs) referenced to the new previous package version (`major.minor.patch` for latest patch), replacing the replacement token value with a static version value, e.g. `!!REPLACE_WITH_LATEST_VERSION!!` -> `9.4.2`
-   2. Update all versions for non-Aspire packages to the version referenced by current released version of the template, replacing the replacement token value with the relevant static version value, e.g. `!!REPLACE_WITH_ASPNETCORE_10_VERSION!!` -> `10.0.0-preview.7.25380.108`. Some non-Aspire packages referenced don't use a replacement token and instead just use a static value. In these cases simply leave the value as is.
+   2. Update all versions for non-Aspire packages to the version referenced by current released version of the template, replacing the replacement token value with the relevant static version value, e.g. `!!REPLACE_WITH_ASPNETCORE_OPENAPI_10_VERSION!!` -> `10.0.0-preview.7.25380.108`. Some non-Aspire packages referenced don't use a replacement token and instead just use a static value. In these cases simply leave the value as is.
 
       **Note:** There's a few ways to determine the static version value:
       - Look at the contents of the latest released version of the templates package at https://nuget.info/packages/Aspire.ProjectTemplates and find the version from the relvant *.csproj* file in the template package content
-      - Checkout the relevant `release/X.X` branch for the latest public release, e.g. `release/9.4`, and in the *./src/Aspire.ProjectTemplates/* directory, run the `dotnet` CLI command to extract the appropriate version from the build system, e.g. `dotnet msbuild -getProperty:MicrosoftAspNetCorePackageVersionForNet9`. The property name to pass for a given replacement token can be determined by looking in the *./src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj* file, at the `<WriteLinesToFile ...>` task, which should look something like the following:
+      - Checkout the relevant `release/X.X` branch for the latest public release, e.g. `release/9.4`, and in the *./src/Aspire.ProjectTemplates/* directory, run the `dotnet` CLI command to extract the appropriate version from the build system, e.g. `dotnet msbuild -getProperty:MicrosoftAspNetCoreOpenApiVersion`. The property name to pass for a given replacement token can be determined by looking in the *./src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj* file, at the `<WriteLinesToFile ...>` task, which should look something like the following:
          ```xml
          <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                            Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
                                     .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
-                                    .Replace('!!REPLACE_WITH_ASPNETCORE_9_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet9)')
-                                    .Replace('!!REPLACE_WITH_ASPNETCORE_10_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet10)')
+                                    .Replace('!!REPLACE_WITH_ASPNETCORE_OPENAPI_9_VERSION!!', '$(MicrosoftAspNetCoreOpenApiVersion)')
+                                    .Replace('!!REPLACE_WITH_ASPNETCORE_OPENAPI_10_VERSION!!', '$(MicrosoftAspNetCoreOpenApiPreviewVersion)')
                                     .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
                                     .Replace('!!REPLACE_WITH_OTEL_NET8_VERSION!!', '$(OpenTelemetryNet8Version)')
                                     .Replace('!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!', '$(OpenTelemetryExporterOpenTelemetryProtocolVersion)')

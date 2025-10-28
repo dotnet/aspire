@@ -248,7 +248,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <!-- ASP.NET Core -->
-    <PackageVersion Update="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCorePackageVersionForNet10)" />
+    <PackageVersion Update="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPreviewVersion)" />
     <!-- Runtime -->
     <PackageVersion Update="Microsoft.Extensions.Hosting.Abstractions" Version="$(MicrosoftExtensionsHostingAbstractionsPreviewVersion)" />
     <PackageVersion Update="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsHostingPreviewVersion)" />
