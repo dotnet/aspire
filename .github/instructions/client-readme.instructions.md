@@ -45,7 +45,7 @@ Registers {a/an} [{ClientInterface}]({link to docs}) in the DI container for con
 
 ### Install the package
 
-Install the .NET Aspire {Technology} library with [NuGet](https://www.nuget.org):
+Install the Aspire {Technology} library with [NuGet](https://www.nuget.org):
 
 \```dotnetcli
 dotnet add package Aspire.{Technology}
@@ -57,7 +57,7 @@ dotnet add package Aspire.{Technology}
 - Common prerequisites: server/database and connection string or hostname
 - For Azure services, include: "Azure subscription - [create one for free](https://azure.microsoft.com/free/)"
 - Installation command should be in a `dotnetcli` code block
-- Use consistent phrasing: "Install the .NET Aspire {Technology} library with [NuGet](https://www.nuget.org):"
+- Use consistent phrasing: "Install the Aspire {Technology} library with [NuGet](https://www.nuget.org):"
 
 ### 3. Usage Example
 
@@ -100,7 +100,7 @@ This is the most detailed section and should cover all configuration approaches:
 ```markdown
 ## Configuration
 
-The .NET Aspire {Technology} {component/library} provides multiple options to configure the {connection/resource} based on the requirements and conventions of your project. {Note about required configuration if applicable}
+The Aspire {Technology} {component/library} provides multiple options to configure the {connection/resource} based on the requirements and conventions of your project. {Note about required configuration if applicable}
 
 ### Use a connection string
 
@@ -126,7 +126,7 @@ See the [ConnectionString documentation]({link}) for more information on how to 
 
 ### Use configuration providers
 
-The .NET Aspire {Technology} {component/library} supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `{SettingsClassName}` {and `{ClientOptionsClassName}` if applicable} from configuration by using the `Aspire:{Technology}:{Component}` key. Example `appsettings.json` that configures some of the options:
+The Aspire {Technology} {component/library} supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `{SettingsClassName}` {and `{ClientOptionsClassName}` if applicable} from configuration by using the `Aspire:{Technology}:{Component}` key. Example `appsettings.json` that configures some of the options:
 
 \```json
 {
@@ -256,7 +256,7 @@ Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSou
 
 ### Install the package
 
-Install the .NET Aspire PostgreSQL Npgsql library with [NuGet](https://www.nuget.org):
+Install the Aspire PostgreSQL Npgsql library with [NuGet](https://www.nuget.org):
 
 \```dotnetcli
 dotnet add package Aspire.Npgsql
@@ -283,7 +283,7 @@ public ProductsController(NpgsqlDataSource dataSource)
 
 ## Configuration
 
-The .NET Aspire PostgreSQL Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire PostgreSQL Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -307,7 +307,7 @@ See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-s
 
 ### Use configuration providers
 
-The .NET Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
+The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
 
 \```json
 {

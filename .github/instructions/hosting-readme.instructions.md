@@ -8,7 +8,7 @@ This document provides guidelines for writing and maintaining README.md files fo
 
 ## Purpose
 
-Hosting integration packages provide extension methods and resource definitions for the .NET Aspire AppHost. They enable developers to configure and orchestrate infrastructure resources (databases, message queues, caches, cloud services, etc.) in their distributed applications. The README.md files help developers understand how to add and configure these resources in their AppHost project.
+Hosting integration packages provide extension methods and resource definitions for the Aspire AppHost. They enable developers to configure and orchestrate infrastructure resources (databases, message queues, caches, cloud services, etc.) in their distributed applications. The README.md files help developers understand how to add and configure these resources in their AppHost project.
 
 ## Standard Structure
 
@@ -19,13 +19,13 @@ All hosting integration README.md files should follow this structure:
 ```markdown
 # Aspire.Hosting.{Technology} library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure {a/an} {Technology} {resource type}.
+Provides extension methods and resource definitions for an Aspire AppHost to configure {a/an} {Technology} {resource type}.
 ```
 
 **Guidelines:**
 - Title format: `# Aspire.Hosting.{Technology} library`
 - Use "library" (not "package" or "component")
-- Start description with "Provides extension methods and resource definitions for a .NET Aspire AppHost to configure..."
+- Start description with "Provides extension methods and resource definitions for an Aspire AppHost to configure..."
 - Be specific about what type of resource is being configured (e.g., "a SQL Server database resource", "a MongoDB resource", "Azure CosmosDB")
 
 ### 2. Getting Started Section
@@ -39,7 +39,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire {Technology} Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire {Technology} Hosting library with [NuGet](https://www.nuget.org):
 
 \```dotnetcli
 dotnet add package Aspire.Hosting.{Technology}
@@ -49,7 +49,7 @@ dotnet add package Aspire.Hosting.{Technology}
 **Guidelines:**
 - Include a "Prerequisites" subsection only if there are specific requirements (e.g., Azure subscription for Azure resources)
 - Installation command should be in a `dotnetcli` code block
-- Use consistent phrasing: "In your AppHost project, install the .NET Aspire {Technology} Hosting library with [NuGet](https://www.nuget.org):"
+- Use consistent phrasing: "In your AppHost project, install the Aspire {Technology} Hosting library with [NuGet](https://www.nuget.org):"
 
 ### 3. Usage Example
 
@@ -100,20 +100,10 @@ For Azure resources:
 ```markdown
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
-to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
-automatically.
-
-\```json
-{
-    "Azure": {
-      "SubscriptionId": "<your subscription id>",
-      "ResourceGroupPrefix": "<prefix for the resource group>",
-      "Location": "<azure location>"
-    }
-}
-\```
+to be available via .NET configuration. The Aspire dashboard will prompt you to set these values if they are not already
+configured. See [Local Azure Provisioning](https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning) for more details.
 
 > NOTE: Developers must have Owner access to the target subscription so that role assignments
 > can be configured for the provisioned resources.
@@ -169,13 +159,13 @@ Here's a complete example for a hosting integration:
 ```markdown
 # Aspire.Hosting.PostgreSQL library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a PostgreSQL resource.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a PostgreSQL resource.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire PostgreSQL Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire PostgreSQL Hosting library with [NuGet](https://www.nuget.org):
 
 \```dotnetcli
 dotnet add package Aspire.Hosting.PostgreSQL
