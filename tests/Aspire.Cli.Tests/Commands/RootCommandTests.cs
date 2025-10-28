@@ -22,4 +22,40 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task RootCommandWithVersionArgumentReturnsZeroAndDisplaysVersion()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("--version");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task VersionCommandReturnsZeroAndDisplaysVersion()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("version");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public void VersionCommandGetVersionReturnsNonEmptyString()
+    {
+        var version = VersionCommand.GetVersion();
+        Assert.NotNull(version);
+        Assert.NotEmpty(version);
+    }
 }
