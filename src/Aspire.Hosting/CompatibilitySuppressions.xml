@@ -93,6 +93,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithPublishingCallback``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{Aspire.Hosting.ApplicationModel.PublishingContext,System.Threading.Tasks.Task})</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
     <Target>M:Aspire.Hosting.IInteractionService.PromptInputsAsync(System.String,System.String,System.Collections.Generic.IReadOnlyList{Aspire.Hosting.InteractionInput},Aspire.Hosting.InputsDialogInteractionOptions,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>

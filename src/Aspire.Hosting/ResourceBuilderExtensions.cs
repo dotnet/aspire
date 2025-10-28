@@ -356,23 +356,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Registers an async callback which is invoked when publishing is performed for the app model.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">Callback method which takes a <see cref="PublishingContext"/> which can be used to publish assets.</param>
-    /// <returns></returns>
-    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithPublishingCallback<T>(this IResourceBuilder<T> builder, Func<PublishingContext, Task> callback) where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        // You can only ever have one publishing callback, so it must be a replace operation.
-        return builder.WithAnnotation(new PublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
     /// Registers an async callback which is invoked when manifest is generated for the app model.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -2176,7 +2159,8 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Adds a <see cref="CertificateAuthorityCollectionAnnotation"/> to the resource annotations to associate a certificate authority collection with the resource.
-    /// This is used to configure additional trusted certificate authorities for the resource at run time.
+    /// This is used to configure additional trusted certificate authorities for the resource.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2222,7 +2206,8 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
-    /// Currently this indicates trust for the ASP.NET Core developer certificate.
+    /// Currently this indicates trust for the ASP.NET Core developer certificate. The developer certificate will only be trusted
+    /// when running in local development scenarios; in publish mode resources will use their default certificate trust.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2271,6 +2256,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Sets the <see cref="CertificateTrustScope"/> for custom certificate authorities associated with the resource. The scope
     /// specifies how custom certificate authorities should be applied to a resource at run time in local development scenarios.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2313,6 +2299,41 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="CertificateTrustConfigurationCallbackAnnotation"/> to the resource annotations to associate a callback that
+    /// is invoked when a resource needs to configure itself for custom certificate trust. May be called multiple times to register
+    /// additional callbacks to append additional configuration.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateTrustConfigurationCallback(ctx =>
+    ///     {
+    ///         if (ctx.Scope != CertificateTrustScope.Append)
+    ///         {
+    ///             ctx.EnvironmentVariables["CUSTOM_CERTS_BUNDLE_ENV"] = ctx.CertificateBundlePath;
+    ///         }
+    ///         ctx.EnvironmentVariables["ADDITIONAL_CERTS_DIR_ENV"] = ctx.CertificateDirectoriesPath;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCertificateTrustConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
+        where TResource : IResourceWithArgs, IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new CertificateTrustConfigurationCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults

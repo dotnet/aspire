@@ -12,6 +12,7 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting.ConsoleLogs;
+using Humanizer;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Localization;
 
@@ -19,6 +20,10 @@ namespace Aspire.Dashboard.Model.Assistant;
 
 internal static class AIHelpers
 {
+    public const int TracesLimit = 200;
+    public const int StructuredLogsLimit = 200;
+    public const int ConsoleLogsLimit = 500;
+
     // There is currently a 64K token limit in VS.
     // Limit the result from individual token calls to a smaller number so multiple results can live inside the context.
     public const int MaximumListTokenLength = 8192;
@@ -30,6 +35,7 @@ internal static class AIHelpers
 
     // Always pass English translations to AI
     private static readonly IStringLocalizer<Columns> s_columnsLoc = new InvariantStringLocalizer<Columns>();
+    private static readonly IStringLocalizer<Commands> s_commandsLoc = new InvariantStringLocalizer<Commands>();
 
     public static readonly TimeSpan ResponseMessageTimeout = TimeSpan.FromSeconds(60);
     public static readonly TimeSpan CompleteMessageTimeout = TimeSpan.FromMinutes(4);
@@ -103,9 +109,9 @@ internal static class AIHelpers
     public static (string json, string limitMessage) GetTracesJson(List<OtlpTrace> traces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
         var promptContext = new PromptContext();
-        var (trimmedItems, limitMessage) = AssistantChatDataContext.GetLimitFromEndWithSummary(
+        var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
             traces,
-            AssistantChatDataContext.TracesLimit,
+            TracesLimit,
             "trace",
             trace => GetTraceDto(trace, outgoingPeerResolvers, promptContext),
             EstimateSerializedJsonTokenSize);
@@ -167,7 +173,12 @@ internal static class AIHelpers
                     exception = report.ExceptionText
                 }).ToList()
             },
-            source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value
+            source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value,
+            commands = resource.Commands.Where(cmd => cmd.State == CommandViewModelState.Enabled).Select(cmd => new
+            {
+                name = cmd.Name,
+                description = cmd.GetDisplayDescription(s_commandsLoc)
+            }).ToList()
         }).ToList();
 
         var resourceGraphData = SerializeJson(data);
@@ -244,9 +255,9 @@ internal static class AIHelpers
     public static (string json, string limitMessage) GetStructuredLogsJson(List<OtlpLogEntry> errorLogs)
     {
         var promptContext = new PromptContext();
-        var (trimmedItems, limitMessage) = AssistantChatDataContext.GetLimitFromEndWithSummary(
+        var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
             errorLogs,
-            AssistantChatDataContext.StructuredLogsLimit,
+            StructuredLogsLimit,
             "log entry",
             i => GetLogEntryDto(i, promptContext),
             EstimateSerializedJsonTokenSize);
@@ -425,5 +436,53 @@ internal static class AIHelpers
             $"""
             {value.AsSpan(0, MaximumStringLength)}...[TRUNCATED]
             """;
+    }
+
+    public static (List<object> items, string message) GetLimitFromEndWithSummary<T>(List<T> values, int limit, string itemName, Func<T, object> convertToDto, Func<object, int> estimateTokenSize)
+    {
+        return GetLimitFromEndWithSummary(values, values.Count, limit, itemName, convertToDto, estimateTokenSize);
+    }
+
+    public static (List<object> items, string message) GetLimitFromEndWithSummary<T>(List<T> values, int totalValues, int limit, string itemName, Func<T, object> convertToDto, Func<object, int> estimateTokenSize)
+    {
+        Debug.Assert(totalValues >= values.Count, "Total values should be large or equal to the values passed into the method.");
+
+        var trimmedItems = values.Count <= limit
+            ? values
+            : values[^limit..];
+
+        var currentTokenCount = 0;
+        var serializedValuesCount = 0;
+        var dtos = trimmedItems.Select(i => convertToDto(i)).ToList();
+
+        // Loop backwards to prioritize the latest items.
+        for (var i = dtos.Count - 1; i >= 0; i--)
+        {
+            var obj = dtos[i];
+            var tokenCount = estimateTokenSize(obj);
+
+            if (currentTokenCount + tokenCount > AIHelpers.MaximumListTokenLength)
+            {
+                break;
+            }
+
+            serializedValuesCount++;
+            currentTokenCount += tokenCount;
+        }
+
+        // Trim again with what fits in the token limit.
+        dtos = dtos[^serializedValuesCount..];
+
+        return (dtos, GetLimitSummary(totalValues, dtos.Count, itemName));
+    }
+
+    private static string GetLimitSummary(int totalValues, int returnedCount, string itemName)
+    {
+        if (totalValues == returnedCount)
+        {
+            return $"Returned {itemName.ToQuantity(totalValues, formatProvider: CultureInfo.InvariantCulture)}.";
+        }
+
+        return $"Returned latest {itemName.ToQuantity(returnedCount, formatProvider: CultureInfo.InvariantCulture)}. Earlier {itemName.ToQuantity(totalValues - returnedCount, formatProvider: CultureInfo.InvariantCulture)} not returned because of size limits.";
     }
 }

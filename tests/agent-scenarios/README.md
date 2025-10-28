@@ -72,3 +72,27 @@ The workflow will:
 Creates a basic Aspire starter application.
 
 **Prompt:** Create an aspire application starting by downloading the Aspire CLI and creating a starter app.
+
+### smoke-test-dotnet
+
+Performs a comprehensive smoke test of an Aspire PR build by installing the Aspire CLI, creating a .NET Blazor-based starter application, and verifying its functionality including the Dashboard, API service, and frontend.
+
+**Key features:**
+- Tests the native AOT build of the Aspire CLI
+- Creates and runs an Aspire starter app with Blazor frontend
+- Verifies Dashboard functionality and telemetry collection
+- Tests SDK install feature flag (`dotNetSdkInstallationEnabled`)
+- Captures screenshots for verification
+
+### smoke-test-python
+
+Performs a comprehensive smoke test of an Aspire PR build by installing the Aspire CLI, creating a Python starter application with Vite/React frontend, and verifying its functionality.
+
+**Key features:**
+- Tests the native AOT build of the Aspire CLI
+- Creates and runs an Aspire Python starter app (`aspire-py-starter`)
+- Tests Python backend API service and Vite/React frontend
+- Verifies Dashboard functionality and telemetry collection
+- Tests SDK install feature flag (`dotNetSdkInstallationEnabled`)
+- Tests hot reload for both Python and Vite
+- Captures screenshots for verification

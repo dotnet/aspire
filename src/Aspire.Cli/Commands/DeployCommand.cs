@@ -12,7 +12,7 @@ using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
-internal sealed class DeployCommand : PublishCommandBase
+internal sealed class DeployCommand : PipelineCommandBase
 {
     private readonly Option<bool> _clearCacheOption;
     private readonly Option<string?> _stepOption;
@@ -39,14 +39,12 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
-        var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
+        var baseArgs = new List<string> { "--operation", "publish", "--step", "deploy" };
 
         if (fullyQualifiedOutputPath != null)
         {
             baseArgs.AddRange(["--output-path", fullyQualifiedOutputPath]);
         }
-
-        baseArgs.AddRange(["--deploy", "true"]);
 
         var clearCache = parseResult.GetValue(_clearCacheOption);
         if (clearCache)
@@ -86,5 +84,9 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string GetCanceledMessage() => DeployCommandStrings.DeploymentCanceled;
 
-    protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
+    protected override string GetProgressMessage(ParseResult parseResult)
+    {
+        var step = parseResult.GetValue(_stepOption);
+        return $"Executing step \"{step ?? "deploy"}\"";
+    }
 }

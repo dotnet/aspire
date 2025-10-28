@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Maui;
 /// <param name="projectPath">The path to the .NET MAUI project file.</param>
 /// <remarks>
 /// This resource serves as a parent for platform-specific MAUI resources (Windows, Android, iOS, macOS).
-/// Use extension methods like <c>AddWindowsDevice</c> to add platform-specific instances.
+/// Use extension methods like <c>AddWindowsDevice</c> or <c>AddMacCatalystDevice</c> to add platform-specific instances.
 /// <para>
 /// MAUI projects are built on-demand when the platform-specific resource is started, avoiding long
 /// AppHost startup times while still allowing incremental builds during development.

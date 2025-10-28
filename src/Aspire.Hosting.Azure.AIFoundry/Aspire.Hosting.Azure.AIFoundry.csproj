@@ -4,9 +4,10 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure openai ai aifoundry foundry ai-search cloud</PackageTags>
-    <Description>Azure AI Foundry resource types for .NET Aspire.</Description>
+    <Description>Azure AI Foundry resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureAIFoundry_256x.png</PackageIconFullPath>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
     <!--
       CS8002: Referenced assembly does not have a strong name
     -->

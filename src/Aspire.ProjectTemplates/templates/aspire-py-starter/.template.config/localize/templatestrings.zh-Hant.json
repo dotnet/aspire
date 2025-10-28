@@ -10,5 +10,7 @@
   "symbols/appHostHttpsPort/description": "要用於 AppHost 專案 launchSettings.json 中 HTTPS 端點的連接埠號碼。只有在未使用參數 no-https 時，才適用此選項。",
   "symbols/appHostOtlpHttpsPort/description": "要用於 AppHost 專案 launchSettings.json 中 OTLP HTTPS 端點的連接埠號碼。",
   "symbols/appHostResourceHttpsPort/description": "要用於 AppHost 專案 launchSettings.json 中資源服務 HTTPS 端點的連接埠號碼。",
-  "symbols/NoHttps/description": "是否要關閉 HTTPS。"
+  "symbols/NoHttps/description": "是否要關閉 HTTPS。",
+  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
+  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
 }

@@ -4,9 +4,9 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting yarp reverse-proxy api</PackageTags>
-    <Description>YARP support for .NET Aspire.</Description>
+    <Description>YARP support for Aspire.</Description>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>

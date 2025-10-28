@@ -15,6 +15,7 @@
     "value0_value": "{value0.value}",
     "value1_value": "{value1.value}",
     "cs_connectionstring": "{cs.connectionString}",
+    "pgc_password_value": "{pgc-password.value}",
     "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
   }
 }

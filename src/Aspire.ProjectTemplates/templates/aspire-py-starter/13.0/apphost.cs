@@ -23,7 +23,7 @@ var app = builder.AddUvicornApp("app", "./app", "app:app")
     .WithHttpHealthCheck("/health");
 
 var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithNpmPackageManager()
+    .WithNpm(install: true)
     .WithReference(app)
     .WaitFor(app);
 
