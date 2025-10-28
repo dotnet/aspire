@@ -286,14 +286,38 @@ public static class PythonAppResourceBuilderExtensions
     /// Adds a Flask-based Python application to the distributed application builder with HTTP endpoint configuration.
     /// </summary>
     /// <remarks>
-    /// This method configures the application to use Flask's development server with the 'flask run' command.
+    /// <para>
+    /// This method configures the application to use Flask's development server with the 'flask run' command
+    /// and automatically configures the host and port based on the HTTP endpoint.
     /// When not publishing, it sets FLASK_ENV=development for development mode features.
+    /// </para>
     /// </remarks>
     /// <param name="builder">The distributed application builder to which the Flask application resource will be added.</param>
     /// <param name="name">The unique name of the Flask application resource.</param>
     /// <param name="appDirectory">The directory containing the Python application files.</param>
     /// <param name="flaskApp">The Flask app module path (e.g., "main:app" or "myapp"). This value will be set as the FLASK_APP environment variable.</param>
     /// <returns>A resource builder for further configuration of the Flask Python application resource.</returns>
+    /// <example>
+    /// Add a Flask application using the application factory pattern:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var flaskApp = builder.AddFlaskApp("flask-app", "../flask-app", "app:create_app");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Add a Flask application with UV environment setup:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var flaskApp = builder.AddFlaskApp("flask-app", "../flask-app", "myapp:app")
+    ///     .WithUvEnvironment();
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<PythonAppResource> AddFlaskApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string flaskApp)
     {
@@ -302,7 +326,24 @@ public static class PythonAppResourceBuilderExtensions
         var resourceBuilder = builder.AddPythonModule(name, appDirectory, "flask")
             .WithHttpEndpoint(env: "PORT")
             .WithEnvironment("FLASK_APP", flaskApp)
-            .WithArgs("run");
+            .WithArgs(c =>
+            {
+                c.Args.Add("run");
+
+                c.Args.Add("--host");
+                var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("0.0.0.0");
+                }
+                else
+                {
+                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
+                }
+
+                c.Args.Add("--port");
+                c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+            });
 
         // Set FLASK_ENV=development in non-publish mode for development features
         if (!builder.ExecutionContext.IsPublishMode)

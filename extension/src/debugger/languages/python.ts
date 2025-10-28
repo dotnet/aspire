@@ -1,24 +1,27 @@
-import { AspireResourceExtendedDebugConfiguration, isPythonLaunchConfiguration } from "../../dcp/types";
+import { AspireResourceExtendedDebugConfiguration, ExecutableLaunchConfiguration, isPythonLaunchConfiguration } from "../../dcp/types";
 import { invalidLaunchConfiguration } from "../../loc/strings";
 import { extensionLogOutputChannel } from "../../utils/logging";
 import { ResourceDebuggerExtension } from "../debuggerExtensions";
+import * as vscode from 'vscode';
+
+function getProjectFile(launchConfig: ExecutableLaunchConfiguration): string {
+    if (isPythonLaunchConfiguration(launchConfig)) {
+        const programPath = launchConfig.program_path || launchConfig.project_path;
+        if (programPath) {
+            return programPath;
+        }
+    }
+
+    throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
+}
 
 export const pythonDebuggerExtension: ResourceDebuggerExtension = {
     resourceType: 'python',
     debugAdapter: 'debugpy',
     extensionId: 'ms-python.python',
-    displayName: 'Python',
+    getDisplayName: (launchConfiguration: ExecutableLaunchConfiguration) => `Python: ${vscode.workspace.asRelativePath(getProjectFile(launchConfiguration))}`,
     getSupportedFileTypes: () => ['.py'],
-    getProjectFile: (launchConfig) => {
-        if (isPythonLaunchConfiguration(launchConfig)) {
-            const programPath = launchConfig.program_path || launchConfig.project_path;
-            if (programPath) {
-                return programPath;
-            }
-        }
-
-        throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
-    },
+    getProjectFile: (launchConfig) => getProjectFile(launchConfig),
     createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
         if (!isPythonLaunchConfiguration(launchConfig)) {
             extensionLogOutputChannel.info(`The resource type was not python for ${JSON.stringify(launchConfig)}`);
