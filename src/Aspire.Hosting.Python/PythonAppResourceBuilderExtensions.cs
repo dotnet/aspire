@@ -364,18 +364,28 @@ public static class PythonAppResourceBuilderExtensions
         // VS Code debug support - only applicable for Script and Module types
         if (entrypointType is EntrypointType.Script or EntrypointType.Module)
         {
-            var programPath = entrypointType == EntrypointType.Script
-                ? Path.GetFullPath(entrypoint, resource.WorkingDirectory)
-                : null; // For modules, we'll use the module name
+            string programPath;
+            string module;
+
+            if (entrypointType == EntrypointType.Script)
+            {
+                programPath = Path.GetFullPath(entrypoint, resource.WorkingDirectory);
+                module = string.Empty;
+            }
+            else
+            {
+                programPath = resource.WorkingDirectory;
+                module = entrypoint;
+            }
 
             resourceBuilder.WithVSCodeDebugSupport(
                 mode => new PythonLaunchConfiguration
                 {
                     ProgramPath = programPath,
-                    Module = entrypointType == EntrypointType.Module ? entrypoint : null,
+                    Module = module,
                     Mode = mode
                 },
-                "ms-python.python",
+                "python",
                 static ctx =>
                 {
                     // Remove entrypoint-specific arguments that VS Code will handle.

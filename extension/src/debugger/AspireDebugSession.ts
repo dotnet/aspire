@@ -82,6 +82,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         args.push('--cli-wait-for-debugger');
       }
 
+      if (process.env[EnvironmentVariables.ASPIRE_APPHOST_STOP_ON_ENTRY] === 'true') {
+        args.push('--wait-for-debugger');
+      }
+
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
 
