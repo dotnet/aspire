@@ -409,7 +409,8 @@ public class AzureDeployerTests
 
         // Act
         using var app = builder.Build();
-        await app.RunAsync();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
 
         if (step == "diagnostics")
         {

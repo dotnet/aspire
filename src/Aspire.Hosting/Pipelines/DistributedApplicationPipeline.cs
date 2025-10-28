@@ -782,7 +782,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         sb.AppendLine("This shows the order in which steps would execute, respecting all dependencies.");
         sb.AppendLine("Steps with no dependencies run first, followed by steps that depend on them.");
         sb.AppendLine();
-        for (int i = 0; i < executionOrder.Count; i++)
+        for (var i = 0; i < executionOrder.Count; i++)
         {
             var step = executionOrder[i];
             sb.AppendLine(CultureInfo.InvariantCulture, $"{i + 1,3}. {step.Name}");
@@ -804,13 +804,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             if (step.DependsOnSteps.Count > 0)
             {
                 sb.Append("    Dependencies: ");
-                var depStatuses = step.DependsOnSteps.Select(dep =>
-                {
-                    var depExists = allStepsByName.ContainsKey(dep);
-                    var icon = depExists ? "✓" : "?";
-                    var status = depExists ? "" : " [missing]";
-                    return $"{icon} {dep}{status}";
-                });
+                var depStatuses = step.DependsOnSteps
+                    .OrderBy(dep => dep, StringComparer.Ordinal)
+                    .Select(dep =>
+                    {
+                        var depExists = allStepsByName.ContainsKey(dep);
+                        var icon = depExists ? "✓" : "?";
+                        var status = depExists ? "" : " [missing]";
+                        return $"{icon} {dep}{status}";
+                    });
                 sb.AppendLine(string.Join(", ", depStatuses));
             }
             else
@@ -827,7 +829,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             // Show tags if any
             if (step.Tags.Count > 0)
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    Tags: {string.Join(", ", step.Tags)}");
+                var sortedTags = step.Tags.OrderBy(tag => tag, StringComparer.Ordinal);
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    Tags: {string.Join(", ", sortedTags)}");
             }
 
             // Since we're showing full pipeline analysis, no steps are filtered out
@@ -859,6 +862,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var orphanedSteps = allSteps.Where(step =>
             step.DependsOnSteps.Count == 0 &&
             !allSteps.Any(other => other.DependsOnSteps.Contains(step.Name)))
+            .OrderBy(step => step.Name, StringComparer.Ordinal)
             .ToList();
 
         if (orphanedSteps.Count > 0)
@@ -891,7 +895,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             // Debug: Show what dependencies this step has after normalization
             if (targetStep.DependsOnSteps.Count > 0)
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"  Direct dependencies: {string.Join(", ", targetStep.DependsOnSteps)}");
+                var sortedDeps = targetStep.DependsOnSteps.OrderBy(dep => dep, StringComparer.Ordinal);
+                sb.AppendLine(CultureInfo.InvariantCulture, $"  Direct dependencies: {string.Join(", ", sortedDeps)}");
             }
             else
             {
@@ -1042,7 +1047,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 return;
             }
 
-            foreach (var depName in step.DependsOnSteps)
+            // Visit dependencies in sorted order for deterministic output
+            var sortedDeps = step.DependsOnSteps.OrderBy(dep => dep, StringComparer.Ordinal);
+            foreach (var depName in sortedDeps)
             {
                 if (stepsByName.TryGetValue(depName, out var depStep))
                 {
@@ -1053,7 +1060,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             result.Add(step);
         }
 
-        foreach (var step in steps)
+        // Process steps in sorted order for deterministic output
+        var sortedSteps = steps.OrderBy(s => s.Name, StringComparer.Ordinal);
+        foreach (var step in sortedSteps)
         {
             if (!visited.Contains(step.Name))
             {
