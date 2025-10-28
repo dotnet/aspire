@@ -792,7 +792,7 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithParentRelationship<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> parent)
             where T : ApplicationModel.IResource { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<T> WithPublishingCallback<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Func<ApplicationModel.PublishingContext, System.Threading.Tasks.Task> callback)
             where T : ApplicationModel.IResource { throw null; }
 
@@ -1981,7 +1981,7 @@ namespace Aspire.Hosting.ApplicationModel
         public required bool ProxyEnabled { get { throw null; } set { } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class PublishingCallbackAnnotation : IResourceAnnotation
     {
         public PublishingCallbackAnnotation(System.Func<PublishingContext, System.Threading.Tasks.Task> callback) { }
@@ -1989,7 +1989,7 @@ namespace Aspire.Hosting.ApplicationModel
         public System.Func<PublishingContext, System.Threading.Tasks.Task> Callback { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class PublishingContext
     {
         public PublishingContext(DistributedApplicationModel model, DistributedApplicationExecutionContext executionContext, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, System.Threading.CancellationToken cancellationToken, string outputPath) { }
@@ -2704,8 +2704,7 @@ namespace Aspire.Hosting.Publishing
     public partial class PublishingOptions
     {
         public const string Publishing = "Publishing";
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public bool Deploy { get { throw null; } set { } }
 
         public string? OutputPath { get { throw null; } set { } }
