@@ -325,16 +325,53 @@ internal static class AIHelpers
         }
     }
 
-    public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    public static bool TryGetSingleResult<T>(IEnumerable<T> source, Func<T, bool> predicate, [NotNullWhen(true)] out T? result)
     {
-        if (resources.Count(resources => resources.Name == resourceName) == 1)
+        result = default;
+        var found = false;
+
+        foreach (var item in source)
         {
-            resource = resources.First(resources => resources.Name == resourceName);
+            if (predicate(item))
+            {
+                if (found)
+                {
+                    // Multiple results found
+                    result = default;
+                    return false;
+                }
+
+                result = item;
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
+    public static bool TryGetResource(IReadOnlyList<OtlpResource> resources, string resourceName, [NotNullWhen(true)] out OtlpResource? resource)
+    {
+        if (TryGetSingleResult(resources, r => r.ResourceName == resourceName, out resource))
+        {
             return true;
         }
-        else if (resources.Count(resources => resources.DisplayName == resourceName) == 1)
+        else if (TryGetSingleResult(resources, r => r.ResourceKey.ToString() == resourceName, out resource))
         {
-            resource = resources.First(resources => resources.DisplayName == resourceName);
+            return true;
+        }
+
+        resource = null;
+        return false;
+    }
+
+    public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (TryGetSingleResult(resources, r => r.Name == resourceName, out resource))
+        {
+            return true;
+        }
+        else if (TryGetSingleResult(resources, r => r.DisplayName == resourceName, out resource))
+        {
             return true;
         }
 

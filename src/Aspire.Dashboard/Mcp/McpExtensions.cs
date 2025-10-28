@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using ModelContextProtocol.Protocol;
 
@@ -8,7 +9,7 @@ namespace Aspire.Dashboard.Mcp;
 
 public static class McpExtensions
 {
-    public static IMcpServerBuilder AddAspireMcpTools(this IServiceCollection services)
+    public static IMcpServerBuilder AddAspireMcpTools(this IServiceCollection services, DashboardOptions dashboardOptions)
     {
         var builder = services.AddMcpServer(options =>
         {
@@ -45,7 +46,14 @@ public static class McpExtensions
                 """;
         }).WithHttpTransport();
 
-        builder.WithTools<AspireMcpTools>();
+        // Always register telemetry tools
+        builder.WithTools<AspireTelemetryMcpTools>();
+
+        // Only register resource tools if the resource service is configured
+        if (dashboardOptions.ResourceServiceClient.GetUri() is not null)
+        {
+            builder.WithTools<AspireResourceMcpTools>();
+        }
 
         return builder;
     }
