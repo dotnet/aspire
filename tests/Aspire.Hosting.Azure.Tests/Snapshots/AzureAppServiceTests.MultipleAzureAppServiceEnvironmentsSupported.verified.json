@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "env1": {
@@ -19,7 +19,7 @@
       "type": "project.v1",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "ServiceA.module.bicep",
+        "path": "ServiceA-website.module.bicep",
         "params": {
           "env1_outputs_azure_container_registry_endpoint": "{env1.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "env1_outputs_planid": "{env1.outputs.planId}",
@@ -58,7 +58,7 @@
       "type": "project.v1",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "ServiceB.module.bicep",
+        "path": "ServiceB-website.module.bicep",
         "params": {
           "env2_outputs_azure_container_registry_endpoint": "{env2.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "env2_outputs_planid": "{env2.outputs.planId}",

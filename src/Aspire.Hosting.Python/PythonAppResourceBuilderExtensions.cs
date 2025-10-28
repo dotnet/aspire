@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -542,47 +541,21 @@ public static class PythonAppResourceBuilderExtensions
                 });
         });
 
-        resourceBuilder.WithPipelineStepFactory(factoryContext =>
+        resourceBuilder.WithPipelineConfiguration(context =>
         {
-            List<PipelineStep> steps = [];
-            var buildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-build-compute", factoryContext.Resource);
-            steps.Add(buildStep);
-
-            // ensure any static file references' images are built first
-            if (factoryContext.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+            if (resourceBuilder.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
             {
+                var buildSteps = context.GetSteps(resourceBuilder.Resource, WellKnownPipelineTags.BuildCompute);
+
                 foreach (var containerFile in containerFilesAnnotations)
                 {
-                    var source = containerFile.Source;
-                    var staticFileBuildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
-                    buildStep.DependsOn(staticFileBuildStep);
-                    steps.Add(staticFileBuildStep);
+                    buildSteps.DependsOn(context.GetSteps(containerFile.Source, WellKnownPipelineTags.BuildCompute));
                 }
             }
-
-            return steps;
         });
 
         return resourceBuilder;
     }
-
-    private static PipelineStep CreateBuildImageBuildStep(string stepName, IResource resource) =>
-        new()
-        {
-            Name = stepName,
-            Action = async ctx =>
-            {
-                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                await containerImageBuilder.BuildImageAsync(
-                    resource,
-                    new ContainerBuildOptions
-                    {
-                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                    },
-                    ctx.CancellationToken).ConfigureAwait(false);
-            },
-            Tags = [WellKnownPipelineTags.BuildCompute]
-        };
 
     private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
     {

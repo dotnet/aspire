@@ -19,7 +19,6 @@ using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -109,75 +108,6 @@ public class AzureDeployerTests
     }
 
     /// <summary>
-    /// Verifies that deploying an application with resources that define their own build steps does not trigger default
-    /// image build and they have the correct pipeline configuration.
-    /// </summary>
-    [Fact]
-    public async Task DeployAsync_WithResourcesWithBuildSteps()
-    {
-        // Arrange
-        var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
-        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
-        {
-            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider);
-
-        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
-
-        var configCalled = false;
-
-        // Add a compute resource with its own build step
-        builder.AddProject<Project>("api", launchProfileName: null)
-            .WithPipelineStepFactory(factoryContext =>
-            {
-                return
-                [
-                    new PipelineStep
-                    {
-                        Name = "api-build",
-                        Action = _ => Task.CompletedTask,
-                        Tags = [WellKnownPipelineTags.BuildCompute]
-                    }
-                ];
-            })
-            .WithPipelineConfiguration(configContext =>
-            {
-                var mainBuildStep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
-                    .Where(s => s.Name == "build-container-images")
-                    .Single();
-
-                Assert.Contains("api-build", mainBuildStep.DependsOnSteps);
-
-                var apiBuildStep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
-                    .Where(s => s.Name == "api-build")
-                    .Single();
-
-                Assert.Contains("default-image-tags", apiBuildStep.DependsOnSteps);
-
-                configCalled = true;
-            });
-
-        using var app = builder.Build();
-        await app.StartAsync();
-        await app.WaitForShutdownAsync();
-
-        Assert.True(configCalled);
-
-        // Assert - Verify MockImageBuilder was NOT called because the project resource has its own build step
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
-        Assert.NotNull(mockImageBuilder);
-        Assert.False(mockImageBuilder.BuildImageCalled);
-        Assert.False(mockImageBuilder.BuildImagesCalled);
-        Assert.Empty(mockImageBuilder.BuildImageResources);
-    }
-
-    /// <summary>
     /// Verifies that deploying an application with resources that are build-only containers only builds
     /// the containers and does not attempt to push them.
     /// </summary>
@@ -185,7 +115,6 @@ public class AzureDeployerTests
     public async Task DeployAsync_WithBuildOnlyContainers()
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -220,8 +149,7 @@ public class AzureDeployerTests
         // Assert - Verify MockImageBuilder was only called to build an image and not push it
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
-        Assert.False(mockImageBuilder.BuildImageCalled);
-        Assert.True(mockImageBuilder.BuildImagesCalled);
+        Assert.True(mockImageBuilder.BuildImageCalled);
         var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
         Assert.Equal("exe", builtImage.Name);
         Assert.False(mockImageBuilder.PushImageCalled);
@@ -432,12 +360,15 @@ public class AzureDeployerTests
             imageName.Contains("aspire-deploy-"));
     }
 
-    [Fact]
-    public async Task DeployAsync_WithMultipleComputeEnvironments_Works()
+    [Theory]
+    [InlineData("deploy")]
+    [InlineData("diagnostics")]
+    public async Task DeployAsync_WithMultipleComputeEnvironments_Works(string step)
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
+        var mockActivityReporter = new TestPublishingActivityReporter();
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -461,7 +392,7 @@ public class AzureDeployerTests
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
         var aasEnv = builder.AddAzureAppServiceEnvironment("aas-env");
@@ -480,6 +411,18 @@ public class AzureDeployerTests
         using var app = builder.Build();
         await app.StartAsync();
         await app.WaitForShutdownAsync();
+
+        if (step == "diagnostics")
+        {
+            // In diagnostics mode, just verify logs match snapshot
+            var logs = mockActivityReporter.LoggedMessages
+                            .Where(s => s.StepTitle == "diagnostics")
+                            .Select(s => s.Message)
+                            .ToList();
+
+            await Verify(logs);
+            return;
+        }
 
         // Assert ACA environment outputs are properly set
         Assert.Equal("acaregistry", acaEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
@@ -693,8 +636,7 @@ public class AzureDeployerTests
                    cmd.Arguments == "acr login --name testregistry");
 
         // Assert that deploying steps executed
-        Assert.Contains("deploy-compute-resources", mockActivityReporter.CreatedSteps);
-        Assert.Contains(("deploy-compute-resources", "Deploying **cache**"), mockActivityReporter.CreatedTasks);
+        Assert.Contains("provision-cache-containerapp", mockActivityReporter.CreatedSteps);
     }
 
     [Fact]
@@ -1013,60 +955,6 @@ public class AzureDeployerTests
         }
     }
 
-    [Fact(Skip = "az cli not available on azdo", SkipType = typeof(PlatformDetection), SkipWhen = nameof(PlatformDetection.IsRunningFromAzdo))]
-    public async Task DeployAsync_ShowsEndpointOnlyForExternalEndpoints()
-    {
-        // Arrange
-        var activityReporter = new TestPublishingActivityReporter();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
-        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
-        {
-            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: activityReporter);
-
-        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
-        var azureEnv = builder.AddAzureEnvironment();
-
-        // Add container with external endpoint
-        var externalContainer = builder.AddContainer("external-api", "external-image:latest")
-            .WithHttpEndpoint(port: 80, name: "http")
-            .WithExternalHttpEndpoints();
-
-        // Add container with internal endpoint only
-        var internalContainer = builder.AddContainer("internal-api", "internal-image:latest")
-            .WithHttpEndpoint(port: 80, name: "http");
-
-        // Add container with no endpoints
-        var noEndpointContainer = builder.AddContainer("worker", "worker-image:latest");
-
-        // Act
-        using var app = builder.Build();
-        await app.StartAsync();
-        await app.WaitForShutdownAsync();
-
-        // Assert - Verify that external container shows URL in completion message
-        var externalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("external-api"));
-        Assert.NotNull(externalTask.CompletionMessage);
-        Assert.Contains("https://external-api.test.westus.azurecontainerapps.io", externalTask.CompletionMessage);
-
-        // Assert - Verify that internal container does NOT show URL in completion message
-        var internalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("internal-api"));
-        Assert.NotNull(internalTask.CompletionMessage);
-        Assert.DoesNotContain("https://", internalTask.CompletionMessage);
-        Assert.Equal("Successfully deployed **internal-api**", internalTask.CompletionMessage);
-
-        // Assert - Verify that container with no endpoints does NOT show URL in completion message
-        var noEndpointTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("worker"));
-        Assert.NotNull(noEndpointTask.CompletionMessage);
-        Assert.DoesNotContain("https://", noEndpointTask.CompletionMessage);
-        Assert.Equal("Successfully deployed **worker**", noEndpointTask.CompletionMessage);
-    }
-
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
@@ -1294,6 +1182,7 @@ public class AzureDeployerTests
         public List<(string StepTitle, string CompletionText, CompletionState CompletionState)> CompletedSteps { get; } = [];
         public List<(string TaskStatusText, string? CompletionMessage, CompletionState CompletionState)> CompletedTasks { get; } = [];
         public List<(string TaskStatusText, string StatusText)> UpdatedTasks { get; } = [];
+        public List<(string StepTitle, LogLevel LogLevel, string Message)> LoggedMessages { get; } = [];
 
         public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
         {
@@ -1335,9 +1224,7 @@ public class AzureDeployerTests
 
             public void Log(LogLevel logLevel, string message, bool enableMarkdown)
             {
-                // For testing purposes, we just track that Log was called
-                _ = logLevel;
-                _ = message;
+                _reporter.LoggedMessages.Add((_title, logLevel, message));
             }
         }
 

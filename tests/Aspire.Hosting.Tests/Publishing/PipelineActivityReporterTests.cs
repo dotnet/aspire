@@ -278,9 +278,9 @@ public class PublishingActivityReporterTests
     }
 
     [Theory]
-    [InlineData(CompletionState.Completed, "Publishing completed successfully", false)]
-    [InlineData(CompletionState.CompletedWithError, "Publishing completed with errors", true)]
-    [InlineData(CompletionState.CompletedWithWarning, "Publishing completed with warnings", false)]
+    [InlineData(CompletionState.Completed, "Pipeline completed successfully", false)]
+    [InlineData(CompletionState.CompletedWithError, "Pipeline completed with errors", true)]
+    [InlineData(CompletionState.CompletedWithWarning, "Pipeline completed with warnings", false)]
     public async Task CompletePublishAsync_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange
@@ -353,7 +353,7 @@ public class PublishingActivityReporterTests
         // Assert
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
-        Assert.Equal("Publishing completed with errors", activity.Data.StatusText);
+        Assert.Equal("Pipeline completed with errors", activity.Data.StatusText);
         Assert.True(activity.Data.IsError); // Should be error because step3 had an error (highest severity)
         Assert.True(activity.Data.IsComplete);
     }
@@ -744,9 +744,9 @@ public class PublishingActivityReporterTests
     }
 
     [Theory]
-    [InlineData(CompletionState.Completed, "Deployment completed successfully", false)]
-    [InlineData(CompletionState.CompletedWithError, "Deployment completed with errors", true)]
-    [InlineData(CompletionState.CompletedWithWarning, "Deployment completed with warnings", false)]
+    [InlineData(CompletionState.Completed, "Pipeline completed successfully", false)]
+    [InlineData(CompletionState.CompletedWithError, "Pipeline completed with errors", true)]
+    [InlineData(CompletionState.CompletedWithWarning, "Pipeline completed with warnings", false)]
     public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange

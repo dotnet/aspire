@@ -233,7 +233,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
-        var operationName = isDeploy ? "Deployment" : "Publishing";
+        var operationName = "Pipeline";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,

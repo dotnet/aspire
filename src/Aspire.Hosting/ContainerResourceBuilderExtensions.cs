@@ -1,11 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -14,6 +22,45 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class ContainerResourceBuilderExtensions
 {
+    /// <summary>
+    /// Ensures that a container resource has a PipelineStepAnnotation for building if it has a DockerfileBuildAnnotation.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    internal static IResourceBuilder<T> EnsureBuildPipelineStepAnnotation<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        // Use replace semantics to ensure we only have one PipelineStepAnnotation for building
+        return builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
+        {
+            if (!builder.Resource.RequiresImageBuild() || builder.Resource.IsExcludedFromPublish())
+            {
+                return [];
+            }
+
+            var buildStep = new PipelineStep
+            {
+                Name = $"build-{builder.Resource.Name}",
+                Action = async ctx =>
+                {
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+                    await containerImageBuilder.BuildImageAsync(
+                        builder.Resource,
+                        new ContainerBuildOptions
+                        {
+                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                        },
+                        ctx.CancellationToken).ConfigureAwait(false);
+                },
+                Tags = [WellKnownPipelineTags.BuildCompute],
+                RequiredBySteps = [WellKnownPipelineSteps.Build],
+                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq]
+            };
+
+            return [buildStep];
+        }), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     /// <summary>
     /// Adds a container resource to the application. Uses the "latest" tag.
     /// </summary>
@@ -514,13 +561,15 @@ public static class ContainerResourceBuilderExtensions
         {
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag(imageTag);
+                      .WithImageTag(imageTag)
+                      .EnsureBuildPipelineStepAnnotation();
     }
 
     /// <summary>
@@ -632,13 +681,15 @@ public static class ContainerResourceBuilderExtensions
         {
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag(imageTag);
+                      .WithImageTag(imageTag)
+                      .EnsureBuildPipelineStepAnnotation();
     }
 
     /// <summary>

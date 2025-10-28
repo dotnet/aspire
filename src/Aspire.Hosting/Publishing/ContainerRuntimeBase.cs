@@ -147,7 +147,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
                 return processResult.ExitCode;
             }
 
-            _logger.LogInformation(successLogTemplate, logArguments);
+            _logger.LogDebug(successLogTemplate, logArguments);
             return processResult.ExitCode;
         }
     }
