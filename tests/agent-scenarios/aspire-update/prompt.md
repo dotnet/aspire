@@ -7,7 +7,7 @@ This scenario tests the `aspire update` command functionality, including updatin
 This test validates that:
 1. The latest released version of the Aspire CLI can be acquired and used to create a new project
 2. A new starter application can be created and runs successfully
-3. The latest daily build of the Aspire CLI can be acquired and used to update the project
+3. The latest daily build of the Aspire CLI can be acquired and used to update the project, and the updated apphost can be run successfully
 4. The PR build of the Aspire CLI can be acquired
 5. The `aspire update` command correctly prompts to update the CLI when a newer CLI version is available
 6. The CLI can be updated to the daily build through the update prompt
