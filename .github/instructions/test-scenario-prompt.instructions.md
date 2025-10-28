@@ -402,7 +402,7 @@ Keep suggestions concise, actionable, and helpful. The goal is to remind develop
 
 ✅ **Break complex scenarios into steps**: Use numbered steps and clear section headers.
 
-✅ **Include verification at each step**: Don't just run commands—verify they worked.
+✅ **Include verification at each step**: Don't just run commands — verify they worked.
 
 ✅ **Specify exact commands**: Use code blocks with the exact commands to run.
 
