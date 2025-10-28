@@ -60,17 +60,17 @@
   <!-- .NET 10.0 Package Versions -->
   <PropertyGroup Label="Preview">
     <!-- Runtime -->
-    <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
-    <MicrosoftExtensionsHostingPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsHostingPreviewVersion>
-    <MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>
-    <MicrosoftExtensionsConfigurationBinderPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsConfigurationBinderPreviewVersion>
-    <MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>
-    <MicrosoftExtensionsLoggingAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsLoggingAbstractionsPreviewVersion>
-    <MicrosoftExtensionsOptionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsOptionsPreviewVersion>
-    <MicrosoftExtensionsPrimitivesPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsPrimitivesPreviewVersion>
-    <MicrosoftExtensionsHttpPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsHttpPreviewVersion>
-    <SystemFormatsAsn1PreviewVersion>10.0.0-preview.5.25277.114</SystemFormatsAsn1PreviewVersion>
-    <SystemTextJsonPreviewVersion>10.0.0-preview.5.25277.114</SystemTextJsonPreviewVersion>
+    <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
+    <MicrosoftExtensionsHostingPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsHostingPreviewVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>
+    <MicrosoftExtensionsConfigurationBinderPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsConfigurationBinderPreviewVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>
+    <MicrosoftExtensionsLoggingAbstractionsPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsLoggingAbstractionsPreviewVersion>
+    <MicrosoftExtensionsOptionsPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsOptionsPreviewVersion>
+    <MicrosoftExtensionsPrimitivesPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsPrimitivesPreviewVersion>
+    <MicrosoftExtensionsHttpPreviewVersion>10.0.0-rc.2.25502.107</MicrosoftExtensionsHttpPreviewVersion>
+    <SystemFormatsAsn1PreviewVersion>10.0.0-rc.2.25502.107</SystemFormatsAsn1PreviewVersion>
+    <SystemTextJsonPreviewVersion>10.0.0-rc.2.25502.107</SystemTextJsonPreviewVersion>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">
@@ -83,6 +83,7 @@
     <MicrosoftAspNetCoreAuthenticationCertificateVersion>9.0.10</MicrosoftAspNetCoreAuthenticationCertificateVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerVersion>9.0.10</MicrosoftAspNetCoreAuthenticationJwtBearerVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>9.0.10</MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>
+    <MicrosoftAspNetCoreOpenApiVersion>9.0.10</MicrosoftAspNetCoreOpenApiVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>9.0.10</MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>
     <MicrosoftAspNetCoreTestHostVersion>9.0.10</MicrosoftAspNetCoreTestHostVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisVersion>9.0.10</MicrosoftExtensionsCachingStackExchangeRedisVersion>
@@ -121,6 +122,7 @@
     <MicrosoftAspNetCoreAuthenticationCertificateLTSVersion>8.0.21</MicrosoftAspNetCoreAuthenticationCertificateLTSVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerLTSVersion>8.0.21</MicrosoftAspNetCoreAuthenticationJwtBearerLTSVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectLTSVersion>8.0.21</MicrosoftAspNetCoreAuthenticationOpenIdConnectLTSVersion>
+    <MicrosoftAspNetCoreOpenApiLTSVersion>8.0.21</MicrosoftAspNetCoreOpenApiLTSVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisLTSVersion>8.0.21</MicrosoftAspNetCoreOutputCachingStackExchangeRedisLTSVersion>
     <MicrosoftAspNetCoreTestHostLTSVersion>8.0.21</MicrosoftAspNetCoreTestHostLTSVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisLTSVersion>8.0.21</MicrosoftExtensionsCachingStackExchangeRedisLTSVersion>
