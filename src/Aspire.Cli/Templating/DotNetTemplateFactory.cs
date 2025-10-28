@@ -13,7 +13,6 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
-using System.Diagnostics;
 
 namespace Aspire.Cli.Templating;
 
