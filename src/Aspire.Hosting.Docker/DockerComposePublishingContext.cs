@@ -10,7 +10,6 @@ using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -25,7 +24,6 @@ namespace Aspire.Hosting.Docker;
 /// </remarks>
 internal sealed class DockerComposePublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
     IPipelineActivityReporter activityReporter,
@@ -36,7 +34,6 @@ internal sealed class DockerComposePublishingContext(
         UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
-    public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Docker Compose publishing.");
 
     internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
@@ -78,17 +75,10 @@ internal sealed class DockerComposePublishingContext(
                 ? [r, .. model.Resources]
                 : model.Resources;
 
-        var containerImagesToBuild = new List<IResource>();
-
         foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
-                if (environment.BuildContainerImages)
-                {
-                    containerImagesToBuild.Add(serviceResource.TargetResource);
-                }
-
                 // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
                 if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
                     dockerfileBuildAnnotation.DockerfileFactory is not null)
@@ -143,12 +133,6 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        // Build container images for the services that require it
-        if (containerImagesToBuild.Count > 0)
-        {
-            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
-        }
-
         var step = await activityReporter.CreateStepAsync(
             "write-compose",
             cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -181,10 +165,10 @@ internal sealed class DockerComposePublishingContext(
                         var (key, (description, defaultValue, source)) = entry;
                         var onlyIfMissing = true;
 
-                        // If the source is a parameter and there's no explicit default value,
-                        // resolve the parameter's default value asynchronously
-                        if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
+                        // Handle parameter resources by resolving their actual values
+                        if (source is ParameterResource parameter)
                         {
+                            // For non-secret parameters, get the actual parameter value
                             defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                         }
 
