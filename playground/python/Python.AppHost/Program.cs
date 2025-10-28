@@ -20,8 +20,12 @@ builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn", 
 
 // Flask app using the AddFlaskApp method
 builder.AddFlaskApp("flask-app", "../flask_app", "app:create_app")
-    .WithHttpEndpoint(targetPort: 5000)
     .WithUvEnvironment();
+
+// Uvicorn app using the AddUvicornApp method
+builder.AddUvicornApp("uvicorn-app", "../uvicorn_app", "app:app")
+    .WithUvEnvironment()
+    .WithExternalHttpEndpoints();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
