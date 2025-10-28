@@ -647,7 +647,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonBuilder = builder.AddPythonExecutable("pytest", tempDir.Path, "pytest");
+        var pythonBuilder = builder.AddPythonExecutable("pytest", tempDir.Path, "pytest", true);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -738,7 +738,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var executableName = "pytest";
 
-        builder.AddPythonExecutable("pythonProject", tempDir.Path, executableName);
+        builder.AddPythonExecutable("pythonProject", tempDir.Path, executableName, true);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -815,7 +815,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonBuilder = builder.AddPythonExecutable("pytest", tempDir.Path, "pytest")
+        var pythonBuilder = builder.AddPythonExecutable("pytest", tempDir.Path, "pytest", true)
             .WithArgs("-q", "--verbose");
 
         var app = builder.Build();
@@ -973,7 +973,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         builder.AddPythonModule("module-app", projectDirectory, "mymodule")
             .WithUvEnvironment();
 
-        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest", true)
             .WithUvEnvironment();
 
         var app = builder.Build();
@@ -1038,7 +1038,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         builder.AddPythonModule("module-app", projectDirectory, "mymodule")
             .WithUvEnvironment();
 
-        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest", true)
             .WithUvEnvironment();
 
         var app = builder.Build();
@@ -1147,7 +1147,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Directory.CreateDirectory(virtualEnvironmentPath);
         var executableName = "myexe";
 
-        var pythonApp = builder.AddPythonExecutable("myapp", appDirectory, executableName)
+        var pythonApp = builder.AddPythonExecutable("myapp", appDirectory, executableName, true)
             .WithVirtualEnvironment(virtualEnvironmentPath)
             .WithArgs("arg1", "arg2");
 

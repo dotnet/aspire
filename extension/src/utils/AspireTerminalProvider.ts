@@ -138,7 +138,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             env.ASPIRE_EXTENSION_CAPABILITIES = getSupportedCapabilities().join(',');
 
             // if DCP debug logging is enabled, set DCP-specific logging environment variables
-            const dcpDebugLoggingEnabled = vscode.workspace.getConfiguration('aspire').get<boolean>('enablAspireDcpDebugLogging', false);
+            const dcpDebugLoggingEnabled = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDcpDebugLogging', false);
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0];
             if (dcpDebugLoggingEnabled && workspaceRoot) {
                 env.DCP_DIAGNOSTICS_LOG_LEVEL = "debug";

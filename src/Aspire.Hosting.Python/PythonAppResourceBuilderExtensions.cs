@@ -60,7 +60,7 @@ public static class PythonAppResourceBuilderExtensions
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder);
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder, true);
 
     /// <summary>
     /// Adds a Python script to the application model.
@@ -91,7 +91,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonScript(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder);
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder, true);
 
     /// <summary>
     /// Adds a Python module to the application model.
@@ -122,7 +122,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonModule(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder);
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder, true);
 
     /// <summary>
     /// Adds a Python executable to the application model.
@@ -131,6 +131,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="appDirectory">The path to the directory containing the python application.</param>
     /// <param name="executableName">The name of the executable in the virtual environment (e.g., "pytest", "uvicorn", "flask").</param>
+    /// <param name="supportDebugging">Whether to enable VS Code debugging support for this executable.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -145,15 +146,15 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonExecutable("pytest", "../api", "pytest")
+    /// builder.AddPythonExecutable("pytest", "../api", "pytest", true)
     ///        .WithArgs("-q");
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonExecutable(
-        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string executableName)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, DefaultVirtualEnvFolder);
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string executableName, bool supportDebugging)
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, DefaultVirtualEnvFolder, supportDebugging);
 
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
@@ -190,7 +191,7 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
-        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
+        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder, true)
             .WithArgs(scriptArgs);
     }
 
@@ -232,7 +233,7 @@ public static class PythonAppResourceBuilderExtensions
     {
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
-        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath)
+        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath, true)
             .WithArgs(scriptArgs);
     }
 
@@ -251,7 +252,7 @@ public static class PythonAppResourceBuilderExtensions
     public static IResourceBuilder<PythonAppResource> AddUvicornApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
-        var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn")
+        var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn", true)
             .WithHttpEndpoint(env: "PORT")
             .WithArgs(c =>
             {
@@ -275,9 +276,40 @@ public static class PythonAppResourceBuilderExtensions
         return resourceBuilder;
     }
 
+    /// <summary>
+    /// Adds a Flask-based Python application to the distributed application builder with HTTP endpoint configuration.
+    /// </summary>
+    /// <remarks>
+    /// This method configures the application to use Flask's development server with the 'flask run' command.
+    /// When not publishing, it sets FLASK_ENV=development for development mode features.
+    /// </remarks>
+    /// <param name="builder">The distributed application builder to which the Flask application resource will be added.</param>
+    /// <param name="name">The unique name of the Flask application resource.</param>
+    /// <param name="appDirectory">The directory containing the Python application files.</param>
+    /// <param name="flaskApp">The Flask app module path (e.g., "main:app" or "myapp"). This value will be set as the FLASK_APP environment variable.</param>
+    /// <returns>A resource builder for further configuration of the Flask Python application resource.</returns>
+    public static IResourceBuilder<PythonAppResource> AddFlaskApp(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string flaskApp)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(flaskApp);
+
+        var resourceBuilder = builder.AddPythonModule(name, appDirectory, "flask")
+            .WithHttpEndpoint(env: "PORT")
+            .WithEnvironment("FLASK_APP", flaskApp)
+            .WithArgs("run");
+
+        // Set FLASK_ENV=development in non-publish mode for development features
+        if (!builder.ExecutionContext.IsPublishMode)
+        {
+            resourceBuilder.WithEnvironment("FLASK_ENV", "development");
+        }
+
+        return resourceBuilder;
+    }
+
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
         IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
-        string entrypoint, string virtualEnvironmentPath)
+        string entrypoint, string virtualEnvironmentPath, bool supportDebugging)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -357,7 +389,7 @@ public static class PythonAppResourceBuilderExtensions
             });
 
         // VS Code debug support - only applicable for Script and Module types
-        if (entrypointType is EntrypointType.Script or EntrypointType.Module)
+        if (supportDebugging)
         {
             string programPath;
             string module;
@@ -374,11 +406,29 @@ public static class PythonAppResourceBuilderExtensions
             }
 
             resourceBuilder.WithVSCodeDebugSupport(
-                mode => new PythonLaunchConfiguration
+                mode =>
                 {
-                    ProgramPath = programPath,
-                    Module = module,
-                    Mode = mode
+                    string interpreterPath;
+                    if (!resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation) || annotation.VirtualEnvironment is null)
+                    {
+                        interpreterPath = string.Empty;
+                    }
+                    else
+                    {
+                        var venvPath = Path.IsPathRooted(annotation.VirtualEnvironment.VirtualEnvironmentPath)
+                            ? annotation.VirtualEnvironment.VirtualEnvironmentPath
+                            : Path.GetFullPath(annotation.VirtualEnvironment.VirtualEnvironmentPath, resource.WorkingDirectory);
+
+                        interpreterPath = Path.Join(venvPath, "bin", "python");
+                    }
+
+                    return new PythonLaunchConfiguration
+                    {
+                        ProgramPath = programPath,
+                        Module = module,
+                        Mode = mode,
+                        InterpreterPath = interpreterPath
+                    };
                 },
                 "python",
                 static ctx =>

@@ -14,9 +14,14 @@ builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
     .WithUvEnvironment();
 
 // Run the same app on another port using uvicorn directly
-builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn")
+builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn", true)
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8001")
     .WithHttpEndpoint(targetPort: 8001);
+
+// Flask app using the AddFlaskApp method
+builder.AddFlaskApp("flask-app", "../flask_app", "app:create_app")
+    .WithHttpEndpoint(targetPort: 5000)
+    .WithUvEnvironment();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

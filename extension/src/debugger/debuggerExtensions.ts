@@ -6,6 +6,7 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import { isCsharpInstalled, isPythonInstalled } from "../capabilities";
 import { pythonDebuggerExtension } from "./languages/python";
+import { isDirectory } from "../utils/io";
 
 // Represents a resource-specific debugger extension for when the default session configuration is not sufficient to launch the resource.
 export interface ResourceDebuggerExtension {
@@ -32,7 +33,7 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
         name: launchOptions.debug ? debugProject(displayName) : runProject(displayName),
         program: projectPath,
         args: args,
-        cwd: path.dirname(projectPath),
+        cwd: await isDirectory(projectPath) ? projectPath : path.dirname(projectPath),
         env: mergeEnvs(process.env, env),
         justMyCode: false,
         stopAtEntry: false,

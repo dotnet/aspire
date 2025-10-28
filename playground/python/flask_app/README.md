@@ -1,0 +1,47 @@
+# Flask App Example for Aspire
+
+This is a simple Flask application that demonstrates integration with .NET Aspire.
+
+## Features
+
+- Application factory pattern (`create_app()`)
+- Multiple endpoints (/, /health, /api/data)
+- OpenTelemetry instrumentation
+- JSON responses
+
+## Endpoints
+
+- `GET /` - Hello world endpoint
+- `GET /health` - Health check endpoint
+- `GET /api/data` - Returns sample data
+
+## Running with Aspire
+
+This app is configured to run via the Python.AppHost project:
+
+```csharp
+var flaskApp = builder.AddFlaskApp("flask-app", "../flask_app", "app:create_app")
+    .WithHttpEndpoint(port: 5000);
+```
+
+## Local Development
+
+1. Create virtual environment:
+   ```bash
+   uv venv
+   ```
+
+2. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+3. Run the app:
+   ```bash
+   flask --app app:create_app run --debug
+   ```
+
+Or run directly:
+```bash
+python app.py
+```
