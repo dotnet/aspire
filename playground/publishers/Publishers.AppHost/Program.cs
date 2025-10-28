@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001
-#pragma warning disable ASPIREPIPELINES001
 
 using Microsoft.Extensions.Configuration;
 
@@ -16,7 +15,6 @@ IResourceBuilder<IComputeEnvironmentResource>? environment = (publisher, target)
 {
     ("default", "kube") => builder.AddKubernetesEnvironment("env"),
     ("default", "azure") => builder.AddAzureContainerAppEnvironment("env"),
-    ("default", "publish-test") => builder.AddPublishTestResource("env"),
     ("default", _) => builder.AddDockerComposeEnvironment("env"),
     _ => null
 };
