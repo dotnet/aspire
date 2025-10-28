@@ -327,14 +327,14 @@ internal static class AIHelpers
 
     public static bool TryGetResource(IReadOnlyList<OtlpResource> resources, string resourceName, [NotNullWhen(true)] out OtlpResource? resource)
     {
-        if (resources.SingleOrDefault(r => r.ResourceName == resourceName) is { } matchedResource)
+        if (resources.Count(r => r.ResourceName == resourceName) == 1)
         {
-            resource = matchedResource;
+            resource = resources.First(r => r.ResourceName == resourceName);
             return true;
         }
-        else if (resources.SingleOrDefault(r => r.ResourceKey.ToString() == resourceName) is { } matchedByKey)
+        else if (resources.Count(r => r.ResourceKey.ToString() == resourceName) == 1)
         {
-            resource = matchedByKey;
+            resource = resources.First(r => r.ResourceKey.ToString() == resourceName);
             return true;
         }
 
@@ -344,14 +344,14 @@ internal static class AIHelpers
 
     public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
     {
-        if (resources.SingleOrDefault(r => r.Name == resourceName) is { } matchedResource)
+        if (resources.Count(r => r.Name == resourceName) == 1)
         {
-            resource = matchedResource;
+            resource = resources.First(r => r.Name == resourceName);
             return true;
         }
-        else if (resources.SingleOrDefault(r => r.DisplayName == resourceName) is { } matchedByDisplayName)
+        else if (resources.Count(r => r.DisplayName == resourceName) == 1)
         {
-            resource = matchedByDisplayName;
+            resource = resources.First(r => r.DisplayName == resourceName);
             return true;
         }
 
