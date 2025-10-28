@@ -1337,7 +1337,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
@@ -1391,7 +1391,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");

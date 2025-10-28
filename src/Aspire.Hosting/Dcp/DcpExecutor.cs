@@ -845,30 +845,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var toCreate = _appResources.OfType<RenderedModelResource>().Where(r => r.DcpResource is (Executable or Container));
 
+        // Ensure we fire the event only once for each app model resource. There may be multiple physical replicas of
+        // the same app model resource which can result in the event being fired multiple times.
+        ConcurrentDictionary<string, bool> allocatedEndpointsAdvertised = new(StringComparers.ResourceName);
+
         foreach (var cr in toCreate)
         {
             var createFunc = cr.DcpResource switch
             {
-                (Executable) => (Func<AppResource, CancellationToken, Task>)(async (resource, cancellationToken) =>
-                {
-                    RenderedModelResource[] resourceArr = [(RenderedModelResource)resource];
-                    AddAllocatedEndpointInfo(resourceArr, AllocatedEndpointsMode.All);
-                    await Task.WhenAll(
-                        RaiseEndpointAllocatedEvents(resourceArr, cancellationToken),
-                        CreateExecutablesAsync(resourceArr, cancellationToken)
-                    ).ConfigureAwait(false);
-                }),
-
-                (Container) => (Func<AppResource, CancellationToken, Task>)(async (resource, cancellationToken) =>
-                {
-                    RenderedModelResource[] resourceArr = [(RenderedModelResource)resource];
-                    AddAllocatedEndpointInfo([(RenderedModelResource)resource], AllocatedEndpointsMode.Workload);
-                    await Task.WhenAll(
-                        RaiseEndpointAllocatedEvents(resourceArr, cancellationToken),
-                        CreateContainersAsync(resourceArr, cancellationToken)
-                    ).ConfigureAwait(false);
-                }),
-
+                (Executable) => DoCreateItem(AllocatedEndpointsMode.All, CreateExecutablesAsync, allocatedEndpointsAdvertised),
+                (Container) => DoCreateItem(AllocatedEndpointsMode.Workload, CreateContainersAsync, allocatedEndpointsAdvertised),
                 // Should never happen--see how we initialize toCreate expresssion above.
                 _ => throw new InvalidOperationException($"Unsupported resource type {cr.DcpResource.GetType().Name} in creation queue.")
             };
@@ -878,6 +864,31 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return queue;
+    }
+
+    private Func<AppResource, CancellationToken, Task> DoCreateItem(
+        AllocatedEndpointsMode alMode,
+        Func<IEnumerable<RenderedModelResource>, CancellationToken, Task> createSingleKindItems,
+        ConcurrentDictionary<string, bool> allocatedEndpointsAdvertised
+    ) {
+        return (Func<AppResource, CancellationToken, Task>)(async (resource, cancellationToken) =>
+        {
+            RenderedModelResource[] resourceArr = [(RenderedModelResource)resource];
+            IResource modelResource = resourceArr[0].ModelResource;
+
+            AddAllocatedEndpointInfo(resourceArr, alMode);
+
+            if (allocatedEndpointsAdvertised.TryAdd(modelResource.Name, true))
+            {
+                await _distributedApplicationEventing.PublishAsync(
+                    new ResourceEndpointsAllocatedEvent(resourceArr[0].ModelResource, _executionContext.ServiceProvider),
+                    EventDispatchBehavior.NonBlockingConcurrent,
+                    cancellationToken
+                ).ConfigureAwait(false);
+            }
+
+            await createSingleKindItems(resourceArr, cancellationToken).ConfigureAwait(false);
+        });
     }
 
     private Task CreateAllDcpObjectsAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
@@ -1010,27 +1021,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     snapshot.SetValue(tunnelAllocatedEndpoint);
                     endpoint.AllAllocatedEndpoints.TryAdd(networkID, snapshot);
                 }
-            }
-        }
-    }
-
-    // Raise (obsolete) events associated with endpoint allocation for all relevant resources in the model.
-    // TODO: stop using these events
-    private async Task RaiseEndpointAllocatedEvents(IEnumerable<RenderedModelResource> resources, CancellationToken cancellationToken)
-    {
-        
-
-        var resourceEventsRaised = new HashSet<string>(StringComparer.Ordinal);
-
-        // TODO: these events are obsolete, we should stop raising them.
-        foreach (var resource in resources.Where(e => e.ModelResource is IResourceWithEndpoints { }).Select(r => (IResourceWithEndpoints)r.ModelResource))
-        {
-            // Ensure we fire the event only once for each app model resource. There may be multiple physical replicas of
-            // the same app model resource which can result in the event being fired multiple times.
-            if (resourceEventsRaised.Add(resource.Name))
-            {
-                var resourceEvent = new ResourceEndpointsAllocatedEvent(resource, _executionContext.ServiceProvider);
-                await _distributedApplicationEventing.PublishAsync(resourceEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
             }
         }
     }

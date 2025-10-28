@@ -62,4 +62,5 @@ internal static class StringComparisons
     public static StringComparison CommandName => StringComparison.Ordinal;
     public static StringComparison CliInputOrOutput => StringComparison.Ordinal;
     public static StringComparison InteractionInputName => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison NetworkID => StringComparison.Ordinal;
 }
