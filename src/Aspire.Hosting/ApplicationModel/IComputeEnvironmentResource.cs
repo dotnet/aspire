@@ -8,7 +8,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a compute environment resource.
 /// </summary>
-[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IComputeEnvironmentResource : IResource
 {
     /// <summary>
@@ -19,5 +18,6 @@ public interface IComputeEnvironmentResource : IResource
     /// <remarks>
     /// The returned value typically contains only the host name or address, without scheme, port, or path information.
     /// </remarks>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference) => throw new NotImplementedException();
 }
