@@ -17,7 +17,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="logger">The logger for publishing operations.</param>
 /// <param name="cancellationToken">The cancellation token for the publishing operation.</param>
 /// <param name="outputPath">The output path for publishing artifacts.</param>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PublishingContext(
     DistributedApplicationModel model,
     DistributedApplicationExecutionContext executionContext,
