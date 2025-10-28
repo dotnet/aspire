@@ -41,7 +41,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                         this,
                         new ContainerBuildOptions
                         {
-                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                            TargetPlatform = ContainerTargetPlatform.AllLinux
                         },
                         ctx.CancellationToken).ConfigureAwait(false);
                 },

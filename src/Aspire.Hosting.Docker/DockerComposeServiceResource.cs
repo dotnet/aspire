@@ -81,6 +81,14 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
             SetContainerImage(containerImageName, composeService);
         }
 
+        // Disable the pull policy if the target resource requires an image build
+        // since we'll want to use local images built during the pipeline instead
+        // of pulling images from a registry.
+        if (TargetResource.RequiresImageBuild())
+        {
+            composeService.PullPolicy = "never";
+        }
+
         SetContainerName(composeService);
         SetEntryPoint(composeService);
         AddEnvironmentVariablesAndCommandLineArgs(composeService);

@@ -9,6 +9,7 @@
     restart: "always"
   project1:
     image: "${PROJECT1_IMAGE}"
+    pull_policy: "never"
     environment:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
