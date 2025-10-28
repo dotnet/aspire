@@ -767,6 +767,38 @@ public class ProjectResourceTests
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
     }
 
+    [Fact]
+    public void ProjectResourceWithContainerFilesDestinationAnnotationCreatesPipelineSteps()
+    {
+        var appBuilder = CreateBuilder();
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = appBuilder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        // Add a project and annotate it with ContainerFilesDestinationAnnotation
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null)
+            .PublishWithContainerFiles(sourceContainer, "./wwwroot");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Verify the ContainerFilesDestinationAnnotation was added
+        var containerFilesAnnotation = Assert.Single(resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
+        Assert.Equal("./static", containerFilesAnnotation.DestinationPath);
+
+        // Verify the PipelineStepAnnotation was added by WithProjectDefaults
+        var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
+        Assert.NotEmpty(pipelineStepAnnotations);
+    }
+
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
         var resolvedArgs = new List<string>();
@@ -930,38 +962,6 @@ public class ProjectResourceTests
                 }
             };
         }
-    }
-
-    [Fact]
-    public void ProjectResourceWithContainerFilesDestinationAnnotationCreatesPipelineSteps()
-    {
-        var appBuilder = CreateBuilder();
-
-        // Create a test container resource that implements IResourceWithContainerFiles
-        var sourceContainerResource = new TestContainerFilesResource("source");
-        var sourceContainer = appBuilder.AddResource(sourceContainerResource)
-            .WithImage("myimage")
-            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
-
-        // Add a project and annotate it with ContainerFilesDestinationAnnotation
-        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null)
-            .PublishWithContainerFiles(sourceContainer, "./static");
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var projectResources = appModel.GetProjectResources();
-
-        var resource = Assert.Single(projectResources);
-        
-        // Verify the ContainerFilesDestinationAnnotation was added
-        var containerFilesAnnotation = Assert.Single(resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
-        Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
-        Assert.Equal("./static", containerFilesAnnotation.DestinationPath);
-
-        // Verify the PipelineStepAnnotation was added by WithProjectDefaults
-        var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
-        Assert.NotEmpty(pipelineStepAnnotations);
     }
 
     private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
