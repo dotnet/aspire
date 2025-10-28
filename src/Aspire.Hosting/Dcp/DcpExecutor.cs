@@ -1380,7 +1380,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             };
 
             var containerAppResource = new AppResource(container, ctr);
-            AddServicesProducedInfo(container, ctr, containerAppResource);
+            var validationSucceeded = AddServicesProducedInfo(container, ctr, containerAppResource);
+            
+            if (!validationSucceeded)
+            {
+                // Validation failed - remove any Service resources that were created for this container
+                // These were added in PrepareServices() but we can't use them because the container can't start
+                _appResources.RemoveAll(ar => ar is ServiceAppResource sar && sar.ModelResource == container);
+                
+                // Don't add the container to _appResources - it will never be created
+                // The error was already logged to the resource logger in AddServicesProducedInfo
+                continue;
+            }
+            
             _appResources.Add(containerAppResource);
         }
     }
@@ -1621,7 +1633,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
+    private bool AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
     {
         var modelResourceName = "(unknown)";
         try
@@ -1639,7 +1651,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 if (ea.TargetPort is null)
                 {
-                    throw new InvalidOperationException($"The endpoint '{ea.Name}' for container resource '{modelResourceName}' must specify the {nameof(EndpointAnnotation.TargetPort)} value");
+                    // For proxied endpoints, log error instead of throwing to allow dashboard to start
+                    // For proxy-less endpoints, throw immediately as this is a configuration error
+                    if (ea.IsProxied)
+                    {
+                        var logger = _loggerService.GetLogger(modelResource);
+                        logger.LogError("The endpoint '{EndpointName}' for container resource '{ResourceName}' must specify the TargetPort value. Container resource cannot be started.", ea.Name, modelResourceName);
+                        return false; // Indicate validation failed
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"The endpoint '{ea.Name}' for container resource '{modelResourceName}' must specify the {nameof(EndpointAnnotation.TargetPort)} value");
+                    }
                 }
             }
             else if (!ea.IsProxied)
@@ -1677,6 +1700,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
         }
+
+        return true; // Validation succeeded
 
         static bool HasMultipleReplicas(CustomResource resource)
         {

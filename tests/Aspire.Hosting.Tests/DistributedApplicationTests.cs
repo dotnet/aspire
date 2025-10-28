@@ -1443,6 +1443,53 @@ public class DistributedApplicationTests
         Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis' must specify the TargetPort value", ex.Message);
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task ContainerWithHttpEndpointWithoutTargetPortLogsErrorInsteadOfBlocking()
+    {
+        const string testName = "container-http-endpoint-without-target-port";
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Reproduce the issue from the bug report - WithHttpEndpoint() without targetPort
+        var container = builder.AddContainer($"{testName}-app", "mcr.microsoft.com/nonexistent/image:latest")
+            .WithHttpEndpoint();
+
+        using var app = builder.Build();
+
+        // The app should start successfully (dashboard should be available)
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        // Wait a bit for error to be logged
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Get the resource logger and check that an error was logged
+        var loggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        
+        // Watch for logs and wait for at least one error log
+        var logs = new List<LogLine>();
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await foreach (var logBatch in loggerService.WatchAsync(container.Resource).WithCancellation(cts.Token))
+        {
+            logs.AddRange(logBatch);
+            // Check if we have an error log about targetPort
+            if (logs.Any(line => 
+                line.Content != null && 
+                line.IsErrorMessage && 
+                line.Content.Contains("targetPort", StringComparison.OrdinalIgnoreCase)))
+            {
+                break;
+            }
+        }
+        
+        // Verify that an error message about missing targetPort was logged
+        Assert.Contains(logs, line => 
+            line.Content != null && 
+            line.IsErrorMessage && 
+            line.Content.Contains("targetPort", StringComparison.OrdinalIgnoreCase));
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
