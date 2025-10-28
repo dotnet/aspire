@@ -122,8 +122,10 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var dockerfileBuilder = new DockerfileBuilder();
         var stage = dockerfileBuilder.From(tempImageName);
 
+        var projectMetadata = this.GetProjectMetadata();
+
         // Get the container working directory for the project
-        var containerWorkingDir = await GetContainerWorkingDirectoryAsync(logger, ctx.CancellationToken).ConfigureAwait(false);
+        var containerWorkingDir = await GetContainerWorkingDirectoryAsync(projectMetadata.ProjectPath, logger, ctx.CancellationToken).ConfigureAwait(false);
 
         // Add COPY --from: statements for each source
         foreach (var containerFileDestination in containerFilesAnnotations)
@@ -152,7 +154,6 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         }
 
         // Write the Dockerfile to a temporary location
-        var projectMetadata = this.GetProjectMetadata();
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
         var tempDockerfilePath = Path.GetTempFileName();
 
@@ -213,13 +214,10 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         }
     }
 
-    private async Task<string> GetContainerWorkingDirectoryAsync(ILogger logger, CancellationToken cancellationToken)
+    private static async Task<string> GetContainerWorkingDirectoryAsync(string projectPath, ILogger logger, CancellationToken cancellationToken)
     {
         try
         {
-            var projectMetadata = this.GetProjectMetadata();
-            var projectPath = projectMetadata.ProjectPath;
-
             var outputLines = new List<string>();
             var spec = new Dcp.Process.ProcessSpec("dotnet")
             {
