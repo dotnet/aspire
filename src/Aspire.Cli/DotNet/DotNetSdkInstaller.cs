@@ -8,6 +8,8 @@ using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.DotNet;
 
@@ -126,6 +128,123 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         }
     }
 
+    /// <summary>
+    /// Downloads the .NET SDK archive with progress indication.
+    /// </summary>
+    /// <param name="sdkVersion">The SDK version to download.</param>
+    /// <param name="destinationPath">The path where the archive should be saved.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous download operation.</returns>
+    private async Task DownloadSdkArchiveAsync(string sdkVersion, string destinationPath, CancellationToken cancellationToken)
+    {
+        var downloadUrl = GetSdkDownloadUrl(sdkVersion);
+        logger.LogDebug("Downloading SDK from {Url}", downloadUrl);
+
+        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
+        
+        // Check if we're in an environment that supports progress display
+        var supportsProgress = !executionContext.DebugMode && AnsiConsole.Profile.Capabilities.Ansi;
+        
+        if (supportsProgress)
+        {
+            await AnsiConsole.Progress()
+                .AutoClear(false)
+                .HideCompleted(false)
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new DownloadedColumn(),
+                    new TransferSpeedColumn())
+                .StartAsync(async ctx =>
+                {
+                    var downloadTask = ctx.AddTask($"Downloading .NET SDK {sdkVersion}", maxValue: 100);
+                    
+                    using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    response.EnsureSuccessStatusCode();
+                    
+                    var totalBytes = response.Content.Headers.ContentLength ?? 0;
+                    if (totalBytes > 0)
+                    {
+                        downloadTask.MaxValue = totalBytes;
+                    }
+                    
+                    using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    using var fileStream = File.Create(destinationPath);
+                    
+                    var buffer = new byte[81920]; // 80 KB buffer
+                    long totalBytesRead = 0;
+                    int bytesRead;
+                    
+                    while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
+                    {
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                        totalBytesRead += bytesRead;
+                        downloadTask.Value = totalBytesRead;
+                    }
+                    
+                    downloadTask.StopTask();
+                });
+        }
+        else
+        {
+            // Fallback for non-interactive environments
+            logger.LogDebug("Downloading SDK without progress indicator");
+            using var response = await httpClient.GetAsync(downloadUrl, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            
+            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var fileStream = File.Create(destinationPath);
+            await contentStream.CopyToAsync(fileStream, cancellationToken);
+        }
+        
+        logger.LogDebug("SDK archive downloaded to {Path}", destinationPath);
+    }
+
+    /// <summary>
+    /// Gets the download URL for the specified SDK version.
+    /// </summary>
+    /// <param name="sdkVersion">The SDK version.</param>
+    /// <returns>The download URL.</returns>
+    private static string GetSdkDownloadUrl(string sdkVersion)
+    {
+        var architecture = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => "x64"
+        };
+
+        string rid;
+        string extension;
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            rid = $"win-{architecture}";
+            extension = "zip";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            rid = $"linux-{architecture}";
+            extension = "tar.gz";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            rid = $"osx-{architecture}";
+            extension = "tar.gz";
+        }
+        else
+        {
+            throw new PlatformNotSupportedException($"Platform {RuntimeInformation.OSDescription} is not supported");
+        }
+
+        // Use the dotnetbuilds blob storage URL pattern
+        // Format: https://dotnetbuilds.blob.core.windows.net/public/Sdk/{version}/dotnet-sdk-{version}-{rid}.{extension}
+        return $"https://dotnetbuilds.blob.core.windows.net/public/Sdk/{sdkVersion}/dotnet-sdk-{sdkVersion}-{rid}.{extension}";
+    }
+
     /// <inheritdoc />
     public async Task InstallAsync(CancellationToken cancellationToken = default)
     {
@@ -177,6 +296,20 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             }
         }
 
+        // Download the SDK archive with progress indication
+        var extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "zip" : "tar.gz";
+        var archivePath = Path.Combine(sdksDirectory, $"dotnet-sdk-{sdkVersion}.{extension}");
+        
+        // Download if the archive doesn't already exist
+        if (!File.Exists(archivePath))
+        {
+            await DownloadSdkArchiveAsync(sdkVersion, archivePath, cancellationToken);
+        }
+        else
+        {
+            logger.LogDebug("SDK archive already exists at {Path}, skipping download", archivePath);
+        }
+
         // Run the install script
         var installProcess = new Process
         {
@@ -192,13 +325,13 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            // PowerShell script arguments
-            installProcess.StartInfo.Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\" -Version {sdkVersion} -InstallDir \"{sdkInstallPath}\" -NoPath";
+            // PowerShell script arguments with ZipPath
+            installProcess.StartInfo.Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\" -Version {sdkVersion} -InstallDir \"{sdkInstallPath}\" -NoPath -ZipPath \"{archivePath}\"";
         }
         else
         {
-            // Bash script arguments
-            installProcess.StartInfo.Arguments = $"\"{scriptPath}\" --version {sdkVersion} --install-dir \"{sdkInstallPath}\" --no-path";
+            // Bash script arguments with zip-path
+            installProcess.StartInfo.Arguments = $"\"{scriptPath}\" --version {sdkVersion} --install-dir \"{sdkInstallPath}\" --no-path --zip-path \"{archivePath}\"";
         }
 
         installProcess.Start();
@@ -238,10 +371,11 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             throw new InvalidOperationException($"Failed to install .NET SDK {sdkVersion}. Exit code: {installProcess.ExitCode}");
         }
 
-        // Clean up the install script
+        // Clean up the install script and downloaded archive
         try
         {
             File.Delete(scriptPath);
+            File.Delete(archivePath);
         }
         catch
         {
@@ -421,5 +555,78 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
         // For all other requirements, use strict version comparison
         return SemVersion.ComparePrecedence(installedVersion, requiredVersion) >= 0;
+    }
+}
+
+/// <summary>
+/// A progress column that displays the number of bytes downloaded.
+/// </summary>
+file sealed class DownloadedColumn : ProgressColumn
+{
+    /// <inheritdoc />
+    public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
+    {
+        var downloaded = FormatBytes((long)task.Value);
+        var total = task.MaxValue > 0 ? FormatBytes((long)task.MaxValue) : "?";
+        return new Markup($"[cyan]{downloaded}[/]/[dim]{total}[/]");
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB"];
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}
+
+/// <summary>
+/// A progress column that displays the transfer speed.
+/// </summary>
+file sealed class TransferSpeedColumn : ProgressColumn
+{
+    private readonly Dictionary<int, (long BytesRead, DateTime LastUpdate)> _taskData = new();
+
+    /// <inheritdoc />
+    public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
+    {
+        var now = DateTime.UtcNow;
+        var currentBytes = (long)task.Value;
+
+        if (!_taskData.TryGetValue(task.Id, out var data))
+        {
+            _taskData[task.Id] = (currentBytes, now);
+            return new Markup("[dim]-- MB/s[/]");
+        }
+
+        var elapsed = (now - data.LastUpdate).TotalSeconds;
+        if (elapsed < 0.5) // Update speed every 0.5 seconds
+        {
+            return new Markup("[dim]-- MB/s[/]");
+        }
+
+        var bytesPerSecond = elapsed > 0 ? (currentBytes - data.BytesRead) / elapsed : 0;
+        _taskData[task.Id] = (currentBytes, now);
+
+        var speed = FormatSpeed(bytesPerSecond);
+        return new Markup($"[yellow]{speed}[/]");
+    }
+
+    private static string FormatSpeed(double bytesPerSecond)
+    {
+        if (bytesPerSecond < 1024)
+        {
+            return $"{bytesPerSecond:0.##} B/s";
+        }
+        if (bytesPerSecond < 1024 * 1024)
+        {
+            return $"{bytesPerSecond / 1024:0.##} KB/s";
+        }
+        return $"{bytesPerSecond / (1024 * 1024):0.##} MB/s";
     }
 }
