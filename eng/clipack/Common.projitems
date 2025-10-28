@@ -62,6 +62,13 @@
       <AdditionalProperties Include="PublishWindowsPdb=false" />
     </ItemGroup>
 
+    <!-- Explicitly Restore with the RID due to .NET SDK issue with getting runtime packs if you directly call Pubilsh. -->
+    <MSBuild
+        Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
+        Targets="Restore"
+        Properties="@(AdditionalProperties)"
+        RemoveProperties="OutputPath;TargetFramework" />
+
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
         Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
