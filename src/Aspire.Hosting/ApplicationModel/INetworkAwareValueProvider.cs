@@ -11,5 +11,7 @@ public interface INetworkAwareValueProvider : IValueProvider
     /// <summary>
     /// Gets the value in the context of a specific communication network.
     /// </summary>
-    public ValueTask<string?> GetValueAsync(NetworkIdentifier? context = null, CancellationToken cancellationToken = default);
+    /// <param name="context">The identifier for the network that servers as context for value retrieval. If not specified (null), the value provider will assume its default network as the context.</param>
+    /// <param name="cancellationToken">The cancellation token for the value retrieval operation.</param>
+    public ValueTask<string?> GetValueAsync(NetworkIdentifier? context, CancellationToken cancellationToken = default);
 }
