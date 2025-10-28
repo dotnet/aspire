@@ -5,7 +5,6 @@
 
 using Aspire.Components.Common.TestUtilities;
 using Aspire.Hosting.Orchestrator;
-using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Dcp;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +19,7 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 public static class TestDistributedApplicationBuilder
 {
-    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation, string outputPath = "./", string? logLevel = "information", string? step = WellKnownPipelineSteps.Publish)
+    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation, string outputPath = "./", string? logLevel = "information", string? step = "publish")
     {
         var args = operation switch
         {

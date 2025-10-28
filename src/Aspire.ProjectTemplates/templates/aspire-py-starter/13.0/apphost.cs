@@ -5,8 +5,6 @@
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!
 #endif
 
-#pragma warning disable ASPIREHOSTINGPYTHON001
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 #if UseRedisCache
@@ -23,7 +21,7 @@ var app = builder.AddUvicornApp("app", "./app", "app:app")
     .WithHttpHealthCheck("/health");
 
 var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithNpmPackageManager()
+    .WithNpm(install: true)
     .WithReference(app)
     .WaitFor(app);
 

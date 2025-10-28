@@ -51,9 +51,13 @@ internal static class LocaleHelpers
 
     public static string? GetLocaleOverride(IConfiguration configuration)
     {
-        var localeOverride = configuration[KnownConfigNames.LocaleOverride]
-                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
-                             ?? configuration[KnownConfigNames.DotnetCliUiLanguage];
+        var localeOverride = configuration[KnownConfigNames.LocaleOverride];
+        if (string.IsNullOrEmpty(localeOverride))
+        {
+            // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
+            localeOverride = configuration[KnownConfigNames.DotnetCliUiLanguage];
+        }
+
         return localeOverride;
     }
 }

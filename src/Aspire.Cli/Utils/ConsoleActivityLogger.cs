@@ -283,14 +283,14 @@ internal sealed class ConsoleActivityLogger
         if (succeeded)
         {
             _finalStatusHeader = _enableColor
-                ? $"[green]{SuccessSymbol} DEPLOYMENT SUCCEEDED[/]"
-                : $"{SuccessSymbol} DEPLOYMENT SUCCEEDED";
+                ? $"[green]{SuccessSymbol} PIPELINE SUCCEEDED[/]"
+                : $"{SuccessSymbol} PIPELINE SUCCEEDED";
         }
         else
         {
             _finalStatusHeader = _enableColor
-                ? $"[red]{FailureSymbol} DEPLOYMENT FAILED[/]"
-                : $"{FailureSymbol} DEPLOYMENT FAILED";
+                ? $"[red]{FailureSymbol} PIPELINE FAILED[/]"
+                : $"{FailureSymbol} PIPELINE FAILED";
         }
     }
 

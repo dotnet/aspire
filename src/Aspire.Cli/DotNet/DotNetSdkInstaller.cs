@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -143,16 +144,19 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         Directory.CreateDirectory(sdksDirectory);
 
         // Determine which install script to use based on the platform
-        var (scriptUrl, scriptFileName, scriptRunner) = GetInstallScriptInfo();
+        var (resourceName, scriptFileName, scriptRunner) = GetInstallScriptInfo();
 
-        // Download the install script
+        // Extract the install script from embedded resources
         var scriptPath = Path.Combine(sdksDirectory, scriptFileName);
-        using (var httpClient = new HttpClient())
+        var assembly = Assembly.GetExecutingAssembly();
+        using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+        if (resourceStream == null)
         {
-            httpClient.Timeout = TimeSpan.FromMinutes(5);
-            var scriptContent = await httpClient.GetStringAsync(scriptUrl, cancellationToken);
-            await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken);
+            throw new InvalidOperationException($"Could not find embedded resource: {resourceName}");
         }
+
+        using var fileStream = File.Create(scriptPath);
+        await resourceStream.CopyToAsync(fileStream, cancellationToken);
 
         // Make the script executable on Unix-like systems
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -202,25 +206,19 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         // Capture and log stdout and stderr
         var stdoutTask = Task.Run(async () =>
         {
-            while (!installProcess.StandardOutput.EndOfStream)
+            string? line;
+            while ((line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
             {
-                var line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken);
-                if (line != null)
-                {
-                    logger.LogDebug("dotnet-install stdout: {Line}", line);
-                }
+                logger.LogDebug("dotnet-install stdout: {Line}", line);
             }
         }, cancellationToken);
 
         var stderrTask = Task.Run(async () =>
         {
-            while (!installProcess.StandardError.EndOfStream)
+            string? line;
+            while ((line = await installProcess.StandardError.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
             {
-                var line = await installProcess.StandardError.ReadLineAsync(cancellationToken);
-                if (line != null)
-                {
-                    logger.LogDebug("dotnet-install stderr: {Line}", line);
-                }
+                logger.LogDebug("dotnet-install stderr: {Line}", line);
             }
         }, cancellationToken);
 
@@ -298,15 +296,15 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// <summary>
     /// Gets the install script information based on the current platform.
     /// </summary>
-    /// <returns>A tuple containing the script URL, script file name, and script runner command.</returns>
-    private static (string ScriptUrl, string ScriptFileName, string ScriptRunner) GetInstallScriptInfo()
+    /// <returns>A tuple containing the embedded resource name, script file name, and script runner command.</returns>
+    private static (string ResourceName, string ScriptFileName, string ScriptRunner) GetInstallScriptInfo()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             // Try pwsh first (PowerShell Core), then fall back to powershell (Windows PowerShell)
             var powerShellExecutable = GetAvailablePowerShell();
             return (
-                "https://dot.net/v1/dotnet-install.ps1",
+                "Aspire.Cli.Resources.dotnet-install.ps1",
                 "dotnet-install.ps1",
                 powerShellExecutable
             );
@@ -314,7 +312,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         else
         {
             return (
-                "https://dot.net/v1/dotnet-install.sh",
+                "Aspire.Cli.Resources.dotnet-install.sh",
                 "dotnet-install.sh",
                 "bash"
             );

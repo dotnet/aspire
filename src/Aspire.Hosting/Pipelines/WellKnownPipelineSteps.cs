@@ -15,17 +15,36 @@ public static class WellKnownPipelineSteps
     /// The meta-step that coordinates all publish operations.
     /// All publish steps should be required by this step.
     /// </summary>
-    public const string Publish = "publish";
+    public static readonly string Publish = "publish";
+
+    /// <summary>
+    /// The prerequisite step that runs before any publish operations.
+    /// </summary>
+    public static readonly string PublishPrereq = "publish-prereq";
 
     /// <summary>
     /// The meta-step that coordinates all deploy operations.
     /// All deploy steps should be required by this step.
     /// </summary>
-    public const string Deploy = "deploy";
+    public static readonly string Deploy = "deploy";
 
     /// <summary>
-    /// The well-known step for prompting for parameters.
+    /// The prerequisite step that runs before any deploy operations.
     /// </summary>
+    public static readonly string DeployPrereq = "deploy-prereq";
 
-    public const string ParameterPrompt = "parameter-prompt";
+    /// <summary>
+    /// The well-known step for building resources.
+    /// </summary>
+    public static readonly string Build = "build";
+
+    /// <summary>
+    /// The prerequisite step that runs before any build operations.
+    /// </summary>
+    public static readonly string BuildPrereq = "build-prereq";
+
+    /// <summary>
+    /// The diagnostic step that dumps dependency graph information for troubleshooting.
+    /// </summary>
+    public static readonly string Diagnostics = "diagnostics";
 }

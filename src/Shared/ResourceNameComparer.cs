@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-internal sealed class ResourceNameComparer : IEqualityComparer<IResource>
+internal sealed class ResourceNameComparer : IEqualityComparer<IResource?>
 {
     public bool Equals(IResource? x, IResource? y)
     {
@@ -18,5 +18,5 @@ internal sealed class ResourceNameComparer : IEqualityComparer<IResource>
     }
 
     public int GetHashCode(IResource obj) =>
-        obj.Name.GetHashCode(StringComparison.Ordinal);
+        obj?.Name.GetHashCode(StringComparison.Ordinal) ?? 0;
 }

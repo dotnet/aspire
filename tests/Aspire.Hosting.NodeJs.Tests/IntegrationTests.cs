@@ -19,7 +19,7 @@ public class IntegrationTests
 
         // Add a vite app with the npm package manager
         builder.AddViteApp("vite-app", "./frontend")
-            .WithNpmPackageManager(useCI: true);
+            .WithNpm(install: true);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -34,7 +34,7 @@ public class IntegrationTests
         Assert.Single(npmInstallers);
 
         // Verify installer resources have expected names (would appear on dashboard)
-        Assert.Equal("vite-app-npm-install", npmInstallers[0].Name);
+        Assert.Equal("vite-app-installer", npmInstallers[0].Name);
 
         // Verify parent-child relationships
         foreach (var installer in npmInstallers.Cast<IResource>())
@@ -61,7 +61,7 @@ public class IntegrationTests
         var builder = DistributedApplication.CreateBuilder();
 
         builder.AddNpmApp("test-app", "./test")
-            .WithNpmPackageManager(useCI: true);
+            .WithNpm(install: true);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -75,7 +75,10 @@ public class IntegrationTests
         var parentApp = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
         Assert.Equal(parentApp.WorkingDirectory, installer.WorkingDirectory);
 
-        // Verify command arguments are configured
-        Assert.True(installer.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
+        // Verify parent-child relationship exists
+        Assert.True(installer.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        var relationship = Assert.Single(relationships);
+        Assert.Same(parentApp, relationship.Resource);
+        Assert.Equal("Parent", relationship.Type);
     }
 }

@@ -6,7 +6,7 @@ var weatherApi = builder.AddProject<Projects.AspireJavaScript_MinimalApi>("weath
     .WithExternalHttpEndpoints();
 
 var reactvite = builder.AddViteApp("reactvite", "../AspireJavaScript.Vite")
-    .WithNpmPackageManager()
+    .WithNpm(install: true)
     .WithReference(weatherApi)
     .WithEnvironment("BROWSER", "none")
     .WithExternalHttpEndpoints();

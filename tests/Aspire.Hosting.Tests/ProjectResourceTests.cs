@@ -7,6 +7,7 @@
 using System.Text;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -731,6 +732,39 @@ public class ProjectResourceTests
         // Annotation should override the filtering
         var selectedProfile = resource.SelectLaunchProfileName();
         Assert.Equal("IIS Express", selectedProfile);
+    }
+
+    [Fact]
+    public async Task ProjectResource_AutomaticallyGeneratesBuildStep_WithCorrectDependencies()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProject>("test-project", launchProfileName: null);
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Verify the project has a PipelineStepAnnotation
+        var pipelineStepAnnotation = Assert.Single(resource.Annotations.OfType<PipelineStepAnnotation>());
+
+        // Create a factory context for testing the annotation
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = null!, // Not needed for this test
+            Resource = resource
+        };
+
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+
+        var buildStep = Assert.Single(steps);
+        Assert.Equal("build-test-project", buildStep.Name);
+        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
+        Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
+        Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
     }
 
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)

@@ -33,6 +33,14 @@ public class SchemaTests
                     }
                 },
 
+                { "FormatterParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                      // A Redis password is formatted in the Uri connection property.
+                        var resourceWithFormatterParameter = builder.AddRedis("redis1", password: builder.AddParameter("pass", secret: true));
+                        builder.AddRedis("redis2").WithReference(resourceWithFormatterParameter);
+                    }
+                },
+
                 { "ConnectionStringParameter", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddConnectionString("foo");
@@ -248,9 +256,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -270,6 +276,42 @@ public class SchemaTests
     }
 
     [Fact]
+    public void ManifestAcceptsAnnotatedStrings()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                  "cache-password-uri-encoded": {
+                  "type": "annotated.string",
+                  "value": "{cache-password.value}",
+                  "filter": "uri"
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithUnsupportedFilterIsRejected()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                  "cache-password-uri-encoded": {
+                  "type": "annotated.string",
+                  "value": "{cache-password.value}",
+                  "filter": "uri2"
+                }
+              }
+            }
+            """;
+
+        AssertInvalid(manifestText);
+    }
+
+    [Fact]
     public void ManifestWithContainerResourceWithMissingImageIsRejected()
     {
         var manifestText = """
@@ -282,9 +324,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -302,9 +342,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -321,9 +359,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -361,9 +397,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -384,9 +418,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]

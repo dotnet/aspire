@@ -341,6 +341,23 @@
           },
           {
             "type": "object",
+            "description": "Represents a formatted projection of a parameter value, produced by applying the specified filter to the parameter.",
+            "required": [ "type", "value", "filter" ],
+            "properties": {
+              "type": {
+                "const": "annotated.string"
+              },
+              "value": {
+                "$ref": "#/definitions/value"
+              },
+              "filter": {
+                "$ref": "#/definitions/annotatedStringFilter"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
             "description": "Represents a Dapr resource in the manifest.",
             "required": [ "dapr" ],
             "properties": {
@@ -458,6 +475,7 @@
                   "type": "string",
                   "enum": [
                     "parameter.v0",
+                    "annotated.string",
                     "container.v0",
                     "container.v1",
                     "dockerfile.v0",
@@ -548,6 +566,11 @@
     "value": {
       "type": "string",
       "description": "A value that can be referenced via an expression in the manifest"
+    },
+    "annotatedStringFilter": {
+      "type": "string",
+      "description": "Identifies the filter to apply to the referenced parameter value (for example, 'uri').",
+      "enum": [ "uri" ]
     },
     "args": {
       "type": "array",

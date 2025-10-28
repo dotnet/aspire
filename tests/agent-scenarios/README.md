@@ -96,3 +96,17 @@ Performs a comprehensive smoke test of an Aspire PR build by installing the Aspi
 - Tests SDK install feature flag (`dotNetSdkInstallationEnabled`)
 - Tests hot reload for both Python and Vite
 - Captures screenshots for verification
+
+### deployment-docker
+
+Tests the end-to-end workflow of creating an Aspire application, adding Docker Compose integration, and deploying it using Docker Compose.
+
+**Key features:**
+- Creates a new Aspire starter application
+- Adds Docker Compose integration using `aspire add` command
+- Updates AppHost to configure Docker Compose environment
+- Generates Docker Compose files using `aspire publish`
+- Deploys the application with `docker compose up`
+- Verifies all service endpoints are accessible
+- Tests service-to-service communication
+- Cleans up deployment with `docker compose down`

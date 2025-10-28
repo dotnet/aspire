@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREINTERACTION001
 
 using System.Collections.Concurrent;
@@ -233,7 +233,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
-        var operationName = isDeploy ? "Deployment" : "Publishing";
+        var operationName = "Pipeline";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
