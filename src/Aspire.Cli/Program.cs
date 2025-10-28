@@ -38,6 +38,8 @@ namespace Aspire.Cli;
 
 public class Program
 {
+    private const string AzureMonitorConnectionStringEnvVar = "AZURE_MONITOR_CONNECTION_STRING";
+
     private static string GetUsersAspirePath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -99,7 +101,7 @@ public class Program
 
         // Add Azure Monitor exporter for production telemetry when connection string is configured
         // Connection string will be configured after privacy review
-        var azureMonitorConnectionString = builder.Configuration["AZURE_MONITOR_CONNECTION_STRING"];
+        var azureMonitorConnectionString = builder.Configuration[AzureMonitorConnectionStringEnvVar];
         if (!string.IsNullOrEmpty(azureMonitorConnectionString))
         {
             otelBuilder.WithTracing(tracing =>
