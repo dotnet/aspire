@@ -159,27 +159,11 @@ internal sealed class DockerComposePublishingContext(
                     var (key, (description, defaultValue, source)) = entry;
                     var onlyIfMissing = true;
 
-                    // If the source is a parameter and there's no explicit default value,
-                    // resolve the parameter's default value asynchronously
-                    if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
+                    // Handle parameter resources by resolving their actual values
+                    if (source is ParameterResource parameter)
                     {
-                        var (key, (description, defaultValue, source)) = entry;
-                        var onlyIfMissing = true;
-
-                        // Handle parameter resources by resolving their actual values
-                        if (source is ParameterResource parameter)
-                        {
-                            // For non-secret parameters, get the actual parameter value
-                            defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                        }
-
-                        if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
-                        {
-                            defaultValue = imageName;
-                            onlyIfMissing = false; // Always update the image name if it changes
-                        }
-
-                        envFile.Add(key, defaultValue, description, onlyIfMissing);
+                        // For non-secret parameters, get the actual parameter value
+                        defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                     }
 
                     if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))

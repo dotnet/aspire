@@ -10,7 +10,6 @@ using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Docker;
 
