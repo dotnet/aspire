@@ -19,6 +19,7 @@
 
   <!-- Set the nuget properties when building as a global tool. -->
   <PropertyGroup Condition="'$(IsCliToolProject)' == 'true'">
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>aspire</ToolCommandName>
