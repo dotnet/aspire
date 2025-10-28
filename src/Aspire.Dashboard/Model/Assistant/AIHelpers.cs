@@ -325,16 +325,33 @@ internal static class AIHelpers
         }
     }
 
-    public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    public static bool TryGetResource(IReadOnlyList<OtlpResource> resources, string resourceName, [NotNullWhen(true)] out OtlpResource? resource)
     {
-        if (resources.Count(resources => resources.Name == resourceName) == 1)
+        if (resources.SingleOrDefault(r => r.ResourceName == resourceName) is { } matchedResource)
         {
-            resource = resources.First(resources => resources.Name == resourceName);
+            resource = matchedResource;
             return true;
         }
-        else if (resources.Count(resources => resources.DisplayName == resourceName) == 1)
+        else if (resources.SingleOrDefault(r => r.ResourceKey.ToString() == resourceName) is { } matchedByKey)
         {
-            resource = resources.First(resources => resources.DisplayName == resourceName);
+            resource = matchedByKey;
+            return true;
+        }
+
+        resource = null;
+        return false;
+    }
+
+    public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (resources.SingleOrDefault(r => r.Name == resourceName) is { } matchedResource)
+        {
+            resource = matchedResource;
+            return true;
+        }
+        else if (resources.SingleOrDefault(r => r.DisplayName == resourceName) is { } matchedByDisplayName)
+        {
+            resource = matchedByDisplayName;
             return true;
         }
 

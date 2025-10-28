@@ -265,7 +265,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Host an in-process MCP server so the dashboard can expose MCP tools (resource listing, diagnostics).
         // Register the MCP server directly via the SDK.
 
-        builder.Services.AddAspireMcpTools();
+        builder.Services.AddAspireMcpTools(dashboardOptions);
 
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 

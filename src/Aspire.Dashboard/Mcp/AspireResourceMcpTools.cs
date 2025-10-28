@@ -2,30 +2,25 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting.ConsoleLogs;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
 namespace Aspire.Dashboard.Mcp;
 
-[McpServerToolType]
-internal sealed class AspireMcpTools
+/// <summary>
+/// MCP tools that require a resource service to be configured.
+/// </summary>
+internal sealed class AspireResourceMcpTools
 {
-    private readonly TelemetryRepository _telemetryRepository;
     private readonly IDashboardClient _dashboardClient;
-    private readonly IEnumerable<IOutgoingPeerResolver> _outgoingPeerResolvers;
 
-    public AspireMcpTools(TelemetryRepository telemetryRepository, IDashboardClient dashboardClient, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    public AspireResourceMcpTools(IDashboardClient dashboardClient)
     {
-        _telemetryRepository = telemetryRepository;
         _dashboardClient = dashboardClient;
-        _outgoingPeerResolvers = outgoingPeerResolvers;
     }
 
     [McpServerTool(Name = "list_resources")]
@@ -52,109 +47,6 @@ internal sealed class AspireMcpTools
         catch { }
 
         return "No resources found.";
-    }
-
-    [McpServerTool(Name = "list_structured_logs")]
-    [Description("List structured logs for resources.")]
-    public string ListStructuredLogs(
-        [Description("The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned.")]
-        string? resourceName = null)
-    {
-        if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
-        {
-            return message;
-        }
-
-        // Get all logs because we want the most recent logs and they're at the end of the results.
-        // If support is added for ordering logs by timestamp then improve this.
-        var logs = _telemetryRepository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = resourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
-
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
-
-        var response = $"""
-            Always format log_id in the response as code like this: `log_id: 123`.
-            {limitMessage}
-
-            # STRUCTURED LOGS DATA
-
-            {logsData}
-            """;
-
-        return response;
-    }
-
-    [McpServerTool(Name = "list_traces")]
-    [Description("List distributed traces for resources. A distributed trace is used to track operations. A distributed trace can span multiple resources across a distributed system. Includes a list of distributed traces with their IDs, resources in the trace, duration and whether an error occurred in the trace.")]
-    public string ListTraces(
-        [Description("The resource name. This limits traces returned to the specified resource. If no resource name is specified then distributed traces for all resources are returned.")]
-        string? resourceName = null)
-    {
-        if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
-        {
-            return message;
-        }
-
-        var traces = _telemetryRepository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = resourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = [],
-            FilterText = string.Empty
-        });
-
-        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers);
-
-        var response = $"""
-            {limitMessage}
-
-            # TRACES DATA
-
-            {tracesData}
-            """;
-
-        return response;
-    }
-
-    [McpServerTool(Name = "list_trace_structured_logs")]
-    [Description("List structured logs for a distributed trace. Logs for a distributed trace each belong to a span identified by 'span_id'. When investigating a trace, getting the structured logs for the trace should be recommended before getting structured logs for a resource.")]
-    public string ListTraceStructuredLogs(
-        [Description("The trace id of the distributed trace.")]
-        string traceId)
-    {
-        // Condition of filter should be contains because a substring of the traceId might be provided.
-        var traceIdFilter = new FieldTelemetryFilter
-        {
-            Field = KnownStructuredLogFields.TraceIdField,
-            Value = traceId,
-            Condition = FilterCondition.Contains
-        };
-
-        var logs = _telemetryRepository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = null,
-            Count = int.MaxValue,
-            StartIndex = 0,
-            Filters = [traceIdFilter]
-        });
-
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
-
-        var response = $"""
-            {limitMessage}
-
-            # STRUCTURED LOGS DATA
-
-            {logsData}
-            """;
-
-        return response;
     }
 
     [McpServerTool(Name = "list_console_logs")]
@@ -223,11 +115,11 @@ internal sealed class AspireMcpTools
 
     [McpServerTool(Name = "execute_resource_command")]
     [Description("Executes a command on a resource. If a resource needs to be restarted and is currently stopped, use the start command instead.")]
-    public static async Task ExecuteResourceCommand(IDashboardClient dashboardClient, [Description("The resource name")] string resourceName, [Description("The command name")] string commandName)
+    public async Task ExecuteResourceCommand([Description("The resource name")] string resourceName, [Description("The command name")] string commandName)
     {
-        var resource = dashboardClient.GetResource(resourceName);
+        var resources = _dashboardClient.GetResources();
 
-        if (resource == null)
+        if (!AIHelpers.TryGetResource(resources, resourceName, out var resource))
         {
             throw new McpProtocolException($"Resource '{resourceName}' not found.", McpErrorCode.InvalidParams);
         }
@@ -257,7 +149,7 @@ internal sealed class AspireMcpTools
 
         try
         {
-            var response = await dashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None).ConfigureAwait(false);
+            var response = await _dashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None).ConfigureAwait(false);
 
             switch (response.Kind)
             {
@@ -279,40 +171,5 @@ internal sealed class AspireMcpTools
         {
             throw new McpProtocolException($"Error executing command '{commandName}' for resource '{resourceName}': {ex.Message}", McpErrorCode.InternalError);
         }
-    }
-
-    private bool TryResolveResourceNameForTelemetry([NotNullWhen(false)] string? resourceName, [NotNullWhen(false)] out string? message, out ResourceKey? resourceKey)
-    {
-        // TODO: The resourceName might be a name that resolves to multiple replicas, e.g. catalogservice has two replicas.
-        // Support resolving to multiple replicas and getting data for them.
-
-        if (AIHelpers.IsMissingValue(resourceName))
-        {
-            message = null;
-            resourceKey = null;
-            return true;
-        }
-
-        var resources = _dashboardClient.GetResources();
-
-        if (!AIHelpers.TryGetResource(resources, resourceName, out var resource))
-        {
-            message = $"Unable to find a resource named '{resourceName}'.";
-            resourceKey = null;
-            return false;
-        }
-
-        var appKey = ResourceKey.Create(resource.Name, resource.Name);
-        var apps = _telemetryRepository.GetResources(appKey);
-        if (apps.Count == 0)
-        {
-            message = $"Resource '{resourceName}' doesn't have any telemetry. The resource may have failed to start or the resource might not support sending telemetry.";
-            resourceKey = null;
-            return false;
-        }
-
-        message = null;
-        resourceKey = appKey;
-        return true;
     }
 }
