@@ -147,7 +147,7 @@ public class McpServiceTests
         // Verify that resource tools are NOT available
         Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "list_resources");
         Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "list_console_logs");
-        Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "execute_command");
+        Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "execute_resource_command");
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public class McpServiceTests
         // Verify that resource tools ARE available
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_resources");
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_console_logs");
-        Assert.Contains(tools, t => t!["name"]?.ToString() == "execute_command");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "execute_resource_command");
     }
 
     [Fact]
