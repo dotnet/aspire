@@ -416,12 +416,8 @@ public class AzureKeyVaultTests
             Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
         });
 
-        // Add https endpoint for emulator and simulate port mapping to host network
-        keyVault.WithEndpoint("https", endpoint => {
-            var endpointSnapshot = new ValueSnapshot<AllocatedEndpoint>();
-            endpointSnapshot.SetValue(new AllocatedEndpoint(endpoint, "localhost", 8443, EndpointBindingMode.SingleAddress, null, KnownNetworkIdentifiers.LocalhostNetwork));
-            endpoint.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.LocalhostNetwork, endpointSnapshot);
-        });
+        // Add https endpoint for emulator
+        keyVault.WithEndpoint("https", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 8443));
 
         var connectionString = keyVault.Resource.ConnectionStringExpression;
 
