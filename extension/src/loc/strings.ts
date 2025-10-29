@@ -57,3 +57,8 @@ export const selectDefaultLaunchApphost = vscode.l10n.t('Select the default apph
 export const noAppHostInWorkspace = vscode.l10n.t('No apphost found in the Aspire settings file.');
 export const dashboard = vscode.l10n.t('Dashboard');
 export const codespaces = vscode.l10n.t('Codespaces');
+export const encounteredErrorStartingResource = (error: string) => vscode.l10n.t('Encountered an error starting resource: {0}', error);
+export const invalidOrMissingToken = vscode.l10n.t('Invalid or missing token in Authorization header.');
+export const invalidTokenLength = vscode.l10n.t('Invalid token length in Authorization header.');
+export const authorizationHeaderMustStartWithBearer = vscode.l10n.t('Authorization header must start with \'Bearer \'.');
+export const authorizationAndDcpHeadersRequired = vscode.l10n.t('Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.');

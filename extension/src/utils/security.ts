@@ -22,7 +22,10 @@ export async function createSelfSignedCertAsync(commonName: string = 'localhost'
 
   const cert = pki.createCertificate();
   cert.publicKey = keys.publicKey;
-  cert.serialNumber = (Math.floor(Math.random() * 1e16)).toString();
+  // Generate a positive serial number as a hexadecimal string
+  // X.509 RFC 5280 requires serial numbers to be positive integers up to 20 octets
+  // Prefix with '00' to ensure non-negative
+  cert.serialNumber = '00' + randomBytes(19).toString('hex');
   cert.validity.notBefore = new Date();
   cert.validity.notAfter = new Date();
   cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);

@@ -62,7 +62,8 @@ public static class PythonAppResourceBuilderExtensions
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder);
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
+            .WithDebugging();
 
     /// <summary>
     /// Adds a Python script to the application model.
@@ -79,6 +80,9 @@ public static class PythonAppResourceBuilderExtensions
     /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
+    /// <para>
+    /// Python scripts automatically have debugging support enabled.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Add a FastAPI Python script to the application model:
@@ -93,7 +97,8 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonScript(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder);
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
+            .WithDebugging();
 
     /// <summary>
     /// Adds a Python module to the application model.
@@ -110,6 +115,9 @@ public static class PythonAppResourceBuilderExtensions
     /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the module.
     /// </para>
+    /// <para>
+    /// Python modules automatically have debugging support enabled.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Add a Flask module to the application model:
@@ -124,7 +132,8 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonModule(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder);
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder)
+            .WithDebugging();
 
     /// <summary>
     /// Adds a Python executable to the application model.
@@ -141,6 +150,11 @@ public static class PythonAppResourceBuilderExtensions
     /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the executable.
     /// </para>
+    /// <para>
+    /// Unlike scripts and modules, Python executables do not have debugging support enabled by default.
+    /// Use <see cref="WithDebugging"/> to explicitly enable debugging support if the executable is a Python-based
+    /// tool that can be debugged.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Add a pytest executable to the application model:
@@ -148,7 +162,8 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddPythonExecutable("pytest", "../api", "pytest")
-    ///        .WithArgs("-q");
+    ///        .WithArgs("-q")
+    ///        .WithDebugging();
     ///
     /// builder.Build().Run();
     /// </code>
@@ -193,6 +208,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
+            .WithDebugging()
             .WithArgs(scriptArgs);
     }
 
@@ -235,6 +251,7 @@ public static class PythonAppResourceBuilderExtensions
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath)
+            .WithDebugging()
             .WithArgs(scriptArgs);
     }
 
@@ -254,6 +271,7 @@ public static class PythonAppResourceBuilderExtensions
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
         var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn")
+            .WithDebugging()
             .WithHttpEndpoint(env: "PORT")
             .WithArgs(c =>
             {
@@ -272,6 +290,12 @@ public static class PythonAppResourceBuilderExtensions
 
                 c.Args.Add("--port");
                 c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+
+                // Add hot reload in non-publish mode
+                if (!builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("--reload");
+                }
             });
 
         return resourceBuilder;
@@ -357,53 +381,6 @@ public static class PythonAppResourceBuilderExtensions
 
                 return Task.CompletedTask;
             });
-
-        // VS Code debug support - only applicable for Script and Module types
-        if (entrypointType is EntrypointType.Script or EntrypointType.Module)
-        {
-            var programPath = entrypointType == EntrypointType.Script
-                ? Path.GetFullPath(entrypoint, resource.WorkingDirectory)
-                : null; // For modules, we'll use the module name
-
-            resourceBuilder.WithVSCodeDebugSupport(
-                mode => new PythonLaunchConfiguration
-                {
-                    ProgramPath = programPath,
-                    Module = entrypointType == EntrypointType.Module ? entrypoint : null,
-                    Mode = mode
-                },
-                "ms-python.python",
-                static ctx =>
-                {
-                    // Remove entrypoint-specific arguments that VS Code will handle.
-                    // We need to verify the annotation to ensure we remove the correct args.
-                    if (!ctx.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var annotation))
-                    {
-                        return;
-                    }
-
-                    // For Module type: remove "-m" and module name (2 args)
-                    if (annotation.Type == EntrypointType.Module)
-                    {
-                        if (ctx.Args is [string arg0, string arg1, ..] &&
-                            arg0 == "-m" &&
-                            arg1 == annotation.Entrypoint)
-                        {
-                            ctx.Args.RemoveAt(0); // Remove "-m"
-                            ctx.Args.RemoveAt(0); // Remove module name
-                        }
-                    }
-                    // For Script type: remove script path (1 arg)
-                    else if (annotation.Type == EntrypointType.Script)
-                    {
-                        if (ctx.Args is [string arg0, ..] &&
-                            arg0 == annotation.Entrypoint)
-                        {
-                            ctx.Args.RemoveAt(0); // Remove script path
-                        }
-                    }
-                });
-        }
 
         resourceBuilder.PublishAsDockerFile(c =>
         {
@@ -662,6 +639,120 @@ public static class PythonAppResourceBuilderExtensions
         {
             env.VirtualEnvironment = virtualEnvironment;
         });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables debugging support for the Python application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds the <see cref="PythonExecutableDebuggableAnnotation"/> to the resource, which enables
+    /// debugging support. The debugging configuration is automatically set up based on the
+    /// entrypoint type (Script, Module, or Executable).
+    /// </para>
+    /// <para>
+    /// The debug configuration includes the Python interpreter path from the virtual environment,
+    /// the program or module to debug, and appropriate launch settings.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<PythonAppResource> WithDebugging(
+        this IResourceBuilder<PythonAppResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Add the annotation that marks this resource as debuggable
+        builder.WithAnnotation(new PythonExecutableDebuggableAnnotation());
+
+        // Get the entrypoint annotation to determine how to configure debugging
+        if (!builder.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
+        {
+            throw new InvalidOperationException("Cannot configure debugging: Python entrypoint annotation not found.");
+        }
+
+        var entrypointType = entrypointAnnotation.Type;
+        var entrypoint = entrypointAnnotation.Entrypoint;
+
+        string programPath;
+        string module;
+
+        if (entrypointType == EntrypointType.Script)
+        {
+            programPath = Path.GetFullPath(entrypoint, builder.Resource.WorkingDirectory);
+            module = string.Empty;
+        }
+        else
+        {
+            programPath = builder.Resource.WorkingDirectory;
+            module = entrypoint;
+        }
+
+        builder.WithDebugSupport(
+            mode =>
+            {
+                string interpreterPath;
+                if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation) || annotation.VirtualEnvironment is null)
+                {
+                    interpreterPath = string.Empty;
+                }
+                else
+                {
+                    var venvPath = Path.IsPathRooted(annotation.VirtualEnvironment.VirtualEnvironmentPath)
+                        ? annotation.VirtualEnvironment.VirtualEnvironmentPath
+                        : Path.GetFullPath(annotation.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+                    if (OperatingSystem.IsWindows())
+                    {
+                        interpreterPath = Path.Join(venvPath, "Scripts", "python.exe");
+                    }
+                    else
+                    {
+                        interpreterPath = Path.Join(venvPath, "bin", "python");
+                    }
+                }
+
+                return new PythonLaunchConfiguration
+                {
+                    ProgramPath = programPath,
+                    Module = module,
+                    Mode = mode,
+                    InterpreterPath = interpreterPath
+                };
+            },
+            "python",
+            static ctx =>
+            {
+                // Remove entrypoint-specific arguments that VS Code will handle.
+                // We need to verify the annotation to ensure we remove the correct args.
+                if (!ctx.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var annotation))
+                {
+                    return;
+                }
+
+                // For Module type: remove "-m" and module name (2 args)
+                if (annotation.Type == EntrypointType.Module)
+                {
+                    if (ctx.Args is [string arg0, string arg1, ..] &&
+                        arg0 == "-m" &&
+                        arg1 == annotation.Entrypoint)
+                    {
+                        ctx.Args.RemoveAt(0); // Remove "-m"
+                        ctx.Args.RemoveAt(0); // Remove module name
+                    }
+                }
+                // For Script type: remove script path (1 arg)
+                else if (annotation.Type == EntrypointType.Script)
+                {
+                    if (ctx.Args is [string arg0, ..] &&
+                        arg0 == annotation.Entrypoint)
+                    {
+                        ctx.Args.RemoveAt(0); // Remove script path
+                    }
+                }
+            });
 
         return builder;
     }

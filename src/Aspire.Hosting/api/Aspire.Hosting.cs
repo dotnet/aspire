@@ -845,7 +845,7 @@ namespace Aspire.Hosting
             where T : ApplicationModel.IResource { throw null; }
 
         [System.Diagnostics.CodeAnalysis.Experimental("ASPIREEXTENSION001")]
-        public static ApplicationModel.IResourceBuilder<T> WithVSCodeDebugSupport<T>(this ApplicationModel.IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, System.Action<ApplicationModel.CommandLineArgsCallbackContext>? argsCallback = null)
+        public static ApplicationModel.IResourceBuilder<T> WithDebugSupport<T>(this ApplicationModel.IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, System.Action<ApplicationModel.CommandLineArgsCallbackContext>? argsCallback = null)
             where T : ApplicationModel.IResource { throw null; }
     }
 

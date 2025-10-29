@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 import * as os from 'os';
 import { doesFileExist } from '../../utils/io';
-import { AspireResourceExtendedDebugConfiguration, isProjectLaunchConfiguration } from '../../dcp/types';
+import { AspireResourceExtendedDebugConfiguration, ExecutableLaunchConfiguration, isProjectLaunchConfiguration, ProjectLaunchConfiguration } from '../../dcp/types';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
 import {
     readLaunchSettings,
@@ -184,7 +184,7 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
         resourceType: 'project',
         debugAdapter: 'coreclr',
         extensionId: 'ms-dotnettools.csharp',
-        displayName: 'C#',
+        getDisplayName: (launchConfig: ExecutableLaunchConfiguration) => `C#: ${path.basename((launchConfig as ProjectLaunchConfiguration).project_path)}`,
         getSupportedFileTypes: () => ['.cs', '.csproj'],
         getProjectFile: (launchConfig) => {
             if (isProjectLaunchConfiguration(launchConfig)) {
