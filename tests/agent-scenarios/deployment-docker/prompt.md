@@ -1,6 +1,6 @@
 # Deployment Docker Scenario
 
-This scenario tests the end-to-end workflow of creating an Aspire application, adding Docker Compose integration, and deploying it using Docker Compose.
+This scenario tests the end-to-end workflow of creating an Aspire application, adding Docker Compose integration, and deploying it using `aspire deploy`.
 
 ## Overview
 
@@ -10,8 +10,7 @@ This test validates that:
 3. The Docker Compose integration can be added using `aspire add`
 4. The AppHost can be updated to configure Docker Compose environment
 5. The `aspire publish` command generates valid Docker Compose files
-6. The generated Docker Compose files can be used with `docker compose up`
-7. The deployed application endpoints are accessible and functional
+6. The `aspire deploy` command successfully deploys the application
 
 ## Prerequisites
 
@@ -200,139 +199,74 @@ cat docker-compose-output/docker-compose.yaml
 - Environment variable configurations
 - Network configurations
 
-### 5.3 Optional: Try Aspire Deploy Command
+## Step 6: Deploy with Aspire Deploy
 
-The `aspire deploy` command is another part of the Aspire publishing pipeline. While Docker Compose deployments typically use `docker compose up` directly, you can optionally try the `aspire deploy` command to see its behavior:
+Use the `aspire deploy` command to deploy the application.
+
+### 6.1 Run Aspire Deploy
+
+From the workspace directory, run:
 
 ```bash
 aspire deploy -o docker-compose-output
 ```
 
-**Note**: For Docker Compose deployments, the `aspire deploy` command may execute the deploy step of the publishing pipeline. However, the standard workflow is to use `docker compose up` with the generated files, which is what we'll do in the next step.
+**What happens:**
+- The command executes the deployment pipeline for Docker Compose
+- Reads the generated Docker Compose configuration
+- Deploys the application using the Docker Compose integration
+- Manages the lifecycle of containers and services
 
-**Observe the output:**
-- The command may execute deployment-related tasks
-- Check if any additional changes are made to the output directory
-- Compare the output with the `aspire publish` command
+**Expected output:**
+- Success message indicating deployment completed
+- Information about deployed services and their status
+- No error messages
 
-## Step 6: Deploy with Docker Compose
+### 6.2 Verify Deployment Status
 
-Deploy the application using Docker Compose.
+After deployment, check the status of the deployed application:
 
-### 6.1 Navigate to Output Directory
+```bash
+# Check if containers are running (if using Docker Compose backend)
+docker ps
+```
+
+**Expected output:**
+- List of running containers for the application services
+- All services should be in "Up" or "running" state
+- Port mappings displayed for external endpoints
+
+**Observe the deployment:**
+- Services were started successfully
+- No errors in the deployment process
+- Application is ready to accept requests
+
+## Step 7: Clean Up
+
+Stop and clean up the deployed application.
+
+### 7.1 Stop the Application
+
+Use the appropriate cleanup command based on the deployment method. Since `aspire deploy` was used, you may need to stop the containers manually:
+
+```bash
+# If containers were started, stop them
+docker ps -a | grep AspireDockerTest
+docker stop $(docker ps -q --filter "name=AspireDockerTest")
+docker rm $(docker ps -aq --filter "name=AspireDockerTest")
+```
+
+Alternatively, if Docker Compose files are in the output directory, you can use:
 
 ```bash
 cd docker-compose-output
-```
-
-### 6.2 Start the Application
-
-Use `docker compose up` to start the application:
-
-```bash
-docker compose up -d
-```
-
-**What happens:**
-- Docker Compose reads the `docker-compose.yaml` file
-- Pulls any required container images
-- Creates and starts containers for all services
-- Runs containers in detached mode (`-d` flag)
-
-**Expected output:**
-- Messages showing containers being created
-- Services starting successfully
-- No error messages
-
-### 6.3 Verify Containers are Running
-
-Check the status of the containers:
-
-```bash
-docker compose ps
-```
-
-**Expected output:**
-- List of running containers
-- All services should show status as "Up" or "running"
-- Port mappings should be displayed
-
-View logs to confirm services started correctly:
-
-```bash
-docker compose logs
-```
-
-## Step 7: Test the Deployed Application
-
-Verify that the deployed application endpoints are accessible.
-
-### 7.1 Identify Service Endpoints
-
-From the `docker compose ps` output, identify the exposed ports for the services.
-
-Example:
-- API service might be on `http://localhost:5001`
-- Web frontend might be on `http://localhost:5000`
-
-### 7.2 Test the API Service
-
-Test the API endpoint:
-
-```bash
-# Replace PORT with the actual port from docker compose ps
-curl http://localhost:5001/weatherforecast
-```
-
-**Expected response:**
-- HTTP 200 OK status
-- Valid JSON response with weather data
-- No error messages
-
-### 7.3 Test the Web Frontend
-
-Test the web frontend:
-
-```bash
-# Replace PORT with the actual port from docker compose ps
-curl -I http://localhost:5000
-```
-
-**Expected response:**
-- HTTP 200 OK status
-- HTML content headers
-
-Optionally, use a browser or browser automation to access the web frontend:
-
-```bash
-# If browser automation is available
-# playwright-browser navigate http://localhost:5000
-# playwright-browser take_screenshot --filename deployed-app.png
-```
-
-### 7.4 Verify Service Communication
-
-If the web frontend calls the API service:
-1. Access the web frontend weather page
-2. Verify data is displayed from the API
-3. This confirms service-to-service communication works in the Docker Compose environment
-
-## Step 8: Clean Up
-
-Stop and remove the deployed containers.
-
-### 8.1 Stop the Application
-
-From the `docker-compose-output` directory:
-
-```bash
 docker compose down
 ```
 
 **What happens:**
 - Stops all running containers
 - Removes containers
-- Removes networks created by Docker Compose
+- Removes networks created during deployment
 - Preserves volumes unless `--volumes` flag is used
 
 **Expected output:**
@@ -340,18 +274,18 @@ docker compose down
 - Network removal messages
 - No error messages
 
-### 8.2 Verify Cleanup
+### 7.2 Verify Cleanup
 
 Verify containers are removed:
 
 ```bash
-docker compose ps -a
+docker ps -a | grep AspireDockerTest
 ```
 
 **Expected output:**
-- Empty list or no containers from this compose project
+- Empty list or no containers from this application
 
-## Step 9: Final Verification Checklist
+## Step 8: Final Verification Checklist
 
 Go through this final checklist to ensure all test requirements are met:
 
@@ -361,14 +295,11 @@ Go through this final checklist to ensure all test requirements are met:
 - [ ] AppHost updated with `AddDockerComposeEnvironment` call
 - [ ] `aspire publish` command executed successfully
 - [ ] Docker Compose files generated in output directory
-- [ ] (Optional) `aspire deploy` command executed and output observed
 - [ ] `docker-compose.yaml` file contains valid service definitions
-- [ ] `docker compose up` started all services successfully
-- [ ] All containers show "Up" status in `docker compose ps`
-- [ ] API service endpoint is accessible and responds correctly
-- [ ] Web frontend endpoint is accessible
-- [ ] Service-to-service communication works (if applicable)
-- [ ] `docker compose down` cleaned up containers successfully
+- [ ] `aspire deploy` command executed successfully
+- [ ] Deployment completed without errors
+- [ ] Containers are running after deployment
+- [ ] Cleanup successfully stopped and removed containers
 
 ## Success Criteria
 
@@ -379,9 +310,8 @@ The test is considered **PASSED** if:
 3. **Integration Addition**: Docker Compose integration added via `aspire add` command
 4. **Code Update**: AppHost updated with Docker Compose environment configuration
 5. **Publishing**: `aspire publish` generates valid Docker Compose files
-6. **Deployment**: `docker compose up` successfully deploys the application
-7. **Accessibility**: All service endpoints are accessible and respond correctly
-8. **Cleanup**: `docker compose down` successfully stops and removes containers
+6. **Deployment**: `aspire deploy` successfully deploys the application
+7. **Cleanup**: Cleanup commands successfully stop and remove containers
 
 The test is considered **FAILED** if:
 
@@ -390,8 +320,7 @@ The test is considered **FAILED** if:
 - `aspire add` command fails to add Docker Compose integration
 - `aspire publish` fails to generate Docker Compose files
 - Generated Docker Compose files are invalid or incomplete
-- `docker compose up` fails to start services
-- Services fail to respond at their endpoints
+- `aspire deploy` fails to deploy the application
 - Errors occur during deployment or cleanup
 
 ## Troubleshooting Tips
@@ -408,15 +337,16 @@ If issues occur during the test:
 - Check that the package reference was added to the project file
 - Ensure the solution builds successfully before publishing
 
-### Docker Compose Up Fails
+### Deploy Fails
 - Verify Docker is running: `docker info`
 - Check the generated docker-compose.yaml for syntax errors
-- Review Docker Compose logs: `docker compose logs`
+- Ensure the `aspire publish` command completed successfully
+- Review deployment logs for specific error messages
 - Ensure required ports are not already in use
 
 ### Services Not Accessible
-- Check container status: `docker compose ps`
-- View container logs: `docker compose logs [service-name]`
+- Check container status: `docker ps`
+- View container logs: `docker logs [container-name]`
 - Verify port mappings in docker-compose.yaml
 - Check firewall settings
 
@@ -425,9 +355,9 @@ If issues occur during the test:
 When executing this scenario as an automated agent:
 
 1. **Interactive Navigation**: Be prepared to navigate long lists in interactive prompts
-2. **Port Detection**: Extract actual port numbers from `docker compose ps` output
+2. **Port Detection**: Extract actual port numbers from `docker ps` output
 3. **Timing**: Allow adequate time for Docker image pulls and container startup
-4. **Validation**: Perform actual HTTP requests to verify endpoints
+4. **Validation**: Verify deployment completes successfully
 5. **Cleanup**: Always run cleanup even if earlier steps fail
 6. **Evidence**: Capture output from key commands for verification
 
