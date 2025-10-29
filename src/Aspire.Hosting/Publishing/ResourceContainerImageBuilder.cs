@@ -267,7 +267,7 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (options.TargetPlatform is not null)
             {
-                arguments += $" /p:RuntimeIdentifiers=\'\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"\'";
+                arguments += $" /p:RuntimeIdentifiers=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
             }
         }
 
