@@ -857,8 +857,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             foreach (var cs in containerServices)
             {
                 var primaryService = _appResources.OfType<ServiceWithModelResource>().Select(sar => sar.Service)
-                    .Where(svc => svc.Metadata.Name.Equals(cs.PrimaryServiceName)).ToImmutableArray();
-                cs.Service!.ApplyAddressInfoFrom(primaryService[0]);
+                    .Where(svc => svc.Metadata.Name.Equals(cs.PrimaryServiceName)).First();
+                cs.Service!.ApplyAddressInfoFrom(primaryService);
                 cs.Service!.Status!.EffectiveAddress = ContainerHostName;
             }
         }
