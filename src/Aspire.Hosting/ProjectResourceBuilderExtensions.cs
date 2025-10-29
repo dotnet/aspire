@@ -286,7 +286,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -367,7 +367,7 @@ public static class ProjectResourceBuilderExtensions
 
         var resource = builder.AddResource(app)
                               .WithAnnotation(projectMetadata)
-                              .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
+                              .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
                               .WithProjectDefaults(options);
 
         resource.OnBeforeResourceStarted(async (r, e, ct) =>

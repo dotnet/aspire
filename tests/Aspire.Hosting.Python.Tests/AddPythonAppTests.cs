@@ -1070,7 +1070,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithVSCodeDebugSupport_RemovesScriptArgumentForScriptEntrypoint()
+    public async Task WithDebugSupport_RemovesScriptArgumentForScriptEntrypoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
@@ -1102,7 +1102,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithVSCodeDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
+    public async Task WithDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
@@ -1133,7 +1133,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithVSCodeDebugSupport_ExecutableTypeDoesNotModifyArgs()
+    public async Task WithDebugSupport_ExecutableTypeDoesNotModifyArgs()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();

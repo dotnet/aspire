@@ -690,7 +690,7 @@ public static class PythonAppResourceBuilderExtensions
             module = entrypoint;
         }
 
-        builder.WithVSCodeDebugSupport(
+        builder.WithDebugSupport(
             mode =>
             {
                 string interpreterPath;
