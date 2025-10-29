@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
-        <target state="needs-review-translation">.NET Aspire</target>
+        <target state="new">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
-        <target state="needs-review-translation">Repository .NET Aspire</target>
+        <target state="new">Aspire repo</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
