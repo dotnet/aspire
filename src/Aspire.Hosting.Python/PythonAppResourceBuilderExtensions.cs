@@ -307,6 +307,26 @@ public static class PythonAppResourceBuilderExtensions
             .WithArgs(c =>
             {
                 c.Args.Add(app);
+
+                c.Args.Add("--host");
+                var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("0.0.0.0");
+                }
+                else
+                {
+                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
+                }
+
+                c.Args.Add("--port");
+                c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+
+                // Add hot reload in non-publish mode
+                if (!builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("--reload");
+                }
             });
 
         return resourceBuilder;
