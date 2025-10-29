@@ -747,7 +747,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private void LoadDeploymentState(string appHostSha)
     {
         // Only load if ClearCache is false
-        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Pipeline:ClearCache");
         if (clearCache)
         {
             return;
