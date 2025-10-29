@@ -10,6 +10,8 @@ using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
+using System.Text.Json;
+using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -1075,8 +1077,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
 
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["python"]
+        };
+
         // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
-        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
 
         var appDirectory = Path.Combine(tempDir.Path, "myapp");
         Directory.CreateDirectory(appDirectory);
@@ -1102,13 +1111,59 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
+    public async Task WithDebugSupport_DoesntRemoveScriptArgumentForScriptEntrypoint_WhenResourceTypeNotSupported()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
 
         // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
-        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"]
+        };
+
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var scriptPath = "main.py";
+
+        var pythonApp = builder.AddPythonScript("myapp", appDirectory, scriptPath)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("arg1", "arg2");
+
+        var app = builder.Build();
+
+        var resource = pythonApp.Resource;
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, app.Services);
+
+        // Verify the script path was removed but other args remain
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("main.py", arg),
+            arg => Assert.Equal("arg1", arg),
+            arg => Assert.Equal("arg2", arg));
+    }
+
+    [Fact]
+    public async Task WithDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["python"]
+        };
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
 
         var appDirectory = Path.Combine(tempDir.Path, "myapp");
         Directory.CreateDirectory(appDirectory);
@@ -1129,6 +1184,45 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify "-m" and module name were removed but other args remain
         Assert.Collection(commandArguments,
+            arg => Assert.Equal("run", arg));
+    }
+
+    [Fact]
+    public async Task WithDebugSupport_DoesntRemoveModuleArgumentsForModuleEntrypoint_WhenResourceTypeNotSupported()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"]
+        };
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var moduleName = "flask";
+
+        var pythonApp = builder.AddPythonModule("myapp", appDirectory, moduleName)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("run");
+
+        var app = builder.Build();
+
+        var resource = pythonApp.Resource;
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, app.Services);
+
+        // Verify "-m" and module name were removed but other args remain
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("-m", arg),
+            arg => Assert.Equal("flask", arg),
             arg => Assert.Equal("run", arg));
     }
 
