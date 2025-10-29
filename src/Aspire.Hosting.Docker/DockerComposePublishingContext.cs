@@ -149,11 +149,11 @@ internal sealed class DockerComposePublishingContext(
             await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
         }
 
-        var task = await reportingStep.CreateTaskAsync(
+        var writeTask = await reportingStep.CreateTaskAsync(
             "Writing the Docker Compose file to the output path.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        await using (task.ConfigureAwait(false))
+        await using (writeTask.ConfigureAwait(false))
         {
             // Call the environment's ConfigureComposeFile method to allow for custom modifications
             environment.ConfigureComposeFile?.Invoke(composeFile);
@@ -194,7 +194,7 @@ internal sealed class DockerComposePublishingContext(
                 envFile.Save(envFilePath);
             }
 
-            await task.SucceedAsync(
+            await writeTask.SucceedAsync(
                 $"Docker Compose file written successfully to {outputFile}.",
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         }
