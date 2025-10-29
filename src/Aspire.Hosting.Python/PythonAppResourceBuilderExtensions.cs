@@ -294,7 +294,7 @@ public static class PythonAppResourceBuilderExtensions
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
         var resourceBuilder =
-            AddPythonAppCore<UvicornAppResource>(
+            AddPythonAppCore(
                 builder,
                 name,
                 appDirectory,
