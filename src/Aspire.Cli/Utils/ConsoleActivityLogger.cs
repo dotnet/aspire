@@ -178,7 +178,7 @@ internal sealed class ConsoleActivityLogger
         }
     }
 
-    public void WriteSummary(string? dashboardUrl = null)
+    public void WriteSummary()
     {
         lock (_lock)
         {
@@ -252,19 +252,6 @@ internal sealed class ConsoleActivityLogger
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
-            }
-            if (!string.IsNullOrEmpty(dashboardUrl))
-            {
-                // Render dashboard URL as clickable link in interactive terminals, plain in non-interactive
-                var url = dashboardUrl;
-                if (!_hostEnvironment.SupportsInteractiveOutput || !_enableColor)
-                {
-                    AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
-                }
             }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary

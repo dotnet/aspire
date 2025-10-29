@@ -24,7 +24,6 @@ public interface IPipelineActivityReporter
     /// </summary>
     /// <param name="completionMessage">The completion message of the publishing process.</param>
     /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
-    /// <param name="isDeploy">Whether this is a deployment operation rather than a publishing operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default);
+    Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default);
 }

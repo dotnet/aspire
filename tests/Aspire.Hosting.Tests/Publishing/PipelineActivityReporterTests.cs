@@ -287,7 +287,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, isDeploy: false, CancellationToken.None);
+        await reporter.CompletePublishAsync(null, completionState, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -308,7 +308,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: false, CancellationToken.None);
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -348,7 +348,7 @@ public class PublishingActivityReporterTests
         while (activityReader.TryRead(out _)) { }
 
         // Act - Complete publish without specifying state (should aggregate)
-        await reporter.CompletePublishAsync(isDeploy: false, cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(cancellationToken: CancellationToken.None);
 
         // Assert
         Assert.True(activityReader.TryRead(out var activity));
@@ -753,7 +753,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, isDeploy: true, CancellationToken.None);
+        await reporter.CompletePublishAsync(null, completionState, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -774,7 +774,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some deployment error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: true, CancellationToken.None);
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;

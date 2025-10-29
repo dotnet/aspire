@@ -63,6 +63,12 @@ internal sealed class PublishCommand : PipelineCommandBase
             baseArgs.AddRange(["--log-level", logLevel!]);
         }
 
+        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        if (includeExceptionDetails)
+        {
+            baseArgs.AddRange(["--include-exception-details", "true"]);
+        }
+
         var environment = parseResult.GetValue(_environmentOption);
         if (!string.IsNullOrEmpty(environment))
         {
@@ -76,5 +82,5 @@ internal sealed class PublishCommand : PipelineCommandBase
 
     protected override string GetCanceledMessage() => InteractionServiceStrings.OperationCancelled;
 
-    protected override string GetProgressMessage(ParseResult parseResult) => "Executing step \"publish\"";
+    protected override string GetProgressMessage(ParseResult parseResult) => "Executing step publish";
 }

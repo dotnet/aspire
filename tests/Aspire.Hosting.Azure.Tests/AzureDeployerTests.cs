@@ -1183,7 +1183,7 @@ public class AzureDeployerTests
         public List<(string TaskStatusText, string StatusText)> UpdatedTasks { get; } = [];
         public List<(string StepTitle, LogLevel LogLevel, string Message)> LoggedMessages { get; } = [];
 
-        public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
+        public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
         {
             CompletePublishCalled = true;
             CompletionMessage = completionMessage;

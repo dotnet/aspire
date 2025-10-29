@@ -52,6 +52,12 @@ internal sealed class DoCommand : PipelineCommandBase
             baseArgs.AddRange(["--log-level", logLevel!]);
         }
 
+        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        if (includeExceptionDetails)
+        {
+            baseArgs.AddRange(["--include-exception-details", "true"]);
+        }
+
         var environment = parseResult.GetValue(_environmentOption);
         if (!string.IsNullOrEmpty(environment))
         {
@@ -68,6 +74,6 @@ internal sealed class DoCommand : PipelineCommandBase
     protected override string GetProgressMessage(ParseResult parseResult)
     {
         var step = parseResult.GetValue(_stepArgument);
-        return $"Executing step \"{step}\"";
+        return $"Executing step {step}";
     }
 }
