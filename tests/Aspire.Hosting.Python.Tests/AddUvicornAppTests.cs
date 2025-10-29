@@ -11,6 +11,21 @@ namespace Aspire.Hosting.Python.Tests;
 public class AddUvicornAppTests
 {
     [Fact]
+    public void AddUvicornApp_CreatesUvicornAppResource()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var appDirectory = Path.Combine(Path.GetTempPath(), "test-app");
+
+        // Act
+        var uvicornApp = builder.AddUvicornApp("uvicorn-app", appDirectory, "main:app");
+
+        // Assert
+        Assert.IsType<UvicornAppResource>(uvicornApp.Resource);
+        Assert.Equal("uvicorn-app", uvicornApp.Resource.Name);
+    }
+
+    [Fact]
     public async Task WithUvEnvironment_GeneratesDockerfileInPublishMode()
     {
         using var sourceDir = new TempDirectory();
