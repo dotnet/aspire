@@ -44,6 +44,7 @@ public class AspireResourceMcpToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("# RESOURCE DATA", result);
+        Assert.Contains("app1", result);
     }
 
     [Fact]
@@ -61,6 +62,8 @@ public class AspireResourceMcpToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("# RESOURCE DATA", result);
+        Assert.Contains("app1", result);
+        Assert.Contains("app2", result);
     }
 
     [Fact]
@@ -152,8 +155,13 @@ public class AspireResourceMcpToolsTests
 
     private static AspireResourceMcpTools CreateTools(IDashboardClient dashboardClient)
     {
+        var options = new DashboardOptions();
+        options.Frontend.EndpointUrls = "https://localhost:1234";
+        options.Frontend.PublicUrl = "https://localhost:8080";
+        Assert.True(options.Frontend.TryParseOptions(out _));
+
         return new AspireResourceMcpTools(
             dashboardClient,
-            new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
+            new TestOptionsMonitor<DashboardOptions>(options));
     }
 }
