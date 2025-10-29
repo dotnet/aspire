@@ -4,8 +4,8 @@
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -196,20 +196,30 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         {
             try
             {
-                var processSpec = new ProcessExecutionSpec(
-                    FileName: "docker",
-                    Arguments: $"compose -f \"{dockerComposeFilePath}\" up -d --remove-orphans",
-                    WorkingDirectory: outputPath);
-
-                var result = await ExecuteProcessAsync(processSpec, context.CancellationToken).ConfigureAwait(false);
-
-                if (result.ExitCode != 0)
+                var spec = new ProcessSpec("docker")
                 {
-                    await deployTask.FailAsync($"docker compose up failed with exit code {result.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                }
-                else
+                    Arguments = $"compose -f \"{dockerComposeFilePath}\" up -d --remove-orphans",
+                    WorkingDirectory = outputPath,
+                    ThrowOnNonZeroReturnCode = false,
+                    InheritEnv = true
+                };
+
+                var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+                await using (processDisposable)
                 {
-                    await deployTask.CompleteAsync($"Docker Compose deployment complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                    var processResult = await pendingProcessResult
+                        .WaitAsync(context.CancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (processResult.ExitCode != 0)
+                    {
+                        await deployTask.FailAsync($"docker compose up failed with exit code {processResult.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await deployTask.CompleteAsync($"Docker Compose deployment complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception ex)
@@ -235,20 +245,30 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         {
             try
             {
-                var processSpec = new ProcessExecutionSpec(
-                    FileName: "docker",
-                    Arguments: $"compose -f \"{dockerComposeFilePath}\" down",
-                    WorkingDirectory: outputPath);
-
-                var result = await ExecuteProcessAsync(processSpec, context.CancellationToken).ConfigureAwait(false);
-
-                if (result.ExitCode != 0)
+                var spec = new ProcessSpec("docker")
                 {
-                    await deployTask.FailAsync($"docker compose down failed with exit code {result.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                }
-                else
+                    Arguments = $"compose -f \"{dockerComposeFilePath}\" down",
+                    WorkingDirectory = outputPath,
+                    ThrowOnNonZeroReturnCode = false,
+                    InheritEnv = true
+                };
+
+                var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+                await using (processDisposable)
                 {
-                    await deployTask.CompleteAsync($"Docker Compose shutdown complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                    var processResult = await pendingProcessResult
+                        .WaitAsync(context.CancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (processResult.ExitCode != 0)
+                    {
+                        await deployTask.FailAsync($"docker compose down failed with exit code {processResult.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await deployTask.CompleteAsync($"Docker Compose shutdown complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception ex)
@@ -264,36 +284,5 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         CapturedEnvironmentVariables[name] = (description, defaultValue, source);
 
         return $"${{{name}}}";
-    }
-
-    private sealed record ProcessExecutionSpec(
-        string FileName,
-        string? Arguments = null,
-        string? WorkingDirectory = null,
-        bool RedirectOutput = true,
-        bool RedirectError = true);
-
-    private sealed record ProcessResult(int ExitCode);
-
-    private static async Task<ProcessResult> ExecuteProcessAsync(ProcessExecutionSpec spec, CancellationToken cancellationToken)
-    {
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = spec.FileName,
-                Arguments = spec.Arguments ?? string.Empty,
-                WorkingDirectory = spec.WorkingDirectory ?? string.Empty,
-                RedirectStandardOutput = spec.RedirectOutput,
-                RedirectStandardError = spec.RedirectError,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        process.Start();
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-        return new ProcessResult(process.ExitCode);
     }
 }
