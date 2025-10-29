@@ -16,18 +16,37 @@ namespace Microsoft.Extensions.SecretManager.Tools.Internal;
 /// </summary>
 internal sealed class SecretsStore
 {
+    // Static lock dictionary to synchronize access per userSecretsId
+    private static readonly Dictionary<string, SemaphoreSlim> s_locks = new();
+    private static readonly object s_locksLock = new();
+
     private readonly string _secretsFilePath;
     private readonly Dictionary<string, string?> _secrets;
+    private readonly string _userSecretsId;
 
     public SecretsStore(string userSecretsId)
     {
         ArgumentNullException.ThrowIfNull(userSecretsId);
 
+        _userSecretsId = userSecretsId;
         _secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
 
         EnsureUserSecretsDirectory();
 
         _secrets = Load(_secretsFilePath);
+    }
+
+    private static SemaphoreSlim GetLock(string userSecretsId)
+    {
+        lock (s_locksLock)
+        {
+            if (!s_locks.TryGetValue(userSecretsId, out var semaphore))
+            {
+                semaphore = new SemaphoreSlim(1, 1);
+                s_locks[userSecretsId] = semaphore;
+            }
+            return semaphore;
+        }
     }
 
     public string? this[string key] => _secrets[key];
@@ -49,39 +68,50 @@ internal sealed class SecretsStore
 
     public void Save()
     {
-        EnsureUserSecretsDirectory();
-
-        var contents = new JsonObject();
-        if (_secrets is not null)
+        var semaphore = GetLock(_userSecretsId);
+        semaphore.Wait();
+        try
         {
-            foreach (var secret in _secrets.AsEnumerable())
+            // Reload from disk to merge with any concurrent changes
+            var currentSecrets = Load(_secretsFilePath);
+            
+            // Merge our changes with what's on disk
+            foreach (var kvp in _secrets)
+            {
+                currentSecrets[kvp.Key] = kvp.Value;
+            }
+
+            EnsureUserSecretsDirectory();
+
+            var contents = new JsonObject();
+            foreach (var secret in currentSecrets)
             {
                 contents[secret.Key] = secret.Value;
             }
+
+            // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
+            if (!OperatingSystem.IsWindows())
+            {
+                var tempFilename = Path.GetTempFileName();
+                File.Move(tempFilename, _secretsFilePath, overwrite: true);
+            }
+
+            var json = contents.ToJsonString(new()
+            {
+                WriteIndented = true
+            });
+
+            File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
         }
-
-        // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
-        if (!OperatingSystem.IsWindows())
+        finally
         {
-            var tempFilename = Path.GetTempFileName();
-            File.Move(tempFilename, _secretsFilePath, overwrite: true);
+            semaphore.Release();
         }
-
-        var json = contents.ToJsonString(new()
-        {
-            WriteIndented = true
-        });
-
-        File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
     }
 
     private void EnsureUserSecretsDirectory()
     {
-        var directoryName = Path.GetDirectoryName(_secretsFilePath);
-        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
-        {
-            Directory.CreateDirectory(directoryName);
-        }
+        EnsureUserSecretsDirectory(_secretsFilePath);
     }
 
     private static Dictionary<string, string?> Load(string secretsFilePath)
@@ -130,14 +160,55 @@ internal sealed class SecretsStore
             // Save the value to the secret store
             try
             {
-                var secretsStore = new SecretsStore(userSecretsId);
-                secretsStore.Set(name, value);
-                secretsStore.Save();
-                return true;
+                var semaphore = GetLock(userSecretsId);
+                semaphore.Wait();
+                try
+                {
+                    // Load, set, and save in one atomic operation to ensure thread safety
+                    var secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+                    EnsureUserSecretsDirectory(secretsFilePath);
+                    
+                    var secrets = Load(secretsFilePath);
+                    secrets[name] = value;
+
+                    var contents = new JsonObject();
+                    foreach (var secret in secrets)
+                    {
+                        contents[secret.Key] = secret.Value;
+                    }
+
+                    // Create a temp file with the correct Unix file mode before moving it to the expected _filePath.
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        var tempFilename = Path.GetTempFileName();
+                        File.Move(tempFilename, secretsFilePath, overwrite: true);
+                    }
+
+                    var json = contents.ToJsonString(new()
+                    {
+                        WriteIndented = true
+                    });
+
+                    File.WriteAllText(secretsFilePath, json, Encoding.UTF8);
+                    return true;
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
             }
             catch (Exception) { } // Ignore user secret store errors
         }
 
         return false;
+    }
+
+    private static void EnsureUserSecretsDirectory(string secretsFilePath)
+    {
+        var directoryName = Path.GetDirectoryName(secretsFilePath);
+        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
+        {
+            Directory.CreateDirectory(directoryName);
+        }
     }
 }

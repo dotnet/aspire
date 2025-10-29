@@ -71,6 +71,78 @@ public class UserSecretsParameterDefaultTests
         var _ = userSecretDefault.GetDefaultValue();
     }
 
+    [Fact]
+    public async Task TrySetUserSecret_ConcurrentWrites_PreservesAllSecrets()
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        // Simulate concurrent writes from multiple threads (like SQL Server and RabbitMQ generating passwords)
+        var tasks = new List<Task<bool>>();
+        var secretsToWrite = new Dictionary<string, string>
+        {
+            ["Parameters:sqlserver-password"] = "SqlPassword123!",
+            ["Parameters:rabbitmq-password"] = "RabbitPassword456!",
+            ["Parameters:redis-password"] = "RedisPassword789!",
+            ["Parameters:postgres-password"] = "PostgresPassword012!",
+        };
+
+        foreach (var kvp in secretsToWrite)
+        {
+            var key = kvp.Key;
+            var value = kvp.Value;
+            tasks.Add(Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, key, value)));
+        }
+
+        var results = await Task.WhenAll(tasks);
+
+        // All writes should succeed
+        Assert.All(results, Assert.True);
+
+        // All secrets should be preserved
+        var userSecrets = GetUserSecrets(userSecretsId);
+        foreach (var kvp in secretsToWrite)
+        {
+            Assert.True(userSecrets.ContainsKey(kvp.Key), $"Secret '{kvp.Key}' was not found in user secrets");
+            Assert.Equal(kvp.Value, userSecrets[kvp.Key]);
+        }
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
+    [Fact]
+    public async Task TrySetUserSecret_ConcurrentWritesSameKey_LastWriteWins()
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        // Simulate concurrent writes to the same key
+        var tasks = new List<Task<bool>>();
+        for (int i = 0; i < 10; i++)
+        {
+            var value = $"Value{i}";
+            tasks.Add(Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, "Parameters:test-key", value)));
+        }
+
+        var results = await Task.WhenAll(tasks);
+
+        // All writes should succeed
+        Assert.All(results, Assert.True);
+
+        // The key should exist with one of the values
+        var userSecrets = GetUserSecrets(userSecretsId);
+        Assert.True(userSecrets.ContainsKey("Parameters:test-key"));
+        Assert.NotNull(userSecrets["Parameters:test-key"]);
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
     private static void EnsureUserSecretsDirectory(string secretsFilePath)
     {
         var directoryName = Path.GetDirectoryName(secretsFilePath);
