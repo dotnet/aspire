@@ -15,7 +15,6 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Pipelines;
@@ -550,7 +549,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                         try
                         {
-                            PipelineLoggerProvider.CurrentLogger = stepContext.Logger;
+                            PipelineLoggerProvider.CurrentStep = publishingStep;
 
                             await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
                         }
@@ -564,7 +563,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         }
                         finally
                         {
-                            PipelineLoggerProvider.CurrentLogger = NullLogger.Instance;
+                            PipelineLoggerProvider.CurrentStep = null;
                         }
                     }
 

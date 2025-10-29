@@ -456,9 +456,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(Pipeline);
 
         // Configure pipeline logging options
-        _innerBuilder.Services.Configure<PipelineLoggingOptions>(o =>
+        _innerBuilder.Services.Configure<PipelineLoggingOptions>(options =>
         {
-            o.MinimumLogLevel = _innerBuilder.Configuration["Pipeline:LogLevel"]?.ToLowerInvariant() switch
+            var config = _innerBuilder.Configuration;
+
+            options.MinimumLogLevel = config["Pipeline:LogLevel"]?.ToLowerInvariant() switch
             {
                 "trace" => LogLevel.Trace,
                 "debug" => LogLevel.Debug,
@@ -468,6 +470,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 "crit" or "critical" => LogLevel.Critical,
                 _ => LogLevel.Information
             };
+
+            options.IncludeExceptionDetails = config.GetBool("Pipeline:IncludeExceptionDetails") ?? false;
         });
 
         _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
@@ -567,17 +571,26 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            // Legacy mappings for backward compatibility
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
+
+            // Pipeline options (valid for aspire do based commands)
+            { "--step", "Pipeline:Step" },
             { "--output-path", "Pipeline:OutputPath" },
             { "--log-level", "Pipeline:LogLevel" },
+            { "--include-exception-details", "Pipeline:IncludeExceptionDetails" },
+
+            // TODO: Rename this to something related to deployment state
             { "--clear-cache", "Pipeline:ClearCache" },
-            { "--step", "Pipeline:Step" },
+
+            // DCP Publisher options, we should only process these in run mode
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
             { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
+
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
 
         // Configure PipelineOptions from the Pipeline section

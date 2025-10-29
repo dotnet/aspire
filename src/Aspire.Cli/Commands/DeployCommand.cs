@@ -15,7 +15,6 @@ namespace Aspire.Cli.Commands;
 internal sealed class DeployCommand : PipelineCommandBase
 {
     private readonly Option<bool> _clearCacheOption;
-    private readonly Option<string?> _stepOption;
 
     public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
@@ -25,12 +24,6 @@ internal sealed class DeployCommand : PipelineCommandBase
             Description = "Clear the deployment cache associated with the current environment and do not save deployment state"
         };
         Options.Add(_clearCacheOption);
-
-        _stepOption = new Option<string?>("--step")
-        {
-            Description = "Run a specific deployment step and its dependencies"
-        };
-        Options.Add(_stepOption);
     }
 
     protected override string OperationCompletedPrefix => DeployCommandStrings.OperationCompletedPrefix;
@@ -60,21 +53,16 @@ internal sealed class DeployCommand : PipelineCommandBase
             baseArgs.AddRange(["--log-level", logLevel!]);
         }
 
+        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        if (includeExceptionDetails)
+        {
+            baseArgs.Add("--include-exception-details");
+        }
+
         var environment = parseResult.GetValue(_environmentOption);
         if (!string.IsNullOrEmpty(environment))
         {
             baseArgs.AddRange(["--environment", environment!]);
-        }
-
-        var step = parseResult.GetValue(_stepOption);
-        if (step != null)
-        {
-            baseArgs.AddRange(["--step", step]);
-        }
-        else
-        {
-            // Default to the "deploy" step
-            baseArgs.AddRange(["--step", "deploy"]);
         }
 
         baseArgs.AddRange(unmatchedTokens);
@@ -86,7 +74,6 @@ internal sealed class DeployCommand : PipelineCommandBase
 
     protected override string GetProgressMessage(ParseResult parseResult)
     {
-        var step = parseResult.GetValue(_stepOption);
-        return $"Executing step \"{step ?? "deploy"}\"";
+        return "Executing step deploy";
     }
 }

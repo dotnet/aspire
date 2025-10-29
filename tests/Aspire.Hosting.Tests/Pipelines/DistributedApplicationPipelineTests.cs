@@ -1132,7 +1132,7 @@ public class DistributedApplicationPipelineTests
             step1Logger = loggerFactory.CreateLogger("Step1Category");
 
             // Verify this step has its own contextual logger
-            Assert.Same(context.Logger, PipelineLoggerProvider.CurrentLogger);
+            Assert.Same(context.ReportingStep, PipelineLoggerProvider.CurrentStep);
 
             step1Logger.LogInformation("Message from step 1");
             await Task.CompletedTask;
@@ -1144,7 +1144,7 @@ public class DistributedApplicationPipelineTests
             step2Logger = loggerFactory.CreateLogger("Step2Category");
 
             // Verify this step has its own contextual logger (different from step1)
-            Assert.Same(context.Logger, PipelineLoggerProvider.CurrentLogger);
+            Assert.Same(context.ReportingStep, PipelineLoggerProvider.CurrentStep);
 
             step2Logger.LogInformation("Message from step 2");
             return Task.CompletedTask;
@@ -1220,8 +1220,8 @@ public class DistributedApplicationPipelineTests
                 Assert.Equal(step2Activity.First().Data.Id, logActivity.Data.StepId);
             });
 
-        // After execution, current logger should be NullLogger
-        Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
+        // After execution, current step should be null
+        Assert.Null(PipelineLoggerProvider.CurrentStep);
     }
 
     [Fact]
@@ -1282,7 +1282,7 @@ public class DistributedApplicationPipelineTests
         Assert.Equal(failingStepActivity.First().Data.Id, aboutToFailLogActivity.Data.StepId);
 
         // Verify logger is cleaned up even after failure
-        Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
+        Assert.Null(PipelineLoggerProvider.CurrentStep);
     }
 
     [Fact]
@@ -1297,17 +1297,17 @@ public class DistributedApplicationPipelineTests
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var pipeline = new DistributedApplicationPipeline();
-        var capturedLoggers = new List<ILogger>();
+        var capturedSteps = new List<IReportingStep?>();
 
         for (var i = 1; i <= 3; i++)
         {
             var stepNumber = i; // Capture for closure
             pipeline.AddStep($"step{stepNumber}", (context) =>
             {
-                // Capture the current logger for this step
-                lock (capturedLoggers)
+                // Capture the current step for this step
+                lock (capturedSteps)
                 {
-                    capturedLoggers.Add(PipelineLoggerProvider.CurrentLogger);
+                    capturedSteps.Add(PipelineLoggerProvider.CurrentStep);
                 }
 
                 var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
@@ -1324,14 +1324,14 @@ public class DistributedApplicationPipelineTests
         await pipeline.ExecuteAsync(context);
 
         // Assert
-        Assert.Equal(3, capturedLoggers.Count);
+        Assert.Equal(3, capturedSteps.Count);
 
-        // Each step should have had a different logger context
+        // Each step should have had a different step context
         // (We can't easily verify they're different instances since they're created per step,
-        // but we can verify none of them are NullLogger during execution)
-        foreach (var logger in capturedLoggers)
+        // but we can verify none of them are null during execution)
+        foreach (var step in capturedSteps)
         {
-            Assert.NotSame(NullLogger.Instance, logger);
+            Assert.NotNull(step);
         }
 
         // Collect all activities for easier assertion
@@ -1377,8 +1377,8 @@ public class DistributedApplicationPipelineTests
             Assert.Contains(stepActivities, stepGroup => stepGroup.First().Data.Id == logActivity.Data.StepId);
         }
 
-        // After all steps complete, should be back to NullLogger
-        Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
+        // After all steps complete, should be back to null
+        Assert.Null(PipelineLoggerProvider.CurrentStep);
     }
 
     [Theory]
