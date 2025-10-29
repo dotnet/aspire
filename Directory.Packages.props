@@ -247,8 +247,25 @@
     <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <!-- EF -->
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPreviewVersion)" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignPreviewVersion)" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPreviewVersion)" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsPreviewVersion)" />
+    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" /> <!-- TODO: Should be Version="10.0.0-rc.2" /> -->
     <!-- ASP.NET Core -->
+    <PackageVersion Update="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePreviewVersion)" />
+    <PackageVersion Update="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerPreviewVersion)" />
+    <PackageVersion Update="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="$(MicrosoftAspNetCoreAuthenticationOpenIdConnectPreviewVersion)" />
     <PackageVersion Update="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPreviewVersion)" />
+    <PackageVersion Update="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPreviewVersion)" />
+    <PackageVersion Update="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreTestHostPreviewVersion)" />
+    <PackageVersion Update="Microsoft.Extensions.Caching.Memory" Version="$(MicrosoftExtensionsCachingMemoryPreviewVersion)" />
+    <PackageVersion Update="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(MicrosoftExtensionsCachingStackExchangeRedisPreviewVersion)" />
+    <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePreviewVersion)" />
+    <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksPreviewVersion)" />
+    <PackageVersion Update="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesPreviewVersion)" />
+    <PackageVersion Update="Microsoft.AspNetCore.SignalR.Client" Version="$(MicrosoftAspNetCoreSignalRClientPreviewVersion)" />
     <!-- Runtime -->
     <PackageVersion Update="Microsoft.Extensions.Hosting.Abstractions" Version="$(MicrosoftExtensionsHostingAbstractionsPreviewVersion)" />
     <PackageVersion Update="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsHostingPreviewVersion)" />
@@ -261,5 +278,6 @@
     <PackageVersion Update="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpPreviewVersion)" />
     <PackageVersion Update="System.Formats.Asn1" Version="$(SystemFormatsAsn1PreviewVersion)" />
     <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonPreviewVersion)" />
+    <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsPreviewVersion)" />
   </ItemGroup>
 </Project>
