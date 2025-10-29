@@ -122,10 +122,7 @@ public static class YarpResourceExtensions
         {
             builder.WithDockerfileFactory(sourcePath, ctx =>
             {
-                if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
-                {
-                    imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
-                }
+                var imageName = GetYarpImageName(ctx.Resource);
 
                 return $"""
                 FROM {imageName} AS yarp
@@ -164,13 +161,8 @@ public static class YarpResourceExtensions
                    var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
                    var source = resourceWithFiles.Resource;
 
-                   if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
-                   {
-                       imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
-                   }
-
-                   var stage = ctx.Builder.From(imageName, "yarp")
-                              .WorkDir("/app");
+                   var imageName = GetYarpImageName(ctx.Resource);
+                   var stage = ctx.Builder.From(imageName);
 
                    if (!source.TryGetContainerImageName(out var sourceImageName))
                    {
@@ -185,4 +177,13 @@ public static class YarpResourceExtensions
                });
     }
 
+    private static string GetYarpImageName(IResource resource)
+    {
+        if (!resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
+        {
+            imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
+        }
+
+        return imageName;
+    }
 }

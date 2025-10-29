@@ -1,4 +1,3 @@
-﻿FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4 AS yarp
-WORKDIR /app
+﻿FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4
 COPY --from=sourceimage:latest /app/dist /app/wwwroot
 COPY --from=sourceimage:latest /app/assets /app/wwwroot
