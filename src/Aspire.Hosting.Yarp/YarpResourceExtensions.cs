@@ -1,9 +1,12 @@
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -113,7 +116,7 @@ public static class YarpResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);
 
-        builder = builder.WithStaticFiles();
+        builder.WithStaticFiles();
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -138,4 +141,48 @@ public static class YarpResourceExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="resourceWithFiles">The resource with container files.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<YarpResource> PublishWithStaticFiles(this IResourceBuilder<YarpResource> builder, IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles)
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // In publish mode, generate a Dockerfile that copies the container files into /app/wwwroot
+        return builder
+               .PublishWithContainerFiles(resourceWithFiles, "/app/wwwroot")
+               .WithStaticFiles()
+               .WithDockerfileBuilder(".", ctx =>
+               {
+                   var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
+                   var source = resourceWithFiles.Resource;
+
+                   if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
+                   {
+                       imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
+                   }
+
+                   var stage = ctx.Builder.From(imageName, "yarp")
+                              .WorkDir("/app");
+
+                   if (!source.TryGetContainerImageName(out var sourceImageName))
+                   {
+                       logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
+                       return;
+                   }
+
+                   foreach (var containerFilesSource in resourceWithFiles.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                   {
+                       stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, "/app/wwwroot");
+                   }
+               });
+    }
+
 }
