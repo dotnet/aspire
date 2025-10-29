@@ -114,6 +114,35 @@ public class UserSecretsParameterDefaultTests
     }
 
     [Fact]
+    public async Task TrySetUserSecret_SqlServerAndRabbitMQ_BothSecretsPreserved()
+    {
+        // This test specifically reproduces the issue described in the bug report
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        // Simulate SQL Server and RabbitMQ generating passwords concurrently
+        var sqlTask = Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, "Parameters:sql-password", "SqlPassword123!"));
+        var rabbitTask = Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, "Parameters:rabbit-password", "RabbitPassword456!"));
+
+        var results = await Task.WhenAll(sqlTask, rabbitTask);
+
+        // Both writes should succeed
+        Assert.All(results, Assert.True);
+
+        // Both secrets should be in the file
+        var userSecrets = GetUserSecrets(userSecretsId);
+        Assert.True(userSecrets.ContainsKey("Parameters:sql-password"), "SQL Server password was not found");
+        Assert.True(userSecrets.ContainsKey("Parameters:rabbit-password"), "RabbitMQ password was not found");
+        Assert.Equal("SqlPassword123!", userSecrets["Parameters:sql-password"]);
+        Assert.Equal("RabbitPassword456!", userSecrets["Parameters:rabbit-password"]);
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
+    [Fact]
     public async Task TrySetUserSecret_ConcurrentWritesSameKey_LastWriteWins()
     {
         var userSecretsId = Guid.NewGuid().ToString("N");
