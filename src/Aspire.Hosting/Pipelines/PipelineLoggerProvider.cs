@@ -31,7 +31,7 @@ internal sealed class PipelineLoggerProvider(IOptions<PipelineLoggingOptions> op
             // Clear the current logger from AsyncLocal context
             s_currentStep.Value = null;
 
-            if (value is not null && value != NullLogger.Instance)
+            if (value is not null)
             {
                 // Use an object indirection to hold the logger in the AsyncLocal,
                 // so it can be cleared in all ExecutionContexts when cleared.
