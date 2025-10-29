@@ -80,7 +80,7 @@ internal static class AIHelpers
 
         if (includeDashboardUrl)
         {
-            traceData["dashboard_link"] = GetFrontendUrl(options, DashboardUrls.TraceDetailUrl(traceId), traceId);
+            traceData["dashboard_link"] = GetDashboardLink(options, DashboardUrls.TraceDetailUrl(traceId), traceId);
         }
 
         return traceData;
@@ -195,7 +195,7 @@ internal static class AIHelpers
 
             if (includeDashboardUrl)
             {
-                resourceObj["dashboard_link"] = GetFrontendUrl(options, DashboardUrls.ResourcesUrl(resource: resource.Name), resource.Name);
+                resourceObj["dashboard_link"] = GetDashboardLink(options, DashboardUrls.ResourcesUrl(resource: resource.Name), resource.Name);
             }
 
             return resourceObj;
@@ -254,19 +254,35 @@ internal static class AIHelpers
         }
     }
 
-    private static object GetFrontendUrl(DashboardOptions options, string path, string text)
+    public static object? GetDashboardLink(DashboardOptions options, string path, string text)
+    {
+        var url = GetDashboardUrl(options, path);
+        if (string.IsNullOrEmpty(url))
+        {
+            return null;
+        }
+
+        return new
+        {
+            url = url,
+            text = text
+        };
+    }
+
+    public static string? GetDashboardUrl(DashboardOptions options, string path)
     {
         var frontendEndpoints = options.Frontend.GetEndpointAddresses();
 
         var frontendUrl = options.Frontend.PublicUrl
             ?? frontendEndpoints.FirstOrDefault(e => string.Equals(e.Scheme, "https", StringComparison.Ordinal))?.ToString()
-            ?? frontendEndpoints.First(e => string.Equals(e.Scheme, "http", StringComparison.Ordinal)).ToString();
+            ?? frontendEndpoints.FirstOrDefault(e => string.Equals(e.Scheme, "http", StringComparison.Ordinal))?.ToString();
 
-        return new
+        if (frontendUrl == null)
         {
-            url = new Uri(new Uri(frontendUrl), path).ToString(),
-            text = text
-        };
+            return null;
+        }
+
+        return new Uri(new Uri(frontendUrl), path).ToString();
     }
 
     public static int EstimateTokenCount(string text)
@@ -330,7 +346,7 @@ internal static class AIHelpers
 
         if (includeDashboardUrl)
         {
-            log["dashboard_link"] = GetFrontendUrl(options, DashboardUrls.StructuredLogsUrl(logEntryId: l.InternalId), $"log_id: {l.InternalId}");
+            log["dashboard_link"] = GetDashboardLink(options, DashboardUrls.StructuredLogsUrl(logEntryId: l.InternalId), $"log_id: {l.InternalId}");
         }
 
         return log;
