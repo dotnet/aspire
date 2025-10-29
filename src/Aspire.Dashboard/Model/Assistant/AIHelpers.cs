@@ -170,7 +170,7 @@ internal static class AIHelpers
                 ["type"] = resource.ResourceType,
                 ["state"] = resource.State,
                 ["state_description"] = ResourceStateViewModel.GetResourceStateTooltip(resource, s_columnsLoc),
-                ["relationships"] = GetResourceRelationships(resources, resource),
+                ["relationships"] = GetResourceRelationships(resources, resource, getResourceName),
                 ["endpoint_urls"] = resource.Urls.Where(u => !u.IsInternal).Select(u => new
                 {
                     name = u.EndpointName,
@@ -206,7 +206,7 @@ internal static class AIHelpers
         var resourceGraphData = SerializeJson(data);
         return resourceGraphData;
 
-        static List<object> GetResourceRelationships(List<ResourceViewModel> allResources, ResourceViewModel resourceViewModel)
+        static List<object> GetResourceRelationships(List<ResourceViewModel> allResources, ResourceViewModel resourceViewModel, Func<ResourceViewModel, string>? getResourceName)
         {
             var relationships = new List<object>();
 
@@ -221,7 +221,7 @@ internal static class AIHelpers
                 {
                     relationships.Add(new
                     {
-                        resource_name = match.Name,
+                        resource_name = getResourceName?.Invoke(match) ?? match.Name,
                         Types = relationship.Type
                     });
                 }
