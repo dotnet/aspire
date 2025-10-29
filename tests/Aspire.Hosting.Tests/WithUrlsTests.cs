@@ -249,6 +249,7 @@ public class WithUrlsTests
         var tcs = new TaskCompletionSource();
         var projectB = builder.AddProject<ProjectB>("projectb")
             .WithEndpoint(scheme: "tcp")
+            .WithUrlForEndpoint("http", u => u.DisplayText = "Custom Display Text")
             .OnBeforeResourceStarted((_, _, _) =>
             {
                 tcs.SetResult();
@@ -260,13 +261,27 @@ public class WithUrlsTests
         await tcs.Task.DefaultTimeout();
 
         var urls = projectB.Resource.Annotations.OfType<ResourceUrlAnnotation>();
-        Assert.Equal(3, urls.Count());
-        Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "http" && u.DisplayLocation == UrlDisplayLocation.DetailsOnly);
-        Assert.Single(urls, u => u.Url.StartsWith($"http://{projectB.Resource.Name.ToLowerInvariant()}{expectedHostSuffix}") && u.Url.EndsWith("/sub-path")
-                                 && u.Endpoint?.EndpointName == "http" && u.DisplayLocation == UrlDisplayLocation.SummaryAndDetails);
-
-        Assert.Single(urls, u => u.Url.StartsWith("tcp://localhost") && u.Endpoint?.EndpointName == "tcp");
-        Assert.DoesNotContain(urls, u => u.Url.Contains(expectedHostSuffix) && u.Endpoint?.EndpointName == "tcp");
+        Assert.Collection(urls,
+            u =>
+            {
+                Assert.StartsWith($"http://{projectB.Resource.Name.ToLowerInvariant()}{expectedHostSuffix}", u.Url);
+                Assert.EndsWith("/sub-path", u.Url);
+                Assert.Equal("http", u.Endpoint?.EndpointName);
+                Assert.Equal(UrlDisplayLocation.SummaryAndDetails, u.DisplayLocation);
+                Assert.Equal("Custom Display Text", u.DisplayText);
+            },
+            u =>
+            {
+                Assert.StartsWith("http://localhost", u.Url);
+                Assert.Equal("http", u.Endpoint?.EndpointName);
+                Assert.Equal(UrlDisplayLocation.DetailsOnly, u.DisplayLocation);
+            },
+            u =>
+            {
+                Assert.StartsWith("tcp://localhost", u.Url);
+                Assert.Equal("tcp", u.Endpoint?.EndpointName);
+            }
+        );
 
         await app.StopAsync();
     }
