@@ -19,6 +19,7 @@ internal sealed class VersionCommand : BaseCommand
     }
 
     protected override bool UpdateNotificationsEnabled => false;
+    protected override bool AppendEmptyLineAfterExecution => false;
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
