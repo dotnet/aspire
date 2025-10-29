@@ -2715,10 +2715,10 @@ public static class ResourceBuilderExtensions
 
         if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
         {
-            resourceWithArgs.WithArgs(ctx =>
+            resourceWithArgs.WithArgs(async ctx =>
             {
                 var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
+                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
