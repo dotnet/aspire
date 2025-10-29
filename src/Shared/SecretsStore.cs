@@ -17,7 +17,7 @@ namespace Microsoft.Extensions.SecretManager.Tools.Internal;
 internal sealed class SecretsStore
 {
     // Static lock dictionary to synchronize access per userSecretsId
-    private static readonly Dictionary<string, SemaphoreSlim> s_locks = new();
+    private static readonly Dictionary<string, object> s_locks = new();
     private static readonly object s_locksLock = new();
 
     private readonly string _secretsFilePath;
@@ -36,16 +36,16 @@ internal sealed class SecretsStore
         _secrets = Load(_secretsFilePath);
     }
 
-    private static SemaphoreSlim GetLock(string userSecretsId)
+    private static object GetLock(string userSecretsId)
     {
         lock (s_locksLock)
         {
-            if (!s_locks.TryGetValue(userSecretsId, out var semaphore))
+            if (!s_locks.TryGetValue(userSecretsId, out var lockObj))
             {
-                semaphore = new SemaphoreSlim(1, 1);
-                s_locks[userSecretsId] = semaphore;
+                lockObj = new object();
+                s_locks[userSecretsId] = lockObj;
             }
-            return semaphore;
+            return lockObj;
         }
     }
 
@@ -68,9 +68,8 @@ internal sealed class SecretsStore
 
     public void Save()
     {
-        var semaphore = GetLock(_userSecretsId);
-        semaphore.Wait();
-        try
+        var lockObj = GetLock(_userSecretsId);
+        lock (lockObj)
         {
             // Reload from disk to merge with any concurrent changes
             var currentSecrets = Load(_secretsFilePath);
@@ -102,10 +101,6 @@ internal sealed class SecretsStore
             });
 
             File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
-        }
-        finally
-        {
-            semaphore.Release();
         }
     }
 
@@ -160,9 +155,8 @@ internal sealed class SecretsStore
             // Save the value to the secret store
             try
             {
-                var semaphore = GetLock(userSecretsId);
-                semaphore.Wait();
-                try
+                var lockObj = GetLock(userSecretsId);
+                lock (lockObj)
                 {
                     // Load, set, and save in one atomic operation to ensure thread safety
                     var secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
@@ -191,10 +185,6 @@ internal sealed class SecretsStore
 
                     File.WriteAllText(secretsFilePath, json, Encoding.UTF8);
                     return true;
-                }
-                finally
-                {
-                    semaphore.Release();
                 }
             }
             catch (Exception) { } // Ignore user secret store errors
