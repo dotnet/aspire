@@ -48,7 +48,7 @@ internal static class AIHelpers
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    internal static object GetTraceDto(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false)
+    internal static object GetTraceDto(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var spanData = trace.Spans.Select(s => new
         {
@@ -58,7 +58,7 @@ internal static class AIHelpers
             name = context.AddValue(s.Name, id => $@"Duplicate of ""name"" for span {OtlpHelpers.ToShortenedId(id)}", s.SpanId),
             status = s.Status != OtlpSpanStatusCode.Unset ? s.Status.ToString() : null,
             status_message = context.AddValue(s.StatusMessage, id => $@"Duplicate of ""status_message"" for span {OtlpHelpers.ToShortenedId(id)}", s.SpanId),
-            source = s.Source.ResourceKey.GetCompositeName(),
+            source = getResourceName?.Invoke(s.Source.Resource) ?? s.Source.ResourceKey.GetCompositeName(),
             destination = GetDestination(s, outgoingPeerResolvers),
             duration_ms = ConvertToMilliseconds(s.Duration),
             attributes = s.Attributes
@@ -116,23 +116,23 @@ internal static class AIHelpers
         return (int)Math.Round(duration.TotalMilliseconds, 0, MidpointRounding.AwayFromZero);
     }
 
-    public static (string json, string limitMessage) GetTracesJson(List<OtlpTrace> traces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options, bool includeDashboardUrl = false)
+    public static (string json, string limitMessage) GetTracesJson(List<OtlpTrace> traces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var promptContext = new PromptContext();
         var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
             traces,
             TracesLimit,
             "trace",
-            trace => GetTraceDto(trace, outgoingPeerResolvers, promptContext, options, includeDashboardUrl),
+            trace => GetTraceDto(trace, outgoingPeerResolvers, promptContext, options, includeDashboardUrl, getResourceName),
             EstimateSerializedJsonTokenSize);
         var tracesData = SerializeJson(trimmedItems);
 
         return (tracesData, limitMessage);
     }
 
-    internal static string GetTraceJson(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false)
+    internal static string GetTraceJson(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
-        var dto = GetTraceDto(trace, outgoingPeerResolvers, context, options, includeDashboardUrl);
+        var dto = GetTraceDto(trace, outgoingPeerResolvers, context, options, includeDashboardUrl, getResourceName);
 
         var json = SerializeJson(dto);
         return json;
@@ -158,13 +158,15 @@ internal static class AIHelpers
         return span.Attributes.GetPeerAddress();
     }
 
-    internal static string GetResponseGraphJson(List<ResourceViewModel> resources, DashboardOptions options, bool includeDashboardUrl = false)
+    internal static string GetResponseGraphJson(List<ResourceViewModel> resources, DashboardOptions options, bool includeDashboardUrl = false, Func<ResourceViewModel, string>? getResourceName = null)
     {
         var data = resources.Where(resource => !resource.IsResourceHidden(false)).Select(resource =>
         {
+            var resourceName = getResourceName?.Invoke(resource) ?? resource.Name;
+
             var resourceObj = new Dictionary<string, object?>
             {
-                ["resource_name"] = resource.Name,
+                ["resource_name"] = resourceName,
                 ["type"] = resource.ResourceType,
                 ["state"] = resource.State,
                 ["state_description"] = ResourceStateViewModel.GetResourceStateTooltip(resource, s_columnsLoc),
@@ -195,7 +197,7 @@ internal static class AIHelpers
 
             if (includeDashboardUrl)
             {
-                resourceObj["dashboard_link"] = GetDashboardLink(options, DashboardUrls.ResourcesUrl(resource: resource.Name), resource.Name);
+                resourceObj["dashboard_link"] = GetDashboardLink(options, DashboardUrls.ResourcesUrl(resource: resource.Name), resourceName);
             }
 
             return resourceObj;
@@ -303,29 +305,29 @@ internal static class AIHelpers
         return JsonSerializer.Serialize(value, s_jsonSerializerOptions);
     }
 
-    public static (string json, string limitMessage) GetStructuredLogsJson(List<OtlpLogEntry> errorLogs, DashboardOptions options, bool includeDashboardUrl = false)
+    public static (string json, string limitMessage) GetStructuredLogsJson(List<OtlpLogEntry> errorLogs, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var promptContext = new PromptContext();
         var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
             errorLogs,
             StructuredLogsLimit,
             "log entry",
-            i => GetLogEntryDto(i, promptContext, options, includeDashboardUrl),
+            i => GetLogEntryDto(i, promptContext, options, includeDashboardUrl, getResourceName),
             EstimateSerializedJsonTokenSize);
         var logsData = SerializeJson(trimmedItems);
 
         return (logsData, limitMessage);
     }
 
-    internal static string GetStructuredLogJson(OtlpLogEntry l, DashboardOptions options, bool includeDashboardUrl = false)
+    internal static string GetStructuredLogJson(OtlpLogEntry l, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
-        var dto = GetLogEntryDto(l, new PromptContext(), options, includeDashboardUrl);
+        var dto = GetLogEntryDto(l, new PromptContext(), options, includeDashboardUrl, getResourceName);
 
         var json = SerializeJson(dto);
         return json;
     }
 
-    public static object GetLogEntryDto(OtlpLogEntry l, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false)
+    public static object GetLogEntryDto(OtlpLogEntry l, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var exceptionText = OtlpLogEntry.GetExceptionText(l);
 
@@ -336,7 +338,7 @@ internal static class AIHelpers
             ["trace_id"] = OtlpHelpers.ToShortenedId(l.TraceId),
             ["message"] = context.AddValue(l.Message, id => $@"Duplicate of ""message"" for log entry {id.InternalId}", l),
             ["severity"] = l.Severity.ToString(),
-            ["resource_name"] = l.ResourceView.Resource.ResourceKey.GetCompositeName(),
+            ["resource_name"] = getResourceName?.Invoke(l.ResourceView.Resource) ?? l.ResourceView.Resource.ResourceKey.GetCompositeName(),
             ["attributes"] = l.Attributes
                 .Where(l => l.Key is not (OtlpLogEntry.ExceptionStackTraceField or OtlpLogEntry.ExceptionMessageField or OtlpLogEntry.ExceptionTypeField))
                 .ToDictionary(a => a.Key, a => context.AddValue(MapOtelAttributeValue(a), id => $@"Duplicate of attribute ""{id.Key}"" for log entry {id.InternalId}", (l.InternalId, a.Key))),

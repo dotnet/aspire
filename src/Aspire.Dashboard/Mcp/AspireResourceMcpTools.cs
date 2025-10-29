@@ -33,9 +33,13 @@ internal sealed class AspireResourceMcpTools
     {
         try
         {
-            var resources = _dashboardClient.GetResources();
+            var resources = _dashboardClient.GetResources().ToList();
 
-            var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList(), _dashboardOptions.CurrentValue, includeDashboardUrl: true);
+            var resourceGraphData = AIHelpers.GetResponseGraphJson(
+                resources,
+                _dashboardOptions.CurrentValue,
+                includeDashboardUrl: true,
+                getResourceName: r => ResourceViewModel.GetResourceName(r, resources));
 
             var response = $"""
             resource_name is the identifier of resources. Use the dashboard_link when displaying resource_name. For example: [`frontend-abcxyz`](https://localhost:1234/resource?name=frontend-abcxyz)
