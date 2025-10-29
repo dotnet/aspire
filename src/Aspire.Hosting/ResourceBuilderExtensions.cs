@@ -807,7 +807,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. A reference to this endpoint can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
+    /// Exposes an endpoint on a resource. A reference to this endpoint can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -863,7 +863,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -883,7 +883,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
+    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be "http" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -903,7 +903,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
+    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be "https" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -957,7 +957,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the endpoint.</param>
     /// <param name="contextNetworkID">The network context in which to resolve the endpoint. If null, localhost (loopback) network context will be used.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
-    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name, NetworkIdentifier? contextNetworkID = null) where T : IResourceWithEndpoints
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name, NetworkIdentifier contextNetworkID) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -976,7 +976,7 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.Resource.GetEndpoint(name, null);
+        return builder.Resource.GetEndpoint(name);
     }
 
     /// <summary>

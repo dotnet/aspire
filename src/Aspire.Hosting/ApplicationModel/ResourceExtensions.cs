@@ -673,7 +673,15 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <returns>An enumeration of <see cref="EndpointReference"/> based on the <see cref="EndpointAnnotation"/> annotations from the resources' <see cref="IResource.Annotations"/> collection.</returns>
-    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource) => resource.GetEndpoints(null);
+    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource)
+    {
+        if (TryGetAnnotationsOfType<EndpointAnnotation>(resource, out var endpoints))
+        {
+            return endpoints.Select(e => new EndpointReference(resource, e));
+        }
+
+        return [];
+    }
    
 
     /// <summary>
@@ -682,7 +690,7 @@ public static class ResourceExtensions
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context context for the endpoint references.</param>
     /// <returns>An enumeration of <see cref="EndpointReference"/> based on the <see cref="EndpointAnnotation"/> annotations from the resources' <see cref="IResource.Annotations"/> collection.</returns>
-    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource, NetworkIdentifier? contextNetworkID = null)
+    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource, NetworkIdentifier contextNetworkID)
     {
         if (TryGetAnnotationsOfType<EndpointAnnotation>(resource, out var endpoints))
         {
@@ -698,7 +706,7 @@ public static class ResourceExtensions
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/>object providing resolvable reference for the specified endpoint.</returns>
-    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName) => resource.GetEndpoint(endpointName, null);
+    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName) => resource.GetEndpoint(endpointName);
 
     /// <summary>
     /// Gets an endpoint reference for the specified endpoint name.
@@ -707,7 +715,7 @@ public static class ResourceExtensions
     /// <param name="endpointName">The name of the endpoint.</param>
     /// <param name="contextNetworkID">The network ID of the network that provides the context for the returned <see cref="EndpointReference"/></param>
     /// <returns>An <see cref="EndpointReference"/>object providing resolvable reference for the specified endpoint.</returns>
-    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName, NetworkIdentifier? contextNetworkID = null)
+    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName, NetworkIdentifier contextNetworkID)
     {
 
         var endpoint = resource.TryGetEndpoints(out var endpoints) ?
@@ -719,7 +727,6 @@ public static class ResourceExtensions
         }
         else
         {
-            contextNetworkID ??= endpoint.DefaultNetworkID;
             return new EndpointReference(resource, endpoint, contextNetworkID);
         }
 

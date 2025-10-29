@@ -38,7 +38,7 @@ public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext 
     /// </summary>
     /// <param name="name">The name of the endpoint.</param>
     /// <param name="contextNetworkID">The identifier of the network that serves as the context for the endpoint reference.</param>
-    public EndpointReference? GetEndpoint(string name, NetworkIdentifier? contextNetworkID) =>
+    public EndpointReference? GetEndpoint(string name, NetworkIdentifier contextNetworkID) =>
         Resource switch
         {
             IResourceWithEndpoints resourceWithEndpoints => resourceWithEndpoints.GetEndpoint(name, contextNetworkID),
