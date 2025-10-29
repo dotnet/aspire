@@ -791,10 +791,11 @@ public static class ResourceBuilderExtensions
 
         if (endpoint == null && createIfNotExists)
         {
-            var defaultNetwork = builder.Resource.IsContainer()
-                ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork
-                : KnownNetworkIdentifiers.LocalhostNetwork;
-            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName, networkID: defaultNetwork);
+            // Endpoints for a Container will be consumed from localhost network by default, but the same EndpointAnnotation
+            // can also be resolved in the context of container-to-container communication by using the target port
+            // and the container name as the host. This is why we only set the context network to localhost,
+            // for both container and non-container resources.
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName, networkID: KnownNetworkIdentifiers.LocalhostNetwork);
             callback(endpoint);
             builder.Resource.Annotations.Add(endpoint);
         }

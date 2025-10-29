@@ -59,6 +59,14 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default) => Property(EndpointProperty.Url).GetValueAsync(cancellationToken);
 
     /// <summary>
+    /// Gets the URL of the endpoint asynchronously. Waits for the endpoint to be allocated if necessary.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="context">The context for value resolution.</param>
+    /// <returns>The URL of the endpoint.</returns>
+    public ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default) => Property(EndpointProperty.Url).GetValueAsync(context, cancellationToken);
+
+    /// <summary>
     /// The ID of the network that serves as the context for the EndpointReference.
     /// The reference will be resolved in the context of this network, which may be different
     /// from the network associated with the default network of the referenced Endpoint.
@@ -263,7 +271,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <summary>
     /// Gets the value of the property of the endpoint.
     /// </summary>
-    /// <param name="context">The optional <see cref="NetworkIdentifier"/> context to use when resolving the endpoint property.</param>
+    /// <param name="context">The context to use when resolving the endpoint property.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="string"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>

@@ -55,24 +55,24 @@ public class ExpressionResolverTests
     [Theory]
     [InlineData("TwoFullEndpoints", false, false, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", false, true, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("TwoFullEndpoints", true, false, "Test1=http://aspire.dev.internal:12345/;Test2=https://aspire.dev.internal:12346/;")]
-    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:10000/;Test2=https://testresource:10001/;")]
+    [InlineData("TwoFullEndpoints", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://aspire.dev.internal:22346/;")]
+    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:22345/;Test2=https://testresource:22346/;")]
     [InlineData("Url", false, false, "Url=http://localhost:12345;")]
     [InlineData("Url", false, true, "Url=http://localhost:12345;")]
-    [InlineData("Url", true, false, "Url=http://aspire.dev.internal:12345;")]
-    [InlineData("Url", true, true, "Url=http://testresource:10000;")]
-    [InlineData("Url2", true, false, "Url=http://aspire.dev.internal:12345;")]
-    [InlineData("Url2", true, true, "Url=http://testresource:10000;")]
+    [InlineData("Url", true, false, "Url=http://aspire.dev.internal:22345;")]
+    [InlineData("Url", true, true, "Url=http://testresource:22345;")]
+    [InlineData("Url2", true, false, "Url=http://aspire.dev.internal:22345;")]
+    [InlineData("Url2", true, true, "Url=http://testresource:22345;")]
     [InlineData("OnlyHost", true, false, "Host=aspire.dev.internal;")]
-    [InlineData("OnlyHost", true, true, "Host=testresource;")] // host now replaced to container name
-    [InlineData("OnlyPort", true, false, "Port=12345;")]
-    [InlineData("OnlyPort", true, true, "Port=10000;")] // port now replaced with target port
-    [InlineData("HostAndPort", true, false, "HostPort=aspire.dev.internal:12345")]
-    [InlineData("HostAndPort", true, true, "HostPort=testresource:10000")] // host not replaced since no port
-    [InlineData("PortBeforeHost", true, false, "Port=12345;Host=aspire.dev.internal;")]
-    [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
-    [InlineData("FullAndPartial", true, false, "Test1=http://aspire.dev.internal:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:10001/;")]
+    [InlineData("OnlyHost", true, true, "Host=testresource;")] 
+    [InlineData("OnlyPort", true, false, "Port=22345;")]
+    [InlineData("OnlyPort", true, true, "Port=22345;")] 
+    [InlineData("HostAndPort", true, false, "HostPort=aspire.dev.internal:22345")]
+    [InlineData("HostAndPort", true, true, "HostPort=testresource:22345")] 
+    [InlineData("PortBeforeHost", true, false, "Port=22345;Host=aspire.dev.internal;")]
+    [InlineData("PortBeforeHost", true, true, "Port=22345;Host=testresource;")]
+    [InlineData("FullAndPartial", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://localhost:22346/;")]
+    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:22345/;Test2=https://localhost:22346/;")]
     [InlineData("UrlEncodedHost", false, false, "Host=host%20with%20space;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
@@ -85,7 +85,8 @@ public class ExpressionResolverTests
                 e.AllocatedEndpoint = new(e, "localhost", 12345, targetPortExpression: "10000");
                 if (sourceIsContainer)
                 {
-                    var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 12345, EndpointBindingMode.SingleAddress, targetPortExpression: "12345", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                    // Note: on the container network side the port and target port are always the same for AllocatedEndpoint.
+                    var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 22345, EndpointBindingMode.SingleAddress, targetPortExpression: "22345", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
                     var snapshot = new ValueSnapshot<AllocatedEndpoint>();
                     snapshot.SetValue(ae);
                     e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
@@ -97,7 +98,7 @@ public class ExpressionResolverTests
                  e.AllocatedEndpoint = new(e, "localhost", 12346, targetPortExpression: "10001");
                  if (sourceIsContainer)
                  {
-                     var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 12346, EndpointBindingMode.SingleAddress, targetPortExpression: "12346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                     var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 22346, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
                      var snapshot = new ValueSnapshot<AllocatedEndpoint>();
                      snapshot.SetValue(ae);
                      e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
@@ -109,7 +110,7 @@ public class ExpressionResolverTests
                  e.AllocatedEndpoint = new(e, "host with space", 12347);
                  if (sourceIsContainer)
                  {
-                     var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 12347, EndpointBindingMode.SingleAddress, targetPortExpression: "12347", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                     var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 22347, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
                      var snapshot = new ValueSnapshot<AllocatedEndpoint>();
                      snapshot.SetValue(ae);
                      e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
