@@ -706,7 +706,20 @@ public static class ResourceExtensions
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/>object providing resolvable reference for the specified endpoint.</returns>
-    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName) => resource.GetEndpoint(endpointName);
+    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
+    {
+        var endpoint = resource.TryGetEndpoints(out var endpoints) ?
+            endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName)) :
+            null;
+        if (endpoint is null)
+        {
+            return new EndpointReference(resource, endpointName);
+        }
+        else
+        {
+            return new EndpointReference(resource, endpoint);
+        }
+    }
 
     /// <summary>
     /// Gets an endpoint reference for the specified endpoint name.
@@ -729,7 +742,6 @@ public static class ResourceExtensions
         {
             return new EndpointReference(resource, endpoint, contextNetworkID);
         }
-
     }
 
     /// <summary>
