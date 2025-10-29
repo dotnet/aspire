@@ -2498,22 +2498,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return (args, env, createFiles, failedToApplyConfig);
     }
 
-    private string[]? GetSupportedLaunchConfigurations()
-    {
-        try
-        {
-            if (_configuration[KnownConfigNames.DebugSessionInfo] is { } debugSessionInfoJson && JsonSerializer.Deserialize<RunSessionInfo>(debugSessionInfoJson) is { } debugSessionInfo)
-            {
-                return debugSessionInfo.SupportedLaunchConfigurations;
-            }
-        }
-        catch (JsonException)
-        {
-        }
-
-        return null;
-    }
-
     private static List<ContainerPortSpec> BuildContainerPorts(RenderedModelResource cr)
     {
         var ports = new List<ContainerPortSpec>();
