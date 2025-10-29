@@ -24,7 +24,7 @@ internal sealed class VersionCommand : BaseCommand
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var version = GetVersion();
-        Console.WriteLine(version);
+        InteractionService.DisplayMessage("information", version);
         return Task.FromResult(ExitCodeConstants.Success);
     }
 
