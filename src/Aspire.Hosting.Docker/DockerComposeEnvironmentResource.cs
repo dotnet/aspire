@@ -87,7 +87,6 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PipelineStepContext context)
     {
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
-        var activityReporter = context.PipelineContext.Services.GetRequiredService<IPipelineActivityReporter>();
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
@@ -95,7 +94,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             imageBuilder,
             outputPath,
             context.Logger,
-            activityReporter,
+            context.ReportingStep,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);
