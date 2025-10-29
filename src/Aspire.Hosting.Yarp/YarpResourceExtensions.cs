@@ -156,25 +156,41 @@ public static class YarpResourceExtensions
         return builder
                .PublishWithContainerFiles(resourceWithFiles, "/app/wwwroot")
                .WithStaticFiles()
-               .WithDockerfileBuilder(".", ctx =>
-               {
-                   var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
-                   var source = resourceWithFiles.Resource;
+               .EnsurePublishWithStaticFilesDockerFileBuilder();
+    }
 
-                   var imageName = GetYarpImageName(ctx.Resource);
-                   var stage = ctx.Builder.From(imageName);
+    private static IResourceBuilder<YarpResource> EnsurePublishWithStaticFilesDockerFileBuilder(this IResourceBuilder<YarpResource> builder)
+    {
+        if (builder.Resource.HasAnnotationOfType<DockerfileBuilderCallbackAnnotation>())
+        {
+            // Dockerfile builder already configured, skip adding it again
+            return builder;
+        }
 
-                   if (!source.TryGetContainerImageName(out var sourceImageName))
-                   {
-                       logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
-                       return;
-                   }
+        return builder.WithDockerfileBuilder(".", ctx =>
+        {
+            var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
+            var imageName = GetYarpImageName(ctx.Resource);
+            var stage = ctx.Builder.From(imageName);
 
-                   foreach (var containerFilesSource in resourceWithFiles.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                   {
-                       stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, "/app/wwwroot");
-                   }
-               });
+            if (ctx.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
+            {
+                foreach (var containerFileDestination in containerFilesDestinationAnnotations)
+                {
+                    var source = containerFileDestination.Source;
+                    if (!source.TryGetContainerImageName(out var sourceImageName))
+                    {
+                        logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
+                        return;
+                    }
+
+                    foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                    {
+                        stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, "/app/wwwroot");
+                    }
+                }
+            }
+        });
     }
 
     private static string GetYarpImageName(IResource resource)
