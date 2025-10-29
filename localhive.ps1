@@ -143,7 +143,7 @@ function Get-PackagesPath {
 
 if ($Configuration) {
   Write-Log "Building and packing NuGet packages [-c $Configuration] with versionsuffix '$VersionSuffix'"
-  & $buildScript -r -b -pack -c $Configuration "/p:VersionSuffix=$VersionSuffix"
+  & $buildScript -r -b -pack -c $Configuration "/p:VersionSuffix=$VersionSuffix" "/p:SkipTestProjects=true" "/p:SkipPlaygroundProjects=true"
   if ($LASTEXITCODE -ne 0) {
     Write-Err "Build failed for configuration $Configuration."
     exit 1
@@ -156,7 +156,7 @@ if ($Configuration) {
 }
 else {
   Write-Log "Building and packing NuGet packages [-c Release] with versionsuffix '$VersionSuffix'"
-  & $buildScript -r -b -pack -c Release "/p:VersionSuffix=$VersionSuffix"
+  & $buildScript -r -b -pack -c Release "/p:VersionSuffix=$VersionSuffix" "/p:SkipTestProjects=true" "/p:SkipPlaygroundProjects=true"
   if ($LASTEXITCODE -ne 0) {
     Write-Err "Build failed for configuration Release."
     exit 1
