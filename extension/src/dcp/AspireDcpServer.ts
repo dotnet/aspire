@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import https from 'https';
 import WebSocket, { WebSocketServer } from 'ws';
+import * as vscode from 'vscode';
 import { createSelfSignedCertAsync, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionMessageNotification, SessionTerminatedNotification } from './types';
@@ -8,6 +9,7 @@ import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 import { timingSafeEqual } from 'crypto';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
+import { authorizationAndDcpHeadersRequired, authorizationHeaderMustStartWithBearer, encounteredErrorStartingResource, invalidOrMissingToken, invalidTokenLength } from '../loc/strings';
 
 export default class AspireDcpServer {
     private readonly app: express.Express;
@@ -48,12 +50,12 @@ export default class AspireDcpServer {
                 const auth = req.header('Authorization');
                 const dcpId = req.header('microsoft-developer-dcp-instance-id');
                 if (!auth || !dcpId) {
-                    res.status(401).json({ error: { code: 'MissingHeaders', message: 'Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.' } });
+                    respondWithError(res, 401, { error: { code: 'MissingHeaders', message: authorizationAndDcpHeadersRequired, details: [] } });
                     return;
                 }
 
                 if (auth.split('Bearer ').length !== 2) {
-                    res.status(401).json({ error: { code: 'InvalidAuthHeader', message: 'Authorization header must start with "Bearer "' } });
+                    respondWithError(res, 401, { error: { code: 'InvalidAuthHeader', message: authorizationHeaderMustStartWithBearer, details: [] } });
                     return;
                 }
 
@@ -61,13 +63,13 @@ export default class AspireDcpServer {
                 const expectedTokenBuffer = Buffer.from(token);
 
                 if (bearerTokenBuffer.length !== expectedTokenBuffer.length) {
-                    res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid token length in Authorization header.' } });
+                    respondWithError(res, 401, { error: { code: 'InvalidToken', message: invalidTokenLength, details: [] } });
                     return;
                 }
 
                 // timingSafeEqual is used to verify that the tokens are equivalent in a way that mitigates timing attacks
                 if (timingSafeEqual(bearerTokenBuffer, expectedTokenBuffer) === false) {
-                    res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid or missing token in Authorization header.' } });
+                    respondWithError(res, 401, { error: { code: 'InvalidToken', message: invalidOrMissingToken, details: [] } });
                     return;
                 }
 
@@ -99,7 +101,7 @@ export default class AspireDcpServer {
 
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
                     const response: ErrorResponse = { error };
-                    res.status(400).json(response).end();
+                    respondWithError(res, 400, response);
                     return;
                 }
 
@@ -115,7 +117,7 @@ export default class AspireDcpServer {
 
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
                     const response: ErrorResponse = { error };
-                    res.status(400).json(response).end();
+                    respondWithError(res, 400, response);
                     return;
                 }
 
@@ -129,7 +131,7 @@ export default class AspireDcpServer {
 
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
                     const response: ErrorResponse = { error };
-                    res.status(500).json(response).end();
+                    respondWithError(res, 500, response);
                     return;
                 }
 
@@ -145,7 +147,7 @@ export default class AspireDcpServer {
 
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
                     const response: ErrorResponse = { error };
-                    res.status(500).json(response).end();
+                    respondWithError(res, 500, response);
                     return;
                 }
 
@@ -310,4 +312,9 @@ function getDcpIdPrefix(dcpId: string): string | null {
     }
 
     return null;
+}
+
+function respondWithError(res: Response, statusCode: number, message: ErrorResponse): void {
+    res.status(statusCode).json(message).end();
+    vscode.window.showErrorMessage(encounteredErrorStartingResource(message.error.message));
 }

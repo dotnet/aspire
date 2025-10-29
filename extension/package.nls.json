@@ -77,5 +77,10 @@
   "aspire-vscode.strings.invalidLaunchConfiguration": "Invalid launch configuration for {0}.",
   "aspire-vscode.strings.noAppHostInWorkspace": "No apphost found in the Aspire settings file.",
   "aspire-vscode.strings.dashboard": "Dashboard",
-  "aspire-vscode.strings.codespaces": "Codespaces"
+  "aspire-vscode.strings.codespaces": "Codespaces",
+  "aspire-vscode.strings.encounteredErrorStartingResource": "Encountered an error starting resource: {0}.",
+  "aspire-vscode.strings.invalidOrMissingToken": "Invalid or missing token in Authorization header.",
+  "aspire-vscode.strings.invalidTokenLength": "Invalid token length in Authorization header.",
+  "aspire-vscode.strings.authorizationHeaderMustStartWithBearer": "Authorization header must start with 'Bearer '.",
+  "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required."
 }
