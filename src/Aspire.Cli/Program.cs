@@ -260,10 +260,6 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        // Normalize -v to --version for consistency
-        // System.CommandLine provides --version built-in, but we also want to support -v
-        args = NormalizeVersionArguments(args);
-
         using var app = await BuildApplicationAsync(args);
 
         await app.StartAsync().ConfigureAwait(false);
@@ -283,20 +279,6 @@ public class Program
         await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
-    }
-
-    private static string[] NormalizeVersionArguments(string[] args)
-    {
-        // Replace standalone -v with --version to support the -v alias
-        // We only replace -v when it's a standalone argument (not part of another option)
-        for (int i = 0; i < args.Length; i++)
-        {
-            if (args[i] == "-v")
-            {
-                args[i] = "--version";
-            }
-        }
-        return args;
     }
 
     private static void AddInteractionServices(HostApplicationBuilder builder)

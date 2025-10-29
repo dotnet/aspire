@@ -41,7 +41,6 @@ public class CliSmokeTests
 
     [Theory]
     [InlineData("--version")]
-    [InlineData("-v")]
     [InlineData("version")]
     public async Task VersionCommandsReturnExitCode0(string arg)
     {
