@@ -637,8 +637,8 @@ public class WithEndpointTests
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Collection(urls,
-            url => Assert.StartsWith("https://localhost:", url.Url),
-            url => Assert.StartsWith("https://example.localhost:", url.Url));
+            url => Assert.StartsWith("https://example.localhost:", url.Url),
+            url => Assert.StartsWith("https://localhost:", url.Url));
 
         EndpointAnnotation endpoint = Assert.Single(projectA.Resource.Annotations.OfType<EndpointAnnotation>());
         Assert.NotNull(endpoint.AllocatedEndpoint);
