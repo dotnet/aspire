@@ -686,7 +686,24 @@ public static class ResourceExtensions
     /// <returns>True if the container image name was found, otherwise false.</returns>
     public static bool TryGetContainerImageName(this IResource resource, bool useBuiltImage, [NotNullWhen(true)] out string? imageName)
     {
-        // First check if there's a DockerfileBuildAnnotation with an image name/tag
+        // First check if there's a ContainerBuildMetadataAnnotation from MSBuild properties
+        // This takes precedence for ProjectResource as it reflects the actual build output
+        if (useBuiltImage &&
+            resource is ProjectResource &&
+            resource.Annotations.OfType<ContainerBuildMetadataAnnotation>().LastOrDefault() is { } metadata)
+        {
+            var repository = metadata.ContainerRepository;
+            var tag = metadata.ContainerImageTag;
+
+            if (!string.IsNullOrEmpty(repository))
+            {
+                var tagSuffix = string.IsNullOrEmpty(tag) ? ":latest" : $":{tag}";
+                imageName = $"{repository}{tagSuffix}";
+                return true;
+            }
+        }
+
+        // Check if there's a DockerfileBuildAnnotation with an image name/tag
         // This takes precedence over the ContainerImageAnnotation when building from a Dockerfile
         if (useBuiltImage &&
             resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation &&

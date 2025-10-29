@@ -6,6 +6,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
@@ -225,6 +226,9 @@ internal sealed class ResourceContainerImageBuilder(
 
             logger.LogInformation("Building image: {ResourceName}", resource.Name);
 
+            // Query MSBuild properties before building to capture ContainerRepository and ContainerImageTag
+            await QueryAndStoreContainerMetadataAsync(resource, cancellationToken).ConfigureAwait(false);
+
             var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
 
             if (!success)
@@ -251,7 +255,17 @@ internal sealed class ResourceContainerImageBuilder(
             throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
         }
 
-        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+        // Check if the project has custom container metadata from MSBuild properties
+        // If ContainerRepository is already set in the project, don't override it
+        var hasCustomRepository = resource.Annotations.OfType<ContainerBuildMetadataAnnotation>().LastOrDefault()?.ContainerRepository != null;
+
+        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer";
+        
+        // Only set ContainerRepository if the project doesn't have one
+        if (!hasCustomRepository)
+        {
+            arguments += $" /p:ContainerRepository=\"{resource.Name}\"";
+        }
 
         // Add additional arguments based on options
         if (options is not null)
@@ -408,6 +422,91 @@ internal sealed class ResourceContainerImageBuilder(
     public async Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
     {
         await ContainerRuntime.PushImageAsync(imageName, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task QueryAndStoreContainerMetadataAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
+        {
+            return;
+        }
+
+        try
+        {
+            logger.LogDebug("Querying MSBuild container properties for project {ProjectPath}", projectMetadata.ProjectPath);
+
+            var outputBuilder = new System.Text.StringBuilder();
+            var errorBuilder = new System.Text.StringBuilder();
+
+            // Use dotnet msbuild to query ContainerRepository and ContainerImageTag properties
+            var spec = new ProcessSpec("dotnet")
+            {
+                Arguments = $"msbuild \"{projectMetadata.ProjectPath}\" -getProperty:ContainerRepository,ContainerImageTag -target:ComputeContainerConfig -nologo",
+                OnOutputData = output =>
+                {
+                    outputBuilder.AppendLine(output);
+                    logger.LogTrace("dotnet msbuild (stdout): {Output}", output);
+                },
+                OnErrorData = error =>
+                {
+                    errorBuilder.AppendLine(error);
+                    logger.LogTrace("dotnet msbuild (stderr): {Error}", error);
+                },
+                ThrowOnNonZeroReturnCode = false
+            };
+
+            var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+            await using (processDisposable)
+            {
+                var processResult = await pendingProcessResult
+                    .WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                var output = outputBuilder.ToString();
+
+                if (processResult.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+                {
+                    try
+                    {
+                        var jsonDoc = JsonDocument.Parse(output);
+                        var properties = jsonDoc.RootElement.GetProperty("Properties");
+
+                        var containerRepository = properties.TryGetProperty("ContainerRepository", out var repoElement)
+                            ? repoElement.GetString()
+                            : null;
+
+                        var containerImageTag = properties.TryGetProperty("ContainerImageTag", out var tagElement)
+                            ? tagElement.GetString()
+                            : null;
+
+                        logger.LogDebug("MSBuild container properties: Repository={Repository}, Tag={Tag}",
+                            containerRepository ?? "(null)", containerImageTag ?? "(null)");
+
+                        // Store the metadata in an annotation
+                        var annotation = new ContainerBuildMetadataAnnotation
+                        {
+                            ContainerRepository = containerRepository,
+                            ContainerImageTag = containerImageTag
+                        };
+
+                        resource.Annotations.Add(annotation);
+                    }
+                    catch (JsonException ex)
+                    {
+                        logger.LogWarning(ex, "Failed to parse MSBuild output for container properties");
+                    }
+                }
+                else
+                {
+                    logger.LogDebug("Failed to query MSBuild container properties, exit code: {ExitCode}", processResult.ExitCode);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail the build if we can't query the properties
+            logger.LogWarning(ex, "Failed to query MSBuild container properties for {ProjectPath}", projectMetadata.ProjectPath);
+        }
     }
 
     // .NET Container builds that push OCI images to a local file path do not need a runtime

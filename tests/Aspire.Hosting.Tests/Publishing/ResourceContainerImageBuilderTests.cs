@@ -921,4 +921,95 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             return Task.CompletedTask;
         }
     }
+
+    [Fact]
+    public void TryGetContainerImageName_UsesContainerBuildMetadataAnnotation_ForProjectResource()
+    {
+        // Arrange
+        var projectResource = new ProjectResource("testproject");
+        var annotation = new ContainerBuildMetadataAnnotation
+        {
+            ContainerRepository = "myrepo",
+            ContainerImageTag = "v1.2.3"
+        };
+        projectResource.Annotations.Add(annotation);
+
+        // Act
+        var result = projectResource.TryGetContainerImageName(out var imageName);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("myrepo:v1.2.3", imageName);
+    }
+
+    [Fact]
+    public void TryGetContainerImageName_UsesLatestTag_WhenTagIsNull()
+    {
+        // Arrange
+        var projectResource = new ProjectResource("testproject");
+        var annotation = new ContainerBuildMetadataAnnotation
+        {
+            ContainerRepository = "myrepo",
+            ContainerImageTag = null
+        };
+        projectResource.Annotations.Add(annotation);
+
+        // Act
+        var result = projectResource.TryGetContainerImageName(out var imageName);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("myrepo:latest", imageName);
+    }
+
+    [Fact]
+    public void TryGetContainerImageName_FallsBackToDefault_WhenRepositoryIsNull()
+    {
+        // Arrange
+        var projectResource = new ProjectResource("testproject");
+        var annotation = new ContainerBuildMetadataAnnotation
+        {
+            ContainerRepository = null,
+            ContainerImageTag = "v1.2.3"
+        };
+        projectResource.Annotations.Add(annotation);
+
+        // Act
+        var result = projectResource.TryGetContainerImageName(out var imageName);
+
+        // Assert
+        // Should return false since there's no other annotation to fall back to
+        Assert.False(result);
+        Assert.Null(imageName);
+    }
+
+    [Fact]
+    public void TryGetContainerImageName_PrefersContainerBuildMetadata_OverDockerfileBuildAnnotation()
+    {
+        // Arrange
+        var projectResource = new ProjectResource("testproject");
+        
+        // Add DockerfileBuildAnnotation first
+        var dockerfileAnnotation = new DockerfileBuildAnnotation("/path/to/context", "/path/to/Dockerfile", null)
+        {
+            ImageName = "dockerfile-image",
+            ImageTag = "dockerfile-tag"
+        };
+        projectResource.Annotations.Add(dockerfileAnnotation);
+
+        // Add ContainerBuildMetadataAnnotation (should take precedence for ProjectResource)
+        var metadataAnnotation = new ContainerBuildMetadataAnnotation
+        {
+            ContainerRepository = "msbuild-image",
+            ContainerImageTag = "msbuild-tag"
+        };
+        projectResource.Annotations.Add(metadataAnnotation);
+
+        // Act
+        var result = projectResource.TryGetContainerImageName(out var imageName);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("msbuild-image:msbuild-tag", imageName);
+    }
 }
