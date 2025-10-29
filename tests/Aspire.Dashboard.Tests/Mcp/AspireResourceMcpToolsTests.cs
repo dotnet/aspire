@@ -3,8 +3,10 @@
 
 using System.Collections.Immutable;
 using System.Threading.Channels;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Tests.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
 using Xunit;
@@ -150,6 +152,8 @@ public class AspireResourceMcpToolsTests
 
     private static AspireResourceMcpTools CreateTools(IDashboardClient dashboardClient)
     {
-        return new AspireResourceMcpTools(dashboardClient);
+        return new AspireResourceMcpTools(
+            dashboardClient,
+            new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
     }
 }

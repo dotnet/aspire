@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Model;
@@ -130,7 +131,8 @@ public class AssistantChatDataContextTests
             telemetryRepository ?? CreateRepository(),
             dashboardClient ?? new MockDashboardClient(),
             [],
-            new TestStringLocalizer<Dashboard.Resources.AIAssistant>());
+            new TestStringLocalizer<Dashboard.Resources.AIAssistant>(),
+            new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
 
         return context;
     }

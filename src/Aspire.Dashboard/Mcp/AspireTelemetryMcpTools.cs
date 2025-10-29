@@ -3,10 +3,12 @@
 
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 
 namespace Aspire.Dashboard.Mcp;
@@ -18,11 +20,13 @@ internal sealed class AspireTelemetryMcpTools
 {
     private readonly TelemetryRepository _telemetryRepository;
     private readonly IEnumerable<IOutgoingPeerResolver> _outgoingPeerResolvers;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
 
-    public AspireTelemetryMcpTools(TelemetryRepository telemetryRepository, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    public AspireTelemetryMcpTools(TelemetryRepository telemetryRepository, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, IOptionsMonitor<DashboardOptions> dashboardOptions)
     {
         _telemetryRepository = telemetryRepository;
         _outgoingPeerResolvers = outgoingPeerResolvers;
+        _dashboardOptions = dashboardOptions;
     }
 
     [McpServerTool(Name = "list_structured_logs")]
@@ -46,7 +50,7 @@ internal sealed class AspireTelemetryMcpTools
             Filters = []
         });
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue, includeDashboardUrl: true);
 
         var response = $"""
             Always format log_id in the response as code like this: `log_id: 123`.
@@ -80,7 +84,7 @@ internal sealed class AspireTelemetryMcpTools
             FilterText = string.Empty
         });
 
-        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers);
+        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers, _dashboardOptions.CurrentValue, includeDashboardUrl: true);
 
         var response = $"""
             {limitMessage}
@@ -115,7 +119,7 @@ internal sealed class AspireTelemetryMcpTools
             Filters = [traceIdFilter]
         });
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue, includeDashboardUrl: true);
 
         var response = $"""
             {limitMessage}

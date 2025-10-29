@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.ComponentModel;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Hosting.ConsoleLogs;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
@@ -17,10 +19,12 @@ namespace Aspire.Dashboard.Mcp;
 internal sealed class AspireResourceMcpTools
 {
     private readonly IDashboardClient _dashboardClient;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
 
-    public AspireResourceMcpTools(IDashboardClient dashboardClient)
+    public AspireResourceMcpTools(IDashboardClient dashboardClient, IOptionsMonitor<DashboardOptions> dashboardOptions)
     {
         _dashboardClient = dashboardClient;
+        _dashboardOptions = dashboardOptions;
     }
 
     [McpServerTool(Name = "list_resources")]
@@ -31,10 +35,10 @@ internal sealed class AspireResourceMcpTools
         {
             var resources = _dashboardClient.GetResources();
 
-            var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList());
+            var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList(), _dashboardOptions.CurrentValue, includeDashboardUrl: true);
 
             var response = $"""
-            Always format resource_name in the response as code like this: `frontend-abcxyz`
+            resource_name is the identifier of resources. Use the dashboard_link when displaying resource_name. For example: [`frontend-abcxyz`](https://localhost:1234/resource?name=frontend-abcxyz)
             Console logs for a resource can provide more information about why a resource is not in a running state.
 
             # RESOURCE DATA
