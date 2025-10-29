@@ -20,7 +20,6 @@ export default defineConfig({
       '/api': {
         target: process.env.WEATHERAPI_HTTPS || process.env.WEATHERAPI_HTTP,
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/api/, ''),
         secure: false
       }
     }
