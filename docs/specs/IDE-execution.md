@@ -216,8 +216,6 @@ Python launch configuration contains details for launching python scripts.
 |----------------|--------|-------|
 | `type` | Launch configuration type indicator; must be `python`.  | Required |
 | `program_path` | Path to the python startup file. | Required |
-| `interpreter_path` | Path to the python interpreter to use. | Optional |
-| `module` | The name of the module to execute, equivalent to python -m. | Optional |
 | `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 
 ## Run session change notifications
