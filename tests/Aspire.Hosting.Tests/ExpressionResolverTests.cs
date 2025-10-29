@@ -12,7 +12,10 @@ public class ExpressionResolverTests
     [MemberData(nameof(ResolveInternalAsync_ResolvesCorrectly_MemberData))]
     public async Task ResolveInternalAsync_ResolvesCorrectly(ExpressionResolverTestData testData, Type? exceptionType, (string Value, bool IsSensitive)? expectedValue)
     {
-        NetworkIdentifier? context = testData.SourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
+        ValueProviderContext context = new ValueProviderContext()
+        {
+            Network = testData.SourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork
+        };
         if (exceptionType is not null)
         {
             await Assert.ThrowsAsync(exceptionType, ResolveAsync);
@@ -64,11 +67,11 @@ public class ExpressionResolverTests
     [InlineData("Url2", true, false, "Url=http://aspire.dev.internal:22345;")]
     [InlineData("Url2", true, true, "Url=http://testresource:22345;")]
     [InlineData("OnlyHost", true, false, "Host=aspire.dev.internal;")]
-    [InlineData("OnlyHost", true, true, "Host=testresource;")] 
+    [InlineData("OnlyHost", true, true, "Host=testresource;")]
     [InlineData("OnlyPort", true, false, "Port=22345;")]
-    [InlineData("OnlyPort", true, true, "Port=22345;")] 
+    [InlineData("OnlyPort", true, true, "Port=22345;")]
     [InlineData("HostAndPort", true, false, "HostPort=aspire.dev.internal:22345")]
-    [InlineData("HostAndPort", true, true, "HostPort=testresource:22345")] 
+    [InlineData("HostAndPort", true, true, "HostPort=testresource:22345")]
     [InlineData("PortBeforeHost", true, false, "Port=22345;Host=aspire.dev.internal;")]
     [InlineData("PortBeforeHost", true, true, "Port=22345;Host=testresource;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://localhost:22346/;")]
@@ -124,7 +127,10 @@ public class ExpressionResolverTests
 
         // First test ExpressionResolver directly
         var csRef = new ConnectionStringReference(target.Resource, false);
-        var context = sourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
+        var context = new ValueProviderContext()
+        {
+            Network = sourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork
+        };
         var connectionString = await ExpressionResolver.ResolveAsync(csRef, context, CancellationToken.None).DefaultTimeout();
         Assert.Equal(expectedConnectionString, connectionString.Value);
 

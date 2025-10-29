@@ -598,9 +598,9 @@ public static class ResourceExtensions
         }
     }
 
-    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, NetworkIdentifier? context, CancellationToken cancellationToken)
+    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, NetworkIdentifier? networkContext, CancellationToken cancellationToken)
     {
-        var task = ExpressionResolver.ResolveAsync(valueProvider, context, cancellationToken);
+        var task = ExpressionResolver.ResolveAsync(valueProvider, new ValueProviderContext() { Network = networkContext }, cancellationToken);
 
         if (!task.IsCompleted)
         {
@@ -682,7 +682,6 @@ public static class ResourceExtensions
 
         return [];
     }
-   
 
     /// <summary>
     /// Gets references to all endpoints for the specified resource.
