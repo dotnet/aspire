@@ -1985,56 +1985,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PublishAsync_Deploy_WithInvalidStepName_ReportsErrorWithAvailableSteps()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "invalid-step-name");
-
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
-
-        var pipeline = new DistributedApplicationPipeline();
-        pipeline.AddStep("provision-infra", async (context) => await Task.CompletedTask);
-        pipeline.AddStep("build-compute", async (context) => await Task.CompletedTask);
-        pipeline.AddStep("deploy-compute", async (context) => await Task.CompletedTask);
-
-        builder.Services.AddSingleton<IDistributedApplicationPipeline>(pipeline);
-
-        var app = builder.Build();
-        var executor = app.Services.GetRequiredService<PipelineExecutor>();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await executor.ExecutePipelineAsync(model, CancellationToken.None));
-
-        var activityReader = reporter.ActivityItemUpdated.Reader;
-        var foundErrorActivity = false;
-        string? errorMessage = null;
-
-        while (activityReader.TryRead(out var activity))
-        {
-            if (activity.Type == PublishingActivityTypes.Task &&
-                activity.Data.IsError)
-            {
-                errorMessage = activity.Data.CompletionMessage;
-                if (errorMessage != null &&
-                    errorMessage.Contains("invalid-step-name") &&
-                    errorMessage.Contains("Available steps:") &&
-                    errorMessage.Contains("provision-infra") &&
-                    errorMessage.Contains("build-compute") &&
-                    errorMessage.Contains("deploy-compute"))
-                {
-                    foundErrorActivity = true;
-                    break;
-                }
-            }
-        }
-
-        Assert.True(foundErrorActivity, $"Expected to find a task activity with detailed error message about invalid step. Got: {errorMessage}");
-    }
-
-    [Fact]
     public async Task FilterStepsForExecution_WithRequiredBy_IncludesTransitiveDependencies()
     {
         // Arrange

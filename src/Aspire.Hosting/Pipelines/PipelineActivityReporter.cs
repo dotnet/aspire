@@ -228,12 +228,11 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
-        var operationName = "Pipeline";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
@@ -242,10 +241,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 Id = PublishingActivityTypes.PublishComplete,
                 StatusText = completionMessage ?? finalState switch
                 {
-                    CompletionState.Completed => $"{operationName} completed successfully",
-                    CompletionState.CompletedWithWarning => $"{operationName} completed with warnings",
-                    CompletionState.CompletedWithError => $"{operationName} completed with errors",
-                    _ => $"{operationName} completed"
+                    CompletionState.Completed => "Pipeline completed successfully",
+                    CompletionState.CompletedWithWarning => "Pipeline completed with warnings",
+                    CompletionState.CompletedWithError => "Pipeline completed with errors",
+                    _ => "Pipeline completed"
                 },
                 CompletionState = ToBackchannelCompletionState(finalState)
             }

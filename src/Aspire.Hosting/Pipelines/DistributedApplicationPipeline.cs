@@ -537,19 +537,19 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 try
                 {
                     var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
-                    var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
+                    var reportingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
 
-                    await using (publishingStep.ConfigureAwait(false))
+                    await using (reportingStep.ConfigureAwait(false))
                     {
                         var stepContext = new PipelineStepContext
                         {
                             PipelineContext = context,
-                            ReportingStep = publishingStep
+                            ReportingStep = reportingStep
                         };
 
                         try
                         {
-                            PipelineLoggerProvider.CurrentStep = publishingStep;
+                            PipelineLoggerProvider.CurrentStep = reportingStep;
 
                             await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
                         }
@@ -558,7 +558,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                             stepContext.Logger.LogError(ex, "Step '{StepName}' failed.", step.Name);
 
                             // Report the failure to the activity reporter before disposing
-                            await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+                            await reportingStep.FailAsync(ex.Message).ConfigureAwait(false);
                             throw;
                         }
                         finally

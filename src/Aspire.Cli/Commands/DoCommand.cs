@@ -52,6 +52,12 @@ internal sealed class DoCommand : PipelineCommandBase
             baseArgs.AddRange(["--log-level", logLevel!]);
         }
 
+        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        if (includeExceptionDetails)
+        {
+            baseArgs.AddRange(["--include-exception-details", "true"]);
+        }
+
         var environment = parseResult.GetValue(_environmentOption);
         if (!string.IsNullOrEmpty(environment))
         {

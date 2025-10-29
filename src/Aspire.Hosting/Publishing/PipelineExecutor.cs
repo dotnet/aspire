@@ -25,7 +25,8 @@ internal sealed class PipelineExecutor(
     IPipelineActivityReporter activityReporter,
     IDistributedApplicationEventing eventing,
     BackchannelService backchannelService,
-    IOptions<PipelineOptions> options) : BackgroundService
+    IOptions<PipelineOptions> options,
+    IPipelineActivityReporter pipelineActivityReporter) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -42,6 +43,11 @@ internal sealed class PipelineExecutor(
                 await backchannelService.BackchannelConnected.ConfigureAwait(false);
             }
 
+            var step = await pipelineActivityReporter.CreateStepAsync("pipeline execution", stoppingToken).ConfigureAwait(false);
+
+            // Set the current step in the logger provider so that logs are associated with the correct pipeline step
+            PipelineLoggerProvider.CurrentStep = step;
+
             try
             {
                 await eventing.PublishAsync<BeforePublishEvent>(
@@ -56,7 +62,9 @@ internal sealed class PipelineExecutor(
 
                 // We pass null here so the aggregate state can be calculated based on the state of
                 // each of the pipeline steps that have been enumerated.
-                await activityReporter.CompletePublishAsync(completionMessage: null, completionState: null, isDeploy: true, cancellationToken: stoppingToken).ConfigureAwait(false);
+
+                await step.SucceedAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
+                await activityReporter.CompletePublishAsync(completionMessage: null, completionState: null, cancellationToken: stoppingToken).ConfigureAwait(false);
 
                 // If we are running in publish mode and a backchannel is being
                 // used then we don't want to stop the app host. Instead the
@@ -70,13 +78,21 @@ internal sealed class PipelineExecutor(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to execute the pipeline.");
-                await activityReporter.CompletePublishAsync(completionMessage: ex.Message, completionState: CompletionState.CompletedWithError, isDeploy: true, cancellationToken: stoppingToken).ConfigureAwait(false);
+                logger.LogError(ex, ex.Message);
+
+                await step.FailAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
+
+                await activityReporter.CompletePublishAsync(completionMessage: ex.Message, completionState: CompletionState.CompletedWithError, cancellationToken: stoppingToken).ConfigureAwait(false);
 
                 if (!backchannelService.IsBackchannelExpected)
                 {
                     throw new DistributedApplicationException($"Pipeline execution failed: {ex.Message}", ex);
                 }
+            }
+            finally
+            {
+                // Clear the current step from the logger provider
+                PipelineLoggerProvider.CurrentStep = null;
             }
         }
     }
@@ -86,32 +102,7 @@ internal sealed class PipelineExecutor(
         var pipelineContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
             Path.GetFullPath(options.Value.OutputPath) : null);
 
-        try
-        {
-            var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
-            await pipeline.ExecuteAsync(pipelineContext).ConfigureAwait(false);
-        }
-        catch (InvalidOperationException ex)
-        {
-            var errorStep = await activityReporter.CreateStepAsync(
-                "pipeline-validation",
-                cancellationToken).ConfigureAwait(false);
-
-            await using (errorStep.ConfigureAwait(false))
-            {
-                var errorTask = await errorStep.CreateTaskAsync(
-                    "Validating pipeline configuration",
-                    cancellationToken)
-                    .ConfigureAwait(false);
-
-                await errorTask.CompleteAsync(
-                    ex.Message,
-                    CompletionState.CompletedWithError,
-                    cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            throw;
-        }
+        var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
+        await pipeline.ExecuteAsync(pipelineContext).ConfigureAwait(false);
     }
 }

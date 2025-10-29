@@ -56,7 +56,7 @@ internal sealed class DeployCommand : PipelineCommandBase
         var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
         if (includeExceptionDetails)
         {
-            baseArgs.Add("--include-exception-details");
+            baseArgs.AddRange(["--include-exception-details", "true"]);
         }
 
         var environment = parseResult.GetValue(_environmentOption);
