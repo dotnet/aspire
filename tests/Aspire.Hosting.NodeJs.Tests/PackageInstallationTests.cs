@@ -359,6 +359,89 @@ public class PackageInstallationTests
         Assert.Equal("yarn", installer.Command);
     }
 
+    [Fact]
+    public void WithNpm_DefaultInstallsPackages()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithNpm(); // Using default parameter (should be install: true)
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with npm command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("npm", nodeResource.Command);
+
+        // Verify the installer resource was created by default
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void WithYarn_DefaultInstallsPackages()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithYarn(); // Using default parameter (should be install: true)
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with yarn command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("yarn", nodeResource.Command);
+
+        // Verify the installer resource was created by default
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void WithPnpm_DefaultInstallsPackages()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        nodeApp.WithPnpm(); // Using default parameter (should be install: true)
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with pnpm command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("pnpm", nodeResource.Command);
+
+        // Verify the installer resource was created by default
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void AddViteApp_DefaultInstallsPackages()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddViteApp("test-app", "./test-app");
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with npm command (default package manager)
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("npm", nodeResource.Command);
+
+        // Verify the installer resource was created by default for ViteApp
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
