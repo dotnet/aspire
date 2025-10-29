@@ -21,7 +21,7 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
             // This assumes both containers are on the same container network.
             // Different networks will require addtional routing/tunneling that we do not support today.
             (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
-            (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
+            (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(new ValueProviderContext { Network = context }, cancellationToken).ConfigureAwait(false),
 
             (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
                                             endpointReference.Scheme,
