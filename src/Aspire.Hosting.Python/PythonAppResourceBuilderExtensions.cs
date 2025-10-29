@@ -77,7 +77,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method executes a Python script directly using <c>python script.py</c>.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
@@ -112,7 +112,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs a Python module using <c>python -m &lt;module&gt;</c>.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the module.
     /// </para>
     /// <para>
@@ -147,7 +147,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs an executable from the virtual environment's bin directory.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the executable.
     /// </para>
     /// <para>
@@ -258,6 +258,12 @@ public static class PythonAppResourceBuilderExtensions
     /// <summary>
     /// Adds a Uvicorn-based Python application to the distributed application builder with HTTP endpoint configuration.
     /// </summary>
+    /// <param name="builder">The distributed application builder to which the Uvicorn application resource will be added.</param>
+    /// <param name="name">The unique name of the Uvicorn application resource.</param>
+    /// <param name="appDirectory">The directory containing the Python application files.</param>
+    /// <param name="app">The ASGI app import path which informs Uvicorn which module and variable to load as your web application.
+    /// For example, "main:app" means "main.py" file and variable named "app".</param>
+    /// <returns>A resource builder for further configuration of the Uvicorn Python application resource.</returns>
     /// <remarks>
     /// <para>
     /// This method configures the application to use Uvicorn as the ASGI server and exposes an HTTP
@@ -272,12 +278,6 @@ public static class PythonAppResourceBuilderExtensions
     /// In non-publish mode, the <c>--reload</c> flag is automatically added to enable hot reload during development.
     /// </para>
     /// </remarks>
-    /// <param name="builder">The distributed application builder to which the Uvicorn application resource will be added.</param>
-    /// <param name="name">The unique name of the Uvicorn application resource.</param>
-    /// <param name="appDirectory">The directory containing the Python application files.</param>
-    /// <param name="app">The ASGI app import path which informs Uvicorn which module and variable to load as your web application.
-    /// For example, "main:app" means "main.py" file and variable named "app".</param>
-    /// <returns>A resource builder for further configuration of the Uvicorn Python application resource.</returns>
     /// <example>
     /// Add a FastAPI application using Uvicorn:
     /// <code lang="csharp">
@@ -293,275 +293,36 @@ public static class PythonAppResourceBuilderExtensions
     public static IResourceBuilder<UvicornAppResource> AddUvicornApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentNullException.ThrowIfNull(appDirectory);
-        ArgumentException.ThrowIfNullOrEmpty(app);
-
-        const string virtualEnvironmentPath = DefaultVirtualEnvFolder;
-        const string executableName = "uvicorn";
-        const EntrypointType entrypointType = EntrypointType.Executable;
-
-        // Create UvicornAppResource instead of PythonAppResource
-        var resource = new UvicornAppResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
-
-        var resourceBuilder = builder
-            .AddResource(resource)
-            // Order matters, we need to bootstrap the entrypoint before setting the entrypoint
-            .WithAnnotation(new PythonEntrypointAnnotation
-            {
-                Type = entrypointType,
-                Entrypoint = executableName
-            })
-            // This will resolve the correct python executable based on the virtual environment
-            .WithVirtualEnvironment(virtualEnvironmentPath)
-            // This will set up the entrypoint based on the PythonEntrypointAnnotation
-            .WithEntrypoint(entrypointType, executableName);
-
-        resourceBuilder.WithIconName("CodePyRectangle");
-
-        resourceBuilder.WithOtlpExporter();
-
-        // Configure OpenTelemetry exporters using environment variables
-        // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
-        resourceBuilder.WithEnvironment(context =>
-        {
-            context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
-            context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp";
-            context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
-
-            // Make sure to attach the logging instrumentation setting, so we can capture logs.
-            // Without this you'll need to configure logging yourself. Which is kind of a pain.
-            context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
-
-            // Set PYTHONUTF8=1 on Windows in run mode to enable UTF-8 mode
-            // See: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONUTF8
-            if (OperatingSystem.IsWindows() && context.ExecutionContext.IsRunMode)
-            {
-                context.EnvironmentVariables["PYTHONUTF8"] = "1";
-            }
-        });
-
-        // Configure required environment variables for custom certificate trust when running as an executable
-        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
-        // way to simply append additional certificates to default Python trust stores such as certifi.
-        resourceBuilder
-            .WithCertificateTrustScope(CertificateTrustScope.System)
-            .WithCertificateTrustConfiguration(ctx =>
-            {
-                if (ctx.Scope == CertificateTrustScope.Append)
-                {
-                    var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-                    var logger = resourceLogger.GetLogger(ctx.Resource);
-                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
-                }
-                else
-                {
-                    // Override default certificates path for the requests module.
-                    // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                    ctx.EnvironmentVariables["REQUESTS_CA_BUNDLE"] = ctx.CertificateBundlePath;
-
-                    // Requests also supports CURL_CA_BUNDLE as an alternative config (lower priority than REQUESTS_CA_BUNDLE).
-                    // Setting it to be as complete as possible and avoid potential issues with conflicting configurations.
-                    ctx.EnvironmentVariables["CURL_CA_BUNDLE"] = ctx.CertificateBundlePath;
-                }
-
-                // Override default opentelemetry-python certificate bundle path
-                // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
-                ctx.EnvironmentVariables["OTEL_EXPORTER_OTLP_CERTIFICATE"] = ctx.CertificateBundlePath;
-
-                return Task.CompletedTask;
-            });
-
-        resourceBuilder.PublishAsDockerFile(c =>
-        {
-            // Only generate a Dockerfile if one doesn't already exist in the app directory
-            if (File.Exists(Path.Combine(resource.WorkingDirectory, "Dockerfile")))
-            {
-                return;
-            }
-
-            c.WithDockerfileBuilder(resource.WorkingDirectory,
-                context =>
-                {
-                    if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
-                        !pythonEnvironmentAnnotation.Uv)
-                    {
-                        // Use the default Dockerfile if not using UV
-                        return;
-                    }
-
-                    if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
-                    {
-                        // No entrypoint annotation found, cannot generate Dockerfile
-                        return;
-                    }
-
-                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
-
-                    if (pythonVersion is null)
-                    {
-                        // Could not detect Python version, skip Dockerfile generation
-                        return;
-                    }
-
-                    var entrypointTypeFromAnnotation = entrypointAnnotation.Type;
-                    var entrypoint = entrypointAnnotation.Entrypoint;
-
-                    // Determine entry command for Dockerfile
-                    string[] entryCommand = entrypointTypeFromAnnotation switch
-                    {
-                        EntrypointType.Script => ["python", entrypoint],
-                        EntrypointType.Module => ["python", "-m", entrypoint],
-                        EntrypointType.Executable => [entrypoint],
-                        _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointTypeFromAnnotation}")
-                    };
-
-                    // Check if uv.lock exists in the working directory
-                    var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
-                    var hasUvLock = File.Exists(uvLockPath);
-
-                    var builderStage = context.Builder
-                        .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
-                        .EmptyLine()
-                        .Comment("Enable bytecode compilation and copy mode for the virtual environment")
-                        .Env("UV_COMPILE_BYTECODE", "1")
-                        .Env("UV_LINK_MODE", "copy")
-                        .EmptyLine()
-                        .WorkDir("/app")
-                        .EmptyLine();
-
-                    if (hasUvLock)
-                    {
-                        // If uv.lock exists, use locked mode for reproducible builds
-                        builderStage
-                            .Comment("Install dependencies first for better layer caching")
-                            .Comment("Uses BuildKit cache mounts to speed up repeated builds")
-                            .RunWithMounts(
-                                "uv sync --locked --no-install-project --no-dev",
-                                "type=cache,target=/root/.cache/uv",
-                                "type=bind,source=uv.lock,target=uv.lock",
-                                "type=bind,source=pyproject.toml,target=pyproject.toml")
-                            .EmptyLine()
-                            .Comment("Copy the rest of the application source and install the project")
-                            .Copy(".", "/app")
-                            .RunWithMounts(
-                                "uv sync --locked --no-dev",
-                                "type=cache,target=/root/.cache/uv");
-                    }
-                    else
-                    {
-                        // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
-                        builderStage
-                            .Comment("Copy pyproject.toml to install dependencies")
-                            .Copy("pyproject.toml", "/app/")
-                            .EmptyLine()
-                            .Comment("Install dependencies and generate lock file")
-                            .Comment("Uses BuildKit cache mount to speed up repeated builds")
-                            .RunWithMounts(
-                                "uv sync --no-install-project --no-dev",
-                                "type=cache,target=/root/.cache/uv")
-                            .EmptyLine()
-                            .Comment("Copy the rest of the application source and install the project")
-                            .Copy(".", "/app")
-                            .RunWithMounts(
-                                "uv sync --no-dev",
-                                "type=cache,target=/root/.cache/uv");
-                    }
-
-                    var runtimeBuilder = context.Builder
-                        .From($"python:{pythonVersion}-slim-bookworm", "app")
-                        .EmptyLine()
-                        .AddContainerFiles(context.Resource, "/app")
-                        .Comment("------------------------------")
-                        .Comment("🚀 Runtime stage")
-                        .Comment("------------------------------")
-                        .Comment("Create non-root user for security")
-                        .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
-                        .EmptyLine()
-                        .Comment("Copy the application and virtual environment from builder")
-                        .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
-                        .EmptyLine()
-                        .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
-                        .Env("PATH", "/app/.venv/bin:${PATH}")
-                        .Env("VIRTUAL_ENV", "/app/.venv")
-                        .Env("PYTHONDONTWRITEBYTECODE", "1")
-                        .Env("PYTHONUNBUFFERED", "1")
-                        .EmptyLine()
-                        .Comment("Use the non-root user to run the application")
-                        .User("appuser")
-                        .EmptyLine()
-                        .Comment("Set working directory")
-                        .WorkDir("/app")
-                        .EmptyLine()
-                        .Comment("Run the application");
-
-                    // Set the appropriate entrypoint and command based on entrypoint type
-                    switch (entrypointTypeFromAnnotation)
-                    {
-                        case EntrypointType.Script:
-                            runtimeBuilder.Entrypoint(["python", entrypoint]);
-                            break;
-                        case EntrypointType.Module:
-                            runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
-                            break;
-                        case EntrypointType.Executable:
-                            runtimeBuilder.Entrypoint([entrypoint]);
-                            break;
-                    }
-                });
-        });
-
-        resourceBuilder.WithPipelineConfiguration(context =>
-        {
-            if (resourceBuilder.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
-            {
-                var buildSteps = context.GetSteps(resourceBuilder.Resource, WellKnownPipelineTags.BuildCompute);
-
-                foreach (var containerFile in containerFilesAnnotations)
-                {
-                    buildSteps.DependsOn(context.GetSteps(containerFile.Source, WellKnownPipelineTags.BuildCompute));
-                }
-            }
-        });
-
-        // Enable debugging support
-        resourceBuilder.WithDebugging();
-
-        // Configure HTTP endpoint
-        resourceBuilder.WithHttpEndpoint(env: "PORT")
+        var resourceBuilder =
+            AddPythonAppCore<UvicornAppResource>(
+                builder,
+                name,
+                appDirectory,
+                EntrypointType.Executable,
+                "uvicorn",
+                DefaultVirtualEnvFolder,
+                (n, e, d) => new UvicornAppResource(n, e, d))
+            .WithDebugging()
+            .WithHttpEndpoint(env: "PORT")
             .WithArgs(c =>
             {
                 c.Args.Add(app);
-
-                c.Args.Add("--host");
-                var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
-                if (builder.ExecutionContext.IsPublishMode)
-                {
-                    c.Args.Add("0.0.0.0");
-                }
-                else
-                {
-                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
-                }
-
-                c.Args.Add("--port");
-                c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
-
-                // Add hot reload in non-publish mode
-                if (!builder.ExecutionContext.IsPublishMode)
-                {
-                    c.Args.Add("--reload");
-                }
             });
 
-        // Return a properly typed resource builder for UvicornAppResource
-        return builder.CreateResourceBuilder(resource);
+        return resourceBuilder;
     }
 
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
         IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
         string entrypoint, string virtualEnvironmentPath)
+    {
+        return AddPythonAppCore(builder, name, appDirectory, entrypointType, entrypoint,
+            virtualEnvironmentPath, (n, e, d) => new PythonAppResource(n, e, d));
+    }
+
+    private static IResourceBuilder<T> AddPythonAppCore<T>(
+        IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
+        string entrypoint, string virtualEnvironmentPath, Func<string, string, string, T> createResource) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -570,7 +331,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
         // python will be replaced with the resolved entrypoint based on the virtualEnvironmentPath
-        var resource = new PythonAppResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
+        var resource = createResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
 
         var resourceBuilder = builder
             .AddResource(resource)
@@ -868,8 +629,8 @@ public static class PythonAppResourceBuilderExtensions
     ///     .WithVirtualEnvironment("myenv");
     /// </code>
     /// </example>
-    public static IResourceBuilder<PythonAppResource> WithVirtualEnvironment(
-        this IResourceBuilder<PythonAppResource> builder, string virtualEnvironmentPath)
+    public static IResourceBuilder<T> WithVirtualEnvironment<T>(
+        this IResourceBuilder<T> builder, string virtualEnvironmentPath) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
@@ -917,8 +678,8 @@ public static class PythonAppResourceBuilderExtensions
     /// the program or module to debug, and appropriate launch settings.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<PythonAppResource> WithDebugging(
-        this IResourceBuilder<PythonAppResource> builder)
+    public static IResourceBuilder<T> WithDebugging<T>(
+        this IResourceBuilder<T> builder) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -1045,8 +806,8 @@ public static class PythonAppResourceBuilderExtensions
     ///     .WithArgs("main:app", "--reload");
     /// </code>
     /// </example>
-    public static IResourceBuilder<PythonAppResource> WithEntrypoint(
-        this IResourceBuilder<PythonAppResource> builder, EntrypointType entrypointType, string entrypoint)
+    public static IResourceBuilder<T> WithEntrypoint<T>(
+        this IResourceBuilder<T> builder, EntrypointType entrypointType, string entrypoint) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
