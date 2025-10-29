@@ -6,7 +6,8 @@
     <PackageTags>aspire integration hosting azure cloud appservice</PackageTags>
     <Description>Azure app service resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
