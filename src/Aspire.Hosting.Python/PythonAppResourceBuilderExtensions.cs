@@ -301,88 +301,6 @@ public static class PythonAppResourceBuilderExtensions
         return resourceBuilder;
     }
 
-    /// <summary>
-    /// Adds a Gunicorn-based Python WSGI application to the distributed application builder with HTTP endpoint configuration.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This method configures the application to use Gunicorn in production and Flask's development server in development mode.
-    /// In development (non-publish mode), it runs <c>flask run</c> with automatic reloading and sets FLASK_ENV=development.
-    /// In production (publish mode), it runs <c>gunicorn</c> for better performance and scalability.
-    /// The host and port are automatically configured based on the HTTP endpoint.
-    /// </para>
-    /// </remarks>
-    /// <param name="builder">The distributed application builder to which the WSGI application resource will be added.</param>
-    /// <param name="name">The unique name of the WSGI application resource.</param>
-    /// <param name="appDirectory">The directory containing the Python application files.</param>
-    /// <param name="app">The WSGI app import path (e.g., "main:app" or "myapp:create_app()").
-    /// For Flask, this is set as FLASK_APP in development mode. For Gunicorn, this is passed as the app module.</param>
-    /// <returns>A resource builder for further configuration of the Python WSGI application resource.</returns>
-    /// <example>
-    /// Add a Flask application using the application factory pattern:
-    /// <code lang="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// var flaskApp = builder.AddGunicornApp("flask-app", "../flask-app", "app:create_app");
-    ///
-    /// builder.Build().Run();
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Add a Flask application with UV environment setup:
-    /// <code lang="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// var flaskApp = builder.AddGunicornApp("flask-app", "../flask-app", "myapp:app")
-    ///     .WithUvEnvironment();
-    ///
-    /// builder.Build().Run();
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<PythonAppResource> AddGunicornApp(
-        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(app);
-
-        IResourceBuilder<PythonAppResource> resourceBuilder;
-
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            // Production: Use Gunicorn
-            resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "gunicorn")
-                .WithHttpEndpoint(env: "PORT")
-                .WithArgs(c =>
-                {
-                    c.Args.Add("--bind");
-                    var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
-                    c.Args.Add($"0.0.0.0:{endpoint.Property(EndpointProperty.TargetPort)}");
-
-                    c.Args.Add(app);
-                });
-        }
-        else
-        {
-            // Development: Use Flask dev server
-            resourceBuilder = builder.AddPythonModule(name, appDirectory, "flask")
-                .WithHttpEndpoint(env: "PORT")
-                .WithEnvironment("FLASK_APP", app)
-                .WithEnvironment("FLASK_ENV", "development")
-                .WithArgs(c =>
-                {
-                    c.Args.Add("run");
-
-                    c.Args.Add("--host");
-                    var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
-                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
-
-                    c.Args.Add("--port");
-                    c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
-                });
-        }
-
-        return resourceBuilder;
-    }
-
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
         IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
         string entrypoint, string virtualEnvironmentPath)
@@ -786,7 +704,14 @@ public static class PythonAppResourceBuilderExtensions
                         ? annotation.VirtualEnvironment.VirtualEnvironmentPath
                         : Path.GetFullPath(annotation.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
 
-                    interpreterPath = Path.Join(venvPath, "bin", "python");
+                    if (OperatingSystem.IsWindows())
+                    {
+                        interpreterPath = Path.Join(venvPath, "Scripts", "python.exe");
+                    }
+                    else
+                    {
+                        interpreterPath = Path.Join(venvPath, "bin", "python");
+                    }
                 }
 
                 return new PythonLaunchConfiguration
