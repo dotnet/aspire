@@ -244,7 +244,6 @@
     <PackageVersion Update="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpVersion)" />
     <PackageVersion Update="System.Formats.Asn1" Version="$(SystemFormatsAsn1Version)" />
     <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonVersion)" />
-    <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <!-- EF -->
@@ -252,7 +251,7 @@
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignPreviewVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPreviewVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsPreviewVersion)" />
-    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" /> <!-- TODO: Should be Version="10.0.0-rc.2" /> -->
+    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-rc.2" />
     <!-- ASP.NET Core -->
     <PackageVersion Update="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePreviewVersion)" />
     <PackageVersion Update="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerPreviewVersion)" />
@@ -278,6 +277,5 @@
     <PackageVersion Update="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpPreviewVersion)" />
     <PackageVersion Update="System.Formats.Asn1" Version="$(SystemFormatsAsn1PreviewVersion)" />
     <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonPreviewVersion)" />
-    <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsPreviewVersion)" />
   </ItemGroup>
 </Project>
