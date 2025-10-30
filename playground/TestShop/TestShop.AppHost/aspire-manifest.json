@@ -194,9 +194,13 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
+        "BASKETSERVICE_HTTP": "{basketservice.bindings.http.url}",
         "services__basketservice__http__0": "{basketservice.bindings.http.url}",
+        "BASKETSERVICE_HTTPS": "{basketservice.bindings.https.url}",
         "services__basketservice__https__0": "{basketservice.bindings.https.url}",
+        "CATALOGSERVICE_HTTP": "{catalogservice.bindings.http.url}",
         "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
+        "CATALOGSERVICE_HTTPS": "{catalogservice.bindings.https.url}",
         "services__catalogservice__https__0": "{catalogservice.bindings.https.url}"
       },
       "bindings": {
@@ -238,7 +242,7 @@
       ],
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
+        "CATALOGSERVICE_HTTP": "{catalogservice.bindings.http.url}",
         "REVERSEPROXY__ROUTES__route0__MATCH__PATH": "/catalog/{**catch-all}",
         "REVERSEPROXY__ROUTES__route0__CLUSTERID": "cluster_catalogservice",
         "REVERSEPROXY__ROUTES__route0__TRANSFORMS__0__PathRemovePrefix": "/catalog",
@@ -247,6 +251,8 @@
         "REVERSEPROXY__ROUTES__route1__TRANSFORMS__0__PathRemovePrefix": "/basket",
         "REVERSEPROXY__CLUSTERS__cluster_catalogservice__DESTINATIONS__destination1__ADDRESS": "http://_http.catalogservice",
         "REVERSEPROXY__CLUSTERS__cluster_basketservice__DESTINATIONS__destination1__ADDRESS": "http://_http.basketservice",
+        "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
+        "BASKETSERVICE_HTTP": "{basketservice.bindings.http.url}",
         "services__basketservice__http__0": "{basketservice.bindings.http.url}"
       },
       "bindings": {

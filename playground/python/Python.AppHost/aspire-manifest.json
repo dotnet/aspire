@@ -80,6 +80,63 @@
           "targetPort": 8001
         }
       }
+    },
+    "flask-app": {
+      "type": "container.v1",
+      "build": {
+        "context": "../flask_app",
+        "dockerfile": "flask-app.Dockerfile"
+      },
+      "args": [
+        "run",
+        "--host=0.0.0.0",
+        "--port=8002"
+      ],
+      "env": {
+        "OTEL_TRACES_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp",
+        "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true",
+        "FLASK_APP": "app:create_app"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8002
+        }
+      }
+    },
+    "uvicorn-app": {
+      "type": "container.v1",
+      "build": {
+        "context": "../uvicorn_app",
+        "dockerfile": "uvicorn-app.Dockerfile"
+      },
+      "args": [
+        "app:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "{uvicorn-app.bindings.http.targetPort}"
+      ],
+      "env": {
+        "OTEL_TRACES_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp",
+        "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true",
+        "PORT": "{uvicorn-app.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8003,
+          "external": true
+        }
+      }
     }
   }
 }
