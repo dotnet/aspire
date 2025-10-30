@@ -81,7 +81,7 @@ public static class NodeAppHostingExtension
     }
 
     /// <summary>
-    /// Adds a JavaScript application resource to the distributed application using the specified working directory and
+    /// Adds a JavaScript application resource to the distributed application using the specified app directory and
     /// run script.
     /// </summary>
     /// <param name="builder">The distributed application builder to which the JavaScript application resource will be added.</param>
@@ -284,7 +284,7 @@ public static class NodeAppHostingExtension
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installCommand ??= resource.ApplicationBuilder.ExecutionContext.IsPublishMode ? "ci" : "install";
+        installCommand ??= GetDefaultNpmInstallCommand(resource);
 
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run"))
@@ -293,6 +293,12 @@ public static class NodeAppHostingExtension
         AddInstaller(resource, install);
         return resource;
     }
+
+    private static string GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
+            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"))
+            ? "ci"
+            : "install";
 
     /// <summary>
     /// Configures the Node.js resource to use yarn as the package manager and optionally installs packages before the application starts.
@@ -305,7 +311,7 @@ public static class NodeAppHostingExtension
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installArgs ??= resource.ApplicationBuilder.ExecutionContext.IsPublishMode ? ["--immutable"] : [];
+        installArgs ??= GetDefaultYarnInstallArgs(resource);
 
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run"))
@@ -314,6 +320,12 @@ public static class NodeAppHostingExtension
         AddInstaller(resource, install);
         return resource;
     }
+
+    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
+            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "yarn.lock"))
+            ? ["--immutable"]
+            : [];
 
     /// <summary>
     /// Configures the Node.js resource to use pnmp as the package manager and optionally installs packages before the application starts.
@@ -326,7 +338,7 @@ public static class NodeAppHostingExtension
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installArgs ??= resource.ApplicationBuilder.ExecutionContext.IsPublishMode ? ["--frozen-lockfile"] : [];
+        installArgs ??= GetDefaultPnpmInstallArgs(resource);
 
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run"))
@@ -335,6 +347,12 @@ public static class NodeAppHostingExtension
         AddInstaller(resource, install);
         return resource;
     }
+
+    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
+            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"))
+            ? ["--frozen-lockfile"]
+            : [];
 
     /// <summary>
     /// Adds a build script annotation to the resource builder using the specified command-line arguments.

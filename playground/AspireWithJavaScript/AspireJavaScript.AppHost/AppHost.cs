@@ -19,7 +19,7 @@ builder.AddJavaScriptApp("react", "../AspireJavaScript.React")
     .PublishAsDockerFile();
 
 builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
-    .WithNpm(installArgs: ["ci"]) // Use 'npm ci' for clean install
+    .WithNpm(installCommand: "ci") // Use 'npm ci' for clean install
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithHttpEndpoint(env: "PORT")
