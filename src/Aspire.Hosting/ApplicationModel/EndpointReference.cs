@@ -265,7 +265,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
     {
-        return GetNetworkValueAsync(null, cancellationToken);
+        return GetValueAsync(new(), cancellationToken);
     }
 
     /// <summary>
@@ -275,33 +275,23 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="string"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
-    public ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default)
+    public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default)
     {
-        return context.Network switch
-        {
-            NetworkIdentifier networkID => GetNetworkValueAsync(networkID, cancellationToken),
-            _ => GetNetworkValueAsync(null, cancellationToken)
-        };
-    }
+        var networkContext = context.GetNetworkIdentifier();
 
-    
-    private async ValueTask<string?> GetNetworkValueAsync(NetworkIdentifier? context, CancellationToken cancellationToken = default)
-    {
         return Property switch
         {
             EndpointProperty.Scheme => new(Endpoint.Scheme),
-            EndpointProperty.IPV4Host when context is null || context == KnownNetworkIdentifiers.LocalhostNetwork => "127.0.0.1",
+            EndpointProperty.IPV4Host when context is null || networkContext == KnownNetworkIdentifiers.LocalhostNetwork => "127.0.0.1",
             EndpointProperty.TargetPort when Endpoint.TargetPort is int port => new(port.ToString(CultureInfo.InvariantCulture)),
             _ => await ResolveValueWithAllocatedAddress().ConfigureAwait(false)
         };
 
         async ValueTask<string?> ResolveValueWithAllocatedAddress()
         {
-            var effectiveContext = context ?? Endpoint.ContextNetworkID;
-
             // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
             // and in future we might need some sort of policy to choose between them, but for now we just take the first one.
-            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == effectiveContext).FirstOrDefault();
+            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
             if (nes is null)
             {
                 return null;

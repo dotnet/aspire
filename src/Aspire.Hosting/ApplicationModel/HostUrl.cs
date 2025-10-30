@@ -1,6 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -13,26 +17,19 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
     string IManifestExpressionProvider.ValueExpression => Url;
 
     // Returns the url
-    ValueTask<string?> IValueProvider.GetValueAsync(System.Threading.CancellationToken _) => GetNetworkValueAsync(null);
+    ValueTask<string?> IValueProvider.GetValueAsync(System.Threading.CancellationToken cancellationToken) => ((IValueProvider)this).GetValueAsync(new(), cancellationToken);
 
     // Returns the url
-    ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken _)
+    async ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
-        return context.Network switch
-        {
-            NetworkIdentifier networkContext => GetNetworkValueAsync(networkContext),
-            _ => GetNetworkValueAsync(null)
-        };
-    }
+        var networkContext = context.GetNetworkIdentifier();
 
-    private ValueTask<string?> GetNetworkValueAsync(NetworkIdentifier? context)
-    {
         // HostUrl is a bit of a hack that is not modeled as an expression
         // So in this one case, we need to fix up the container host name 'manually'
         // Internally, this is only used for OTEL_EXPORTER_OTLP_ENDPOINT, but HostUrl
         // is public, so we don't control how it is used
 
-        if (context is null || context == KnownNetworkIdentifiers.LocalhostNetwork)
+        if (networkContext == KnownNetworkIdentifiers.LocalhostNetwork)
         {
             return new(Url);
         }
@@ -44,14 +41,52 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
             var uri = new UriBuilder(Url);
             if (uri.Host is "localhost" or "127.0.0.1" or "[::1]")
             {
-                var hasEndingSlash = Url.EndsWith('/');
-                uri.Host = KnownHostNames.DefaultContainerTunnelHostName;
-                retval = uri.ToString();
-
-                // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
-                if (!hasEndingSlash && retval.EndsWith('/'))
+                if (context.ExecutionContext is { } && context.ExecutionContext.IsRunMode)
                 {
-                    retval = retval[..^1];
+                    var options = context.ExecutionContext.ServiceProvider.GetRequiredService<IOptions<DcpOptions>>();
+
+                    var infoService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
+                    var dcpInfo = await infoService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    var hasEndingSlash = Url.EndsWith('/');
+                    uri.Host = options.Value.EnableAspireContainerTunnel == true ? KnownHostNames.DefaultContainerTunnelHostName : dcpInfo?.Containers?.ContainerHostName ?? KnownHostNames.DockerDesktopHostBridge;
+
+                    if (options.Value.EnableAspireContainerTunnel)
+                    {
+                        // We need to consider that both the host and port may need to be remapped
+                        var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                        var targetResource = model.Resources.FirstOrDefault(r =>
+                        {
+                            // Find a non-container resource with an endpoint matching the original localhost:port
+                            return !r.IsContainer() &&
+                                r is IResourceWithEndpoints &&
+                                r.TryGetEndpoints(out var endpoints) &&
+                                endpoints.Any(ep => ep.DefaultNetworkID == KnownNetworkIdentifiers.LocalhostNetwork && ep.Port == uri.Port);
+                        });
+
+                        if (targetResource is IResourceWithEndpoints resourceWithEndpoints)
+                        {
+                            var originalEndpoint = resourceWithEndpoints.GetEndpoints().FirstOrDefault(ep => ep.ContextNetworkID == KnownNetworkIdentifiers.LocalhostNetwork && ep.Port == uri.Port);
+                            if (originalEndpoint is not null)
+                            {
+                                // Find the mapped endpoint for the target network context
+                                var mappedEndpoint = resourceWithEndpoints.GetEndpoint(originalEndpoint.EndpointName, networkContext);
+                                if (mappedEndpoint is not null)
+                                {
+                                    // Update the port to the mapped port
+                                    uri.Port = mappedEndpoint.Port;
+                                }
+                            }
+                        }
+                    }
+
+                    retval = uri.ToString();
+
+                    // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
+                    if (!hasEndingSlash && retval.EndsWith('/'))
+                    {
+                        retval = retval[..^1];
+                    }
                 }
             }
         }

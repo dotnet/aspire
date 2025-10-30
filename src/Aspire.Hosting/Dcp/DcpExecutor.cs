@@ -131,7 +131,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
 
     private string ContainerHostName => _configuration["AppHost:ContainerHostname"] ??
-        (_options.Value.EnableAspireContainerTunnel ? KnownHostNames.DefaultContainerTunnelHostName : KnownHostNames.DockerDesktopHostBridge);
+        (_options.Value.EnableAspireContainerTunnel ? KnownHostNames.DefaultContainerTunnelHostName : _dcpInfo?.Containers?.HostName ?? KnownHostNames.DockerDesktopHostBridge);
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -846,7 +846,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
         else
         {
-            // Container services are services that "mirror" their primary (host) service counterparts, but expose addresses usable from container network. 
+            // Container services are services that "mirror" their primary (host) service counterparts, but expose addresses usable from container network.
             // We just need to update their ports from primary services, changing the address to container host.
             var containerServices = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (
                 Service: r.DcpResource as Service,
@@ -1186,7 +1186,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 svc.Annotate(CustomResource.ContainerTunnelInstanceName, tunnelProxy?.Metadata?.Name ?? "");
 
                 var svcAppResource = new ServiceAppResource(svc);
-                
                 _appResources.Add(svcAppResource);
 
                 if (useTunnel)
@@ -2266,6 +2265,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var runArgs = new List<string>();
 
         await modelResource.ProcessContainerRuntimeArgValues(
+            _executionContext,
             (a, ex) =>
             {
                 if (ex is not null)
@@ -2338,7 +2338,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             resourceLogger,
             (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
             (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
-            networkContext: null,
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
@@ -2390,7 +2389,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var env = new List<EnvVar>();
         var createFiles = new List<ContainerCreateFileSystem>();
 
-        var pathsProvider = new CertificateTrustConfigurationPathsProvider();
         (var scope, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
             (unprocessed, value, ex, isSensitive) =>
@@ -2435,7 +2433,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // Build Linux PATH style colon-separated list of directories
                 return ReferenceExpression.Create($"{string.Join(':', dirs)}");
             },
-            networkContext: null,
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
