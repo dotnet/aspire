@@ -68,7 +68,7 @@ public static class DistributedApplicationHostingTestingExtensions
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
 
-        return GetEndpoint(app, resourceName, endpointName, networkIdentifier: null);
+        return GetEndpointForNetwork(app, resourceName, null, endpointName);
     }
 
     /// <summary>
@@ -76,12 +76,12 @@ public static class DistributedApplicationHostingTestingExtensions
     /// </summary>
     /// <param name="app">The application.</param>
     /// <param name="resourceName">The resource name.</param>
-    /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
     /// <param name="networkIdentifier">The optional network identifier. If none is specified, the default network is used.</param>
+    /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier = default)
+    public static Uri GetEndpointForNetwork(this DistributedApplication app, string resourceName, NetworkIdentifier? networkIdentifier, string? endpointName = default)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
