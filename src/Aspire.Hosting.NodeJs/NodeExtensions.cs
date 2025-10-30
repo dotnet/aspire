@@ -55,7 +55,7 @@ public static class NodeAppHostingExtension
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
+    /// <param name="workingDirectory">The working directory to use for the command.</param>
     /// <param name="scriptName">The npm script to execute. Defaults to "start".</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -80,6 +80,23 @@ public static class NodeAppHostingExtension
                       .WithIconName("CodeJsRectangle");
     }
 
+    private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : JavaScriptAppResource =>
+        builder.WithOtlpExporter()
+            .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
+            .WithCertificateTrustConfiguration((ctx) =>
+            {
+                if (ctx.Scope == CertificateTrustScope.Append)
+                {
+                    ctx.EnvironmentVariables["NODE_EXTRA_CA_CERTS"] = ctx.CertificateBundlePath;
+                }
+                else
+                {
+                    ctx.Arguments.Add("--use-openssl-ca");
+                }
+
+                return Task.CompletedTask;
+            });
+
     /// <summary>
     /// Adds a JavaScript application resource to the distributed application using the specified app directory and
     /// run script.
@@ -88,14 +105,13 @@ public static class NodeAppHostingExtension
     /// <param name="name">The unique name of the JavaScript application resource. Cannot be null or empty.</param>
     /// <param name="appDirectory">The path to the directory containing the JavaScript application.</param>
     /// <param name="runScriptName">The name of the npm script to run when starting the application. Defaults to "start". Cannot be null or empty.</param>
-    /// <param name="args">An optional array of additional arguments to pass to the run script. May be null.</param>
     /// <returns>A resource builder for the newly added JavaScript application resource.</returns>
     /// <remarks>
     /// If a Dockerfile does not exist in the application's directory, one will be generated
     /// automatically when publishing. The method configures the resource with Node.js defaults and sets up npm
     /// integration.
     /// </remarks>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "start", string[]? args = null)
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "start")
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -205,23 +221,6 @@ public static class NodeAppHostingExtension
 
         return resourceBuilder;
     }
-
-    private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : JavaScriptAppResource =>
-        builder.WithOtlpExporter()
-            .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
-            .WithCertificateTrustConfiguration((ctx) =>
-            {
-                if (ctx.Scope == CertificateTrustScope.Append)
-                {
-                    ctx.EnvironmentVariables["NODE_EXTRA_CA_CERTS"] = ctx.CertificateBundlePath;
-                }
-                else
-                {
-                    ctx.Arguments.Add("--use-openssl-ca");
-                }
-
-                return Task.CompletedTask;
-            });
 
     /// <summary>
     /// Adds a Vite app to the distributed application builder.
