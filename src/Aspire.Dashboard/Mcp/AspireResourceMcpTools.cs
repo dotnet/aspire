@@ -20,23 +20,30 @@ internal sealed class AspireResourceMcpTools
 {
     private readonly IDashboardClient _dashboardClient;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
+    private readonly ILogger<AspireResourceMcpTools> _logger;
 
-    public AspireResourceMcpTools(IDashboardClient dashboardClient, IOptionsMonitor<DashboardOptions> dashboardOptions)
+    public AspireResourceMcpTools(IDashboardClient dashboardClient,
+        IOptionsMonitor<DashboardOptions> dashboardOptions,
+        ILogger<AspireResourceMcpTools> logger)
     {
         _dashboardClient = dashboardClient;
         _dashboardOptions = dashboardOptions;
+        _logger = logger;
     }
 
     [McpServerTool(Name = "list_resources")]
     [Description("List the application resources. Includes information about their type (.NET project, container, executable), running state, source, HTTP endpoints, health status, commands, and relationships.")]
     public string ListResources()
     {
+        _logger.LogDebug("MCP tool list_resources called");
+
         try
         {
             var resources = _dashboardClient.GetResources().ToList();
+            var filteredResources = GetFilteredResources(resources);
 
             var resourceGraphData = AIHelpers.GetResponseGraphJson(
-                resources,
+                filteredResources,
                 _dashboardOptions.CurrentValue,
                 includeDashboardUrl: true,
                 getResourceName: r => ResourceViewModel.GetResourceName(r, resources));
@@ -57,6 +64,11 @@ internal sealed class AspireResourceMcpTools
         return "No resources found.";
     }
 
+    private static List<ResourceViewModel> GetFilteredResources(List<ResourceViewModel> resources)
+    {
+        return resources.Where(r => !AIHelpers.IsResourceAIOptOut(r)).ToList();
+    }
+
     [McpServerTool(Name = "list_console_logs")]
     [Description("List console logs for a resource. The console logs includes standard output from resources and resource commands. Known resource commands are 'resource-start', 'resource-stop' and 'resource-restart' which are used to start and stop resources. Don't print the full console logs in the response to the user. Console logs should be examined when determining why a resource isn't running.")]
     public async Task<string> ListConsoleLogsAsync(
@@ -64,9 +76,12 @@ internal sealed class AspireResourceMcpTools
         string resourceName,
         CancellationToken cancellationToken)
     {
-        var resources = _dashboardClient.GetResources();
+        _logger.LogDebug("MCP tool list_console_logs called with resource '{ResourceName}'.", resourceName);
 
-        if (AIHelpers.TryGetResource(resources, resourceName, out var resource))
+        var resources = _dashboardClient.GetResources().ToList();
+        var filteredResources = GetFilteredResources(resources);
+
+        if (AIHelpers.TryGetResource(filteredResources, resourceName, out var resource))
         {
             resourceName = resource.Name;
         }
@@ -125,9 +140,12 @@ internal sealed class AspireResourceMcpTools
     [Description("Executes a command on a resource. If a resource needs to be restarted and is currently stopped, use the start command instead.")]
     public async Task ExecuteResourceCommand([Description("The resource name")] string resourceName, [Description("The command name")] string commandName)
     {
-        var resources = _dashboardClient.GetResources();
+        _logger.LogDebug("MCP tool execute_resource_command called with resource '{ResourceName}' and command '{CommandName}'.", resourceName, commandName);
 
-        if (!AIHelpers.TryGetResource(resources, resourceName, out var resource))
+        var resources = _dashboardClient.GetResources().ToList();
+        var filteredResources = GetFilteredResources(resources);
+
+        if (!AIHelpers.TryGetResource(filteredResources, resourceName, out var resource))
         {
             throw new McpProtocolException($"Resource '{resourceName}' not found.", McpErrorCode.InvalidParams);
         }
