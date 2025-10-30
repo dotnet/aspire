@@ -112,7 +112,7 @@ public static class NodeAppHostingExtension
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddViteApp("frontend", "./frontend")
-    ///        .WithNpm(install: true);
+    ///        .WithNpm();
     ///
     /// builder.Build().Run();
     /// </code>
@@ -152,7 +152,7 @@ public static class NodeAppHostingExtension
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
             })
             .WithHttpEndpoint(env: "PORT")
-            .WithNpm(install: false)
+            .WithNpm()
             .PublishAsDockerFile(c =>
             {
                 // Only generate a Dockerfile if one doesn't already exist in the app directory
@@ -198,9 +198,9 @@ public static class NodeAppHostingExtension
     /// Configures the Node.js resource to use npm as the package manager and optionally installs packages before the application starts.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
-    /// <param name="install">When true, automatically installs packages before the application starts. When false (default), only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = false) where TResource : NodeAppResource
+    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true) where TResource : NodeAppResource
     {
         resource.WithCommand("npm")
             .WithAnnotation(new JavaScriptInstallCommandAnnotation("npm", ["install"]))
@@ -215,9 +215,9 @@ public static class NodeAppHostingExtension
     /// Configures the Node.js resource to use yarn as the package manager and optionally installs packages before the application starts.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
-    /// <param name="install">When true, automatically installs packages before the application starts. When false (default), only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithYarn<TResource>(this IResourceBuilder<TResource> resource, bool install = false) where TResource : NodeAppResource
+    public static IResourceBuilder<TResource> WithYarn<TResource>(this IResourceBuilder<TResource> resource, bool install = true) where TResource : NodeAppResource
     {
         resource.WithCommand("yarn")
             .WithAnnotation(new JavaScriptInstallCommandAnnotation("yarn", ["install"]))
@@ -232,9 +232,9 @@ public static class NodeAppHostingExtension
     /// Configures the Node.js resource to use pnmp as the package manager and optionally installs packages before the application starts.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
-    /// <param name="install">When true, automatically installs packages before the application starts. When false (default), only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithPnpm<TResource>(this IResourceBuilder<TResource> resource, bool install = false) where TResource : NodeAppResource
+    public static IResourceBuilder<TResource> WithPnpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true) where TResource : NodeAppResource
     {
         resource.WithCommand("pnpm")
             .WithAnnotation(new JavaScriptInstallCommandAnnotation("pnpm", ["install"]))
