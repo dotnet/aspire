@@ -19,15 +19,9 @@ internal sealed class EnvFile
         foreach (var line in File.ReadAllLines(path))
         {
             envFile._lines.Add(line);
-            var trimmed = line.TrimStart();
-            if (!trimmed.StartsWith('#') && trimmed.Contains('='))
+            if (TryParseKey(line, out var key))
             {
-                var eqIndex = trimmed.IndexOf('=');
-                if (eqIndex > 0)
-                {
-                    var key = trimmed[..eqIndex].Trim();
-                    envFile._keys.Add(key);
-                }
+                envFile._keys.Add(key);
             }
         }
         return envFile;
@@ -45,19 +39,10 @@ internal sealed class EnvFile
             // Update the existing key's value
             for (int i = 0; i < _lines.Count; i++)
             {
-                var trimmed = _lines[i].TrimStart();
-                if (!trimmed.StartsWith('#') && trimmed.Contains('='))
+                if (TryParseKey(_lines[i], out var lineKey) && lineKey == key)
                 {
-                    var eqIndex = trimmed.IndexOf('=');
-                    if (eqIndex > 0)
-                    {
-                        var lineKey = trimmed[..eqIndex].Trim();
-                        if (lineKey == key)
-                        {
-                            _lines[i] = value is not null ? $"{key}={value}" : $"{key}=";
-                            return;
-                        }
-                    }
+                    _lines[i] = value is not null ? $"{key}={value}" : $"{key}=";
+                    return;
                 }
             }
         }
@@ -69,6 +54,22 @@ internal sealed class EnvFile
         _lines.Add(value is not null ? $"{key}={value}" : $"{key}=");
         _lines.Add(string.Empty);
         _keys.Add(key);
+    }
+
+    private static bool TryParseKey(string line, out string key)
+    {
+        key = string.Empty;
+        var trimmed = line.TrimStart();
+        if (!trimmed.StartsWith('#') && trimmed.Contains('='))
+        {
+            var eqIndex = trimmed.IndexOf('=');
+            if (eqIndex > 0)
+            {
+                key = trimmed[..eqIndex].Trim();
+                return true;
+            }
+        }
+        return false;
     }
 
     public void Save(string path)
