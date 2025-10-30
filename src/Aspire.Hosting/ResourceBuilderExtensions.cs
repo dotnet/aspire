@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
@@ -2334,6 +2335,70 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(callback);
 
         return builder.WithAnnotation(new CertificateTrustConfigurationCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Indicates that a resource should use a developer certificate key pair for HTTPS endpoints at run time.
+    /// Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used
+    /// when running in local development scenarios; in publish mode resources will use their default certificate configuration.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> WithDeveloperCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateKeyPairAnnotation
+        {
+            UseDeveloperCertificate = true,
+        };
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="CertificateKeyPairAnnotation"/> to the resource annotations to associate a certificate key pair with the resource.
+    /// This is used to configure the certificate presented by the resource for HTTPS endpoints. If no certificate is specified,
+    /// the resource's default certificate configuration will be used.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS endpoints on the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> WithCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2? certificate)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateKeyPairAnnotation
+        {
+            Certificate = certificate,
+        };
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a callback that allows configuring the resource to use a TLS certificate key pair.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to configure the reosurce to use a certificate key pair.</param>
+    /// <returns>The updated resource builder.</returns>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> WithCertificateKeyPairConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> callback)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var annotation = new CertificateKeyPairConfigurationCallbackAnnotation(callback);
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults

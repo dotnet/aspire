@@ -16,6 +16,7 @@ namespace Aspire.Hosting;
 public static class YarpResourceExtensions
 {
     private const int Port = 5000;
+    private const int HttpsPort = 5001;
 
     /// <summary>
     /// Adds a YARP container to the application model.
@@ -29,15 +30,21 @@ public static class YarpResourceExtensions
     {
         var resource = new YarpResource(name);
 
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var yarpBuilder = builder.AddResource(resource)
                       .WithHttpEndpoint(name: "http", targetPort: Port)
+                      .WithHttpsEndpoint(name: "https", targetPort: HttpsPort)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
                       .WithImageTag(YarpContainerImageTags.Tag)
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+                      .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                      .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}")
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
+                      .WithDeveloperCertificateKeyPair()
                       .WithOtlpExporter();
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -54,6 +61,17 @@ public static class YarpResourceExtensions
                     ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
                 }
             });
+
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            yarpBuilder.WithCertificateKeyPairConfiguration(ctx =>
+            {
+                ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
+                ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
+                ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+
+                return Task.CompletedTask;
+            });
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 
         yarpBuilder.WithEnvironment(ctx =>

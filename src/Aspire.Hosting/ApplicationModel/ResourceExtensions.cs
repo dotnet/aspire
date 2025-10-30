@@ -495,11 +495,11 @@ public static class ResourceExtensions
         return (scope, certificates);
     }
 
-    private static async ValueTask<ResolvedValue?> ResolveValueAsync(
-        IResource resource,
+    internal static async ValueTask<ResolvedValue?> ResolveValueAsync(
+        this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
-        object value,
+        object? value,
         string? containerHostName = null,
         string? key = null,
         CancellationToken cancellationToken = default)
