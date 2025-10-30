@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Aplicativos não confiáveis podem enviar telemetria para o painel.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">

@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">不受信任的应用可以将遥测数据发送到仪表板。</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">
