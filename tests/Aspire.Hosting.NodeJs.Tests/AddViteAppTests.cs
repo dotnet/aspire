@@ -52,7 +52,7 @@ public class AddViteAppTests
             FROM node:22-slim
             WORKDIR /app
             COPY . .
-            RUN npm install
+            RUN npm ci
             RUN npm run build
 
             """.Replace("\r\n", "\n");
