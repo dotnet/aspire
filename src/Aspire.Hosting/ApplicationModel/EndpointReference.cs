@@ -15,7 +15,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
-    private readonly NetworkIdentifier _contextNetworkID;
+    private readonly NetworkIdentifier? _contextNetworkID;
 
     /// <summary>
     /// Gets the endpoint annotation associated with the endpoint reference.
@@ -71,7 +71,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// The reference will be resolved in the context of this network, which may be different
     /// from the network associated with the default network of the referenced Endpoint.
     /// </summary>
-    public NetworkIdentifier ContextNetworkID => _contextNetworkID;
+    public NetworkIdentifier? ContextNetworkID => _contextNetworkID;
 
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
@@ -190,7 +190,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         Resource = owner;
         EndpointName = endpoint.Name;
         _endpointAnnotation = endpoint;
-        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
+        _contextNetworkID = contextNetworkID;
     }
 
     /// <summary>
@@ -221,7 +221,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 
         Resource = owner;
         EndpointName = endpointName;
-        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
+        _contextNetworkID = contextNetworkID;
     }
 
     /// <summary>
@@ -277,7 +277,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
     public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default)
     {
-        var networkContext = context.GetNetworkIdentifier();
+        var networkContext = Endpoint.ContextNetworkID ?? context.GetNetworkIdentifier();
 
         return Property switch
         {
@@ -292,11 +292,6 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
             // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
             // and in future we might need some sort of policy to choose between them, but for now we just take the first one.
             var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
-            if (nes is null)
-            {
-                nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == Endpoint.ContextNetworkID).FirstOrDefault();
-            }
-
             if (nes is null)
             {
                 return null;
