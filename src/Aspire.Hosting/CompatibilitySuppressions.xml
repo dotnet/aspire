@@ -94,6 +94,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.ApplicationModel.ResourceExtensions.ProcessArgumentValuesAsync(Aspire.Hosting.ApplicationModel.IResource,Aspire.Hosting.DistributedApplicationExecutionContext,System.Action{System.Object,System.String,System.Exception,System.Boolean},Microsoft.Extensions.Logging.ILogger,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.ApplicationModel.ResourceExtensions.ProcessEnvironmentVariableValuesAsync(Aspire.Hosting.ApplicationModel.IResource,Aspire.Hosting.DistributedApplicationExecutionContext,System.Action{System.String,System.Object,System.String,System.Exception},Microsoft.Extensions.Logging.ILogger,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:Aspire.Hosting.IInteractionService.PromptInputsAsync(System.String,System.String,System.Collections.Generic.IReadOnlyList{Aspire.Hosting.InteractionInput},Aspire.Hosting.InputsDialogInteractionOptions,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
