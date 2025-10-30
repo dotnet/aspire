@@ -35,8 +35,7 @@ public static class EnvironmentVariableEvaluator
                 }
             },
             NullLogger.Instance,
-            CancellationToken.None,
-            networkContext);
+            CancellationToken.None);
 
         return environmentVariables;
     }
