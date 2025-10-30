@@ -31,11 +31,11 @@ builder.AddProject<Projects.MyWebApp>("webapp")
     {
         // Customize the App Service health check path and appsettings
         website.SiteConfig.HealthCheckPath = "/health";
-		website.SiteConfig.AppSettings.Add(new AppServiceNameValuePair()
-		{
-			Name = "Environment",
-			Value = "Production"
-		});
+        website.SiteConfig.AppSettings.Add(new AppServiceNameValuePair()
+        {
+            Name = "Environment",
+            Value = "Production"
+        });
     });
 ```
 
