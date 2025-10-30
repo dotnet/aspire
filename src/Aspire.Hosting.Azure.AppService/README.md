@@ -97,7 +97,7 @@ var appServiceEnvironment = builder.AddAzureAppServiceEnvironment("env")
 
 ### Customizing the App Service Plan
 
-App Service Plan can be customized using `ConfigureInfrastructure` extension method.
+The App Service Plan can be customized using the `ConfigureInfrastructure` extension method.
 
 The default SKU for the App Service Plan is P0V3 and can be changed using this extension method:
 
