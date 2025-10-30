@@ -30,7 +30,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:ConnectionString",
-                "Host=fake;Database=catalog"),
+                AspireAzureEfCoreCosmosDBExtensionsTests.ConnectionString),
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosSettings>? configure = null, string? key = null)
