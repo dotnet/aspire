@@ -416,9 +416,12 @@ public class PackageInstallationTests
     [Fact]
     public void WithNpm_DefaultsArgsInPublishMode()
     {
+        using var tempDir = new TempDirectory();
+        File.WriteAllText(Path.Combine(tempDir.Path, "package-lock.json"), "empty");
+
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var app = builder.AddViteApp("test-app", "./test-app")
+        var app = builder.AddViteApp("test-app", tempDir.Path)
             .WithNpm();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
@@ -440,15 +443,18 @@ public class PackageInstallationTests
     [Fact]
     public void WithYarn_DefaultsArgsInPublishMode()
     {
+        using var tempDir = new TempDirectory();
+        File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
+
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var app = builder.AddViteApp("test-app", "./test-app")
+        var app = builder.AddViteApp("test-app", tempDir.Path)
             .WithYarn();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
         Assert.Equal(["install", "--immutable"], installCommand.Args);
 
-        var app2 = builder.AddViteApp("test-app2", "./test-app2")
+        var app2 = builder.AddViteApp("test-app2", tempDir.Path)
             .WithYarn(installArgs:["--immutable-cache"]);
 
         Assert.True(app2.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out installCommand));
@@ -458,9 +464,12 @@ public class PackageInstallationTests
     [Fact]
     public void WithPnmp_DefaultsArgsInPublishMode()
     {
+        using var tempDir = new TempDirectory();
+        File.WriteAllText(Path.Combine(tempDir.Path, "pnpm-lock.yaml"), "empty");
+
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var app = builder.AddViteApp("test-app", "./test-app")
+        var app = builder.AddViteApp("test-app", tempDir.Path)
             .WithPnpm();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
