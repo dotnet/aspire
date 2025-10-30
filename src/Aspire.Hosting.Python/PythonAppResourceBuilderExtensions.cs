@@ -77,7 +77,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method executes a Python script directly using <c>python script.py</c>.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
@@ -112,7 +112,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs a Python module using <c>python -m &lt;module&gt;</c>.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the module.
     /// </para>
     /// <para>
@@ -147,7 +147,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs an executable from the virtual environment's bin directory.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the executable.
     /// </para>
     /// <para>
@@ -258,19 +258,50 @@ public static class PythonAppResourceBuilderExtensions
     /// <summary>
     /// Adds a Uvicorn-based Python application to the distributed application builder with HTTP endpoint configuration.
     /// </summary>
-    /// <remarks>This method configures the application to use Uvicorn as the server and exposes an HTTP
-    /// endpoint. When publishing, it sets the entry point to use the Uvicorn executable with appropriate arguments for
-    /// host and port.</remarks>
     /// <param name="builder">The distributed application builder to which the Uvicorn application resource will be added.</param>
     /// <param name="name">The unique name of the Uvicorn application resource.</param>
     /// <param name="appDirectory">The directory containing the Python application files.</param>
     /// <param name="app">The ASGI app import path which informs Uvicorn which module and variable to load as your web application.
     /// For example, "main:app" means "main.py" file and variable named "app".</param>
     /// <returns>A resource builder for further configuration of the Uvicorn Python application resource.</returns>
-    public static IResourceBuilder<PythonAppResource> AddUvicornApp(
+    /// <remarks>
+    /// <para>
+    /// This method configures the application to use Uvicorn as the ASGI server and exposes an HTTP
+    /// endpoint. When publishing, it sets the entry point to use the Uvicorn executable with appropriate arguments for
+    /// host and port.
+    /// </para>
+    /// <para>
+    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// Use <see cref="WithVirtualEnvironment"/> to specify a different virtual environment path.
+    /// </para>
+    /// <para>
+    /// In non-publish mode, the <c>--reload</c> flag is automatically added to enable hot reload during development.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a FastAPI application using Uvicorn:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var api = builder.AddUvicornApp("api", "../fastapi-app", "main:app")
+    ///     .WithUvEnvironment()
+    ///     .WithExternalHttpEndpoints();
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<UvicornAppResource> AddUvicornApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
-        var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn")
+        var resourceBuilder =
+            AddPythonAppCore(
+                builder,
+                name,
+                appDirectory,
+                EntrypointType.Executable,
+                "uvicorn",
+                DefaultVirtualEnvFolder,
+                (n, e, d) => new UvicornAppResource(n, e, d))
             .WithDebugging()
             .WithHttpEndpoint(env: "PORT")
             .WithArgs(c =>
@@ -305,6 +336,14 @@ public static class PythonAppResourceBuilderExtensions
         IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
         string entrypoint, string virtualEnvironmentPath)
     {
+        return AddPythonAppCore(builder, name, appDirectory, entrypointType, entrypoint,
+            virtualEnvironmentPath, (n, e, d) => new PythonAppResource(n, e, d));
+    }
+
+    private static IResourceBuilder<T> AddPythonAppCore<T>(
+        IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
+        string entrypoint, string virtualEnvironmentPath, Func<string, string, string, T> createResource) where T : PythonAppResource
+    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(appDirectory);
@@ -312,7 +351,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
         // python will be replaced with the resolved entrypoint based on the virtualEnvironmentPath
-        var resource = new PythonAppResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
+        var resource = createResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
 
         var resourceBuilder = builder
             .AddResource(resource)
@@ -610,8 +649,8 @@ public static class PythonAppResourceBuilderExtensions
     ///     .WithVirtualEnvironment("myenv");
     /// </code>
     /// </example>
-    public static IResourceBuilder<PythonAppResource> WithVirtualEnvironment(
-        this IResourceBuilder<PythonAppResource> builder, string virtualEnvironmentPath)
+    public static IResourceBuilder<T> WithVirtualEnvironment<T>(
+        this IResourceBuilder<T> builder, string virtualEnvironmentPath) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
@@ -659,8 +698,8 @@ public static class PythonAppResourceBuilderExtensions
     /// the program or module to debug, and appropriate launch settings.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<PythonAppResource> WithDebugging(
-        this IResourceBuilder<PythonAppResource> builder)
+    public static IResourceBuilder<T> WithDebugging<T>(
+        this IResourceBuilder<T> builder) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -787,8 +826,8 @@ public static class PythonAppResourceBuilderExtensions
     ///     .WithArgs("main:app", "--reload");
     /// </code>
     /// </example>
-    public static IResourceBuilder<PythonAppResource> WithEntrypoint(
-        this IResourceBuilder<PythonAppResource> builder, EntrypointType entrypointType, string entrypoint)
+    public static IResourceBuilder<T> WithEntrypoint<T>(
+        this IResourceBuilder<T> builder, EntrypointType entrypointType, string entrypoint) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
