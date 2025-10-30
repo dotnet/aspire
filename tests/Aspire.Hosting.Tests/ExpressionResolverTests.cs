@@ -153,12 +153,12 @@ public class ExpressionResolverTests
     [InlineData(true, "http://127.0.0.1:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "http://[::1]:18889", "http://[::1]:18889")]
     [InlineData(true, "http://[::1]:18889", "http://aspire.dev.internal:18889")]
-    [InlineData(false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, "Server=localhost,1433;User ID=sa;Database=yyy", "Server=localhost,1433;User ID=sa;Database=yyy")]
+    [InlineData(true, "Server=localhost,1433;User ID=sa;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Database=yyy")]
+    [InlineData(false, "Server=127.0.0.1,1433;User ID=sa;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Database=yyy")]
+    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Database=yyy")]
+    [InlineData(false, "Server=[::1],1433;User ID=sa;Database=yyy", "Server=[::1],1433;User ID=sa;Database=yyy")]
+    [InlineData(true, "Server=[::1],1433;User ID=sa;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Database=yyy")]
     public async Task HostUrlPropertyGetsResolved(bool targetIsContainer, string hostUrlVal, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
