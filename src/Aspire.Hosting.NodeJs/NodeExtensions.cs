@@ -332,7 +332,7 @@ public static class NodeAppHostingExtension
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="installArgs">The command-line arguments (including the install command itself) passed to the JavaScript package manager to install dependencies.</param>
+    /// <param name="installArgs">The command-line arguments passed to "pnpm install".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TResource> WithPnpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
