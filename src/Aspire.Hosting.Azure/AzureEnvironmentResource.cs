@@ -121,13 +121,12 @@ public sealed class AzureEnvironmentResource : Resource
     private Task PublishAsync(PipelineStepContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-        var activityReporter = context.PipelineContext.Services.GetRequiredService<IPipelineActivityReporter>();
         var publishingContext = new AzurePublishingContext(
             context.OutputPath ?? throw new InvalidOperationException("OutputPath is required for Azure publishing."),
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,
-            activityReporter);
+            context.ReportingStep);
 
         return publishingContext.WriteModelAsync(context.Model, this);
     }

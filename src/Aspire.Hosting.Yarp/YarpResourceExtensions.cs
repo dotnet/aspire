@@ -47,13 +47,16 @@ public static class YarpResourceExtensions
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
+                if (developerCertificateService.SupportsTlsTermination)
+                {
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                // If a developer certificate is available
-                yarpBuilder
-                    .WithDeveloperCertificateKeyPair()
-                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
-                    .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}");
+                    // If a developer certificate is available
+                    yarpBuilder
+                        .WithDeveloperCertificateKeyPair()
+                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https", KnownNetworkIdentifiers.LocalhostNetwork).Property(EndpointProperty.Port)}")
+                        .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}");
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                }
 
                 if (!developerCertificateService.SupportsContainerTrust)
                 {
@@ -190,7 +193,7 @@ public static class YarpResourceExtensions
         {
             var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
             var imageName = GetYarpImageName(ctx.Resource);
-            var stage = ctx.Builder.From(imageName);
+            var stage = ctx.Builder.From(imageName).WorkDir("/app");
 
             if (ctx.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
             {

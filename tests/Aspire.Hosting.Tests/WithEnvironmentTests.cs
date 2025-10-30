@@ -301,7 +301,16 @@ public class WithEnvironmentTests
                                .WithHttpEndpoint(name: "primary")
                                .WithEndpoint("primary", ep =>
                                {
-                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90, targetPortExpression: """{{- portForServing "container1_primary" -}}""");
+                                   var endpointSnapshot = new ValueSnapshot<AllocatedEndpoint>();
+                                   endpointSnapshot.SetValue(new AllocatedEndpoint(
+                                       ep,
+                                       "localhost",
+                                       90,
+                                       EndpointBindingMode.SingleAddress,
+                                       """{{- portForServing "container1_primary" -}}""",
+                                       KnownNetworkIdentifiers.DefaultAspireContainerNetwork
+                                   ));
+                                   ep.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, endpointSnapshot);
                                });
 
         var endpoint = container.GetEndpoint("primary");

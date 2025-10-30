@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant.Ghcp;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 
@@ -39,4 +40,4 @@ public static class AIContextExtensions
     }
 }
 
-public record InitializePromptContext(ChatViewModelBuilder ChatBuilder, AssistantChatDataContext DataContext, IServiceProvider ServiceProvider);
+public record InitializePromptContext(ChatViewModelBuilder ChatBuilder, AssistantChatDataContext DataContext, IServiceProvider ServiceProvider, DashboardOptions DashboardOptions);

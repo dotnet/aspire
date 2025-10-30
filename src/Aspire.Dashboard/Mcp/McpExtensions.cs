@@ -38,8 +38,8 @@ public static class McpExtensions
                 This MCP Server provides various tools for managing Aspire resources, logs, traces and commands.
 
                 ## Instructions
-                - When a resource name is returned, render it in bold chars like **resourceName**
-                - When a resource state (running, stopped, starting, ...) is returned, render it in italic chars like *running*, and add a colored badge next to it (green, red, orange, ...).
+                - When a resource, structured log or trace is returned, include a link to the Aspire dashboard using dashboard_link
+                - When a resource state (running, stopped, starting, ...) is returned, and add an emoji colored badge next to it (green, red, orange, etc).
 
                 ## Tools
 
