@@ -60,11 +60,28 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <param name="app">The application.</param>
     /// <param name="resourceName">The resource name.</param>
     /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
+    /// <returns>A URI representation of the endpoint.</returns>
+    /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
+    /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        return GetEndpoint(app, resourceName, endpointName, networkIdentifier: null);
+    }
+
+    /// <summary>
+    /// Gets the endpoint for the specified resource.
+    /// </summary>
+    /// <param name="app">The application.</param>
+    /// <param name="resourceName">The resource name.</param>
+    /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
     /// <param name="networkIdentifier">The optional network identifier. If none is specified, the default network is used.</param>
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier = default)
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
