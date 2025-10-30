@@ -807,9 +807,6 @@ public class AzureAppServiceTests
             case "PostgresResource":
                 resourceBuilder = builder.AddPostgres("myresource");
                 break;
-            case "ContainerResource":
-                resourceBuilder = builder.AddContainer("myresource", "myimage");
-                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(typeName), typeName, null);
         }

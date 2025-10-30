@@ -43,8 +43,9 @@ internal sealed class AzureAppServiceInfrastructure(
                 // Support project resources and containers with Dockerfile
                 if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
                 {
-                    // throw NotSupportedException for ContainerResource (excluding containers with Dockerfile) to inform users they cannot deploy such resources to Azure App Service
-                    if (resource is ContainerResource && resource is not AzureProvisioningResource)
+                    // throw NotSupportedException for ContainerResource (excluding containers with Dockerfile)
+                    // to inform users that these resources cannot be deployed to Azure App Service Environment
+                    if (resource is ContainerResource && resource is IResourceWithConnectionString && resource is not AzureProvisioningResource)
                     {
                         throw new NotSupportedException($"Resource {resource.Name} of type {resource.GetType()} is not supported in Azure App Service environment.");
                     }
