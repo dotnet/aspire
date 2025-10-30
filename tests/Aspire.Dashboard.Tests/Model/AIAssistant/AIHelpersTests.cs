@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant;
 using Xunit;
 
@@ -173,5 +174,51 @@ public class AIHelpersTests
             s => Assert.Equal(new string('i', textLength), s),
             s => Assert.Equal(new string('j', textLength), s));
         Assert.Equal("Returned latest 4 test items. Earlier 6 test items not returned because of size limits.", message);
+    }
+
+    [Fact]
+    public void GetDashboardUrl_PublicUrl()
+    {
+        // Arrange
+        var options = new DashboardOptions();
+        options.Frontend.EndpointUrls = "http://localhost:5000;https://localhost:1234";
+        options.Frontend.PublicUrl = "https://localhost:1234";
+        Assert.True(options.Frontend.TryParseOptions(out _));
+
+        // Act
+        var url = AIHelpers.GetDashboardUrl(options, "/path");
+
+        // Assert
+        Assert.Equal("https://localhost:1234/path", url);
+    }
+
+    [Fact]
+    public void GetDashboardUrl_HttpsAndHttpEndpointUrls()
+    {
+        // Arrange
+        var options = new DashboardOptions();
+        options.Frontend.EndpointUrls = "http://localhost:5000;https://localhost:1234";
+        Assert.True(options.Frontend.TryParseOptions(out _));
+
+        // Act
+        var url = AIHelpers.GetDashboardUrl(options, "/path");
+
+        // Assert
+        Assert.Equal("https://localhost:1234/path", url);
+    }
+
+    [Fact]
+    public void GetDashboardUrl_HttpEndpointUrl()
+    {
+        // Arrange
+        var options = new DashboardOptions();
+        options.Frontend.EndpointUrls = "http://localhost:5000;";
+        Assert.True(options.Frontend.TryParseOptions(out _));
+
+        // Act
+        var url = AIHelpers.GetDashboardUrl(options, "/path");
+
+        // Assert
+        Assert.Equal("http://localhost:5000/path", url);
     }
 }

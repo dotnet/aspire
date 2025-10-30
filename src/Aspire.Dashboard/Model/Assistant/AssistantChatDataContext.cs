@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -11,6 +12,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model.Assistant;
 
@@ -19,6 +21,7 @@ public sealed class AssistantChatDataContext
     private readonly IDashboardClient _dashboardClient;
     private readonly IEnumerable<IOutgoingPeerResolver> _outgoingPeerResolvers;
     private readonly IStringLocalizer<AIAssistant> _loc;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
 
     public TelemetryRepository TelemetryRepository { get; }
 
@@ -31,12 +34,14 @@ public sealed class AssistantChatDataContext
         TelemetryRepository telemetryRepository,
         IDashboardClient dashboardClient,
         IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers,
-        IStringLocalizer<AIAssistant> loc)
+        IStringLocalizer<AIAssistant> loc,
+        IOptionsMonitor<DashboardOptions> dashboardOptions)
     {
         TelemetryRepository = telemetryRepository;
         _dashboardClient = dashboardClient;
         _outgoingPeerResolvers = outgoingPeerResolvers;
         _loc = loc;
+        _dashboardOptions = dashboardOptions;
     }
 
     private async Task InvokeToolCallbackAsync(string toolName, string message, CancellationToken cancellationToken)
@@ -61,7 +66,7 @@ public sealed class AssistantChatDataContext
 
         var resources = _dashboardClient.GetResources();
 
-        var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList());
+        var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList(), _dashboardOptions.CurrentValue);
 
         var response = $"""
             Always format resource_name in the response as code like this: `frontend-abcxyz`
@@ -92,7 +97,7 @@ public sealed class AssistantChatDataContext
 
         _referencedTraces.TryAdd(trace.TraceId, trace);
 
-        return AIHelpers.GetTraceJson(trace, _outgoingPeerResolvers, new PromptContext());
+        return AIHelpers.GetTraceJson(trace, _outgoingPeerResolvers, new PromptContext(), _dashboardOptions.CurrentValue);
     }
 
     [Description("Get structured logs for resources.")]
@@ -124,7 +129,7 @@ public sealed class AssistantChatDataContext
             Filters = []
         });
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
 
         var response = $"""
             Always format log_id in the response as code like this: `log_id: 123`.
@@ -166,7 +171,7 @@ public sealed class AssistantChatDataContext
             FilterText = string.Empty
         });
 
-        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers);
+        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers, _dashboardOptions.CurrentValue);
 
         var response = $"""
             {limitMessage}
@@ -203,7 +208,7 @@ public sealed class AssistantChatDataContext
 
         await InvokeToolCallbackAsync(nameof(GetTraceStructuredLogsAsync), _loc.GetString(nameof(AIAssistant.ToolNotificationTraceStructuredLogs), OtlpHelpers.ToShortenedId(traceId)), cancellationToken).ConfigureAwait(false);
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
 
         var response = $"""
             {limitMessage}

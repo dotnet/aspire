@@ -208,6 +208,9 @@ public sealed class FrontendOptions
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
 
+    // Public URL could be different from the endpoint URL (e.g., when behind a proxy).
+    public string? PublicUrl { get; set; }
+
     /// <summary>
     /// Gets and sets an optional limit on the number of console log messages to be retained in the viewer.
     /// </summary>

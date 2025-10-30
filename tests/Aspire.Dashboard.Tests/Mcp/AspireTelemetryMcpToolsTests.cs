@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Model;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Trace.V1;
@@ -148,7 +150,7 @@ public class AspireTelemetryMcpToolsTests
 
     private static AspireTelemetryMcpTools CreateTools(TelemetryRepository repository)
     {
-        return new AspireTelemetryMcpTools(repository, []);
+        return new AspireTelemetryMcpTools(repository, [], new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
     }
 
     private static TelemetryRepository CreateRepository()
