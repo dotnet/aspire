@@ -1,10 +1,11 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -25,11 +26,13 @@ internal abstract partial class BaseProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
 {
     internal const string LocationName = "Location";
     internal const string SubscriptionIdName = "SubscriptionId";
     internal const string ResourceGroupName = "ResourceGroup";
+    internal const string TenantName = "Tenant";
 
     protected readonly IInteractionService _interactionService = interactionService;
     protected readonly AzureProvisionerOptions _options = options.Value;
@@ -72,7 +75,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject deploymentState, CancellationToken cancellationToken = default)
+    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -85,8 +88,6 @@ internal abstract partial class BaseProvisioningContextProvider(
 
         var armClient = _armClientProvider.GetArmClient(credential, subscriptionId);
 
-        _logger.LogInformation("Getting default subscription and tenant...");
-
         var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
@@ -96,6 +97,9 @@ internal abstract partial class BaseProvisioningContextProvider(
         {
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
+
+        // Acquire Azure state section for reading/writing configuration
+        var azureStateSection = await deploymentStateManager.AcquireSectionAsync("Azure", cancellationToken).ConfigureAwait(false);
 
         string resourceGroupName;
         bool createIfAbsent;
@@ -108,7 +112,7 @@ internal abstract partial class BaseProvisioningContextProvider(
 
             createIfAbsent = true;
 
-            deploymentState.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            azureStateSection.Data["ResourceGroup"] = resourceGroupName;
         }
         else
         {
@@ -157,14 +161,20 @@ internal abstract partial class BaseProvisioningContextProvider(
         var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
         // Persist the provisioning options to deployment state so they can be reused in the future
-        var azureSection = deploymentState.Prop("Azure");
+        var azureSection = azureStateSection.Data;
         azureSection["Location"] = _options.Location;
         azureSection["SubscriptionId"] = _options.SubscriptionId;
         azureSection["ResourceGroup"] = resourceGroupName;
+        if (!string.IsNullOrEmpty(_options.TenantId))
+        {
+            azureSection["TenantId"] = _options.TenantId;
+        }
         if (_options.AllowResourceGroupCreation.HasValue)
         {
             azureSection["AllowResourceGroupCreation"] = _options.AllowResourceGroupCreation.Value;
         }
+
+        await deploymentStateManager.SaveSectionAsync(azureStateSection, cancellationToken).ConfigureAwait(false);
 
         return new ProvisioningContext(
                     credential,
@@ -174,13 +184,61 @@ internal abstract partial class BaseProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    deploymentState,
                     _distributedApplicationExecutionContext);
     }
 
     protected abstract string GetDefaultResourceGroupName();
 
-    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(CancellationToken cancellationToken)
+    protected async Task<(List<KeyValuePair<string, string>>? tenantOptions, bool fetchSucceeded)> TryGetTenantsAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? tenantOptions = null;
+        var fetchSucceeded = false;
+
+        try
+        {
+            var credential = _tokenCredentialProvider.TokenCredential;
+            var armClient = _armClientProvider.GetArmClient(credential);
+            var availableTenants = await armClient.GetAvailableTenantsAsync(cancellationToken).ConfigureAwait(false);
+            var tenantList = availableTenants.ToList();
+
+            if (tenantList.Count > 0)
+            {
+                tenantOptions = tenantList
+                    .Select(t =>
+                    {
+                        var tenantId = t.TenantId?.ToString() ?? "";
+
+                        // Build display name: prefer DisplayName, fall back to domain, then to "Unknown"
+                        var displayName = !string.IsNullOrEmpty(t.DisplayName)
+                            ? t.DisplayName
+                            : !string.IsNullOrEmpty(t.DefaultDomain)
+                                ? t.DefaultDomain
+                                : "Unknown";
+
+                        // Build full description
+                        var description = displayName;
+                        if (!string.IsNullOrEmpty(t.DefaultDomain) && t.DisplayName != t.DefaultDomain)
+                        {
+                            description += $" ({t.DefaultDomain})";
+                        }
+                        description += $" — {tenantId}";
+
+                        return KeyValuePair.Create(tenantId, description);
+                    })
+                    .OrderBy(kvp => kvp.Value)
+                    .ToList();
+                fetchSucceeded = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate available tenants. Falling back to manual input.");
+        }
+
+        return (tenantOptions, fetchSucceeded);
+    }
+
+    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
         var fetchSucceeded = false;
@@ -189,7 +247,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         {
             var credential = _tokenCredentialProvider.TokenCredential;
             var armClient = _armClientProvider.GetArmClient(credential);
-            var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+            var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(tenantId, cancellationToken).ConfigureAwait(false);
             var subscriptionList = availableSubscriptions.ToList();
 
             if (subscriptionList.Count > 0)
@@ -206,6 +264,11 @@ internal abstract partial class BaseProvisioningContextProvider(
         }
 
         return (subscriptionOptions, fetchSucceeded);
+    }
+
+    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(CancellationToken cancellationToken)
+    {
+        return await TryGetSubscriptionsAsync(_options.TenantId, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<(List<KeyValuePair<string, string>> locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)

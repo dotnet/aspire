@@ -18,6 +18,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public Action? NotifyAppHostStartupCompletedCallback { get; set; }
     public Action<DashboardUrlsState>? DisplayDashboardUrlsCallback { get; set; }
     public Action<string, string?, bool>? StartDebugSessionCallback { get; set; }
+    public Action<string, bool>? ConsoleDisplaySubtleMessageCallback { get; set; }
 
     public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
@@ -95,7 +96,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.CompletedTask;
     }
 
-    public void WriteDebugSessionMessage(string message, bool stdout)
+    public void WriteDebugSessionMessage(string message, bool stdout, string? textStyle)
     {
     }
 
@@ -112,7 +113,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(true);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
@@ -168,5 +169,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
         LaunchAppHostCallback?.Invoke();
         return Task.CompletedTask;
+    }
+
+    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
+    {
+        ConsoleDisplaySubtleMessageCallback?.Invoke(message, escapeMarkup);
     }
 }

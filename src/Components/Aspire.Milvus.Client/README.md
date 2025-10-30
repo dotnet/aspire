@@ -10,7 +10,7 @@ Registers a [MilvusClient](https://github.com/milvus-io/milvus-sdk-csharp) in th
 
 ### Install the package
 
-Install the .NET Aspire Milvus Client library with [NuGet](https://www.nuget.org):
+Install the Aspire Milvus Client library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Milvus.Client
@@ -26,7 +26,7 @@ builder.AddMilvusClient("milvus");
 
 ## Configuration
 
-The .NET Aspire Milvus Client component provides multiple options to configure the server connection based on the requirements and conventions of your project.
+The Aspire Milvus Client component provides multiple options to configure the server connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -50,7 +50,7 @@ By default the `MilvusClient` uses the gRPC API endpoint.
 
 ### Use configuration providers
 
-The .NET Aspire Milvus Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MilvusSettings` from configuration by using the `Aspire:Milvus:Client` key. Example `appsettings.json` that configures some of the options:
+The Aspire Milvus Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MilvusSettings` from configuration by using the `Aspire:Milvus:Client` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

@@ -1,12 +1,12 @@
 # Aspire.Hosting.PostgreSQL library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a PostgreSQL resource.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a PostgreSQL resource.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire PostgreSQL Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire PostgreSQL Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.PostgreSQL

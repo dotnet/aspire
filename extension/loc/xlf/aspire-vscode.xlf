@@ -31,11 +31,20 @@
     <trans-unit id="aspire-vscode.strings.unsupportedResourceType">
       <source xml:lang="en">Attempted to start unsupported resource type: {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.authorizationAndDcpHeadersRequired">
+      <source xml:lang="en">Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.authorizationHeaderMustStartWithBearer">
+      <source xml:lang="en">Authorization header must start with &apos;Bearer &apos;.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
       <source xml:lang="en">Build failed with exit code {0}.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
       <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.codespaces">
+      <source xml:lang="en">Codespaces</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespacesUrl">
       <source xml:lang="en">Codespaces: {0}</source>
@@ -48,6 +57,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.dcpServerNotInitialized">
       <source xml:lang="en">DCP server not initialized - cannot forward debug output.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dashboard">
+      <source xml:lang="en">Dashboard</source>
     </trans-unit>
     <trans-unit id="command.debugAppHost">
       <source xml:lang="en">Debug Aspire apphost</source>
@@ -64,6 +76,27 @@
     <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSelectDefaultApphost">
+      <source xml:lang="en">Do you want to select the default apphost for this workspace?</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
+      <source xml:lang="en">Do you want to set {0} as the default apphost for this workspace?</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
+      <source xml:lang="en">Don&apos;t show again</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.enableAspireDcpDebugLogging">
+      <source xml:lang="en">Enable Developer Control Plane (DCP) debug logging for Aspire applications. Logs will be stored in the workspace&apos;s .aspire/dcp/logs-{debugSessionId} folder.</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.enableSettingsFileCreationPromptOnStartup">
+      <source xml:lang="en">Enable apphost discovery on extension activation and prompt to setup .aspire/settings.json.appHostPath if it does not exist in the workspace.</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.enableAspireCliDebugLogging">
+      <source xml:lang="en">Enable console debug logging for Aspire CLI commands executed by the extension.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.encounteredErrorStartingResource">
+      <source xml:lang="en">Encountered an error starting resource: {0}.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.processExceptionOccurred">
       <source xml:lang="en">Encountered an exception ({0}) while running the following command: {1}.</source>
     </trans-unit>
@@ -75,6 +108,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
       <source xml:lang="en">Extension context is not initialized.</source>
+    </trans-unit>
+    <trans-unit id="command.settings">
+      <source xml:lang="en">Extension settings</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
       <source xml:lang="en">Failed to configure launch.json: {0}.</source>
@@ -103,6 +139,12 @@
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.invalidOrMissingToken">
+      <source xml:lang="en">Invalid or missing token in Authorization header.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.invalidTokenLength">
+      <source xml:lang="en">Invalid token length in Authorization header.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.invalidTokenProvided">
       <source xml:lang="en">Invalid token provided.</source>
     </trans-unit>
@@ -123,6 +165,9 @@
     </trans-unit>
     <trans-unit id="command.new">
       <source xml:lang="en">New Aspire project</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noLabel">
+      <source xml:lang="en">No</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.no">
       <source xml:lang="en">No</source>
@@ -184,8 +229,14 @@
     <trans-unit id="aspire-vscode.strings.runProject">
       <source xml:lang="en">Run {0}</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
+      <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.aspireCliExecutablePath">
+      <source xml:lang="en">The path to the Aspire CLI executable. If not set, the extension will attempt to use &apos;aspire&apos; from the system PATH.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.fieldRequired">
       <source xml:lang="en">This field is required.</source>
@@ -195,6 +246,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.yesLabel">
+      <source xml:lang="en">Yes</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yes">
       <source xml:lang="en">Yes</source>

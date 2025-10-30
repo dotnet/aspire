@@ -81,6 +81,31 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
         <target state="translated">Vyberte předplatné Azure:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Tenant Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">ID tenanta</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Zadejte ID tenanta Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Vybrat ID tenanta</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Vyberte tenanta Azure:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">Název skupiny prostředků musí být platný název skupiny prostředků Azure.</target>
@@ -89,6 +114,11 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">ID předplatného musí být platným identifikátorem GUID.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">ID tenanta musí být platný identifikátor GUID.</target>
         <note />
       </trans-unit>
     </body>

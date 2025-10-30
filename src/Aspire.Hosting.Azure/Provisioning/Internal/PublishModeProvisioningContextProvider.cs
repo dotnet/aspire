@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES001
 
-using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,8 +27,9 @@ internal sealed class PublishModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IPublishingActivityReporter activityReporter) : BaseProvisioningContextProvider(
+    IPipelineActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,
@@ -35,6 +37,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateManager,
         distributedApplicationExecutionContext)
 {
     protected override string GetDefaultResourceGroupName()
@@ -58,25 +61,39 @@ internal sealed class PublishModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}";
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             await RetrieveAzureProvisioningOptions(cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Azure provisioning options have been handled successfully.");
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
         }
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
         {
+            // Skip tenant prompting if subscription ID is already set
+            if (_options.TenantId == null && _options.SubscriptionId == null)
+            {
+                await PromptForTenantAsync(cancellationToken).ConfigureAwait(false);
+                if (_options.TenantId == null)
+                {
+                    continue;
+                }
+            }
+
             if (_options.SubscriptionId == null)
             {
                 await PromptForSubscriptionAsync(cancellationToken).ConfigureAwait(false);
@@ -97,6 +114,105 @@ internal sealed class PublishModeProvisioningContextProvider(
         }
     }
 
+    private async Task PromptForTenantAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? tenantOptions = null;
+        var fetchSucceeded = false;
+
+        var step = await activityReporter.CreateStepAsync(
+            "fetch-tenant",
+            cancellationToken).ConfigureAwait(false);
+
+        await using (step.ConfigureAwait(false))
+        {
+            try
+            {
+                var task = await step.CreateTaskAsync("Fetching available tenants", cancellationToken).ConfigureAwait(false);
+
+                await using (task.ConfigureAwait(false))
+                {
+                    (tenantOptions, fetchSucceeded) = await TryGetTenantsAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                if (fetchSucceeded)
+                {
+                    await step.SucceedAsync($"Found {tenantOptions!.Count} available tenant(s)", cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await step.WarnAsync("Failed to fetch tenants, falling back to manual entry", cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve Azure tenant information.");
+                await step.FailAsync($"Failed to retrieve tenant information: {ex.Message}", cancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        if (tenantOptions?.Count > 0)
+        {
+            var result = await _interactionService.PromptInputsAsync(
+                AzureProvisioningStrings.TenantDialogTitle,
+                AzureProvisioningStrings.TenantSelectionMessage,
+                [
+                    new InteractionInput
+                    {
+                        Name = TenantName,
+                        InputType = InputType.Choice,
+                        Label = AzureProvisioningStrings.TenantLabel,
+                        Required = true,
+                        Options = [..tenantOptions]
+                    }
+                ],
+                new InputsDialogInteractionOptions
+                {
+                    EnableMessageMarkdown = false
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (!result.Canceled)
+            {
+                _options.TenantId = result.Data[TenantName].Value;
+                return;
+            }
+        }
+
+        var manualResult = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.TenantDialogTitle,
+            AzureProvisioningStrings.TenantManualEntryMessage,
+            [
+                new InteractionInput
+                {
+                    Name = TenantName,
+                    InputType = InputType.SecretText,
+                    Label = AzureProvisioningStrings.TenantLabel,
+                    Placeholder = AzureProvisioningStrings.TenantPlaceholder,
+                    Required = true
+                }
+            ],
+            new InputsDialogInteractionOptions
+            {
+                EnableMessageMarkdown = false,
+                ValidationCallback = static (validationContext) =>
+                {
+                    var tenantInput = validationContext.Inputs[TenantName];
+                    if (!Guid.TryParse(tenantInput.Value, out var _))
+                    {
+                        validationContext.AddValidationError(tenantInput, AzureProvisioningStrings.ValidationTenantIdInvalid);
+                    }
+                    return Task.CompletedTask;
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (!manualResult.Canceled)
+        {
+            _options.TenantId = manualResult.Data[TenantName].Value;
+        }
+    }
+
     private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
@@ -114,7 +230,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    (subscriptionOptions, fetchSucceeded) = await TryGetSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+                    (subscriptionOptions, fetchSucceeded) = await TryGetSubscriptionsAsync(_options.TenantId, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (fetchSucceeded)

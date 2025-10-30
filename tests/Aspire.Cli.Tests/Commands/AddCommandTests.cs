@@ -4,6 +4,7 @@
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,7 +71,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
                     return (
                         0, // Exit code.
-                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } // 
+                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } //
                         );
                 };
 
@@ -145,7 +146,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
                     return (
                         0, // Exit code.
-                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } // 
+                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } //
                         );
                 };
 
@@ -228,7 +229,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
                     return (
                         0, // Exit code.
-                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } // 
+                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } //
                         );
                 };
 
@@ -307,7 +308,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
                     return (
                         0, // Exit code.
-                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } // 
+                        new NuGetPackage[] { dockerPackage, redisPackage, azureRedisPackage } //
                         );
                 };
 
@@ -374,7 +375,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
                     return (
                         0, // Exit code.
-                        new NuGetPackage[] { redisPackage } // 
+                        new NuGetPackage[] { redisPackage } //
                         );
                 };
 
@@ -441,7 +442,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToAddPackage, exitCode);
-        Assert.Contains("No integration packages were found", displayedErrorMessage);
+        Assert.Contains(AddCommandStrings.NoIntegrationPackagesFound, displayedErrorMessage);
     }
 
     [Fact]
@@ -515,7 +516,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
         Assert.True(promptedForIntegration);
-        Assert.Contains("No packages matched your search term 'nonexistentpackage'", displayedSubtleMessage);
+        Assert.Equal(string.Format(AddCommandStrings.NoPackagesMatchedSearchTerm, "nonexistentpackage"), displayedSubtleMessage);
     }
 
     [Theory]

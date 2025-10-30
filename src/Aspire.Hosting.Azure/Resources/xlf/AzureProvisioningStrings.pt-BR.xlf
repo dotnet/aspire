@@ -81,6 +81,31 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
         <target state="translated">Selecione sua assinatura do Azure:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Locatário do Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">ID do locatário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Insira a sua ID de locatário do Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Selecionar a ID do locatário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Selecione o seu locatário do Azure:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">O nome do grupo de recursos deve ser um nome válido de grupo de recursos do Azure.</target>
@@ -89,6 +114,11 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">A ID da assinatura deve ser um GUID válido.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">A ID do locatário deve ser um GUID válido.</target>
         <note />
       </trans-unit>
     </body>

@@ -26,6 +26,7 @@ internal sealed class RootCommand : BaseRootCommand
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
+        DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
         ExecCommand execCommand,
@@ -43,6 +44,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(cacheCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
+        ArgumentNullException.ThrowIfNull(doCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
@@ -55,6 +57,11 @@ internal sealed class RootCommand : BaseRootCommand
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;
         debugOption.Recursive = true;
         Options.Add(debugOption);
+
+        var nonInteractiveOption = new Option<bool>("--non-interactive");
+        nonInteractiveOption.Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners";
+        nonInteractiveOption.Recursive = true;
+        Options.Add(nonInteractiveOption);
 
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
@@ -99,6 +106,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
         Subcommands.Add(deployCommand);
+        Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);
 

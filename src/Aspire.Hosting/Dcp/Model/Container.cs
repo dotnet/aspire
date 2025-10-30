@@ -358,6 +358,7 @@ internal static class ContainerFileSystemItemExtensions
         {
             entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
+            entry.ContinueOnError = file.ContinueOnError;
 
             if (file.Contents is not null && file.SourcePath is not null)
             {
@@ -406,6 +407,10 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
+
+    // If true, errors creating this entry will be ignored (does not apply to directory entries)
+    [JsonPropertyName("continueOnError")]
+    public bool? ContinueOnError { get; set; }
 
     public bool Equals(ContainerFileSystemEntry? other)
     {

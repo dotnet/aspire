@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting python</PackageTags>
-    <Description>Python support for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting python framework runtime</PackageTags>
+    <Description>Python support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

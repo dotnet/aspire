@@ -81,6 +81,31 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
         <target state="translated">Azure aboneliğinizi seçin:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Azure kiracısı</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">Kiracı Kimliği</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Azure kiracı kimliğinizi girin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Kiracı kimliği seçin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Azure kiracınızı seçin:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">Kaynak grubu adı, geçerli bir Azure kaynak grubu adı olmalıdır.</target>
@@ -89,6 +114,11 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">Abonelik kimliği geçerli bir GUID olmalıdır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">Kiracı kimliği geçerli bir GUID olmalıdır.</target>
         <note />
       </trans-unit>
     </body>

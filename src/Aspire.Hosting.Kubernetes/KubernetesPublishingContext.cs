@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES002
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
@@ -18,7 +20,7 @@ internal sealed class KubernetesPublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    public readonly string OutputPath = outputPath;
+    public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Kubernetes publishing.");
 
     private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
@@ -39,13 +41,10 @@ internal sealed class KubernetesPublishingContext(
         .WithIndentedSequences()
         .Build();
 
-    public ILogger Logger => logger;
-
     internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
-            logger.NotInPublishingMode();
             return;
         }
 
@@ -75,13 +74,13 @@ internal sealed class KubernetesPublishingContext(
                 if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
                     dockerfileBuildAnnotation.DockerfileFactory is not null)
                 {
-                    var context = new DockerfileFactoryContext
+                    var dockerfileContext = new DockerfileFactoryContext
                     {
                         Services = executionContext.ServiceProvider,
                         Resource = serviceResource.TargetResource,
                         CancellationToken = cancellationToken
                     };
-                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(dockerfileContext).ConfigureAwait(false);
 
                     // Always write to the original DockerfilePath so code looking at that path still works
                     await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);

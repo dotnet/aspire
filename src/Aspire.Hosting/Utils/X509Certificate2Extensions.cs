@@ -78,4 +78,26 @@ internal static class X509Certificate2Extensions
 
         return true;
     }
+
+    /// <summary>
+    /// Adds certificates from the system root stores to the specified collection.
+    /// </summary>
+    /// <param name="collection">The <see cref="X509Certificate2Collection"/> to add the certificates to.</param>
+    public static void AddRootCertificates(this X509Certificate2Collection collection)
+    {
+        ArgumentNullException.ThrowIfNull(collection);
+
+        var locations = new[]
+        {
+            (StoreName.Root, StoreLocation.CurrentUser),
+            (StoreName.Root, StoreLocation.LocalMachine),
+        };
+
+        foreach (var (storeName, storeLocation) in locations)
+        {
+            using var store = new X509Store(storeName, storeLocation);
+            store.Open(OpenFlags.ReadOnly);
+            collection.AddRange(store.Certificates);
+        }
+    }
 }

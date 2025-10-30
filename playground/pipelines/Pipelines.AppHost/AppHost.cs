@@ -1,9 +1,6 @@
-#pragma warning disable ASPIREPUBLISHERS001
-#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREPIPELINES001
 
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
@@ -65,184 +62,172 @@ builder.Pipeline.AddStep("assign-storage-role", async (context) =>
         return;
     }
 
-    var roleAssignmentStep = await context.ActivityReporter
-        .CreateStepAsync($"assign-storage-role", context.CancellationToken)
+    var assignRoleTask = await context.ReportingStep
+        .CreateTaskAsync($"Granting file share access to current user", context.CancellationToken)
         .ConfigureAwait(false);
 
-    await using (roleAssignmentStep.ConfigureAwait(false))
+    await using (assignRoleTask.ConfigureAwait(false))
     {
-        var assignRoleTask = await roleAssignmentStep
-            .CreateTaskAsync($"Granting file share access to current user", context.CancellationToken)
-            .ConfigureAwait(false);
-
-        await using (assignRoleTask.ConfigureAwait(false))
+        try
         {
-            try
+            // Get the current signed-in user's object ID
+            var getUserProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                // Get the current signed-in user's object ID
-                var getUserProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "az",
-                    Arguments = "ad signed-in-user show --query id -o tsv",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
+                FileName = "az",
+                Arguments = "ad signed-in-user show --query id -o tsv",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
 
-                if (getUserProcess == null)
-                {
-                    await assignRoleTask.CompleteAsync(
-                        "Failed to start az CLI process",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                var userObjectId = await getUserProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                userObjectId = userObjectId.Trim();
-
-                await getUserProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
-
-                if (getUserProcess.ExitCode != 0)
-                {
-                    var error = await getUserProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                    await assignRoleTask.CompleteAsync(
-                        $"Failed to get signed-in user: {error}",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                // Get the current subscription ID
-                var getSubscriptionProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "az",
-                    Arguments = "account show --query id -o tsv",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-
-                if (getSubscriptionProcess == null)
-                {
-                    await assignRoleTask.CompleteAsync(
-                        "Failed to get subscription ID",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                var subscriptionId = await getSubscriptionProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                subscriptionId = subscriptionId.Trim();
-
-                await getSubscriptionProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
-
-                if (getSubscriptionProcess.ExitCode != 0)
-                {
-                    var error = await getSubscriptionProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                    await assignRoleTask.CompleteAsync(
-                        $"Failed to get subscription ID: {error}",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                // Get the resource group for the storage account
-                var getResourceGroupProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "az",
-                    Arguments = $"storage account show --name {storageAccountName} --query resourceGroup -o tsv",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-
-                if (getResourceGroupProcess == null)
-                {
-                    await assignRoleTask.CompleteAsync(
-                        "Failed to get resource group",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                var resourceGroup = await getResourceGroupProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                resourceGroup = resourceGroup.Trim();
-
-                await getResourceGroupProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
-
-                if (getResourceGroupProcess.ExitCode != 0)
-                {
-                    var error = await getResourceGroupProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                    await assignRoleTask.CompleteAsync(
-                        $"Failed to get resource group: {error}",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                // Build the scope for the storage account
-                var scope = $"/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Storage/storageAccounts/{storageAccountName}";
-
-                // Assign the Storage File Data Privileged Contributor role
-                var assignRoleProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "az",
-                    Arguments = $"role assignment create --role \"Storage File Data Privileged Contributor\" --assignee {userObjectId} --scope {scope}",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-
-                if (assignRoleProcess == null)
-                {
-                    await assignRoleTask.CompleteAsync(
-                        "Failed to start az CLI process for role assignment",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                await assignRoleProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
-
-                if (assignRoleProcess.ExitCode != 0)
-                {
-                    var error = await assignRoleProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
-                    await assignRoleTask.CompleteAsync(
-                        $"Failed to assign role: {error}",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    return;
-                }
-
-                await assignRoleTask.CompleteAsync(
-                    $"Successfully assigned Storage File Data Privileged Contributor role",
-                    CompletionState.Completed,
-                    context.CancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
+            if (getUserProcess == null)
             {
                 await assignRoleTask.CompleteAsync(
-                    $"Error assigning role: {ex.Message}",
+                    "Failed to start az CLI process",
                     CompletionState.CompletedWithWarning,
                     context.CancellationToken).ConfigureAwait(false);
+                return;
             }
+
+            var userObjectId = await getUserProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+            userObjectId = userObjectId.Trim();
+
+            await getUserProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
+
+            if (getUserProcess.ExitCode != 0)
+            {
+                var error = await getUserProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+                await assignRoleTask.CompleteAsync(
+                    $"Failed to get signed-in user: {error}",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            // Get the current subscription ID
+            var getSubscriptionProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "az",
+                Arguments = "account show --query id -o tsv",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (getSubscriptionProcess == null)
+            {
+                await assignRoleTask.CompleteAsync(
+                    "Failed to get subscription ID",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var subscriptionId = await getSubscriptionProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+            subscriptionId = subscriptionId.Trim();
+
+            await getSubscriptionProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
+
+            if (getSubscriptionProcess.ExitCode != 0)
+            {
+                var error = await getSubscriptionProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+                await assignRoleTask.CompleteAsync(
+                    $"Failed to get subscription ID: {error}",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            // Get the resource group for the storage account
+            var getResourceGroupProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "az",
+                Arguments = $"storage account show --name {storageAccountName} --query resourceGroup -o tsv",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (getResourceGroupProcess == null)
+            {
+                await assignRoleTask.CompleteAsync(
+                    "Failed to get resource group",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var resourceGroup = await getResourceGroupProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+            resourceGroup = resourceGroup.Trim();
+
+            await getResourceGroupProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
+
+            if (getResourceGroupProcess.ExitCode != 0)
+            {
+                var error = await getResourceGroupProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+                await assignRoleTask.CompleteAsync(
+                    $"Failed to get resource group: {error}",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            // Build the scope for the storage account
+            var scope = $"/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Storage/storageAccounts/{storageAccountName}";
+
+            // Assign the Storage File Data Privileged Contributor role
+            var assignRoleProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "az",
+                Arguments = $"role assignment create --role \"Storage File Data Privileged Contributor\" --assignee {userObjectId} --scope {scope}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (assignRoleProcess == null)
+            {
+                await assignRoleTask.CompleteAsync(
+                    "Failed to start az CLI process for role assignment",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            await assignRoleProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
+
+            if (assignRoleProcess.ExitCode != 0)
+            {
+                var error = await assignRoleProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
+                await assignRoleTask.CompleteAsync(
+                    $"Failed to assign role: {error}",
+                    CompletionState.CompletedWithWarning,
+                    context.CancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            await assignRoleTask.CompleteAsync(
+                $"Successfully assigned Storage File Data Privileged Contributor role",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
         }
-
-        await roleAssignmentStep.CompleteAsync(
-            "Role assignment completed",
-            CompletionState.Completed,
-            context.CancellationToken).ConfigureAwait(false);
+        catch (Exception ex)
+        {
+            await assignRoleTask.CompleteAsync(
+                $"Error assigning role: {ex.Message}",
+                CompletionState.CompletedWithWarning,
+                context.CancellationToken).ConfigureAwait(false);
+        }
     }
-}, requiredBy: "upload-bind-mounts", dependsOn: WellKnownPipelineSteps.ProvisionInfrastructure);
+}, requiredBy: "upload-bind-mounts", dependsOn: WellKnownPipelineTags.ProvisionInfrastructure);
 
-builder.Pipeline.AddStep("upload-bind-mounts", async (context) =>
+builder.Pipeline.AddStep("upload-bind-mounts", async (deployingContext) =>
 {
-    var resourcesWithBindMounts = context.Model.Resources
+    var resourcesWithBindMounts = deployingContext.Model.Resources
         .Where(r => r.TryGetContainerMounts(out var mounts) &&
                     mounts.Any(m => m.Type == ContainerMountType.BindMount))
         .ToList();
@@ -252,104 +237,92 @@ builder.Pipeline.AddStep("upload-bind-mounts", async (context) =>
         return;
     }
 
-    var uploadStep = await context.ActivityReporter
-        .CreateStepAsync($"upload-bind-mounts", context.CancellationToken)
-        .ConfigureAwait(false);
+    var totalUploads = 0;
 
-    await using (uploadStep.ConfigureAwait(false))
+    var storageAccountName = await acaEnv.GetOutput("storagE_VOLUME_ACCOUNT_NAME").GetValueAsync();
+    var resource = withBindMount.Resource;
+
+    if (!resource.TryGetContainerMounts(out var mounts))
     {
-        var totalUploads = 0;
+        return;
+    }
 
-        var storageAccountName = await acaEnv.GetOutput("storagE_VOLUME_ACCOUNT_NAME").GetValueAsync();
-        var resource = withBindMount.Resource;
+    var bindMounts = mounts.Where(m => m.Type == ContainerMountType.BindMount).ToList();
 
-        if (!resource.TryGetContainerMounts(out var mounts))
+    for (var i = 0; i < bindMounts.Count; i++)
+    {
+        var bindMount = bindMounts[i];
+        var sourcePath = bindMount.Source;
+
+        if (string.IsNullOrEmpty(sourcePath))
         {
-            return;
+            continue;
         }
 
-        var bindMounts = mounts.Where(m => m.Type == ContainerMountType.BindMount).ToList();
+        var fileShareName = await acaEnv.GetOutput($"shareS_{i}_NAME").GetValueAsync();
 
-        for (var i = 0; i < bindMounts.Count; i++)
+        var uploadTask = await deployingContext.ReportingStep
+            .CreateTaskAsync($"Uploading {Path.GetFileName(sourcePath)} to {fileShareName}", deployingContext.CancellationToken)
+            .ConfigureAwait(false);
+
+        await using (uploadTask.ConfigureAwait(false))
         {
-            var bindMount = bindMounts[i];
-            var sourcePath = bindMount.Source;
-
-            if (string.IsNullOrEmpty(sourcePath))
+            if (!Directory.Exists(sourcePath))
             {
+                await uploadTask.CompleteAsync(
+                    $"Source path {sourcePath} does not exist",
+                    CompletionState.CompletedWithWarning,
+                    deployingContext.CancellationToken).ConfigureAwait(false);
                 continue;
             }
 
-            var fileShareName = await acaEnv.GetOutput($"shareS_{i}_NAME").GetValueAsync();
+            var files = Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories);
+            var fileCount = files.Length;
 
-            var uploadTask = await uploadStep
-                .CreateTaskAsync($"Uploading {Path.GetFileName(sourcePath)} to {fileShareName}", context.CancellationToken)
-                .ConfigureAwait(false);
+            var credential = new AzureCliCredential();
+            var fileShareUri = new Uri($"https://{storageAccountName}.file.core.windows.net/{fileShareName}");
 
-            await using (uploadTask.ConfigureAwait(false))
+            var clientOptions = new ShareClientOptions
             {
-                if (!Directory.Exists(sourcePath))
+                ShareTokenIntent = ShareTokenIntent.Backup
+            };
+
+            var shareClient = new ShareClient(fileShareUri, credential, clientOptions);
+
+            foreach (var filePath in files)
+            {
+                var relativePath = Path.GetRelativePath(sourcePath, filePath);
+                var directoryPath = Path.GetDirectoryName(relativePath) ?? string.Empty;
+
+                var directoryClient = shareClient.GetRootDirectoryClient();
+
+                if (!string.IsNullOrEmpty(directoryPath))
                 {
-                    await uploadTask.CompleteAsync(
-                        $"Source path {sourcePath} does not exist",
-                        CompletionState.CompletedWithWarning,
-                        context.CancellationToken).ConfigureAwait(false);
-                    continue;
-                }
-
-                var files = Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories);
-                var fileCount = files.Length;
-
-                var credential = new AzureCliCredential();
-                var fileShareUri = new Uri($"https://{storageAccountName}.file.core.windows.net/{fileShareName}");
-
-                var clientOptions = new ShareClientOptions
-                {
-                    ShareTokenIntent = ShareTokenIntent.Backup
-                };
-
-                var shareClient = new ShareClient(fileShareUri, credential, clientOptions);
-
-                foreach (var filePath in files)
-                {
-                    var relativePath = Path.GetRelativePath(sourcePath, filePath);
-                    var directoryPath = Path.GetDirectoryName(relativePath) ?? string.Empty;
-
-                    var directoryClient = shareClient.GetRootDirectoryClient();
-
-                    if (!string.IsNullOrEmpty(directoryPath))
+                    var parts = directoryPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    foreach (var part in parts)
                     {
-                        var parts = directoryPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                        foreach (var part in parts)
-                        {
-                            directoryClient = directoryClient.GetSubdirectoryClient(part);
-                            await directoryClient.CreateIfNotExistsAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                        }
+                        directoryClient = directoryClient.GetSubdirectoryClient(part);
+                        await directoryClient.CreateIfNotExistsAsync(cancellationToken: deployingContext.CancellationToken).ConfigureAwait(false);
                     }
-
-                    var fileName = Path.GetFileName(filePath);
-                    var fileClient = directoryClient.GetFileClient(fileName);
-
-                    using var fileStream = File.OpenRead(filePath);
-                    await fileClient.CreateAsync(fileStream.Length, cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                    await fileClient.UploadAsync(fileStream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
                 }
 
-                await uploadTask.CompleteAsync(
-                    $"Successfully uploaded {fileCount} file(s) from {sourcePath}",
-                    CompletionState.Completed,
-                    context.CancellationToken).ConfigureAwait(false);
+                var fileName = Path.GetFileName(filePath);
+                var fileClient = directoryClient.GetFileClient(fileName);
 
-                totalUploads += fileCount;
+                using var fileStream = File.OpenRead(filePath);
+                await fileClient.CreateAsync(fileStream.Length, cancellationToken: deployingContext.CancellationToken).ConfigureAwait(false);
+                await fileClient.UploadAsync(fileStream, cancellationToken: deployingContext.CancellationToken).ConfigureAwait(false);
             }
-        }
 
-        await uploadStep.CompleteAsync(
-            $"Successfully uploaded {totalUploads} file(s) to Azure File Shares",
-            CompletionState.Completed,
-            context.CancellationToken).ConfigureAwait(false);
+            await uploadTask.CompleteAsync(
+                $"Successfully uploaded {fileCount} file(s) from {sourcePath}",
+                CompletionState.Completed,
+                deployingContext.CancellationToken).ConfigureAwait(false);
+
+            totalUploads += fileCount;
+        }
     }
-}, requiredBy: WellKnownPipelineSteps.DeployCompute, dependsOn: WellKnownPipelineSteps.ProvisionInfrastructure);
+}, requiredBy: WellKnownPipelineTags.DeployCompute, dependsOn: WellKnownPipelineTags.ProvisionInfrastructure);
 
 builder.AddProject<Projects.Publishers_ApiService>("api-service")
     .WithComputeEnvironment(aasEnv)

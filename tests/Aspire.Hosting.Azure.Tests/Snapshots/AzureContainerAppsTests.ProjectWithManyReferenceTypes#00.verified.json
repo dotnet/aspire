@@ -1,6 +1,6 @@
 ﻿{
   "type": "azure.bicep.v0",
-  "path": "api.module.bicep",
+  "path": "api-containerapp.module.bicep",
   "params": {
     "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
     "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -15,6 +15,7 @@
     "value0_value": "{value0.value}",
     "value1_value": "{value1.value}",
     "cs_connectionstring": "{cs.connectionString}",
+    "pgc_password_value": "{pgc-password.value}",
     "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
   }
 }

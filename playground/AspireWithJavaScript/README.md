@@ -18,6 +18,8 @@ The app consists of four services:
 
 ### Experiencing the app
 
+Before starting the app host run `npm install` in each javascript folder.
+
 Once the app is running, the .NET Aspire dashboard will launch in your browser:
 
 ![.NET Aspire dashboard](./images/aspire-dashboard.png)

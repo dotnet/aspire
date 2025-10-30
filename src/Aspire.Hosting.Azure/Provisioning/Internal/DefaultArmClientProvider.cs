@@ -50,6 +50,18 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
             return (subscriptionResource, tenantResource);
         }
 
+        public async Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default)
+        {
+            var tenants = new List<ITenantResource>();
+
+            await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                tenants.Add(new DefaultTenantResource(tenant));
+            }
+
+            return tenants;
+        }
+
         public async Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
         {
             var subscriptions = new List<ISubscriptionResource>();
@@ -57,6 +69,27 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
             await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
             {
                 subscriptions.Add(new DefaultSubscriptionResource(subscription));
+            }
+
+            return subscriptions;
+        }
+
+        public async Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(tenantId))
+            {
+                return await GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            var subscriptions = new List<ISubscriptionResource>();
+
+            await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                // Filter subscriptions by tenant ID
+                if (subscription.Data.TenantId?.ToString().Equals(tenantId, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    subscriptions.Add(new DefaultSubscriptionResource(subscription));
+                }
             }
 
             return subscriptions;
@@ -78,6 +111,7 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
         private sealed class DefaultTenantResource(TenantResource tenantResource) : ITenantResource
         {
             public Guid? TenantId => tenantResource.Data.TenantId;
+            public string? DisplayName => tenantResource.Data.DisplayName;
             public string? DefaultDomain => tenantResource.Data.DefaultDomain;
         }
     }

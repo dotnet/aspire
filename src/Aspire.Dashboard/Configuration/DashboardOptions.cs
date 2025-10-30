@@ -13,6 +13,7 @@ public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
     public OtlpOptions Otlp { get; set; } = new();
+    public McpOptions Mcp { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
@@ -86,11 +87,7 @@ public sealed class OtlpOptions
 
     public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
 
-    /// <summary>
-    /// Gets or sets a value indicating whether to suppress the unsecured telemetry message in the dashboard UI.
-    /// When true, the warning message about unsecured OTLP endpoints will not be displayed.
-    /// </summary>
-    public bool SuppressUnsecuredTelemetryMessage { get; set; }
+    public bool SuppressUnsecuredMessage { get; set; }
 
     public BindingAddress? GetGrpcEndpointAddress()
     {
@@ -146,6 +143,52 @@ public sealed class OtlpOptions
     }
 }
 
+public class McpOptions
+{
+    private BindingAddress? _parsedEndpointAddress;
+    private byte[]? _primaryApiKeyBytes;
+    private byte[]? _secondaryApiKeyBytes;
+
+    public bool? Disabled { get; set; }
+    public McpAuthMode? AuthMode { get; set; }
+    public string? PrimaryApiKey { get; set; }
+    public string? SecondaryApiKey { get; set; }
+    public string? EndpointUrl { get; set; }
+
+    // Public URL could be different from the endpoint URL (e.g., when behind a proxy).
+    public string? PublicUrl { get; set; }
+
+    public bool SuppressUnsecuredMessage { get; set; }
+
+    public BindingAddress? GetEndpointAddress()
+    {
+        return _parsedEndpointAddress;
+    }
+
+    public byte[] GetPrimaryApiKeyBytes()
+    {
+        Debug.Assert(_primaryApiKeyBytes is not null, "Should have been parsed during validation.");
+        return _primaryApiKeyBytes;
+    }
+
+    public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
+
+    internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
+    {
+        if (!string.IsNullOrEmpty(EndpointUrl) && !OptionsHelpers.TryParseBindingAddress(EndpointUrl, out _parsedEndpointAddress))
+        {
+            errorMessage = $"Failed to parse MCP endpoint URL '{EndpointUrl}'.";
+            return false;
+        }
+
+        _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
+        _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
+
+        errorMessage = null;
+        return true;
+    }
+}
+
 public sealed class OtlpCors
 {
     public string? AllowedOrigins { get; set; }
@@ -164,6 +207,9 @@ public sealed class FrontendOptions
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
+
+    // Public URL could be different from the endpoint URL (e.g., when behind a proxy).
+    public string? PublicUrl { get; set; }
 
     /// <summary>
     /// Gets and sets an optional limit on the number of console log messages to be retained in the viewer.

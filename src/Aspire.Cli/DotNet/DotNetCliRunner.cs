@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -299,6 +300,20 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
         }
 
+        if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, true))
+        {
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey("DOTNET_ROLL_FORWARD"))
+            {
+                finalEnv["DOTNET_ROLL_FORWARD"] = "LatestMajor";
+            }            
+        }
+
         return await ExecuteAsync(
             args: cliArgs,
             env: finalEnv,
@@ -544,6 +559,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
+        // Suppress the .NET welcome message that appears on first run
+        startInfo.EnvironmentVariables["DOTNET_NOLOGO"] = "1";
+
+        // Configure DOTNET_ROOT to point to the private SDK installation if it exists
+        ConfigurePrivateSdkEnvironment(startInfo);
+
         if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
             // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
@@ -574,7 +595,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null)
         {
+#pragma warning disable CA2025 // Do not pass 'IDisposable' instances into unawaited tasks
             _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
+#pragma warning restore CA2025 // Do not pass 'IDisposable' instances into unawaited tasks
         }
 
         var pendingStdoutStreamForwarder = Task.Run(async () => {
@@ -632,9 +655,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 process.Id
                 );
 
-            while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
+            string? line;
+            while (!cancellationToken.IsCancellationRequested &&
+                (line = await reader.ReadLineAsync(cancellationToken)) is not null)
             {
-                var line = await reader.ReadLineAsync(cancellationToken);
                 logger.LogDebug(
                     "dotnet({ProcessId}) {Identifier}: {Line}",
                     process.Id,
@@ -1170,5 +1194,41 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Configures environment variables to use the private SDK installation if it exists.
+    /// </summary>
+    /// <param name="startInfo">The process start info to configure.</param>
+    private void ConfigurePrivateSdkEnvironment(ProcessStartInfo startInfo)
+    {
+        // Get the effective minimum SDK version to determine which private SDK to use
+        var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
+        var sdkVersion = sdkInstaller.GetEffectiveMinimumSdkVersion();
+        var sdksDirectory = executionContext.SdksDirectory.FullName;
+        var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
+        var dotnetExecutablePath = Path.Combine(
+            sdkInstallPath,
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"
+        );
+
+        // Check if the private SDK exists
+        if (Directory.Exists(sdkInstallPath))
+        {
+            // Set the executable path to be the private SDK.
+            startInfo.FileName = dotnetExecutablePath;
+
+            // Set DOTNET_ROOT to point to the private SDK installation
+            startInfo.EnvironmentVariables["DOTNET_ROOT"] = sdkInstallPath;
+            
+            // Also set DOTNET_MULTILEVEL_LOOKUP to 0 to prevent fallback to system SDKs
+            startInfo.EnvironmentVariables["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+            
+            // Prepend the private SDK path to PATH so the dotnet executable from the private installation is found first
+            var currentPath = startInfo.EnvironmentVariables["PATH"] ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            startInfo.EnvironmentVariables["PATH"] = $"{sdkInstallPath}{Path.PathSeparator}{currentPath}";
+            
+            logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
+        }
     }
 }

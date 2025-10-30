@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES002
 
-using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Orchestrator;
@@ -15,6 +16,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
@@ -446,7 +448,8 @@ public class ApplicationOrchestratorTests
         ResourceNotificationService notificationService,
         DcpExecutorEvents? dcpEvents = null,
         IDistributedApplicationEventing? applicationEventing = null,
-        ResourceLoggerService? resourceLoggerService = null)
+        ResourceLoggerService? resourceLoggerService = null,
+        DashboardOptions? dashboardOptions = null)
     {
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
         resourceLoggerService ??= new ResourceLoggerService();
@@ -470,8 +473,9 @@ public class ApplicationOrchestratorTests
                 CreateInteractionService(),
                 NullLogger<ParameterProcessor>.Instance,
                 executionContext,
-                deploymentStateManager: new MockDeploymentStateManager())
-            );
+                deploymentStateManager: new MockDeploymentStateManager()),
+            Options.Create(dashboardOptions ?? new())
+        );
     }
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
@@ -479,19 +483,20 @@ public class ApplicationOrchestratorTests
         return new InteractionService(
             NullLogger<InteractionService>.Instance,
             options ?? new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
     }
 
     private sealed class MockDeploymentStateManager : IDeploymentStateManager
     {
         public string? StateFilePath => null;
 
-        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new JsonObject());
+            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
         }
 
-        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }

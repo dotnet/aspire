@@ -156,11 +156,12 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     {
                         Assert.True(options.NoLaunchProfile);
 
-                        // Verify that the --deploy flag is included in the arguments
-                        Assert.Contains("--deploy", args);
-
                         // Verify that --output-path is NOT included when not specified
                         Assert.DoesNotContain("--output-path", args);
+
+                        // Verify that --step deploy is passed by default
+                        Assert.Contains("--step", args);
+                        Assert.Contains("deploy", args);
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel
@@ -223,15 +224,13 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     {
                         Assert.True(options.NoLaunchProfile);
 
-                        // Verify that the --deploy flag is included in the arguments
-                        Assert.Contains("--deploy", args);
-                        
                         // Verify the complete set of expected arguments for deploy command
                         Assert.Contains("--operation", args);
                         Assert.Contains("publish", args);
-                        Assert.Contains("--publisher", args);
-                        Assert.Contains("default", args);
-                        Assert.Contains("true", args); // The value for --deploy flag
+
+                        // Verify that --step deploy is passed by default
+                        Assert.Contains("--step", args);
+                        Assert.Contains("deploy", args);
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel
@@ -290,18 +289,17 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             return (0, true, VersionHelper.GetDefaultTemplateVersion());
                         },
 
-                    // Simulate apphost running and verify --deploy flag is passed
+                    // Simulate apphost running and verify --step deploy flag is passed
                     RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
                         {
-                            // This is the key assertion - the deploy command should pass --deploy to the app host
-                            Assert.Contains("--deploy", args);
                             Assert.Contains("--operation", args);
                             Assert.Contains("publish", args);
-                            Assert.Contains("--publisher", args);
-                            Assert.Contains("default", args);
                             // When output path is explicitly provided, it should be included
                             Assert.Contains("--output-path", args);
                             Assert.Contains("/tmp/test", args);
+                            // Verify that --step deploy is passed by default
+                            Assert.Contains("--step", args);
+                            Assert.Contains("deploy", args);
 
                             var deployModeCompleted = new TaskCompletionSource();
                             var backchannel = new TestAppHostBackchannel

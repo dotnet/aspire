@@ -10,6 +10,8 @@ using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
+using System.Text.Json;
+using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -964,7 +966,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "manifest", outputPath: outputDir.Path);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resources with different entrypoint types
         builder.AddPythonScript("script-app", projectDirectory, "main.py")
@@ -1000,13 +1002,90 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithVSCodeDebugSupport_RemovesScriptArgumentForScriptEntrypoint()
+    public async Task WithUvEnvironment_GeneratesDockerfileInPublishMode_WithoutUvLock()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a UV-based Python project with pyproject.toml but NO uv.lock
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.12"
+            dependencies = []
+
+            [build-system]
+            requires = ["hatchling"]
+            build-backend = "hatchling.build"
+            """;
+
+        var scriptContent = """
+            print("Hello from UV project!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+        // Note: NO uv.lock file created
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources with different entrypoint types
+        builder.AddPythonScript("script-app", projectDirectory, "main.py")
+            .WithUvEnvironment();
+
+        builder.AddPythonModule("module-app", projectDirectory, "mymodule")
+            .WithUvEnvironment();
+
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
+            .WithUvEnvironment();
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Verify that Dockerfiles were generated for each entrypoint type
+        var scriptDockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(scriptDockerfilePath), "Dockerfile should be generated for script entrypoint");
+
+        var moduleDockerfilePath = Path.Combine(outputDir.Path, "module-app.Dockerfile");
+        Assert.True(File.Exists(moduleDockerfilePath), "Dockerfile should be generated for module entrypoint");
+
+        var executableDockerfilePath = Path.Combine(outputDir.Path, "executable-app.Dockerfile");
+        Assert.True(File.Exists(executableDockerfilePath), "Dockerfile should be generated for executable entrypoint");
+
+        var scriptDockerfileContent = File.ReadAllText(scriptDockerfilePath);
+        var moduleDockerfileContent = File.ReadAllText(moduleDockerfilePath);
+        var executableDockerfileContent = File.ReadAllText(executableDockerfilePath);
+
+        // Verify the Dockerfiles don't use --locked flag
+        Assert.DoesNotContain("--locked", scriptDockerfileContent);
+        Assert.DoesNotContain("--locked", moduleDockerfileContent);
+        Assert.DoesNotContain("--locked", executableDockerfileContent);
+
+        await Verify(scriptDockerfileContent)
+            .AppendContentAsFile(moduleDockerfileContent)
+            .AppendContentAsFile(executableDockerfileContent);
+    }
+
+    [Fact]
+    public async Task WithDebugSupport_RemovesScriptArgumentForScriptEntrypoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
 
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["python"]
+        };
+
         // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
-        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
 
         var appDirectory = Path.Combine(tempDir.Path, "myapp");
         Directory.CreateDirectory(appDirectory);
@@ -1032,13 +1111,59 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithVSCodeDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
+    public async Task WithDebugSupport_DoesntRemoveScriptArgumentForScriptEntrypoint_WhenResourceTypeNotSupported()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
 
         // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
-        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"]
+        };
+
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var scriptPath = "main.py";
+
+        var pythonApp = builder.AddPythonScript("myapp", appDirectory, scriptPath)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("arg1", "arg2");
+
+        var app = builder.Build();
+
+        var resource = pythonApp.Resource;
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, app.Services);
+
+        // Verify the script path was removed but other args remain
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("main.py", arg),
+            arg => Assert.Equal("arg1", arg),
+            arg => Assert.Equal("arg2", arg));
+    }
+
+    [Fact]
+    public async Task WithDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["python"]
+        };
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
 
         var appDirectory = Path.Combine(tempDir.Path, "myapp");
         Directory.CreateDirectory(appDirectory);
@@ -1063,7 +1188,46 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithVSCodeDebugSupport_ExecutableTypeDoesNotModifyArgs()
+    public async Task WithDebugSupport_DoesntRemoveModuleArgumentsForModuleEntrypoint_WhenResourceTypeNotSupported()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"]
+        };
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(runSessionInfo);
+        builder.Configuration["DEBUG_SESSION_PORT"] = "5678";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var moduleName = "flask";
+
+        var pythonApp = builder.AddPythonModule("myapp", appDirectory, moduleName)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("run");
+
+        var app = builder.Build();
+
+        var resource = pythonApp.Resource;
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, app.Services);
+
+        // Verify "-m" and module name were removed but other args remain
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("-m", arg),
+            arg => Assert.Equal("flask", arg),
+            arg => Assert.Equal("run", arg));
+    }
+
+    [Fact]
+    public async Task WithDebugSupport_ExecutableTypeDoesNotModifyArgs()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();

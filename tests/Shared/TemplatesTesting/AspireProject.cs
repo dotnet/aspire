@@ -442,7 +442,7 @@ public partial class AspireProject : IAsyncDisposable
         await StopAppHostAsync().ConfigureAwait(false);
     }
 
-    public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
+    public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null, CancellationToken cancellationToken = default)
     {
         if (!RequiresDockerAttribute.IsSupported)
         {

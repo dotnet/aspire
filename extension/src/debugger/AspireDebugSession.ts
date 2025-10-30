@@ -13,6 +13,7 @@ import { createDebugSessionConfiguration } from "./debuggerExtensions";
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 import { ICliRpcClient } from "../server/rpcClient";
 import path from "path";
+import { EnvironmentVariables } from "../utils/environment";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -77,6 +78,13 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       if (!noDebug) {
         args.push('--start-debug-session');
       }
+      if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
+        args.push('--cli-wait-for-debugger');
+      }
+
+      if (process.env[EnvironmentVariables.ASPIRE_APPHOST_STOP_ON_ENTRY] === 'true') {
+        args.push('--wait-for-debugger');
+      }
 
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
@@ -131,7 +139,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     spawnCliProcess(
       this._terminalProvider,
-      'aspire',
+      this._terminalProvider.getAspireCliExecutablePath(false),
       args,
       {
         stdoutCallback: (data) => {

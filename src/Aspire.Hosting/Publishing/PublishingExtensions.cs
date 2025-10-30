@@ -1,16 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Extension methods for <see cref="IPublishingStep"/> and <see cref="IPublishingTask"/> to provide direct operations.
+/// Extension methods for <see cref="IReportingStep"/> and <see cref="IReportingTask"/> to provide direct operations.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class PublishingExtensions
 {
     /// <summary>
@@ -20,8 +20,8 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed step.</returns>
-    public static async Task<IPublishingStep> SucceedAsync(
-        this IPublishingStep step,
+    public static async Task<IReportingStep> SucceedAsync(
+        this IReportingStep step,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
@@ -37,8 +37,8 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed step.</returns>
-    public static async Task<IPublishingStep> WarnAsync(
-        this IPublishingStep step,
+    public static async Task<IReportingStep> WarnAsync(
+        this IReportingStep step,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
@@ -54,8 +54,8 @@ public static class PublishingExtensions
     /// <param name="errorMessage">Optional error message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed step.</returns>
-    public static async Task<IPublishingStep> FailAsync(
-        this IPublishingStep step,
+    public static async Task<IReportingStep> FailAsync(
+        this IReportingStep step,
         string? errorMessage = null,
         CancellationToken cancellationToken = default)
     {
@@ -71,8 +71,8 @@ public static class PublishingExtensions
     /// <param name="statusText">The new status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The updated task.</returns>
-    public static async Task<IPublishingTask> UpdateStatusAsync(
-        this IPublishingTask task,
+    public static async Task<IReportingTask> UpdateStatusAsync(
+        this IReportingTask task,
         string statusText,
         CancellationToken cancellationToken = default)
     {
@@ -87,8 +87,8 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed task.</returns>
-    public static async Task<IPublishingTask> SucceedAsync(
-        this IPublishingTask task,
+    public static async Task<IReportingTask> SucceedAsync(
+        this IReportingTask task,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
@@ -103,8 +103,8 @@ public static class PublishingExtensions
     /// <param name="message">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed task.</returns>
-    public static async Task<IPublishingTask> WarnAsync(
-        this IPublishingTask task,
+    public static async Task<IReportingTask> WarnAsync(
+        this IReportingTask task,
         string? message = null,
         CancellationToken cancellationToken = default)
     {
@@ -119,8 +119,8 @@ public static class PublishingExtensions
     /// <param name="errorMessage">Optional error message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The completed task.</returns>
-    public static async Task<IPublishingTask> FailAsync(
-        this IPublishingTask task,
+    public static async Task<IReportingTask> FailAsync(
+        this IReportingTask task,
         string? errorMessage = null,
         CancellationToken cancellationToken = default)
     {

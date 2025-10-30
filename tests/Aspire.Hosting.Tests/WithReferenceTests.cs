@@ -28,16 +28,67 @@ public class WithReferenceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(projectA.Resource, r.Resource);
-            });
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(projectA.Resource, r.Resource);
     }
 
+    [Theory]
+    [InlineData(ReferenceEnvironmentInjectionFlags.All)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.ConnectionProperties)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.ConnectionString)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.ServiceDiscovery)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.Endpoints)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.None)]
+    public async Task ResourceWithEndpointRespectsCustomEnvironmentVariableNaming(ReferenceEnvironmentInjectionFlags flags)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a binding and its matching annotation (simulating DCP behavior)
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                .WithHttpsEndpoint(1000, 2000, "mybinding")
+                .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        // Get the service provider.
+        var projectB = builder.AddProject<ProjectB>("b")
+            .WithReference(projectA, "custom")
+            .WithReferenceEnvironment(flags);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        switch (flags)
+        {
+            case ReferenceEnvironmentInjectionFlags.All:
+                Assert.Equal("https://localhost:2000", config["services__custom__mybinding__0"]);
+                Assert.Equal("https://localhost:2000", config["custom_MYBINDING"]);
+                break;
+            case ReferenceEnvironmentInjectionFlags.ConnectionProperties:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.ConnectionString:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.ServiceDiscovery:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.True(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.Endpoints:
+                Assert.True(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.None:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+        }
+    }
+    
     [Fact]
     public async Task ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
     {
@@ -60,6 +111,9 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__myconflictingbinding__0"]);
+
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("https://localhost:3000", config["PROJECTA_MYCONFLICTINGBINDING"]);
     }
 
     [Fact]
@@ -85,6 +139,9 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mynonconflictingbinding__0"]);
+
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("http://localhost:3000", config["PROJECTA_MYNONCONFLICTINGBINDING"]);
     }
 
     [Fact]
@@ -109,13 +166,13 @@ public class WithReferenceTests
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__mybinding2__0"]);
 
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("https://localhost:3000", config["PROJECTA_MYBINDING2"]);
+
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(projectA.Resource, r.Resource);
-            });
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(projectA.Resource, r.Resource);
     }
 
     [Fact]
@@ -138,13 +195,13 @@ public class WithReferenceTests
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
 
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("http://localhost:3000", config["PROJECTA_MYBINDING2"]);
+
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(projectA.Resource, r.Resource);
-            });
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(projectA.Resource, r.Resource);
     }
 
     [Fact]
@@ -299,13 +356,9 @@ public class WithReferenceTests
         Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(resource.Resource, r.Resource);
-            });
-
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(resource.Resource, r.Resource);
         Assert.True(resource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var csRelationships));
         Assert.Collection(csRelationships,
             r =>
@@ -407,6 +460,7 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__petstore__default__0" && kvp.Value == "https://petstore.swagger.io/");
+        Assert.Contains(config, kvp => kvp.Key == "petstore" && kvp.Value == "https://petstore.swagger.io/");
     }
 
     [Fact]
@@ -495,10 +549,10 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-#pragma warning disable ASPIREHOSTINGPYTHON001, CS0612, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable CS0618
         var executable = builder.AddPythonApp("PythonApp", ".\\app", "app.py")
                                 .WithReference(resource);
-#pragma warning restore ASPIREHOSTINGPYTHON001, CS0612, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore CS0618
 
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
@@ -549,7 +603,7 @@ public class WithReferenceTests
 
         // Create a container and explicitly configure it to emit only connection properties
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithConnectionProperties(ReferenceEnvironmentInjectionFlags.ConnectionProperties)
+                               .WithReferenceEnvironment(ReferenceEnvironmentInjectionFlags.ConnectionProperties)
                                .WithReference(resource);
 
         // Call environment variable callbacks.
@@ -578,7 +632,7 @@ public class WithReferenceTests
         // ProjectResource defaults to ReferenceEnvironmentInjectionFlags.All
         // Here we configure it to only inject ConnectionString (not ConnectionProperties)
         var projectB = builder.AddProject<ProjectB>("projectb")
-                              .WithConnectionProperties(ReferenceEnvironmentInjectionFlags.ConnectionString)
+                              .WithReferenceEnvironment(ReferenceEnvironmentInjectionFlags.ConnectionString)
                               .WithReference(resource);
 
         // Call environment variable callbacks.

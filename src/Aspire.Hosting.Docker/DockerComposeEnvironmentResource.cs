@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,20 +58,43 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// <param name="name">The name of the Docker Compose environment.</param>
     public DockerComposeEnvironmentResource(string name) : base(name)
     {
-        Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+        Annotations.Add(new PipelineStepAnnotation(context =>
+        {
+            var step = new PipelineStep
+            {
+                Name = $"publish-{Name}",
+                Action = ctx => PublishAsync(ctx)
+            };
+            step.RequiredBy(WellKnownPipelineSteps.Publish);
+            return step;
+        }));
     }
 
-    private Task PublishAsync(PublishingContext context)
+    /// <summary>
+    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
+    /// </summary>
+    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
-        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var resource = endpointReference.Resource;
+
+        // In Docker Compose, services can communicate using their service names
+        // Docker Compose automatically creates a network where services can reach each other by service name
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}");
+    }
+
+    private Task PublishAsync(PipelineStepContext context)
+    {
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
+        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
             context.ExecutionContext,
             imageBuilder,
             outputPath,
             context.Logger,
-            context.ActivityReporter,
+            context.ReportingStep,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);

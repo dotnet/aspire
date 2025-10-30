@@ -71,9 +71,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
         Assert.Equal(lawResourceGroup.Resource, existingAnnotation.ResourceGroup);
 
         // Verify that the Container App Environment has the AzureLogAnalyticsWorkspaceReferenceAnnotation
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Assert.True(containerAppEnvironment.Resource.TryGetLastAnnotation<AzureLogAnalyticsWorkspaceReferenceAnnotation>(out var workspaceRef));
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Assert.Same(logAnalyticsWorkspace.Resource, workspaceRef.Workspace);
 
         // Act & Assert - Generate bicep and verify using snapshot testing

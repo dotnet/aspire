@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting Node Nodejs</PackageTags>
-    <Description>Node.js support for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting Node Nodejs javascript framework runtime</PackageTags>
+    <Description>Node.js support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

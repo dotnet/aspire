@@ -23,7 +23,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <remarks>
     /// You can run any executable command using its full path.
     /// As a security feature, Aspire doesn't run executable unless the command is located in a path listed in the PATH environment variable.
-    /// <para/> 
+    /// <para/>
     /// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
     /// </remarks>
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, [ResourceName] string name, string command, string workingDirectory, params string[]? args)
@@ -180,7 +180,7 @@ public static class ExecutableResourceBuilderExtensions
                 Command = command,
                 WorkingDirectory = string.Empty
             };
-            builder.Resource.Annotations.Add(executableAnnotation);            
+            builder.Resource.Annotations.Add(executableAnnotation);
         }
 
         return builder;

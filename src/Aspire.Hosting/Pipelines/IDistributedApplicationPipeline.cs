@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -22,7 +21,7 @@ public interface IDistributedApplicationPipeline
     /// <param name="dependsOn">The name of the step this step depends on, or a list of step names.</param>
     /// <param name="requiredBy">The name of the step that requires this step, or a list of step names.</param>
     void AddStep(string name,
-                 Func<DeployingContext, Task> action,
+                 Func<PipelineStepContext, Task> action,
                  object? dependsOn = null,
                  object? requiredBy = null);
 
@@ -33,9 +32,15 @@ public interface IDistributedApplicationPipeline
     void AddStep(PipelineStep step);
 
     /// <summary>
+    /// Registers a callback to be executed during the pipeline configuration phase.
+    /// </summary>
+    /// <param name="callback">The callback function to execute during the configuration phase.</param>
+    void AddPipelineConfiguration(Func<PipelineConfigurationContext, Task> callback);
+
+    /// <summary>
     /// Executes all steps in the pipeline in dependency order.
     /// </summary>
-    /// <param name="context">The deploying context for the execution.</param>
+    /// <param name="context">The pipeline context for the execution.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task ExecuteAsync(DeployingContext context);
+    Task ExecuteAsync(PipelineContext context);
 }

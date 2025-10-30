@@ -10,7 +10,7 @@ Registers an [IDistributedCache](https://learn.microsoft.com/dotnet/api/microsof
 
 ### Install the package
 
-Install the .NET Aspire StackExchange Redis Distributed Cache library with [NuGet](https://www.nuget.org):
+Install the Aspire StackExchange Redis Distributed Cache library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.StackExchange.Redis.DistributedCaching
@@ -57,7 +57,7 @@ public ProductsController([FromKeyedServices("distributedCache")] IDistributedCa
 
 ## Configuration
 
-The .NET Aspire StackExchange Redis Distributed Cache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
+The Aspire StackExchange Redis Distributed Cache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
 
 ### Use a connection string
 

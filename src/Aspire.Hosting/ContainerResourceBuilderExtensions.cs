@@ -1,11 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -14,6 +20,45 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class ContainerResourceBuilderExtensions
 {
+    /// <summary>
+    /// Ensures that a container resource has a PipelineStepAnnotation for building if it has a DockerfileBuildAnnotation.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    internal static IResourceBuilder<T> EnsureBuildPipelineStepAnnotation<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        // Use replace semantics to ensure we only have one PipelineStepAnnotation for building
+        return builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
+        {
+            if (!builder.Resource.RequiresImageBuild() || builder.Resource.IsExcludedFromPublish())
+            {
+                return [];
+            }
+
+            var buildStep = new PipelineStep
+            {
+                Name = $"build-{builder.Resource.Name}",
+                Action = async ctx =>
+                {
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+                    await containerImageBuilder.BuildImageAsync(
+                        builder.Resource,
+                        new ContainerBuildOptions
+                        {
+                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                        },
+                        ctx.CancellationToken).ConfigureAwait(false);
+                },
+                Tags = [WellKnownPipelineTags.BuildCompute],
+                RequiredBySteps = [WellKnownPipelineSteps.Build],
+                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq]
+            };
+
+            return [buildStep];
+        }), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     /// <summary>
     /// Adds a container resource to the application. Uses the "latest" tag.
     /// </summary>
@@ -461,7 +506,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">Type parameter specifying any type derived from <see cref="ContainerResource"/>/</typeparam>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="contextPath">Path to be used as the context for the container image build.</param>
-    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="dockerfilePath">Path to the Dockerfile relative to the <paramref name="contextPath"/>. Defaults to "Dockerfile" if not specified.</param>
     /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -471,9 +516,9 @@ public static class ContainerResourceBuilderExtensions
     /// before using that image to start the container.
     /// </para>
     /// <para>
-    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
-    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
-    /// to the <paramref name="contextPath"/>.
+    /// The <paramref name="contextPath"/> is relative to the AppHost directory unless it is a fully qualified path.
+    /// The <paramref name="dockerfilePath"/> is relative to the <paramref name="contextPath"/> unless it is a fully qualified path.
+    /// If the <paramref name="dockerfilePath"/> is not provided, it defaults to "Dockerfile" in the <paramref name="contextPath"/>.
     /// </para>
     /// <para>
     /// When generating the manifest for deployment tools, the <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>
@@ -514,13 +559,15 @@ public static class ContainerResourceBuilderExtensions
         {
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag(imageTag);
+                      .WithImageTag(imageTag)
+                      .EnsureBuildPipelineStepAnnotation();
     }
 
     /// <summary>
@@ -551,7 +598,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileFactory("path/to/context", context => 
+    ///        .WithDockerfileFactory("path/to/context", context =>
     ///        {
     ///            return "FROM alpine:latest\nRUN echo 'Hello World'";
     ///        });
@@ -596,7 +643,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileFactory("path/to/context", async context => 
+    ///        .WithDockerfileFactory("path/to/context", async context =>
     ///        {
     ///            var template = await File.ReadAllTextAsync("template.dockerfile", context.CancellationToken);
     ///            return template.Replace("{{VERSION}}", "1.0");
@@ -632,13 +679,15 @@ public static class ContainerResourceBuilderExtensions
         {
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag(imageTag);
+                      .WithImageTag(imageTag)
+                      .EnsureBuildPipelineStepAnnotation();
     }
 
     /// <summary>
@@ -647,14 +696,14 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="contextPath">Path to be used as the context for the container image build.</param>
-    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="dockerfilePath">Path to the Dockerfile relative to the <paramref name="contextPath"/>. Defaults to "Dockerfile" if not specified.</param>
     /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
     /// <returns>A <see cref="IResourceBuilder{ContainerResource}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
-    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
-    /// to the <paramref name="contextPath"/>.
+    /// The <paramref name="contextPath"/> is relative to the AppHost directory unless it is a fully qualified path.
+    /// The <paramref name="dockerfilePath"/> is relative to the <paramref name="contextPath"/> unless it is a fully qualified path.
+    /// If the <paramref name="dockerfilePath"/> is not provided, it defaults to "Dockerfile" in the <paramref name="contextPath"/>.
     /// </para>
     /// <para>
     /// When generating the manifest for deployment tools, the <see cref="AddDockerfile(IDistributedApplicationBuilder, string, string, string?, string?)"/>
@@ -762,7 +811,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
     /// {
     ///     context.Builder.From("alpine:latest")
     ///         .WorkDir("/app")
@@ -809,7 +858,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
     /// {
     ///     context.Builder.From("node:18")
     ///         .WorkDir("/app")
@@ -1001,20 +1050,26 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ContainerCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
-    /// configure itself for custom certificate trust.
+    /// Adds a <see cref="ContainerCertificatePathsAnnotation"/> to the resource that allows overriding the default paths in the container used for certificate trust.
+    /// Custom certificate trust is only supported at run time.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <param name="customCertificatesDestination">The destination path in the container where custom certificates will be copied to. If not specified, defaults to <c>/usr/local/share/ca-certificates/aspire-custom-certs/</c>.</param>
+    /// <param name="defaultCertificateBundlePaths">List of default certificate bundle paths in the container that will be replaced in <see cref="CertificateTrustScope.Override"/> or <see cref="CertificateTrustScope.System"/> modes. If not specified, defaults to <c>/etc/ssl/certs/ca-certificates.crt</c> for Linux containers.</param>
+    /// <param name="defaultCertificateDirectoryPaths">List of default certificate directory paths in the container that may be appended to the custom certificates directory in <see cref="CertificateTrustScope.Append"/> mode. If not specified, defaults to <c>/usr/local/share/ca-certificates/</c> for Linux containers.</param>
     /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithContainerCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ContainerCertificateTrustCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithContainerCertificatePaths<TResource>(this IResourceBuilder<TResource> builder, string? customCertificatesDestination = null, List<string>? defaultCertificateBundlePaths = null, List<string>? defaultCertificateDirectoryPaths = null)
         where TResource : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new ContainerCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ContainerCertificatePathsAnnotation
+        {
+            CustomCertificatesDestination = customCertificatesDestination,
+            DefaultCertificateBundles = defaultCertificateBundlePaths,
+            DefaultCertificateDirectories = defaultCertificateDirectoryPaths,
+        }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -1244,7 +1299,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileBuilder("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context =>
     ///        {
     ///            context.Builder.From("alpine:latest")
     ///                .WorkDir("/app")
@@ -1349,7 +1404,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileBuilder("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context =>
     ///        {
     ///            context.Builder.From("node:18")
     ///                .WorkDir("/app")

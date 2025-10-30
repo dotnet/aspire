@@ -81,6 +81,31 @@ Para más información, consulte la [documentación de aprovisionamiento de Azur
         <target state="translated">Seleccione su suscripción de Azure:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Inquilino de Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">Id. de inquilino</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Escriba el identificador de inquilino de Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Seleccionar id. de inquilino</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Seleccione el inquilino de Azure:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">El nombre del grupo de recursos debe ser un nombre de grupo de recursos de Azure válido.</target>
@@ -89,6 +114,11 @@ Para más información, consulte la [documentación de aprovisionamiento de Azur
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">El identificador de suscripción debe ser un GUID válido.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">El identificador de inquilino debe ser un GUID válido.</target>
         <note />
       </trans-unit>
     </body>

@@ -7,14 +7,14 @@ import { projectDebuggerExtension } from "./languages/dotnet";
 import { isCsharpInstalled, isJavaInstalled, isPythonInstalled } from "../capabilities";
 import { pythonDebuggerExtension } from "./languages/python";
 import { javaDebuggerExtension } from "./languages/java";
-import { stat } from "fs/promises";
+import { isDirectory } from "../utils/io";
 
 // Represents a resource-specific debugger extension for when the default session configuration is not sufficient to launch the resource.
 export interface ResourceDebuggerExtension {
     resourceType: string;
     debugAdapter: string;
     extensionId: string | null;
-    displayName: string;
+    getDisplayName: (launchConfig: ExecutableLaunchConfiguration) => string;
     getProjectFile: (launchConfig: ExecutableLaunchConfiguration) => string;
     getSupportedFileTypes: () => string[];
     createDebugSessionConfigurationCallback?: (launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
@@ -26,34 +26,14 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
     const projectPath = debuggerExtension.getProjectFile(launchConfig);
-    const displayName = `${debuggerExtension.displayName ?? launchConfig.type}: ${path.basename(projectPath)}`;
-
-    // Determine the current working directory based on if the project path is a file or directory
-    let cwd;
-    try {
-        const projectPathStat = await stat(projectPath);
-
-        // If the project path is already a directory, use it as is
-        // Otherwise, use the parent directory
-        if (projectPathStat.isDirectory()) {
-            cwd = projectPath;
-        } else if (projectPathStat.isFile()) {
-            cwd = path.dirname(projectPath);
-        }
-    } catch (error) {
-        extensionLogOutputChannel.debug(`Error determining current working directory: ${error}. Falling back to ${projectPath}.`);
-
-        // Fallback to the provided project path
-        cwd = projectPath;
-    }
 
     const configuration: AspireResourceExtendedDebugConfiguration = {
         type: debuggerExtension.debugAdapter || launchConfig.type,
         request: 'launch',
-        name: launchOptions.debug ? debugProject(displayName) : runProject(displayName),
+        name: launchOptions.debug ? debugProject(debuggerExtension.getDisplayName(launchConfig)) : runProject(debuggerExtension.getDisplayName(launchConfig)),
         program: projectPath,
         args: args,
-        cwd: cwd,
+        cwd: await isDirectory(projectPath) ? projectPath : path.dirname(projectPath),
         env: mergeEnvs(process.env, env),
         justMyCode: false,
         stopAtEntry: false,

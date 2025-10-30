@@ -1,12 +1,12 @@
 # Aspire.Hosting.NATS library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a NATS resource.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a NATS resource.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire NATS Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire NATS Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Nats

@@ -10,7 +10,7 @@ Registers a [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI co
 
 ### Install the package
 
-Install the .NET Aspire Qdrant Client library with [NuGet](https://www.nuget.org):
+Install the Aspire Qdrant Client library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Qdrant.Client
@@ -26,7 +26,7 @@ builder.AddQdrantClient("qdrant");
 
 ## Configuration
 
-The .NET Aspire Qdrant Client component provides multiple options to configure the server connection based on the requirements and conventions of your project.
+The Aspire Qdrant Client component provides multiple options to configure the server connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -50,7 +50,7 @@ By default the `QdrantClient` uses the gRPC API endpoint.
 
 ### Use configuration providers
 
-The .NET Aspire Qdrant Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `QdrantSettings` from configuration by using the `Aspire:Qdrant:Client` key. Example `appsettings.json` that configures some of the options:
+The Aspire Qdrant Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `QdrantSettings` from configuration by using the `Aspire:Qdrant:Client` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

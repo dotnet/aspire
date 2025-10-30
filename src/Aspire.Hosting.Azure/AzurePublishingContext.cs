@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -27,11 +27,11 @@ public sealed class AzurePublishingContext(
     AzureProvisioningOptions provisioningOptions,
     IServiceProvider serviceProvider,
     ILogger logger,
-    IPublishingActivityReporter activityReporter)
+    IReportingStep reportingStep)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityReporter ActivityReporter => activityReporter;
+    private IReportingStep ReportingStep => reportingStep;
 
     private IServiceProvider ServiceProvider => serviceProvider;
 
@@ -88,37 +88,29 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        var step = await ActivityReporter.CreateStepAsync(
-            "publish-bicep",
-            cancellationToken
-        ).ConfigureAwait(false);
+        var writeTask = await ReportingStep.CreateTaskAsync("Writing Azure Bicep templates", cancellationToken).ConfigureAwait(false);
 
-        await using (step.ConfigureAwait(false))
+        await using (writeTask.ConfigureAwait(false))
         {
-            var writeTask = await step.CreateTaskAsync("Writing Azure Bicep templates", cancellationToken).ConfigureAwait(false);
-
-            await using (writeTask.ConfigureAwait(false))
+            try
             {
-                try
-                {
-                    await WriteAzureArtifactsOutputAsync(step, model, environment, cancellationToken).ConfigureAwait(false);
+                await WriteAzureArtifactsOutputAsync(ReportingStep, model, environment, cancellationToken).ConfigureAwait(false);
 
-                    await SaveToDiskAsync(outputPath).ConfigureAwait(false);
+                await SaveToDiskAsync(outputPath).ConfigureAwait(false);
 
-                    await writeTask.SucceedAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    await writeTask.FailAsync($"Failed to write Azure Bicep templates: {ex.Message}", cancellationToken).ConfigureAwait(false);
+                await writeTask.SucceedAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await writeTask.FailAsync($"Failed to write Azure Bicep templates: {ex.Message}", cancellationToken).ConfigureAwait(false);
 
-                    Logger.LogError(ex, "Failed to write Azure Bicep templates to {OutputPath}", outputPath);
-                    throw;
-                }
+                Logger.LogError(ex, "Failed to write Azure Bicep templates to {OutputPath}", outputPath);
+                throw;
             }
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(IPublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IReportingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)

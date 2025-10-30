@@ -1,0 +1,7 @@
+::deep .mcp-tool-tab {
+    margin-top: 10px;
+}
+
+::deep .markdown-container pre {
+    margin-right: 0;
+}
