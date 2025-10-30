@@ -784,6 +784,48 @@ public class AzureAppServiceTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Theory]
+    [InlineData("RedisResource")]
+    [InlineData("SqlServerServerResource")]
+    [InlineData("ContainerResource")]
+    [InlineData("PostgresResource")]
+    public async Task AddAppServiceEnvironmentThrowsForNonDockerFileContainerResources(String typeName)
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        IResourceBuilder<ContainerResource> resourceBuilder;
+        switch (typeName)
+        {
+            case "RedisResource":
+                resourceBuilder = builder.AddRedis("myresource");
+                break;
+            case "SqlServerServerResource":
+                resourceBuilder = builder.AddSqlServer("myresource");
+                break;
+            case "PostgresResource":
+                resourceBuilder = builder.AddPostgres("myresource");
+                break;
+            case "ContainerResource":
+                resourceBuilder = builder.AddContainer("myresource", "myimage");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(typeName), typeName, null);
+        }
+
+        // Add project with endpoints but no target port specified
+        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Equal($"Resource myresource of type {(resourceBuilder.Resource).GetType()} is not supported in Azure App Service environment.", ex.Message);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
