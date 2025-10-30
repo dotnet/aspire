@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
-        <target state="needs-review-translation">.NET Aspire</target>
+        <target state="new">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
-        <target state="needs-review-translation">Repositório .NET Aspire</target>
+        <target state="new">Aspire repo</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Aplicativos não confiáveis podem enviar telemetria para o painel.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">

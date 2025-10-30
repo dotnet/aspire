@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
-        <target state="needs-review-translation">.NET Aspire</target>
+        <target state="translated">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
-        <target state="needs-review-translation">Úložiště .NET Aspire</target>
+        <target state="translated">Úložiště Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -44,22 +44,22 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Další informace</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointMcpBody">
         <source>Untrusted apps can access sensitive information about the running services.</source>
-        <target state="new">Untrusted apps can access sensitive information about the running services.</target>
+        <target state="translated">Nedůvěryhodné aplikace můžou přistupovat k citlivým informacím o spuštěných službách.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Nedůvěryhodné aplikace můžou odesílat telemetrii na řídicí panel.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">
         <source>Endpoint is unsecured</source>
-        <target state="new">Endpoint is unsecured</target>
+        <target state="translated">Koncový bod je nezabezpečený</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
