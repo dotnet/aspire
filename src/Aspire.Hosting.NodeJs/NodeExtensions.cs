@@ -277,13 +277,18 @@ public static class NodeAppHostingExtension
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="installArgs">The command-line arguments (including the install command itself) passed to the JavaScript package manager to install dependencies.</param>
+    /// <param name="installCommand">The install command itself passed to npm to install dependencies.</param>
+    /// <param name="installArgs">The command-line arguments passed to npm to install dependencies.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
+    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string? installCommand = null, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        installCommand ??= resource.ApplicationBuilder.ExecutionContext.IsPublishMode ? "ci" : "install";
+
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(installArgs ?? ["install"])); // ci in publish, if there is a lock file?
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
         AddInstaller(resource, install);
         return resource;
@@ -294,13 +299,17 @@ public static class NodeAppHostingExtension
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="installArgs">The command-line arguments (including the install command itself) passed to the JavaScript package manager to install dependencies.</param>
+    /// <param name="installArgs">The command-line arguments passed to "yarn install".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TResource> WithYarn<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        installArgs ??= resource.ApplicationBuilder.ExecutionContext.IsPublishMode ? ["--immutable"] : [];
+
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(installArgs ?? ["install"])); // --frozen-lockfile in publish
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
@@ -315,9 +324,13 @@ public static class NodeAppHostingExtension
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TResource> WithPnpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        installArgs ??= resource.ApplicationBuilder.ExecutionContext.IsPublishMode ? ["--frozen-lockfile"] : [];
+
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(installArgs ?? ["install"])); // --frozen-lockfile in publish
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
