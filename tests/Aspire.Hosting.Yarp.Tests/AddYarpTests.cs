@@ -19,8 +19,17 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         var resource = Assert.Single(builder.Resources.OfType<YarpResource>());
-        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5000, endpoint.TargetPort);
+        Assert.Collection(resource.Annotations.OfType<EndpointAnnotation>(),
+            endpoint =>
+            {
+                Assert.Equal("http", endpoint.Name);
+                Assert.Equal(5000, endpoint.TargetPort);
+            },
+            endpoint =>
+            {
+                Assert.Equal("https", endpoint.Name);
+                Assert.Equal(5001, endpoint.TargetPort);
+            });
     }
 
     [Theory]
