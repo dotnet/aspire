@@ -2344,9 +2344,18 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// builder.AddContainer("my-service", "my-image")
+    ///     .WithDeveloperCertificateKeyPair()
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithDeveloperCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder)
+    public static IResourceBuilder<TResource> WithDeveloperCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2354,6 +2363,7 @@ public static class ResourceBuilderExtensions
         var annotation = new CertificateKeyPairAnnotation
         {
             UseDeveloperCertificate = true,
+            Password = password?.Resource,
         };
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
@@ -2367,9 +2377,10 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS endpoints on the resource.</param>
+    /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2? certificate)
+    public static IResourceBuilder<TResource> WithCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2? certificate, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2377,6 +2388,7 @@ public static class ResourceBuilderExtensions
         var annotation = new CertificateKeyPairAnnotation
         {
             Certificate = certificate,
+            Password = password?.Resource,
         };
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);

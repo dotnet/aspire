@@ -30,7 +30,6 @@ public static class YarpResourceExtensions
     {
         var resource = new YarpResource(name);
 
-#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var yarpBuilder = builder.AddResource(resource)
                       .WithHttpEndpoint(name: "http", targetPort: Port)
                       .WithImage(YarpContainerImageTags.Image)
@@ -39,29 +38,29 @@ public static class YarpResourceExtensions
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
-                      .WithDeveloperCertificateKeyPair()
                       .WithOtlpExporter();
-#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            yarpBuilder
-                .WithHttpsEndpoint(name: "https", targetPort: HttpsPort)
-                .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
-                .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}");
-
-            yarpBuilder.WithEnvironment(ctx =>
+            yarpBuilder.WithHttpsEndpoint(name: "https", targetPort: HttpsPort);
+            yarpBuilder.OnInitializeResource((_, @event, cancellationToken) =>
             {
-                var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                // If a developer certificate is available
+                yarpBuilder
+                    .WithDeveloperCertificateKeyPair()
+                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                    .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}");
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
                 if (!developerCertificateService.SupportsContainerTrust)
                 {
-                    // On systems without the ASP.NET DevCert updates introduced in .NET 10, YARP will not trust the cert used
-                    // by Aspire otlp endpoint when running locally. The Aspire otlp endpoint uses the dev cert, and prior to
-                    // .NET 10, it was only valid for localhost, but from the container perspective, the url will be something
-                    // like https://docker.host.internal, so it will NOT be valid. This is not necessary when using the latest
-                    // dev cert.
-                    ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
+                    yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
                 }
+
+                return Task.CompletedTask;
             });
 
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

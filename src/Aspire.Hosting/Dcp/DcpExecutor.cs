@@ -2227,14 +2227,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     return (args, envVars, false);
                 }
 
+                var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
+                var keyOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.key");
+                var certificateOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pem");
+
                 var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
                 {
                     ExecutionContext = _executionContext,
                     Resource = modelResource,
                     Arguments = new(),
                     EnvironmentVariables = new(),
-                    CertificatePath = ReferenceExpression.Create($"{_locations.DcpSessionDir}/{modelResource.Name}/private/cert.pem"),
-                    KeyPath = ReferenceExpression.Create($"{_locations.DcpSessionDir}/{modelResource.Name}/private/key.pem"),
+                    CertificatePath = ReferenceExpression.Create($"{certificateOutputPath}"),
+                    KeyPath = ReferenceExpression.Create($"{keyOutputPath}"),
                     Password = annotation.Password,
                     CancellationToken = cancellationToken,
                 };
@@ -2295,40 +2299,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     passphrase = await annotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
-                using var privateKey = certificate.GetRSAPrivateKey();
-                if (privateKey is null)
-                {
-                    throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
-                }
+                (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
 
-                var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
-                    passphrase ?? string.Empty,
-                    new PbeParameters(
-                        PbeEncryptionAlgorithm.Aes256Cbc,
-                        HashAlgorithmName.SHA256,
-                        iterationCount: passphrase is null ? 1 : 100_000));
-                var pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
+                var certificateBytes = Encoding.ASCII.GetBytes(certificatePem);
+                var keyBytes = Encoding.ASCII.GetBytes(keyPem);
 
-                if (passphrase is null)
-                {
-                    using var tempKey = RSA.Create();
-                    tempKey.ImportFromEncryptedPem(pem, string.Empty);
-                    Array.Clear(keyBytes, 0, keyBytes.Length);
-                    Array.Clear(pem, 0, pem.Length);
-                    keyBytes = privateKey.ExportPkcs8PrivateKey();
-                    pem = PemEncoding.Write("PRIVATE KEY", keyBytes);
-                }
+                Directory.CreateDirectory(baseOutputPath);
 
-                var contents = Encoding.ASCII.GetBytes(PemEncoding.Write("CERTIFICATE", certificate.Export(X509ContentType.Cert)));
-                var keyContents = Encoding.ASCII.GetBytes(pem);
+                File.WriteAllBytes(Path.Join(_locations.DcpSessionDir, modelResource.Name, "private", $"{certificate.Thumbprint}.key"), keyBytes);
+                File.WriteAllBytes(Path.Join(_locations.DcpSessionDir, modelResource.Name, "private", $"{certificate.Thumbprint}.pem"), certificateBytes);
 
-                File.WriteAllBytes(Path.Join(_locations.DcpSessionDir, modelResource.Name, "private", $"{certificate.Thumbprint}.key"), keyContents);
-                File.WriteAllBytes(Path.Join(_locations.DcpSessionDir, modelResource.Name, "private", $"{certificate.Thumbprint}.pem"), contents);
-
+                Array.Clear(keyPem, 0, keyPem.Length);
                 Array.Clear(keyBytes, 0, keyBytes.Length);
-                Array.Clear(pem, 0, pem.Length);
-                Array.Clear(keyContents, 0, keyContents.Length);
             }
         }
         catch
@@ -2440,32 +2422,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     passphrase = await annotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
-                using var privateKey = certificate.GetRSAPrivateKey();
-                if (privateKey is null)
-                {
-                    throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
-                }
-
-                var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
-                    passphrase ?? string.Empty,
-                    new PbeParameters(
-                        PbeEncryptionAlgorithm.Aes256Cbc,
-                        HashAlgorithmName.SHA256,
-                        iterationCount: passphrase is null ? 1 : 100_000));
-                var pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
-
-                if (passphrase is null)
-                {
-                    using var tempKey = RSA.Create();
-                    tempKey.ImportFromEncryptedPem(pem, string.Empty);
-                    Array.Clear(keyBytes, 0, keyBytes.Length);
-                    Array.Clear(pem, 0, pem.Length);
-                    keyBytes = privateKey.ExportPkcs8PrivateKey();
-                    pem = PemEncoding.Write("PRIVATE KEY", keyBytes);
-                }
-
-                var contents = PemEncoding.Write("CERTIFICATE", certificate.Export(X509ContentType.Cert));
+                (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
 
                 // Write the certificate and key to the container filesystem
                 createFiles.Add(new ContainerCreateFileSystem
@@ -2481,21 +2438,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                                 {
                                     Name = certificate.Thumbprint + ".key",
                                     Type = ContainerFileSystemEntryType.File,
-                                    Contents = new string(pem),
+                                    Contents = new string(keyPem),
                                 },
                                 new ContainerFileSystemEntry
                                 {
                                     Name = certificate.Thumbprint + ".pem",
                                     Type = ContainerFileSystemEntryType.File,
-                                    Contents = new string(contents),
+                                    Contents = new string(certificatePem),
                                 },
                             ]
                         },
                     ],
                 });
 
-                Array.Clear(keyBytes, 0, keyBytes.Length);
-                Array.Clear(pem, 0, pem.Length);
+                Array.Clear(keyPem, 0, keyPem.Length);
             }
         }
         catch (Exception ex)
@@ -2506,6 +2462,40 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return (args, envVars, createFiles, failedToApplyConfiguration);
+    }
+
+    private static (char[] certificatePem, char[] keyPem) GetCertificateKeyPair(X509Certificate2 certificate, string? passphrase)
+    {
+        // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
+        using var privateKey = certificate.GetRSAPrivateKey();
+        if (privateKey is null)
+        {
+            throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
+        }
+
+        var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
+            passphrase ?? string.Empty,
+            new PbeParameters(
+                PbeEncryptionAlgorithm.Aes256Cbc,
+                HashAlgorithmName.SHA256,
+                iterationCount: passphrase is null ? 1 : 100_000));
+        var pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
+
+        if (passphrase is null)
+        {
+            using var tempKey = RSA.Create();
+            tempKey.ImportFromEncryptedPem(pem, string.Empty);
+            Array.Clear(keyBytes, 0, keyBytes.Length);
+            Array.Clear(pem, 0, pem.Length);
+            keyBytes = tempKey.ExportPkcs8PrivateKey();
+            pem = PemEncoding.Write("PRIVATE KEY", keyBytes);
+        }
+
+        var contents = PemEncoding.Write("CERTIFICATE", certificate.Export(X509ContentType.Cert));
+
+        Array.Clear(keyBytes, 0, keyBytes.Length);
+
+        return (contents, pem);
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)
