@@ -18,7 +18,7 @@ public sealed class JavaScriptRunScriptAnnotation(string scriptName, string[]? a
     public string ScriptName { get; } = scriptName;
 
     /// <summary>
-    /// Gets the name of the script to run.
+    /// Gets the command-line arguments for the script.
     /// </summary>
     public string[] Args { get; } = args ?? [];
 }

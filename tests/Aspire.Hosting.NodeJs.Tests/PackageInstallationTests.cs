@@ -462,7 +462,7 @@ public class PackageInstallationTests
     }
 
     [Fact]
-    public void WithPnmp_DefaultsArgsInPublishMode()
+    public void WithPnpm_DefaultsArgsInPublishMode()
     {
         using var tempDir = new TempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "pnpm-lock.yaml"), "empty");
