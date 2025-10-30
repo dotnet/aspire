@@ -81,7 +81,7 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier)
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier = default)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
