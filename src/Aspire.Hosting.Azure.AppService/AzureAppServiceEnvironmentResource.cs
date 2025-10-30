@@ -198,17 +198,17 @@ public class AzureAppServiceEnvironmentResource :
     {
         get
         {
-            var azureCloudDomains = new Dictionary<AzureCloudName, string>()
-            {
-                { AzureCloudName.AzurePublic, "azurewebsites.net" },
-                { AzureCloudName.AzureUSGovernment, "azurewebsites.us" },
-                { AzureCloudName.AzureChina, "chinacloudsites.cn" },
-                { AzureCloudName.AzureGermany, "azurewebsites.de" }
-            };
-            
-            return azureCloudDomains.TryGetValue(AzureCloudName, out var domain) ? domain : "azurewebsites.net";
+            return s_azureCloudDomains.TryGetValue(AzureCloudName, out var domain) ? domain : "azurewebsites.net";
         }
     }
+
+    private static readonly Dictionary<AzureCloudName, string> s_azureCloudDomains = new()
+    {
+        { AzureCloudName.AzurePublic, "azurewebsites.net" },
+        { AzureCloudName.AzureUSGovernment, "azurewebsites.us" },
+        { AzureCloudName.AzureChina, "chinacloudsites.cn" },
+        { AzureCloudName.AzureGermany, "azurewebsites.de" }
+    };
     /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
