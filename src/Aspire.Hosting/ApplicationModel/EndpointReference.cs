@@ -282,7 +282,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         return Property switch
         {
             EndpointProperty.Scheme => new(Endpoint.Scheme),
-            EndpointProperty.IPV4Host when context is null || networkContext == KnownNetworkIdentifiers.LocalhostNetwork => "127.0.0.1",
+            EndpointProperty.IPV4Host when networkContext == KnownNetworkIdentifiers.LocalhostNetwork => "127.0.0.1",
             EndpointProperty.TargetPort when Endpoint.TargetPort is int port => new(port.ToString(CultureInfo.InvariantCulture)),
             _ => await ResolveValueWithAllocatedAddress().ConfigureAwait(false)
         };
