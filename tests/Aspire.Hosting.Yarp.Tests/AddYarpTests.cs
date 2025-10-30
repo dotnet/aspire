@@ -44,7 +44,8 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             containerCertificateSupport,
-            trustCertificate: true));
+            trustCertificate: true,
+            supportsTlsTermination: false));
 
         var yarp = builder.AddYarp("yarp");
 
@@ -91,7 +92,8 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
-            trustCertificate: true));
+            trustCertificate: true,
+            supportsTlsTermination: false));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -111,7 +113,8 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
-            trustCertificate: true));
+            trustCertificate: true,
+            supportsTlsTermination: false));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -131,7 +134,8 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
-            trustCertificate: true));
+            trustCertificate: true,
+            supportsTlsTermination: false));
 
         using var tempDir = new TempDirectory();
 

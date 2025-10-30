@@ -2019,7 +2019,7 @@ public class DcpExecutorTests
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
-        var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false);
+        var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false, false);
 
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
