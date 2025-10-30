@@ -128,6 +128,8 @@ output name string = infra_asplan.name
 
 output planId string = infra_asplan.id
 
+output webSiteSuffix string = uniqueString(resourceGroup().id)
+
 output AZURE_CONTAINER_REGISTRY_NAME string = infra_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra_acr.properties.loginServer

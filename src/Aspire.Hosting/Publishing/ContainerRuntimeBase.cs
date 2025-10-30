@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
@@ -48,6 +48,19 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             $"{Name} tag failed with exit code {{0}}.",
             cancellationToken,
             localImageName, targetImageName).ConfigureAwait(false);
+    }
+
+    public virtual async Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"rmi \"{imageName}\"";
+
+        await ExecuteContainerCommandAsync(
+            arguments,
+            $"{Name} rmi for {{ImageName}} failed with exit code {{ExitCode}}.",
+            $"{Name} rmi for {{ImageName}} succeeded.",
+            $"{Name} rmi failed with exit code {{0}}.",
+            cancellationToken,
+            imageName).ConfigureAwait(false);
     }
 
     public virtual async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
@@ -147,7 +160,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
                 return processResult.ExitCode;
             }
 
-            _logger.LogInformation(successLogTemplate, logArguments);
+            _logger.LogDebug(successLogTemplate, logArguments);
             return processResult.ExitCode;
         }
     }

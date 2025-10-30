@@ -119,6 +119,74 @@ public class McpServiceTests
     }
 
     [Fact]
+    public async Task CallService_NoResourceService_ResourceToolsNotRegistered()
+    {
+        // Arrange - Create dashboard without configuring resource service URL
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        responseMessage.EnsureSuccessStatusCode();
+
+        var responseData = await GetDataFromSseResponseAsync(responseMessage);
+
+        // Assert
+        var jsonResponse = JsonNode.Parse(responseData!)!;
+        var tools = jsonResponse["result"]!["tools"]!.AsArray();
+
+        // Verify that telemetry tools are available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_structured_logs");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_traces");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_trace_structured_logs");
+
+        // Verify that resource tools are NOT available
+        Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "list_resources");
+        Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "list_console_logs");
+        Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "execute_resource_command");
+    }
+
+    [Fact]
+    public async Task CallService_WithResourceService_ResourceToolsRegistered()
+    {
+        // Arrange - Create dashboard with resource service URL configured
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] = "http://localhost:5000";
+            config[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = nameof(ResourceClientAuthMode.Unsecured);
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        responseMessage.EnsureSuccessStatusCode();
+
+        var responseData = await GetDataFromSseResponseAsync(responseMessage);
+
+        // Assert
+        var jsonResponse = JsonNode.Parse(responseData!)!;
+        var tools = jsonResponse["result"]!["tools"]!.AsArray();
+
+        // Verify that telemetry tools are available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_structured_logs");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_traces");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_trace_structured_logs");
+
+        // Verify that resource tools ARE available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_resources");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_console_logs");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "execute_resource_command");
+    }
+
+    [Fact]
     public async Task CallService_BrowserEndPoint_Failure()
     {
         // Arrange

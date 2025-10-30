@@ -144,8 +144,8 @@ public partial class McpServerDialog
 
     public enum McpToolView
     {
-        VisualStudio,
         VSCode,
+        VisualStudio,
         Other
     }
 }

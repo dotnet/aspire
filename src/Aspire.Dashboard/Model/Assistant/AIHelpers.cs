@@ -7,10 +7,12 @@ using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Humanizer;
 using Microsoft.Extensions.AI;
@@ -46,7 +48,7 @@ internal static class AIHelpers
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    internal static object GetTraceDto(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context)
+    internal static object GetTraceDto(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var spanData = trace.Spans.Select(s => new
         {
@@ -56,7 +58,7 @@ internal static class AIHelpers
             name = context.AddValue(s.Name, id => $@"Duplicate of ""name"" for span {OtlpHelpers.ToShortenedId(id)}", s.SpanId),
             status = s.Status != OtlpSpanStatusCode.Unset ? s.Status.ToString() : null,
             status_message = context.AddValue(s.StatusMessage, id => $@"Duplicate of ""status_message"" for span {OtlpHelpers.ToShortenedId(id)}", s.SpanId),
-            source = s.Source.ResourceKey.GetCompositeName(),
+            source = getResourceName?.Invoke(s.Source.Resource) ?? s.Source.ResourceKey.GetCompositeName(),
             destination = GetDestination(s, outgoingPeerResolvers),
             duration_ms = ConvertToMilliseconds(s.Duration),
             attributes = s.Attributes
@@ -64,15 +66,23 @@ internal static class AIHelpers
             links = s.Links.Select(l => new { trace_id = OtlpHelpers.ToShortenedId(l.TraceId), span_id = OtlpHelpers.ToShortenedId(l.SpanId) }).ToList(),
             back_links = s.BackLinks.Select(l => new { source_trace_id = OtlpHelpers.ToShortenedId(l.SourceTraceId), source_span_id = OtlpHelpers.ToShortenedId(l.SourceSpanId) }).ToList()
         }).ToList();
-        var traceData = new
+
+        var traceId = OtlpHelpers.ToShortenedId(trace.TraceId);
+        var traceData = new Dictionary<string, object?>
         {
-            trace_id = OtlpHelpers.ToShortenedId(trace.TraceId),
-            duration_ms = ConvertToMilliseconds(trace.Duration),
-            title = trace.RootOrFirstSpan.Name,
-            spans = spanData,
-            has_error = trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error),
-            timestamp = trace.TimeStamp,
+            ["trace_id"] = traceId,
+            ["duration_ms"] = ConvertToMilliseconds(trace.Duration),
+            ["title"] = trace.RootOrFirstSpan.Name,
+            ["spans"] = spanData,
+            ["has_error"] = trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error),
+            ["timestamp"] = trace.TimeStamp,
         };
+
+        if (includeDashboardUrl)
+        {
+            traceData["dashboard_link"] = GetDashboardLink(options, DashboardUrls.TraceDetailUrl(traceId), traceId);
+        }
+
         return traceData;
     }
 
@@ -106,23 +116,23 @@ internal static class AIHelpers
         return (int)Math.Round(duration.TotalMilliseconds, 0, MidpointRounding.AwayFromZero);
     }
 
-    public static (string json, string limitMessage) GetTracesJson(List<OtlpTrace> traces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    public static (string json, string limitMessage) GetTracesJson(List<OtlpTrace> traces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var promptContext = new PromptContext();
         var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
             traces,
             TracesLimit,
             "trace",
-            trace => GetTraceDto(trace, outgoingPeerResolvers, promptContext),
+            trace => GetTraceDto(trace, outgoingPeerResolvers, promptContext, options, includeDashboardUrl, getResourceName),
             EstimateSerializedJsonTokenSize);
         var tracesData = SerializeJson(trimmedItems);
 
         return (tracesData, limitMessage);
     }
 
-    internal static string GetTraceJson(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context)
+    internal static string GetTraceJson(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
-        var dto = GetTraceDto(trace, outgoingPeerResolvers, context);
+        var dto = GetTraceDto(trace, outgoingPeerResolvers, context, options, includeDashboardUrl, getResourceName);
 
         var json = SerializeJson(dto);
         return json;
@@ -148,43 +158,55 @@ internal static class AIHelpers
         return span.Attributes.GetPeerAddress();
     }
 
-    internal static string GetResponseGraphJson(List<ResourceViewModel> resources)
+    internal static string GetResponseGraphJson(List<ResourceViewModel> resources, DashboardOptions options, bool includeDashboardUrl = false, Func<ResourceViewModel, string>? getResourceName = null)
     {
-        var data = resources.Where(resource => !resource.IsResourceHidden(false)).Select(resource => new
+        var data = resources.Where(resource => !resource.IsResourceHidden(false)).Select(resource =>
         {
-            resource_name = resource.Name,
-            type = resource.ResourceType,
-            state = resource.State,
-            state_description = ResourceStateViewModel.GetResourceStateTooltip(resource, s_columnsLoc),
-            relationships = GetResourceRelationships(resources, resource),
-            endpoint_urls = resource.Urls.Where(u => !u.IsInternal).Select(u => new
+            var resourceName = getResourceName?.Invoke(resource) ?? resource.Name;
+
+            var resourceObj = new Dictionary<string, object?>
             {
-                name = u.EndpointName,
-                url = u.Url,
-                display_name = !string.IsNullOrEmpty(u.DisplayProperties.DisplayName) ? u.DisplayProperties.DisplayName : null,
-            }).ToList(),
-            health = new
-            {
-                resource_health_status = GetResourceHealthStatus(resource),
-                health_reports = resource.HealthReports.Select(report => new
+                ["resource_name"] = resourceName,
+                ["type"] = resource.ResourceType,
+                ["state"] = resource.State,
+                ["state_description"] = ResourceStateViewModel.GetResourceStateTooltip(resource, s_columnsLoc),
+                ["relationships"] = GetResourceRelationships(resources, resource, getResourceName),
+                ["endpoint_urls"] = resource.Urls.Where(u => !u.IsInternal).Select(u => new
                 {
-                    name = report.Name,
-                    health_status = GetReportHealthStatus(resource, report),
-                    exception = report.ExceptionText
+                    name = u.EndpointName,
+                    url = u.Url,
+                    display_name = !string.IsNullOrEmpty(u.DisplayProperties.DisplayName) ? u.DisplayProperties.DisplayName : null,
+                }).ToList(),
+                ["health"] = new
+                {
+                    resource_health_status = GetResourceHealthStatus(resource),
+                    health_reports = resource.HealthReports.Select(report => new
+                    {
+                        name = report.Name,
+                        health_status = GetReportHealthStatus(resource, report),
+                        exception = report.ExceptionText
+                    }).ToList()
+                },
+                ["source"] = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value,
+                ["commands"] = resource.Commands.Where(cmd => cmd.State == CommandViewModelState.Enabled).Select(cmd => new
+                {
+                    name = cmd.Name,
+                    description = cmd.GetDisplayDescription(s_commandsLoc)
                 }).ToList()
-            },
-            source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value,
-            commands = resource.Commands.Where(cmd => cmd.State == CommandViewModelState.Enabled).Select(cmd => new
+            };
+
+            if (includeDashboardUrl)
             {
-                name = cmd.Name,
-                description = cmd.GetDisplayDescription(s_commandsLoc)
-            }).ToList()
+                resourceObj["dashboard_link"] = GetDashboardLink(options, DashboardUrls.ResourcesUrl(resource: resource.Name), resourceName);
+            }
+
+            return resourceObj;
         }).ToList();
 
         var resourceGraphData = SerializeJson(data);
         return resourceGraphData;
 
-        static List<object> GetResourceRelationships(List<ResourceViewModel> allResources, ResourceViewModel resourceViewModel)
+        static List<object> GetResourceRelationships(List<ResourceViewModel> allResources, ResourceViewModel resourceViewModel, Func<ResourceViewModel, string>? getResourceName)
         {
             var relationships = new List<object>();
 
@@ -199,7 +221,7 @@ internal static class AIHelpers
                 {
                     relationships.Add(new
                     {
-                        resource_name = match.Name,
+                        resource_name = getResourceName?.Invoke(match) ?? match.Name,
                         Types = relationship.Type
                     });
                 }
@@ -234,6 +256,37 @@ internal static class AIHelpers
         }
     }
 
+    public static object? GetDashboardLink(DashboardOptions options, string path, string text)
+    {
+        var url = GetDashboardUrl(options, path);
+        if (string.IsNullOrEmpty(url))
+        {
+            return null;
+        }
+
+        return new
+        {
+            url = url,
+            text = text
+        };
+    }
+
+    public static string? GetDashboardUrl(DashboardOptions options, string path)
+    {
+        var frontendEndpoints = options.Frontend.GetEndpointAddresses();
+
+        var frontendUrl = options.Frontend.PublicUrl
+            ?? frontendEndpoints.FirstOrDefault(e => string.Equals(e.Scheme, "https", StringComparison.Ordinal))?.ToString()
+            ?? frontendEndpoints.FirstOrDefault(e => string.Equals(e.Scheme, "http", StringComparison.Ordinal))?.ToString();
+
+        if (frontendUrl == null)
+        {
+            return null;
+        }
+
+        return new Uri(new Uri(frontendUrl), path).ToString();
+    }
+
     public static int EstimateTokenCount(string text)
     {
         // This is a rough estimate of the number of tokens in the text.
@@ -252,46 +305,52 @@ internal static class AIHelpers
         return JsonSerializer.Serialize(value, s_jsonSerializerOptions);
     }
 
-    public static (string json, string limitMessage) GetStructuredLogsJson(List<OtlpLogEntry> errorLogs)
+    public static (string json, string limitMessage) GetStructuredLogsJson(List<OtlpLogEntry> errorLogs, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var promptContext = new PromptContext();
         var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
             errorLogs,
             StructuredLogsLimit,
             "log entry",
-            i => GetLogEntryDto(i, promptContext),
+            i => GetLogEntryDto(i, promptContext, options, includeDashboardUrl, getResourceName),
             EstimateSerializedJsonTokenSize);
         var logsData = SerializeJson(trimmedItems);
 
         return (logsData, limitMessage);
     }
 
-    internal static string GetStructuredLogJson(OtlpLogEntry l)
+    internal static string GetStructuredLogJson(OtlpLogEntry l, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
-        var dto = GetLogEntryDto(l, new PromptContext());
+        var dto = GetLogEntryDto(l, new PromptContext(), options, includeDashboardUrl, getResourceName);
 
         var json = SerializeJson(dto);
         return json;
     }
 
-    public static object GetLogEntryDto(OtlpLogEntry l, PromptContext context)
+    public static object GetLogEntryDto(OtlpLogEntry l, PromptContext context, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var exceptionText = OtlpLogEntry.GetExceptionText(l);
 
-        var log = new
+        var log = new Dictionary<string, object?>
         {
-            log_id = l.InternalId,
-            span_id = OtlpHelpers.ToShortenedId(l.SpanId),
-            trace_id = OtlpHelpers.ToShortenedId(l.TraceId),
-            message = context.AddValue(l.Message, id => $@"Duplicate of ""message"" for log entry {id.InternalId}", l),
-            severity = l.Severity.ToString(),
-            resource_name = l.ResourceView.Resource.ResourceKey.GetCompositeName(),
-            attributes = l.Attributes
+            ["log_id"] = l.InternalId,
+            ["span_id"] = OtlpHelpers.ToShortenedId(l.SpanId),
+            ["trace_id"] = OtlpHelpers.ToShortenedId(l.TraceId),
+            ["message"] = context.AddValue(l.Message, id => $@"Duplicate of ""message"" for log entry {id.InternalId}", l),
+            ["severity"] = l.Severity.ToString(),
+            ["resource_name"] = getResourceName?.Invoke(l.ResourceView.Resource) ?? l.ResourceView.Resource.ResourceKey.GetCompositeName(),
+            ["attributes"] = l.Attributes
                 .Where(l => l.Key is not (OtlpLogEntry.ExceptionStackTraceField or OtlpLogEntry.ExceptionMessageField or OtlpLogEntry.ExceptionTypeField))
                 .ToDictionary(a => a.Key, a => context.AddValue(MapOtelAttributeValue(a), id => $@"Duplicate of attribute ""{id.Key}"" for log entry {id.InternalId}", (l.InternalId, a.Key))),
-            exception = context.AddValue(exceptionText, id => $@"Duplicate of ""exception"" for log entry {id.InternalId}", l),
-            source = l.Scope.Name
+            ["exception"] = context.AddValue(exceptionText, id => $@"Duplicate of ""exception"" for log entry {id.InternalId}", l),
+            ["source"] = l.Scope.Name
         };
+
+        if (includeDashboardUrl)
+        {
+            log["dashboard_link"] = GetDashboardLink(options, DashboardUrls.StructuredLogsUrl(logEntryId: l.InternalId), $"log_id: {l.InternalId}");
+        }
+
         return log;
     }
 
@@ -325,16 +384,53 @@ internal static class AIHelpers
         }
     }
 
-    public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    public static bool TryGetSingleResult<T>(IEnumerable<T> source, Func<T, bool> predicate, [NotNullWhen(true)] out T? result)
     {
-        if (resources.Count(resources => resources.Name == resourceName) == 1)
+        result = default;
+        var found = false;
+
+        foreach (var item in source)
         {
-            resource = resources.First(resources => resources.Name == resourceName);
+            if (predicate(item))
+            {
+                if (found)
+                {
+                    // Multiple results found
+                    result = default;
+                    return false;
+                }
+
+                result = item;
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
+    public static bool TryGetResource(IReadOnlyList<OtlpResource> resources, string resourceName, [NotNullWhen(true)] out OtlpResource? resource)
+    {
+        if (TryGetSingleResult(resources, r => r.ResourceName == resourceName, out resource))
+        {
             return true;
         }
-        else if (resources.Count(resources => resources.DisplayName == resourceName) == 1)
+        else if (TryGetSingleResult(resources, r => r.ResourceKey.ToString() == resourceName, out resource))
         {
-            resource = resources.First(resources => resources.DisplayName == resourceName);
+            return true;
+        }
+
+        resource = null;
+        return false;
+    }
+
+    public static bool TryGetResource(IReadOnlyList<ResourceViewModel> resources, string resourceName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (TryGetSingleResult(resources, r => r.Name == resourceName, out resource))
+        {
+            return true;
+        }
+        else if (TryGetSingleResult(resources, r => r.DisplayName == resourceName, out resource))
+        {
             return true;
         }
 

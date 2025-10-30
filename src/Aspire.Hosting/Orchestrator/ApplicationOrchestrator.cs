@@ -234,7 +234,7 @@ internal sealed class ApplicationOrchestrator
                     // will be "localhost" as that's a valid address for the .NET developer certificate. However,
                     // if a service is bound to a specific IP address, the allocated endpoint will be that same IP
                     // address.
-                    var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
+                    var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint, endpoint.DefaultNetworkID);
                     var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
 
                     // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
@@ -267,6 +267,9 @@ internal sealed class ApplicationOrchestrator
                         // If the additional URL is a *.localhost address we want to highlight that URL in the dashboard
                         additionalUrl.DisplayLocation = UrlDisplayLocation.SummaryAndDetails;
                         url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+
+                        // Swap so that the *.localhost URL is the primary URL shown in the dashboard and targeted by `WithUrlForEndpoint` calls.
+                        (additionalUrl, url) = (url, additionalUrl);
                     }
                     else if ((string.Equals(endpoint.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(endpoint.UriScheme, "https", StringComparison.OrdinalIgnoreCase))
                              && additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
@@ -278,14 +281,18 @@ internal sealed class ApplicationOrchestrator
                         // Strip any "apphost" suffix that might be present on the dashboard name.
                         subdomainSuffix = TrimSuffix(subdomainSuffix, "apphost");
 
-                        additionalUrl = new ResourceUrlAnnotation
+                        // Make the existing localhost URL the additional URL so it's not the primary endpoint URL shown in the dashboard or targeted by `WithUrlForEndpoint` calls.
+                        additionalUrl = url;
+                        additionalUrl.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+
+                        // Create the new primary URL using the *.dev.localhost pattern.
+                        url = new ResourceUrlAnnotation
                         {
                             // <scheme>://<resource-name>-<subdomain-suffix>.dev.localhost:<port>
                             Url = $"{allocatedEndpoint.UriScheme}://{resource.Name.ToLowerInvariant()}-{subdomainSuffix}.dev.localhost:{allocatedEndpoint.Port}",
                             Endpoint = endpointReference,
                             DisplayLocation = UrlDisplayLocation.SummaryAndDetails
                         };
-                        url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
 
                         static string TrimSuffix(string value, string suffix)
                         {

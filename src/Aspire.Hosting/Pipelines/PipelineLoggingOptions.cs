@@ -18,8 +18,5 @@ internal sealed class PipelineLoggingOptions
     /// <summary>
     /// Gets a value indicating whether exception details (stack traces) should be included in logs.
     /// </summary>
-    /// <remarks>
-    /// Exception details are included when the minimum log level is Debug or Trace.
-    /// </remarks>
-    public bool IncludeExceptionDetails => MinimumLogLevel <= LogLevel.Debug;
+    public bool IncludeExceptionDetails { get; set; }
 }

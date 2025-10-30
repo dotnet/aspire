@@ -1,8 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES002
 
 using System.Diagnostics;
 using System.Reflection;
@@ -13,7 +14,6 @@ using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
@@ -21,6 +21,7 @@ using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
@@ -449,15 +450,26 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
+        _innerBuilder.Services.AddSingleton(sp =>
+        {
+            var dcpOptions = sp.GetRequiredService<IOptions<DcpOptions>>();
+            return dcpOptions.Value.ContainerRuntime switch
+            {
+                string rt => sp.GetRequiredKeyedService<IContainerRuntime>(rt),
+                null => sp.GetRequiredKeyedService<IContainerRuntime>("docker")
+            };
+        });
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton(Pipeline);
 
         // Configure pipeline logging options
-        _innerBuilder.Services.Configure<PipelineLoggingOptions>(o =>
+        _innerBuilder.Services.Configure<PipelineLoggingOptions>(options =>
         {
-            o.MinimumLogLevel = _innerBuilder.Configuration["Pipeline:LogLevel"]?.ToLowerInvariant() switch
+            var config = _innerBuilder.Configuration;
+
+            options.MinimumLogLevel = config["Pipeline:LogLevel"]?.ToLowerInvariant() switch
             {
                 "trace" => LogLevel.Trace,
                 "debug" => LogLevel.Debug,
@@ -467,6 +479,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 "crit" or "critical" => LogLevel.Critical,
                 _ => LogLevel.Information
             };
+
+            options.IncludeExceptionDetails = config.GetBool("Pipeline:IncludeExceptionDetails") ?? false;
         });
 
         _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
@@ -566,17 +580,26 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            // Legacy mappings for backward compatibility
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
+
+            // Pipeline options (valid for aspire do based commands)
+            { "--step", "Pipeline:Step" },
             { "--output-path", "Pipeline:OutputPath" },
             { "--log-level", "Pipeline:LogLevel" },
+            { "--include-exception-details", "Pipeline:IncludeExceptionDetails" },
+
+            // TODO: Rename this to something related to deployment state
             { "--clear-cache", "Pipeline:ClearCache" },
-            { "--step", "Pipeline:Step" },
+
+            // DCP Publisher options, we should only process these in run mode
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
             { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
+
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
 
         // Configure PipelineOptions from the Pipeline section
@@ -746,7 +769,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private void LoadDeploymentState(string appHostSha)
     {
         // Only load if ClearCache is false
-        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Pipeline:ClearCache");
         if (clearCache)
         {
             return;

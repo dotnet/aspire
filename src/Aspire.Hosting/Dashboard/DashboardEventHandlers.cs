@@ -644,11 +644,12 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUrlName.EnvVarName] = GetTargetUrlExpression(mcp);
         }
 
+        var frontendEndpoints = dashboardResource.GetEndpoints().ToList();
         var aspnetCoreUrls = new ReferenceExpressionBuilder();
         var first = true;
 
         // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
-        foreach (var e in dashboardResource.GetEndpoints().Where(e => e.EndpointName is "http" or "https"))
+        foreach (var e in frontendEndpoints.Where(e => e.EndpointName is "http" or "https"))
         {
             if (!first)
             {
@@ -661,6 +662,15 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         if (!aspnetCoreUrls.IsEmpty)
         {
+            // The URL that the dashboard binds to is proxied. We need to set the public URL to the proxied URL.
+            // This lets the dashboard provide the correct URL to clients.
+            // Prefer https endpoint for public URL if it exists.
+            var publicEndpoint = frontendEndpoints.FirstOrDefault(e => e.EndpointName is "https") ?? frontendEndpoints.First(e => e.EndpointName is "http");
+            if (publicEndpoint.Exists)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendPublicUrlName.EnvVarName] = publicEndpoint.Url;
+            }
+
             // Combine into a single expression
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = aspnetCoreUrls.Build();
         }

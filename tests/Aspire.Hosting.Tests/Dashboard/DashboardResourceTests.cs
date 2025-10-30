@@ -112,7 +112,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Same(container.Resource, dashboard);
 
-        var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout())
+        var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance, KnownNetworkIdentifiers.LocalhostNetwork).DefaultTimeout())
             .OrderBy(c => c.Key)
             .ToList();
 
@@ -146,6 +146,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             {
                 Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__FRONTEND__PUBLICURL", e.Key);
+                Assert.Equal("http://localhost:5003", e.Value);
             },
             e =>
             {
@@ -209,7 +214,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Same(container.Resource, dashboard);
 
-        var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout())
+        var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance, KnownNetworkIdentifiers.LocalhostNetwork).DefaultTimeout())
             .OrderBy(c => c.Key)
             .ToList();
 

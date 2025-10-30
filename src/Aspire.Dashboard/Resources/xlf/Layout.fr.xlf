@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../Layout.resx">
     <body>
       <trans-unit id="MainLayoutAspire">
-        <source>.NET Aspire</source>
-        <target state="translated">.NET Aspire</target>
+        <source>Aspire</source>
+        <target state="new">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
-        <source>.NET Aspire repo</source>
-        <target state="translated">Référentiel .NET Aspire</target>
+        <source>Aspire repo</source>
+        <target state="new">Aspire repo</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Les applications non approuvées peuvent envoyer des données de télémétrie au tableau de bord.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">

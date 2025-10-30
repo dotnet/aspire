@@ -68,7 +68,7 @@
       "path": "../AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "funcapp.module.bicep",
+        "path": "funcapp-containerapp.module.bicep",
         "params": {
           "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -146,7 +146,7 @@
       "path": "../AzureFunctionsEndToEnd.ApiService/AzureFunctionsEndToEnd.ApiService.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "apiservice.module.bicep",
+        "path": "apiservice-containerapp.module.bicep",
         "params": {
           "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -174,7 +174,9 @@
         "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
         "ConnectionStrings__queue": "{queue.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
+        "FUNCAPP_HTTP": "{funcapp.bindings.http.url}",
         "services__funcapp__http__0": "{funcapp.bindings.http.url}",
+        "FUNCAPP_HTTPS": "{funcapp.bindings.https.url}",
         "services__funcapp__https__0": "{funcapp.bindings.https.url}"
       },
       "bindings": {

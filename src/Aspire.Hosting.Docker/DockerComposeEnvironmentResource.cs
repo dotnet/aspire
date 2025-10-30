@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
@@ -88,7 +87,6 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PipelineStepContext context)
     {
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
-        var activityReporter = context.PipelineContext.Services.GetRequiredService<IPipelineActivityReporter>();
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
@@ -96,7 +94,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             imageBuilder,
             outputPath,
             context.Logger,
-            activityReporter,
+            context.ReportingStep,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);

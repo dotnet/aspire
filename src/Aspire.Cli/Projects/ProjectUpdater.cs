@@ -63,10 +63,10 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             interactionService.DisplayEmptyLine();
         }
 
-        // Display warning if fallback XML parsing was used
+        // Display warning if fallback parsing was used
         if (fallbackUsed)
         {
-            interactionService.DisplayMessage("warning", "[yellow]Note: Update plan generated using fallback XML parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.[/]");
+            interactionService.DisplayMessage("warning", $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]");
             interactionService.DisplayEmptyLine();
         }
 
@@ -157,7 +157,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             await analyzeStep.Callback();
         }
 
-        return (context.UpdateSteps, context.FallbackXmlParsing);
+        return (context.UpdateSteps, context.FallbackParsing);
     }
 
     private const string ItemsAndPropertiesCacheKeyPrefix = "ItemsAndProperties";
@@ -202,12 +202,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         catch (ProjectUpdaterException ex) when (IsAppHostProject(projectFile, context))
         {
             // Only use fallback for AppHost projects
-            logger.LogWarning("Falling back to XML parsing for '{ProjectFile}'. Reason: {Message}", projectFile.FullName, ex.Message);
+            logger.LogWarning("Falling back to parsing for '{ProjectFile}'. Reason: {Message}", projectFile.FullName, ex.Message);
 
-            if (!context.FallbackXmlParsing)
+            if (!context.FallbackParsing)
             {
-                context.FallbackXmlParsing = true;
-                logger.LogWarning("Update plan will be generated using fallback XML parsing; dependency accuracy may be reduced.");
+                context.FallbackParsing = true;
+                logger.LogWarning("Update plan will be generated using fallback parsing; dependency accuracy may be reduced.");
             }
 
             return fallbackParser.ParseProject(projectFile);
@@ -863,7 +863,7 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public ConcurrentQueue<UpdateStep> UpdateSteps { get; } = new();
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
     public HashSet<string> VisitedProjects { get; } = new();
-    public bool FallbackXmlParsing { get; set; }
+    public bool FallbackParsing { get; set; }
 }
 
 internal abstract record UpdateStep(string Description, Func<Task> Callback)

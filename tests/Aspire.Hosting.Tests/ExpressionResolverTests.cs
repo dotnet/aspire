@@ -12,19 +12,23 @@ public class ExpressionResolverTests
     [MemberData(nameof(ResolveInternalAsync_ResolvesCorrectly_MemberData))]
     public async Task ResolveInternalAsync_ResolvesCorrectly(ExpressionResolverTestData testData, Type? exceptionType, (string Value, bool IsSensitive)? expectedValue)
     {
+        ValueProviderContext context = new ValueProviderContext()
+        {
+            Network = testData.SourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork
+        };
         if (exceptionType is not null)
         {
             await Assert.ThrowsAsync(exceptionType, ResolveAsync);
         }
         else
         {
-            var resolvedValue = await ExpressionResolver.ResolveAsync(testData.SourceIsContainer, testData.ValueProvider, string.Empty, CancellationToken.None);
+            var resolvedValue = await ExpressionResolver.ResolveAsync(testData.ValueProvider, context, CancellationToken.None);
 
             Assert.Equal(expectedValue?.Value, resolvedValue.Value);
             Assert.Equal(expectedValue?.IsSensitive, resolvedValue.IsSensitive);
         }
 
-        async Task<ResolvedValue> ResolveAsync() => await ExpressionResolver.ResolveAsync(testData.SourceIsContainer, testData.ValueProvider, string.Empty, CancellationToken.None);
+        async Task<ResolvedValue> ResolveAsync() => await ExpressionResolver.ResolveAsync(testData.ValueProvider, context, CancellationToken.None);
     }
 
     public static TheoryData<ExpressionResolverTestData, Type?, (string? Value, bool IsSensitive)?> ResolveInternalAsync_ResolvesCorrectly_MemberData()
@@ -54,24 +58,24 @@ public class ExpressionResolverTests
     [Theory]
     [InlineData("TwoFullEndpoints", false, false, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", false, true, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("TwoFullEndpoints", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://ContainerHostName:12346/;")]
-    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:10000/;Test2=https://testresource:10001/;")]
+    [InlineData("TwoFullEndpoints", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://aspire.dev.internal:22346/;")]
+    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:22345/;Test2=https://testresource:22346/;")]
     [InlineData("Url", false, false, "Url=http://localhost:12345;")]
     [InlineData("Url", false, true, "Url=http://localhost:12345;")]
-    [InlineData("Url", true, false, "Url=http://ContainerHostName:12345;")]
-    [InlineData("Url", true, true, "Url=http://testresource:10000;")]
-    [InlineData("Url2", true, false, "Url=http://ContainerHostName:12345;")]
-    [InlineData("Url2", true, true, "Url=http://testresource:10000;")]
-    [InlineData("OnlyHost", true, false, "Host=ContainerHostName;")]
-    [InlineData("OnlyHost", true, true, "Host=testresource;")] // host now replaced to container name
-    [InlineData("OnlyPort", true, false, "Port=12345;")]
-    [InlineData("OnlyPort", true, true, "Port=10000;")] // port now replaced with target port
-    [InlineData("HostAndPort", true, false, "HostPort=ContainerHostName:12345")]
-    [InlineData("HostAndPort", true, true, "HostPort=testresource:10000")] // host not replaced since no port
-    [InlineData("PortBeforeHost", true, false, "Port=12345;Host=ContainerHostName;")]
-    [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
-    [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:10001/;")]
+    [InlineData("Url", true, false, "Url=http://aspire.dev.internal:22345;")]
+    [InlineData("Url", true, true, "Url=http://testresource:22345;")]
+    [InlineData("Url2", true, false, "Url=http://aspire.dev.internal:22345;")]
+    [InlineData("Url2", true, true, "Url=http://testresource:22345;")]
+    [InlineData("OnlyHost", true, false, "Host=aspire.dev.internal;")]
+    [InlineData("OnlyHost", true, true, "Host=testresource;")]
+    [InlineData("OnlyPort", true, false, "Port=22345;")]
+    [InlineData("OnlyPort", true, true, "Port=22345;")]
+    [InlineData("HostAndPort", true, false, "HostPort=aspire.dev.internal:22345")]
+    [InlineData("HostAndPort", true, true, "HostPort=testresource:22345")]
+    [InlineData("PortBeforeHost", true, false, "Port=22345;Host=aspire.dev.internal;")]
+    [InlineData("PortBeforeHost", true, true, "Port=22345;Host=testresource;")]
+    [InlineData("FullAndPartial", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://localhost:22346/;")]
+    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:22345/;Test2=https://localhost:22346/;")]
     [InlineData("UrlEncodedHost", false, false, "Host=host%20with%20space;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
@@ -81,17 +85,39 @@ public class ExpressionResolverTests
             .WithEndpoint("endpoint1", e =>
             {
                 e.UriScheme = "http";
-                e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: targetIsContainer ? "ContainerHostName" : null, targetPortExpression: "10000");
+                e.AllocatedEndpoint = new(e, "localhost", 12345, targetPortExpression: "10000");
+                if (sourceIsContainer)
+                {
+                    // Note: on the container network side the port and target port are always the same for AllocatedEndpoint.
+                    var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 22345, EndpointBindingMode.SingleAddress, targetPortExpression: "22345", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                    var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                    snapshot.SetValue(ae);
+                    e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+                }
             })
             .WithEndpoint("endpoint2", e =>
              {
                  e.UriScheme = "https";
-                 e.AllocatedEndpoint = new(e, "localhost", 12346, containerHostAddress: "ContainerHostName", targetPortExpression: "10001");
+                 e.AllocatedEndpoint = new(e, "localhost", 12346, targetPortExpression: "10001");
+                 if (sourceIsContainer)
+                 {
+                     var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 22346, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                     var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                     snapshot.SetValue(ae);
+                     e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+                 }
              })
              .WithEndpoint("endpoint3", e =>
              {
                  e.UriScheme = "https";
-                 e.AllocatedEndpoint = new(e, "host with space", 12346);
+                 e.AllocatedEndpoint = new(e, "host with space", 12347);
+                 if (sourceIsContainer)
+                 {
+                     var ae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 22347, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                     var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                     snapshot.SetValue(ae);
+                     e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+                 }
              });
 
         if (targetIsContainer)
@@ -101,7 +127,11 @@ public class ExpressionResolverTests
 
         // First test ExpressionResolver directly
         var csRef = new ConnectionStringReference(target.Resource, false);
-        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None).DefaultTimeout();
+        var context = new ValueProviderContext()
+        {
+            Network = sourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork
+        };
+        var connectionString = await ExpressionResolver.ResolveAsync(csRef, context, CancellationToken.None).DefaultTimeout();
         Assert.Equal(expectedConnectionString, connectionString.Value);
 
         // Then test it indirectly with a resource reference, which exercises a more complete code path
@@ -112,24 +142,24 @@ public class ExpressionResolverTests
             source = source.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
         Assert.Equal(expectedConnectionString, config["ConnectionStrings__testresource"]);
     }
 
     [Theory]
     [InlineData(false, "http://localhost:18889", "http://localhost:18889")]
-    [InlineData(true, "http://localhost:18889", "http://ContainerHostName:18889")]
+    [InlineData(true, "http://localhost:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "http://127.0.0.1:18889", "http://127.0.0.1:18889")]
-    [InlineData(true, "http://127.0.0.1:18889", "http://ContainerHostName:18889")]
+    [InlineData(true, "http://127.0.0.1:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "http://[::1]:18889", "http://[::1]:18889")]
-    [InlineData(true, "http://[::1]:18889", "http://ContainerHostName:18889")]
+    [InlineData(true, "http://[::1]:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=ContainerHostName,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
     [InlineData(false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=ContainerHostName,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
     [InlineData(false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=ContainerHostName,1433;User ID=sa;Password=xxx;Database=yyy")]
-    public async Task HostUrlPropertyGetsResolved(bool container, string hostUrlVal, string expectedValue)
+    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    public async Task HostUrlPropertyGetsResolved(bool targetIsContainer, string hostUrlVal, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -141,18 +171,18 @@ public class ExpressionResolverTests
                 env.EnvironmentVariables["envname"] = new HostUrl(hostUrlVal);
             });
 
-        if (container)
+        if (targetIsContainer)
         {
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
         Assert.Equal(expectedValue, config["envname"]);
     }
 
     [Theory]
     [InlineData(false, "http://localhost:18889")]
-    [InlineData(true, "http://ContainerHostName:18889")]
+    [InlineData(true, "http://aspire.dev.internal:18889")]
     public async Task HostUrlPropertyGetsResolvedInOtlpExporterEndpoint(bool container, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -165,7 +195,7 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
         Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     }
 
@@ -179,14 +209,14 @@ public class ExpressionResolverTests
            .WithHttpEndpoint(targetPort: 8080)
            .WithEndpoint("http", e =>
            {
-               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, "ContainerHostName", "{{ targetPort }}");
+               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, EndpointBindingMode.SingleAddress, "{{ targetPort }}", KnownNetworkIdentifiers.LocalhostNetwork);
            });
 
         var dep = builder.AddContainer("container", "redis")
            .WithReference(connectionStringResource)
            .WaitFor(connectionStringResource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://myContainer:8080", config["ConnectionStrings__myContainer"]);
     }
@@ -196,7 +226,7 @@ sealed class MyContainerResource : ContainerResource, IResourceWithConnectionStr
 {
     public MyContainerResource(string name) : base(name)
     {
-        PrimaryEndpoint = new(this, "http");
+        PrimaryEndpoint = new(this, "http", KnownNetworkIdentifiers.LocalhostNetwork);
     }
 
     public EndpointReference PrimaryEndpoint { get; }
@@ -216,9 +246,9 @@ sealed class TestValueProviderResource(string name) : Resource(name), IValueProv
 sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEndpoints, IResourceWithConnectionString
 {
     readonly string _exprName;
-    EndpointReference Endpoint1 => new(this, "endpoint1");
-    EndpointReference Endpoint2 => new(this, "endpoint2");
-    EndpointReference Endpoint3 => new(this, "endpoint3");
+    EndpointReference Endpoint1 => new(this, "endpoint1", KnownNetworkIdentifiers.LocalhostNetwork);
+    EndpointReference Endpoint2 => new(this, "endpoint2", KnownNetworkIdentifiers.LocalhostNetwork);
+    EndpointReference Endpoint3 => new(this, "endpoint3", KnownNetworkIdentifiers.LocalhostNetwork);
     Dictionary<string, ReferenceExpression> Expressions { get; }
     public TestExpressionResolverResource(string exprName) : base("testresource")
     {

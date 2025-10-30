@@ -1,11 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -14,6 +20,45 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class ContainerResourceBuilderExtensions
 {
+    /// <summary>
+    /// Ensures that a container resource has a PipelineStepAnnotation for building if it has a DockerfileBuildAnnotation.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    internal static IResourceBuilder<T> EnsureBuildPipelineStepAnnotation<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        // Use replace semantics to ensure we only have one PipelineStepAnnotation for building
+        return builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
+        {
+            if (!builder.Resource.RequiresImageBuild() || builder.Resource.IsExcludedFromPublish())
+            {
+                return [];
+            }
+
+            var buildStep = new PipelineStep
+            {
+                Name = $"build-{builder.Resource.Name}",
+                Action = async ctx =>
+                {
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+                    await containerImageBuilder.BuildImageAsync(
+                        builder.Resource,
+                        new ContainerBuildOptions
+                        {
+                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                        },
+                        ctx.CancellationToken).ConfigureAwait(false);
+                },
+                Tags = [WellKnownPipelineTags.BuildCompute],
+                RequiredBySteps = [WellKnownPipelineSteps.Build],
+                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq]
+            };
+
+            return [buildStep];
+        }), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     /// <summary>
     /// Adds a container resource to the application. Uses the "latest" tag.
     /// </summary>
@@ -514,13 +559,15 @@ public static class ContainerResourceBuilderExtensions
         {
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag(imageTag);
+                      .WithImageTag(imageTag)
+                      .EnsureBuildPipelineStepAnnotation();
     }
 
     /// <summary>
@@ -632,13 +679,15 @@ public static class ContainerResourceBuilderExtensions
         {
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag(imageTag);
+                      .WithImageTag(imageTag)
+                      .EnsureBuildPipelineStepAnnotation();
     }
 
     /// <summary>
@@ -1001,21 +1050,26 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is
-    /// invoked when a container resource needs to configure itself for custom certificate trust. This is only supported in run mode;
-    /// certificate trust customization is not supported in publish or deploy.
+    /// Adds a <see cref="ContainerCertificatePathsAnnotation"/> to the resource that allows overriding the default paths in the container used for certificate trust.
+    /// Custom certificate trust is only supported at run time.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <param name="customCertificatesDestination">The destination path in the container where custom certificates will be copied to. If not specified, defaults to <c>/usr/local/share/ca-certificates/aspire-custom-certs/</c>.</param>
+    /// <param name="defaultCertificateBundlePaths">List of default certificate bundle paths in the container that will be replaced in <see cref="CertificateTrustScope.Override"/> or <see cref="CertificateTrustScope.System"/> modes. If not specified, defaults to <c>/etc/ssl/certs/ca-certificates.crt</c> for Linux containers.</param>
+    /// <param name="defaultCertificateDirectoryPaths">List of default certificate directory paths in the container that may be appended to the custom certificates directory in <see cref="CertificateTrustScope.Append"/> mode. If not specified, defaults to <c>/usr/local/share/ca-certificates/</c> for Linux containers.</param>
     /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithContainerCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ContainerCertificateTrustCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithContainerCertificatePaths<TResource>(this IResourceBuilder<TResource> builder, string? customCertificatesDestination = null, List<string>? defaultCertificateBundlePaths = null, List<string>? defaultCertificateDirectoryPaths = null)
         where TResource : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new ContainerCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ContainerCertificatePathsAnnotation
+        {
+            CustomCertificatesDestination = customCertificatesDestination,
+            DefaultCertificateBundles = defaultCertificateBundlePaths,
+            DefaultCertificateDirectories = defaultCertificateDirectoryPaths,
+        }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>

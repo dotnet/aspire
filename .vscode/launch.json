@@ -30,6 +30,39 @@
 				"ASPIRE_CLI_STOP_ON_ENTRY": "true"
 			},
       "cwd": "${workspaceFolder}/extension"
+		},
+		{
+			"name": "Run Extension (apphost stop on entry)",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/extension"
+			],
+			"outFiles": [
+				"${workspaceFolder}/extension/dist/**/*.js"
+			],
+			"preLaunchTask": "npm: watch extension",
+			"env": {
+				"ASPIRE_APPHOST_STOP_ON_ENTRY": "true"
+			},
+      "cwd": "${workspaceFolder}/extension"
+		},
+		{
+			"name": "Run Extension (apphost AND cli stop on entry)",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/extension"
+			],
+			"outFiles": [
+				"${workspaceFolder}/extension/dist/**/*.js"
+			],
+			"preLaunchTask": "npm: watch extension",
+			"env": {
+        "ASPIRE_CLI_STOP_ON_ENTRY": "true",
+				"ASPIRE_APPHOST_STOP_ON_ENTRY": "true"
+			},
+      "cwd": "${workspaceFolder}/extension"
 		}
 	]
 }

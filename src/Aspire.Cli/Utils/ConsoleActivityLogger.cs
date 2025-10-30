@@ -178,7 +178,7 @@ internal sealed class ConsoleActivityLogger
         }
     }
 
-    public void WriteSummary(string? dashboardUrl = null)
+    public void WriteSummary()
     {
         lock (_lock)
         {
@@ -253,19 +253,6 @@ internal sealed class ConsoleActivityLogger
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
             }
-            if (!string.IsNullOrEmpty(dashboardUrl))
-            {
-                // Render dashboard URL as clickable link in interactive terminals, plain in non-interactive
-                var url = dashboardUrl;
-                if (!_hostEnvironment.SupportsInteractiveOutput || !_enableColor)
-                {
-                    AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
-                }
-            }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
         }
@@ -283,14 +270,14 @@ internal sealed class ConsoleActivityLogger
         if (succeeded)
         {
             _finalStatusHeader = _enableColor
-                ? $"[green]{SuccessSymbol} DEPLOYMENT SUCCEEDED[/]"
-                : $"{SuccessSymbol} DEPLOYMENT SUCCEEDED";
+                ? $"[green]{SuccessSymbol} PIPELINE SUCCEEDED[/]"
+                : $"{SuccessSymbol} PIPELINE SUCCEEDED";
         }
         else
         {
             _finalStatusHeader = _enableColor
-                ? $"[red]{FailureSymbol} DEPLOYMENT FAILED[/]"
-                : $"{FailureSymbol} DEPLOYMENT FAILED";
+                ? $"[red]{FailureSymbol} PIPELINE FAILED[/]"
+                : $"{FailureSymbol} PIPELINE FAILED";
         }
     }
 

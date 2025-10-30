@@ -1,9 +1,12 @@
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -113,16 +116,13 @@ public static class YarpResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);
 
-        builder = builder.WithStaticFiles();
+        builder.WithStaticFiles();
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             builder.WithDockerfileFactory(sourcePath, ctx =>
             {
-                if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
-                {
-                    imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
-                }
+                var imageName = GetYarpImageName(ctx.Resource);
 
                 return $"""
                 FROM {imageName} AS yarp
@@ -137,5 +137,69 @@ public static class YarpResourceExtensions
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="resourceWithFiles">The resource with container files.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<YarpResource> PublishWithStaticFiles(this IResourceBuilder<YarpResource> builder, IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles)
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // In publish mode, generate a Dockerfile that copies the container files into /app/wwwroot
+        return builder
+               .PublishWithContainerFiles(resourceWithFiles, "/app/wwwroot")
+               .WithStaticFiles()
+               .EnsurePublishWithStaticFilesDockerFileBuilder();
+    }
+
+    private static IResourceBuilder<YarpResource> EnsurePublishWithStaticFilesDockerFileBuilder(this IResourceBuilder<YarpResource> builder)
+    {
+        if (builder.Resource.HasAnnotationOfType<DockerfileBuilderCallbackAnnotation>())
+        {
+            // Dockerfile builder already configured, skip adding it again
+            return builder;
+        }
+
+        return builder.WithDockerfileBuilder(".", ctx =>
+        {
+            var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
+            var imageName = GetYarpImageName(ctx.Resource);
+            var stage = ctx.Builder.From(imageName).WorkDir("/app");
+
+            if (ctx.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
+            {
+                foreach (var containerFileDestination in containerFilesDestinationAnnotations)
+                {
+                    var source = containerFileDestination.Source;
+                    if (!source.TryGetContainerImageName(out var sourceImageName))
+                    {
+                        logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
+                        return;
+                    }
+
+                    foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                    {
+                        stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, "/app/wwwroot");
+                    }
+                }
+            }
+        });
+    }
+
+    private static string GetYarpImageName(IResource resource)
+    {
+        if (!resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
+        {
+            imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
+        }
+
+        return imageName;
     }
 }

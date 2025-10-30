@@ -398,7 +398,7 @@ public static class ResourceBuilderExtensions
             context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
             var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
-            foreach (var endpoint in annotation.Resource.GetEndpoints())
+            foreach (var endpoint in annotation.Resource.GetEndpoints(annotation.ContextNetworkID))
             {
                 if (specificEndpointName != null && !string.Equals(endpoint.EndpointName, specificEndpointName, StringComparison.OrdinalIgnoreCase))
                 {
@@ -719,6 +719,10 @@ public static class ResourceBuilderExtensions
         if (endpointReferenceAnnotation == null)
         {
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
+            if (builder.Resource.IsContainer())
+            {
+                endpointReferenceAnnotation.ContextNetworkID = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
+            }
             builder.WithAnnotation(endpointReferenceAnnotation);
 
             var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation, null, name);
@@ -787,7 +791,11 @@ public static class ResourceBuilderExtensions
 
         if (endpoint == null && createIfNotExists)
         {
-            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            // Endpoints for a Container will be consumed from localhost network by default, but the same EndpointAnnotation
+            // can also be resolved in the context of container-to-container communication by using the target port
+            // and the container name as the host. This is why we only set the context network to localhost,
+            // for both container and non-container resources.
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName, networkID: KnownNetworkIdentifiers.LocalhostNetwork);
             callback(endpoint);
             builder.Resource.Annotations.Add(endpoint);
         }
@@ -800,7 +808,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. A reference to this endpoint can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -820,6 +828,10 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Endpoints for a Container will be consumed from localhost network by default, but the same EndpointAnnotation
+        // can also be resolved in the context of container-to-container communication by using the target port
+        // and the container name as the host. This is why we only set the context network to localhost,
+        // for both container and non-container resources.
         var annotation = new EndpointAnnotation(
             protocol: protocol ?? ProtocolType.Tcp,
             uriScheme: scheme,
@@ -827,11 +839,12 @@ public static class ResourceBuilderExtensions
             port: port,
             targetPort: targetPort,
             isExternal: isExternal,
-            isProxied: isProxied);
+            isProxied: isProxied,
+            networkID: KnownNetworkIdentifiers.LocalhostNetwork);
 
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, annotation.Name, StringComparisons.EndpointAnnotationName)))
         {
-            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking");
+            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking");
         }
 
         // Set the environment variable on the resource
@@ -839,7 +852,7 @@ public static class ResourceBuilderExtensions
         {
             annotation.TargetPortEnvironmentVariable = env;
 
-            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation);
+            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation, KnownNetworkIdentifiers.LocalhostNetwork);
 
             builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
             {
@@ -851,7 +864,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -871,7 +884,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be "http" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -891,7 +904,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be "https" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -934,6 +947,22 @@ public static class ResourceBuilderExtensions
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, int?, string?, string?, string?, bool, bool?, ProtocolType?)"/> or by launch settings (for project resources).
+    /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The the resource builder.</param>
+    /// <param name="name">The name of the endpoint.</param>
+    /// <param name="contextNetworkID">The network context in which to resolve the endpoint. If null, localhost (loopback) network context will be used.</param>
+    /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name, NetworkIdentifier contextNetworkID) where T : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.Resource.GetEndpoint(name, contextNetworkID);
     }
 
     /// <summary>
@@ -2159,7 +2188,8 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Adds a <see cref="CertificateAuthorityCollectionAnnotation"/> to the resource annotations to associate a certificate authority collection with the resource.
-    /// This is used to configure additional trusted certificate authorities for the resource at run time.
+    /// This is used to configure additional trusted certificate authorities for the resource.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2205,7 +2235,8 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
-    /// Currently this indicates trust for the ASP.NET Core developer certificate.
+    /// Currently this indicates trust for the ASP.NET Core developer certificate. The developer certificate will only be trusted
+    /// when running in local development scenarios; in publish mode resources will use their default certificate trust.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2254,6 +2285,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Sets the <see cref="CertificateTrustScope"/> for custom certificate authorities associated with the resource. The scope
     /// specifies how custom certificate authorities should be applied to a resource at run time in local development scenarios.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2296,6 +2328,41 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="CertificateTrustConfigurationCallbackAnnotation"/> to the resource annotations to associate a callback that
+    /// is invoked when a resource needs to configure itself for custom certificate trust. May be called multiple times to register
+    /// additional callbacks to append additional configuration.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateTrustConfigurationCallback(ctx =>
+    ///     {
+    ///         if (ctx.Scope != CertificateTrustScope.Append)
+    ///         {
+    ///             ctx.EnvironmentVariables["CUSTOM_CERTS_BUNDLE_ENV"] = ctx.CertificateBundlePath;
+    ///         }
+    ///         ctx.EnvironmentVariables["ADDITIONAL_CERTS_DIR_ENV"] = ctx.CertificateDirectoriesPath;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCertificateTrustConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
+        where TResource : IResourceWithArgs, IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new CertificateTrustConfigurationCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
@@ -2646,7 +2713,6 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// This method allows associating a specific compute environment with the compute resource.
     /// </remarks>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
         where T : IComputeResource
     {
@@ -2665,7 +2731,7 @@ public static class ResourceBuilderExtensions
     /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2678,10 +2744,10 @@ public static class ResourceBuilderExtensions
 
         if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
         {
-            resourceWithArgs.WithArgs(ctx =>
+            resourceWithArgs.WithArgs(async ctx =>
             {
                 var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
+                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }

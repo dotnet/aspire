@@ -34,6 +34,11 @@ internal abstract class PipelineCommandBase : BaseCommand
         Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
     };
 
+    protected readonly Option<bool> _includeExceptionDetailsOption = new("--include-exception-details")
+    {
+        Description = "Include exception details (stack traces) in pipeline logs."
+    };
+
     protected readonly Option<string?> _environmentOption = new("--environment", "-e")
     {
         Description = "The environment to use for the operation. The default is 'Production'."
@@ -82,6 +87,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         Options.Add(_logLevelOption);
         Options.Add(_environmentOption);
+        Options.Add(_includeExceptionDetailsOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.

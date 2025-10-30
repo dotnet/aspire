@@ -353,6 +353,33 @@ public class DotNetSdkInstallerTests
             })
             .Build();
     }
+
+    [Fact]
+    public void EmbeddedScripts_AreAccessible()
+    {
+        // Verify that the embedded scripts can be accessed from the assembly
+        var assembly = typeof(DotNetSdkInstaller).Assembly;
+        
+        var bashScriptResource = assembly.GetManifestResourceStream("Aspire.Cli.Resources.dotnet-install.sh");
+        var powershellScriptResource = assembly.GetManifestResourceStream("Aspire.Cli.Resources.dotnet-install.ps1");
+        
+        Assert.NotNull(bashScriptResource);
+        Assert.NotNull(powershellScriptResource);
+        
+        // Verify scripts have content
+        Assert.True(bashScriptResource.Length > 0, "Bash script should not be empty");
+        Assert.True(powershellScriptResource.Length > 0, "PowerShell script should not be empty");
+        
+        // Verify scripts start with expected headers
+        using var bashReader = new StreamReader(bashScriptResource);
+        var firstLine = bashReader.ReadLine();
+        Assert.NotNull(firstLine);
+        Assert.Contains("#!/", firstLine);
+        
+        using var powershellReader = new StreamReader(powershellScriptResource);
+        var content = powershellReader.ReadToEnd();
+        Assert.Contains("dotnet", content, StringComparison.OrdinalIgnoreCase);
+    }
 }
 
 public class MinimumSdkCheckFeature(bool enabled = true) : IFeatures

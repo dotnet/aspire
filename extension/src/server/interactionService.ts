@@ -10,6 +10,7 @@ import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { AnsiColors } from '../utils/AspireTerminalProvider';
+import { isDirectory } from '../utils/io';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -315,15 +316,6 @@ export class InteractionService implements IInteractionService {
         else {
             const fileUri = vscode.Uri.file(path);
             await vscode.window.showTextDocument(fileUri, { preview: false });
-        }
-
-        async function isDirectory(path: string): Promise<boolean> {
-            try {
-                const stat = await fs.stat(path);
-                return stat.isDirectory();
-            } catch {
-                return false;
-            }
         }
     }
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace Aspire.Hosting.Tests;
 
@@ -576,7 +577,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var logs = collector.GetSnapshot();
 
         // Just looking for a common message in Docker build output.
-        Assert.Contains(logs, log => log.Message.Contains("The resource ready event failed!"));
+        Assert.Contains(logs, log => Regex.IsMatch(log.Message, @"(?i).*resource.*nginx.*failed.*"));
 
         await app.StopAsync();
     }

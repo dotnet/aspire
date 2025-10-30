@@ -200,4 +200,185 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         Assert.Contains("WORKDIR /app", dockerfile);
         Assert.Contains("COPY . /app/wwwroot", dockerfile);
     }
+
+    [Fact]
+    public void VerifyPublishWithStaticFilesDoesNothingInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // In run mode, PublishWithStaticFiles should not add any annotations
+        Assert.Empty(yarp.Resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Empty(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesAddsEnvironmentVariableInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Verify ContainerFilesDestinationAnnotation was added
+        var containerFilesAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
+        Assert.Equal("/app/wwwroot", containerFilesAnnotation.DestinationPath);
+
+        // Verify static files environment variable was set
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+        var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
+        Assert.Equal("true", value);
+
+        // Verify DockerfileBuildAnnotation was added (instead of DockerfileBuilderCallbackAnnotation)
+        Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesGeneratesCorrectDockerfile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("sourceimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Get the DockerfileBuildAnnotation (added by WithDockerfileBuilder)
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesHandlesMissingSourceImageGracefully()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource without an image name
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Get the DockerfileBuildAnnotation
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        // Build the app to get service provider
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesGeneratesCorrectDockerfileWithMultipleContainerFiles()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource with multiple container file sources
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("sourceimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Get the DockerfileBuildAnnotation
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesGeneratesCorrectDockerfileWithMultipleSourceContainerFiles()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create multiple test container resources with multiple container file sources
+        var sourceContainer1 = builder.AddResource(new TestContainerFilesResource("source1"))
+            .WithImage("sourceimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets" });
+
+        var sourceContainer2 = builder.AddResource(new TestContainerFilesResource("source2"))
+            .WithImage("sourceimage2")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist2" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets2" });
+
+        var yarp = builder.AddYarp("yarp")
+            .PublishWithStaticFiles(sourceContainer1)
+            .PublishWithStaticFiles(sourceContainer2);
+
+        // Get the DockerfileBuildAnnotation
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
+    {
+    }
 }
