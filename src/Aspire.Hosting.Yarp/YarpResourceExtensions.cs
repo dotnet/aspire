@@ -171,7 +171,7 @@ public static class YarpResourceExtensions
         {
             var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
             var imageName = GetYarpImageName(ctx.Resource);
-            var stage = ctx.Builder.From(imageName);
+            var stage = ctx.Builder.From(imageName).WorkDir("/app");
 
             if (ctx.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
             {
