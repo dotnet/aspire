@@ -35,7 +35,7 @@
     {
       "source": "./13.0",
       "target": "./",
-      "condition": "AspireVersionActual == 13.0"
+      "condition": "AspireVersionActual == 13.1"
     }
   ],
   "symbols": {
@@ -67,9 +67,9 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "13.0",
-          "displayName": "13.0",
-          "description": "Chooses Aspire 13.0"
+          "choice": "13.1",
+          "displayName": "13.1",
+          "description": "Chooses Aspire 13.1"
         },
         {
           "choice": "9.5",
@@ -77,7 +77,7 @@
           "description": "Chooses Aspire 9.5"
         }
       ],
-      "defaultValue": "13.0"
+      "defaultValue": "13.1"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -91,7 +91,7 @@
           },
           {
             "condition": "",
-            "value": "13.0"
+            "value": "13.1"
           }
         ]
       }
