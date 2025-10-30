@@ -11,8 +11,7 @@ public static class EnvironmentVariableEvaluator
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariablesAsync(
         IResource resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run,
-        IServiceProvider? serviceProvider = null,
-        NetworkIdentifier? networkContext = null)
+        IServiceProvider? serviceProvider = null)
     {
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation)
         {

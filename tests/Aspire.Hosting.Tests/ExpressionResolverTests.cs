@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests;
 
@@ -147,19 +149,31 @@ public class ExpressionResolverTests
     }
 
     [Theory]
-    [InlineData(false, "http://localhost:18889", "http://localhost:18889")]
-    [InlineData(true, "http://localhost:18889", "http://aspire.dev.internal:18889")]
-    [InlineData(false, "http://127.0.0.1:18889", "http://127.0.0.1:18889")]
-    [InlineData(true, "http://127.0.0.1:18889", "http://aspire.dev.internal:18889")]
-    [InlineData(false, "http://[::1]:18889", "http://[::1]:18889")]
-    [InlineData(true, "http://[::1]:18889", "http://aspire.dev.internal:18889")]
-    [InlineData(false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
-    public async Task HostUrlPropertyGetsResolved(bool targetIsContainer, string hostUrlVal, string expectedValue)
+    [InlineData(false, true, "http://localhost:18889", "http://localhost:18889")]
+    [InlineData(true, true, "http://localhost:18889", "http://aspire.dev.internal:18889")]
+    [InlineData(false, true, "http://127.0.0.1:18889", "http://127.0.0.1:18889")]
+    [InlineData(true, true, "http://127.0.0.1:18889", "http://aspire.dev.internal:18889")]
+    [InlineData(false, true, "http://[::1]:18889", "http://[::1]:18889")]
+    [InlineData(true, true, "http://[::1]:18889", "http://aspire.dev.internal:18889")]
+    [InlineData(false, true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, false, "http://localhost:18889", "http://localhost:18889")]
+    [InlineData(true, false, "http://localhost:18889", "http://host.docker.internal:18889")]
+    [InlineData(false, false, "http://127.0.0.1:18889", "http://127.0.0.1:18889")]
+    [InlineData(true, false, "http://127.0.0.1:18889", "http://host.docker.internal:18889")]
+    [InlineData(false, false, "http://[::1]:18889", "http://[::1]:18889")]
+    [InlineData(true, false, "http://[::1]:18889", "http://host.docker.internal:18889")]
+    [InlineData(false, false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=host.docker.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=host.docker.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=host.docker.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    public async Task HostUrlPropertyGetsResolved(bool targetIsContainer, bool withTunnel, string hostUrlVal, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -176,14 +190,20 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+        var testServiceProvider = new TestServiceProvider();
+        testServiceProvider.AddService(Options.Create(new DcpOptions() { EnableAspireContainerTunnel = withTunnel }));
+        testServiceProvider.AddService(new DistributedApplicationModel(builder.Resources));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, testServiceProvider).DefaultTimeout();
         Assert.Equal(expectedValue, config["envname"]);
     }
 
     [Theory]
-    [InlineData(false, "http://localhost:18889")]
-    [InlineData(true, "http://aspire.dev.internal:18889")]
-    public async Task HostUrlPropertyGetsResolvedInOtlpExporterEndpoint(bool container, string expectedValue)
+    [InlineData(false, true, "http://localhost:18889")]
+    [InlineData(true, true, "http://aspire.dev.internal:18889")]
+    [InlineData(false, false, "http://localhost:18889")]
+    [InlineData(true, false, "http://host.docker.internal:18889")]
+    public async Task HostUrlPropertyGetsResolvedInOtlpExporterEndpoint(bool container, bool withTunnel, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -195,7 +215,11 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+        var testServiceProvider = new TestServiceProvider();
+        testServiceProvider.AddService(Options.Create(new DcpOptions() { EnableAspireContainerTunnel = withTunnel }));
+        testServiceProvider.AddService(new DistributedApplicationModel(builder.Resources));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, testServiceProvider).DefaultTimeout();
         Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     }
 
