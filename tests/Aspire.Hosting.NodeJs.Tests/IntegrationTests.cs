@@ -25,11 +25,11 @@ public class IntegrationTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Verify all Node.js app resources are present
-        var nodeResources = appModel.Resources.OfType<NodeAppResource>().ToList();
+        var nodeResources = appModel.Resources.OfType<JavaScriptAppResource>().ToList();
         Assert.Single(nodeResources);
 
         // Verify all installer resources are present as separate resources
-        var npmInstallers = appModel.Resources.OfType<NodeInstallerResource>().ToList();
+        var npmInstallers = appModel.Resources.OfType<JavaScriptInstallerResource>().ToList();
 
         Assert.Single(npmInstallers);
 
@@ -51,7 +51,7 @@ public class IntegrationTests
             Assert.Single(waitAnnotations);
 
             var waitedResource = waitAnnotations.First().Resource;
-            Assert.True(waitedResource is NodeInstallerResource);
+            Assert.True(waitedResource is JavaScriptInstallerResource);
         }
     }
 
@@ -60,19 +60,19 @@ public class IntegrationTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddNpmApp("test-app", "./test")
+        builder.AddJavaScriptApp("test-app", "./test")
             .WithNpm(install: true);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var installer = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        var installer = Assert.Single(appModel.Resources.OfType<JavaScriptInstallerResource>());
 
         // Verify it's configured as an ExecutableResource
         Assert.IsAssignableFrom<ExecutableResource>(installer);
 
         // Verify working directory matches parent
-        var parentApp = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        var parentApp = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
         Assert.Equal(parentApp.WorkingDirectory, installer.WorkingDirectory);
 
         // Verify parent-child relationship exists

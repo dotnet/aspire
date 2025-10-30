@@ -102,6 +102,7 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
@@ -117,6 +118,7 @@ public class NodeJsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
@@ -132,6 +134,7 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenWorkingDirectoryIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
@@ -147,6 +150,7 @@ public class NodeJsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenScriptNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();

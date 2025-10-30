@@ -10,7 +10,7 @@ var cache = builder
 
 var weatherapi = builder.AddProject<Projects.AspireWithNode_AspNetCoreApi>("weatherapi");
 
-var frontend = builder.AddNpmApp("frontend", "../NodeFrontend", "watch")
+var frontend = builder.AddJavaScriptApp("frontend", "../NodeFrontend", "watch")
     .WithReference(weatherapi)
     .WaitFor(weatherapi)
     .WithReference(cache)
