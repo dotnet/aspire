@@ -60,15 +60,16 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <param name="app">The application.</param>
     /// <param name="resourceName">The resource name.</param>
     /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
+    /// <param name="networkIdentifier">The optional network identifier. If none is specified, the default network is used.</param>
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default)
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier = default)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
 
-        return new(GetEndpointUriStringCore(app, resourceName, endpointName));
+        return new(GetEndpointUriStringCore(app, resourceName, endpointName, networkIdentifier));
     }
 
     static IResource GetResource(DistributedApplication app, string resourceName)
@@ -87,7 +88,7 @@ public static class DistributedApplicationHostingTestingExtensions
         return resource;
     }
 
-    static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
+    static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default, NetworkIdentifier? networkIdentifier = default)
     {
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithEndpoints resourceWithEndpoints)
@@ -98,11 +99,11 @@ public static class DistributedApplicationHostingTestingExtensions
         EndpointReference? endpoint;
         if (!string.IsNullOrEmpty(endpointName))
         {
-            endpoint = GetEndpointOrDefault(resourceWithEndpoints, endpointName);
+            endpoint = GetEndpointOrDefault(resourceWithEndpoints, endpointName, networkIdentifier);
         }
         else
         {
-            endpoint = GetEndpointOrDefault(resourceWithEndpoints, "http") ?? GetEndpointOrDefault(resourceWithEndpoints, "https");
+            endpoint = GetEndpointOrDefault(resourceWithEndpoints, "http", networkIdentifier) ?? GetEndpointOrDefault(resourceWithEndpoints, "https", networkIdentifier);
         }
 
         if (endpoint is null)
@@ -122,9 +123,9 @@ public static class DistributedApplicationHostingTestingExtensions
         }
     }
 
-    static EndpointReference? GetEndpointOrDefault(IResourceWithEndpoints resourceWithEndpoints, string endpointName)
+    static EndpointReference? GetEndpointOrDefault(IResourceWithEndpoints resourceWithEndpoints, string endpointName, NetworkIdentifier? networkIdentifier = default)
     {
-        var reference = resourceWithEndpoints.GetEndpoint(endpointName);
+        var reference = resourceWithEndpoints.GetEndpoint(endpointName, networkIdentifier ?? KnownNetworkIdentifiers.LocalhostNetwork);
 
         return reference.IsAllocated ? reference : null;
     }
