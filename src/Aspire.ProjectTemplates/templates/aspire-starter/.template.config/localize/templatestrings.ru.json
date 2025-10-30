@@ -40,8 +40,8 @@
   "symbols/apiServiceHttpsPort/description": "Номер порта, который будет использоваться для конечной точки HTTPS в файле launchSettings.json проекта ApiService. Этот параметр применим только в том случае, если NO-HTTP не используется.",
   "symbols/skipRestore/description": "Если установлено, автоматическое восстановление проекта при создании пропускается.",
   "symbols/NoHttps/description": "Следует ли отключить HTTPS.",
-  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
-  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later.",
+  "symbols/LocalhostTld/displayName": "Используйте домен верхнего уровня .dev.localhost в URL-адресе приложения",
+  "symbols/LocalhostTld/description": "Следует ли объединять имя проекта с доменом верхнего уровня .dev.localhost в URL-адресе приложения для локальной разработки, например https://myapp.dev.localhost:12345. Поддерживается в .NET 10 и более поздних версиях.",
   "postActions/set-startup-project/description": "Устанавливает проект запуска в решении",
   "postActions/restore/description": "Восстановление пакетов NuGet, необходимых для этого проекта.",
   "postActions/restore/manualInstructions/default/text": "Выполнить команду \"dotnet restore\""
