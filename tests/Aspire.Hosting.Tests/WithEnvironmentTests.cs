@@ -237,6 +237,9 @@ public class WithEnvironmentTests
                                 .WithEnvironment("TARGET_PORT", $"{endpoint.Property(EndpointProperty.TargetPort)}")
                                 .WithEnvironment("HOST", $"{test.Resource};name=1");
 
+        /*var testServiceProvider = new TestServiceProvider();
+        testServiceProvider.AddService<>*/
+
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource).DefaultTimeout();
         var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource, DistributedApplicationOperation.Publish).DefaultTimeout();
 

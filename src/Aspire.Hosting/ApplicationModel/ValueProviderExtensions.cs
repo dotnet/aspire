@@ -9,4 +9,19 @@ internal static class ValueProviderExtensions
     {
         return context?.Network ?? context?.Caller?.GetDefaultResourceNetwork() ?? KnownNetworkIdentifiers.LocalhostNetwork;
     }
+
+    public static IEnumerable<NetworkIdentifier> GetSupportedNetworkIdentifiers(this ValueProviderContext context)
+    {
+        if (context?.Network is { } network)
+        {
+            return [network];
+        }
+
+        if (context?.Caller?.GetSupportedNetworks() is { } networks)
+        {
+            return networks;
+        }
+
+        return [KnownNetworkIdentifiers.LocalhostNetwork];
+    }
 }

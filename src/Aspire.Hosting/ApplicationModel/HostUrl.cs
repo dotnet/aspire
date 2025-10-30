@@ -41,63 +41,70 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
             var uri = new UriBuilder(Url);
             if (uri.Host is "localhost" or "127.0.0.1" or "[::1]")
             {
-                if (context.ExecutionContext is { } && context.ExecutionContext.IsRunMode)
+                if (context.ExecutionContext?.IsRunMode == true)
                 {
                     var options = context.ExecutionContext.ServiceProvider.GetRequiredService<IOptions<DcpOptions>>();
 
                     var infoService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
                     var dcpInfo = await infoService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                    var hasEndingSlash = Url.EndsWith('/');
-                    uri.Host = options.Value.EnableAspireContainerTunnel == true ? KnownHostNames.DefaultContainerTunnelHostName : dcpInfo?.Containers?.ContainerHostName ?? KnownHostNames.DockerDesktopHostBridge;
+                    uri.Host = options.Value.EnableAspireContainerTunnel? KnownHostNames.DefaultContainerTunnelHostName : dcpInfo?.Containers?.ContainerHostName ?? KnownHostNames.DockerDesktopHostBridge;
 
                     if (options.Value.EnableAspireContainerTunnel)
                     {
                         // We need to consider that both the host and port may need to be remapped
                         var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
-                        var targetResource = model.Resources.FirstOrDefault(r =>
-                        {
-                            // Find a non-container resource with an endpoint matching the original localhost:port
-                            return !r.IsContainer() &&
-                                r is IResourceWithEndpoints &&
-                                r.TryGetEndpoints(out var endpoints) &&
-                                endpoints.Any(ep => ep.DefaultNetworkID == KnownNetworkIdentifiers.LocalhostNetwork && ep.Port == uri.Port);
-                        });
-
-                        if (targetResource is IResourceWithEndpoints resourceWithEndpoints)
-                        {
-                            var originalEndpoint = resourceWithEndpoints.GetEndpoints().FirstOrDefault(ep => ep.ContextNetworkID == KnownNetworkIdentifiers.LocalhostNetwork && ep.Port == uri.Port);
-                            if (originalEndpoint is not null)
+                        var targetEndpoint = model.Resources.Where(r => !r.IsContainer())
+                            .OfType<IResourceWithEndpoints>()
+                            .Select(r =>
                             {
-                                // Find the mapped endpoint for the target network context
-                                var mappedEndpoint = resourceWithEndpoints.GetEndpoint(originalEndpoint.EndpointName, networkContext);
-                                if (mappedEndpoint is not null)
+                                if (r.GetEndpoints(KnownNetworkIdentifiers.LocalhostNetwork).FirstOrDefault(ep => ep.Port == uri.Port) is EndpointReference ep)
                                 {
-                                    // Update the port to the mapped port
-                                    uri.Port = mappedEndpoint.Port;
+                                    return r.GetEndpoint(ep.EndpointName, networkContext);
                                 }
-                            }
+
+                                return null;
+                            })
+                            .Where(ep => ep is not null)
+                            .FirstOrDefault();
+
+                        if (targetEndpoint is { })
+                        {
+                            uri.Port = targetEndpoint.Port;
                         }
                     }
 
                     retval = uri.ToString();
-
-                    // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
-                    if (!hasEndingSlash && retval.EndsWith('/'))
-                    {
-                        retval = retval[..^1];
-                    }
                 }
+            }
+
+            var hasEndingSlash = Url.EndsWith('/');
+
+            // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
+            if (!hasEndingSlash && retval.EndsWith('/'))
+            {
+                retval = retval[..^1];
             }
         }
         catch (UriFormatException)
         {
+            var replacementHost = KnownHostNames.DockerDesktopHostBridge;
+            if (context.ExecutionContext?.IsRunMode == true)
+            {
+                var options = context.ExecutionContext.ServiceProvider.GetRequiredService<IOptions<DcpOptions>>();
+
+                var infoService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
+                var dcpInfo = await infoService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                replacementHost = options.Value.EnableAspireContainerTunnel ? KnownHostNames.DefaultContainerTunnelHostName : dcpInfo?.Containers?.ContainerHostName ?? KnownHostNames.DockerDesktopHostBridge;
+            }
+
             // HostUrl was meant to only be used with valid URLs. However, this was not
             // previously enforced. So we need to handle the case where it's not a valid URL,
             // by falling back to a simple string replacement.
-            retval = retval.Replace(KnownHostNames.Localhost, KnownHostNames.DefaultContainerTunnelHostName, StringComparison.OrdinalIgnoreCase)
-                         .Replace("127.0.0.1", KnownHostNames.DefaultContainerTunnelHostName)
-                         .Replace("[::1]", KnownHostNames.DefaultContainerTunnelHostName);
+            retval = retval.Replace(KnownHostNames.Localhost, replacementHost, StringComparison.OrdinalIgnoreCase)
+                         .Replace("127.0.0.1", replacementHost)
+                         .Replace("[::1]", replacementHost);
         }
 
         return new(retval);

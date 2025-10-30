@@ -294,6 +294,11 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
             var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
             if (nes is null)
             {
+                nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == Endpoint.ContextNetworkID).FirstOrDefault();
+            }
+
+            if (nes is null)
+            {
                 return null;
             }
 
