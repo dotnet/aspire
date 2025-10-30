@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class CertificateKeyPairConfigurationCallbackAnnotation(Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> callback) : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the callback to invoke to populate or modify the certificate authority collection.
+    /// Gets the callback to invoke to configure the resource to use a specific TLS certificate key pair for HTTPS endpoints.
     /// </summary>
     public Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
 }

@@ -33,13 +33,10 @@ public static class YarpResourceExtensions
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var yarpBuilder = builder.AddResource(resource)
                       .WithHttpEndpoint(name: "http", targetPort: Port)
-                      .WithHttpsEndpoint(name: "https", targetPort: HttpsPort)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
                       .WithImageTag(YarpContainerImageTags.Tag)
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
-                      .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
-                      .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}")
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
                       .WithDeveloperCertificateKeyPair()
@@ -48,6 +45,11 @@ public static class YarpResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
+            yarpBuilder
+                .WithHttpsEndpoint(name: "https", targetPort: HttpsPort)
+                .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}");
+
             yarpBuilder.WithEnvironment(ctx =>
             {
                 var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();

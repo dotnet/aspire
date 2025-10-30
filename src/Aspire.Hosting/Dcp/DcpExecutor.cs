@@ -2223,7 +2223,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 if (certificate is null)
                 {
-                    // No certificate to trust, do nothing
+                    // No certificate to configure, do nothing
                     return (args, envVars, false);
                 }
 
@@ -2362,7 +2362,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 if (certificate is null)
                 {
-                    // No certificate to trust, do nothing
+                    // No certificate to configure, do nothing
                     return (args, envVars, createFiles, false);
                 }
 

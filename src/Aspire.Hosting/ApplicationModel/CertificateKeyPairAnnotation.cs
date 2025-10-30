@@ -50,7 +50,7 @@ public sealed class CertificateKeyPairAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the resource should use a platform developer certificate for it's key pair.
+    /// Gets or sets a value indicating whether the resource should use a platform developer certificate for its key pair.
     /// </summary>
     public bool UseDeveloperCertificate
     {

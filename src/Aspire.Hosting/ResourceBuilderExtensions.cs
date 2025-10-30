@@ -2387,7 +2387,7 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to configure the reosurce to use a certificate key pair.</param>
+    /// <param name="callback">The callback to configure the resource to use a certificate key pair.</param>
     /// <returns>The updated resource builder.</returns>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<TResource> WithCertificateKeyPairConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> callback)
