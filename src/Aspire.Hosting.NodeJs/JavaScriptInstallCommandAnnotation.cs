@@ -8,15 +8,9 @@ namespace Aspire.Hosting.NodeJs;
 /// <summary>
 /// Represents the annotation for the JavaScript package manager's install command.
 /// </summary>
-/// <param name="command">The executable command name</param>
 /// <param name="args">The command line arguments for the JavaScript package manager's install command.</param>
-public sealed class JavaScriptInstallCommandAnnotation(string command, string[] args) : IResourceAnnotation
+public sealed class JavaScriptInstallCommandAnnotation(string[] args) : IResourceAnnotation
 {
-    /// <summary>
-    /// Gets the executable command name.
-    /// </summary>
-    public string Command { get; } = command;
-
     /// <summary>
     /// Gets the command-line arguments supplied to the application.
     /// </summary>
