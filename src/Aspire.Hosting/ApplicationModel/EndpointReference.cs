@@ -156,7 +156,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 
         foreach (var nes in endpointAnnotation.AllAllocatedEndpoints)
         {
-            if (StringComparers.NetworkID.Equals(nes.NetworkID, _contextNetworkID))
+            if (StringComparers.NetworkID.Equals(nes.NetworkID, _contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork))
             {
                 if (!nes.Snapshot.IsValueSet)
                 {
