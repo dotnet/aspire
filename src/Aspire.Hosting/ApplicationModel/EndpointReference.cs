@@ -177,12 +177,12 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="endpoint">The endpoint annotation.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
     /// <remarks>
-    /// Most Aspire resources are accessed in the context of the "localhost" network (host proceses calling other host processes,
-    /// or host processes calling container via mapped ports). This is why EndpointReference assumes this
-    /// context unless specified otherwise. However, for container-to-container, or container-to-host communication,
-    /// you must specify a container network context for the EndpointReference to be resolved correctly.
+    /// Most Aspire resources are accessed in the context of the "localhost" network (host processes calling other host processes,
+    /// or host processes calling container via mapped ports). If a <see cref="NetworkIdentifier"/> is specified, the <see cref="EndpointReference"/>
+    /// will always resolve in the context of that network. If the <see cref="NetworkIdentifier"/> is null, the reference will attempt to resolve itself
+    /// based on the context of the requesting resource.
     /// </remarks>
-    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint, NetworkIdentifier? contextNetworkID = null)
+    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint, NetworkIdentifier? contextNetworkID)
     {
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -277,6 +277,8 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
     public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default)
     {
+        // If the EndpointReference was for a specific network context, then use that. Otherwise, use the network context from the ValueProviderContext.
+        // This allows the EndpointReference to be resolved in the context of the caller's network if it was not explicitly set.
         var networkContext = Endpoint.ContextNetworkID ?? context.GetNetworkIdentifier();
 
         return Property switch
