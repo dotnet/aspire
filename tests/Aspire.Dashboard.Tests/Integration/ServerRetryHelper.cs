@@ -39,6 +39,9 @@ public static class ServerRetryHelper
                 var port = GetAvailablePort(nextPortAttempt, logger);
                 ports.Add(port);
 
+                // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
+                // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
+                // allocate ports in the same range. The random gap further reduces the chance of collision.
                 nextPortAttempt = port + Random.Shared.Next(10, 100);
             }
 
