@@ -1440,7 +1440,6 @@ public static class ContainerResourceBuilderExtensions
     /// <para>
     /// This extension method allows customization of the base images used in generated Dockerfiles.
     /// For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-    /// For single-stage Dockerfiles (e.g., Node.js), only the runtime image is used.
     /// </para>
     /// <example>
     /// Specify custom base images for a Python application:
@@ -1463,7 +1462,7 @@ public static class ContainerResourceBuilderExtensions
 
         if (buildImage is null && runtimeImage is null)
         {
-            throw new ArgumentException($"At least one of {nameof(buildImage)} or {nameof(runtimeImage)} must be specified.");
+            throw new ArgumentException($"At least one of {nameof(buildImage)} or {nameof(runtimeImage)} must be specified.", nameof(buildImage));
         }
 
         return builder.WithAnnotation(new DockerfileBaseImageAnnotation
