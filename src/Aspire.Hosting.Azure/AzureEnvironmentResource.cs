@@ -222,11 +222,10 @@ public sealed class AzureEnvironmentResource : Resource
 
     private Task PublishAsync(PipelineStepContext context)
     {
-        var outputPath = context.OutputPath ?? Path.Combine(Environment.CurrentDirectory, "aspire-output");
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
         var activityReporter = context.PipelineContext.Services.GetRequiredService<IPipelineActivityReporter>();
         var publishingContext = new AzurePublishingContext(
-            outputPath,
+            context.OutputPath,
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,

@@ -62,7 +62,12 @@ public sealed class PipelineStepContext
     /// <summary>
     /// Gets the output path for deployment artifacts.
     /// </summary>
-    public string? OutputPath => PipelineContext.OutputPath;
+    public string OutputPath => PipelineContext.OutputPath;
+
+    /// <summary>
+    /// Gets the intermediate output path for temporary build artifacts.
+    /// </summary>
+    public string IntermediateOutputPath => PipelineContext.IntermediateOutputPath;
 }
 
 /// <summary>
