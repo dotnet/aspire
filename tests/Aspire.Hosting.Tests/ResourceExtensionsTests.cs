@@ -452,6 +452,29 @@ public class ResourceExtensionsTests
         Assert.Equal("async-tag-test-container", result);
     }
 
+    [Fact]
+    public async Task WithContainerFilesSource_Works()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var resource = builder.AddResource(new TestContainerFilesResource("test-container"))
+            .WithContainerFilesSource("src/path1")
+            .WithContainerFilesSource("src/path2");
+        Assert.Collection(resource.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>(),
+            a => Assert.Equal("src/path1", a.SourcePath),
+            a => Assert.Equal("src/path2", a.SourcePath));
+
+        resource.WithContainerFilesSource("src/override", ResourceAnnotationMutationBehavior.Replace);
+
+        var annotation = Assert.Single(resource.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>());
+        Assert.Equal("src/override", annotation.SourcePath);
+
+        resource.WithContainerFilesSource("src/override2");
+        Assert.Collection(resource.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>(),
+            a => Assert.Equal("src/override", a.SourcePath),
+            a => Assert.Equal("src/override2", a.SourcePath));
+    }
+
     private sealed class ComputeEnvironmentResource(string name) : Resource(name), IComputeEnvironmentResource
     {
     }
@@ -474,5 +497,9 @@ public class ResourceExtensionsTests
     private sealed class AnotherDummyAnnotation : IResourceAnnotation
     {
 
+    }
+
+    private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
+    {
     }
 }

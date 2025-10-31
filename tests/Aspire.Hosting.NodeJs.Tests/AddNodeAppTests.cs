@@ -42,8 +42,10 @@ public class AddNodeAppTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var npmApp = builder.AddNpmApp("npmapp", workingDirectory)
             .WithHttpEndpoint(port: 5032, env: "PORT");
+#pragma warning restore CS0618 // Type or member is obsolete
 
         manifest = await ManifestUtils.GetManifest(npmApp.Resource);
 
