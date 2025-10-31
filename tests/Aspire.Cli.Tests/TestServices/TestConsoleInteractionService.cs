@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Spectre.Console;
@@ -14,6 +15,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Func<string, bool, bool>? ConfirmCallback { get; set; }
     public Action<string>? ShowStatusCallback { get; set;  }
+    public Func<string, IEnumerable, Func<object, string>, CancellationToken, object>? PromptForSelectionCallback { get; set; }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
@@ -36,6 +38,13 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         if (!choices.Any())
         {
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        if (PromptForSelectionCallback is not null)
+        {
+            // Invoke the callback with the choices as object types
+            var result = PromptForSelectionCallback(promptText, choices, o => choiceFormatter((T)o), cancellationToken);
+            return Task.FromResult((T)result);
         }
 
         return Task.FromResult(choices.First());
