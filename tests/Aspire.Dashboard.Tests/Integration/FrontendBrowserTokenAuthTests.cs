@@ -196,6 +196,13 @@ public class FrontendBrowserTokenAuthTests
             },
             w =>
             {
+                Assert.Equal("MCP listening on: {McpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+
+                var uri = new Uri((string)GetValue(w.State, "McpEndpointUri")!);
+                Assert.NotEqual(0, uri.Port);
+            },
+            w =>
+            {
                 Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             },

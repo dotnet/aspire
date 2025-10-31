@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
-        <target state="needs-review-translation">.NET Aspire</target>
+        <target state="translated">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
-        <target state="needs-review-translation">.NET Aspire-Repository</target>
+        <target state="translated">Aspire-Repository</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -44,22 +44,22 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Weitere Informationen</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointMcpBody">
         <source>Untrusted apps can access sensitive information about the running services.</source>
-        <target state="new">Untrusted apps can access sensitive information about the running services.</target>
+        <target state="translated">Nicht vertrauenswürdige Apps können auf vertrauliche Informationen zu den ausgeführten Diensten zugreifen.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Nicht vertrauenswürdige Apps können Telemetriedaten an das Dashboard senden.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">
         <source>Endpoint is unsecured</source>
-        <target state="new">Endpoint is unsecured</target>
+        <target state="translated">Der Endpunkt ist nicht gesichert</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

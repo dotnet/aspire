@@ -366,6 +366,11 @@ public static class ResourceExtensions
         return resource.IsContainer() ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
     }
 
+    internal static IEnumerable<NetworkIdentifier> GetSupportedNetworks(this IResource resource)
+    {
+        return resource.IsContainer() ? [KnownNetworkIdentifiers.DefaultAspireContainerNetwork, KnownNetworkIdentifiers.LocalhostNetwork] : [KnownNetworkIdentifiers.LocalhostNetwork];
+    }
+
     /// <summary>
     /// Processes trusted certificates configuration for the specified resource within the given execution context.
     /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>

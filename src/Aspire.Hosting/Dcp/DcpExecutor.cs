@@ -1188,7 +1188,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 svc.Annotate(CustomResource.ContainerTunnelInstanceName, tunnelProxy?.Metadata?.Name ?? "");
 
                 var svcAppResource = new ServiceAppResource(svc);
-
                 _appResources.Add(svcAppResource);
 
                 if (useTunnel)
