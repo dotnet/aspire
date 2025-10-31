@@ -53,26 +53,12 @@ public sealed class PipelineContext(
     public CancellationToken CancellationToken { get; set; } = cancellationToken;
 
     /// <summary>
-    /// Gets the output path for deployment artifacts.
+    /// Gets the service for managing pipeline output directories.
     /// </summary>
-    public string OutputPath { get; } = outputPath ?? Path.Combine(Environment.CurrentDirectory, "aspire-output");
+    public IPipelineOutputService OutputService { get; } = new PipelineOutputService(outputPath, serviceProvider.GetRequiredService<IConfiguration>());
 
     /// <summary>
-    /// Gets the intermediate output path for temporary build artifacts.
+    /// Gets the output path for deployment artifacts.
     /// </summary>
-    public string IntermediateOutputPath { get; } = GetIntermediateOutputPath(serviceProvider);
-
-    private static string GetIntermediateOutputPath(IServiceProvider serviceProvider)
-    {
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        var appHostSha = configuration["AppHost:PathSha256"];
-        
-        if (!string.IsNullOrEmpty(appHostSha))
-        {
-            return Directory.CreateTempSubdirectory($"aspire-{appHostSha}").FullName;
-        }
-        
-        // Fallback if AppHost:PathSha256 is not available
-        return Directory.CreateTempSubdirectory("aspire").FullName;
-    }
+    public string OutputPath => OutputService.GetOutputDirectory();
 }
