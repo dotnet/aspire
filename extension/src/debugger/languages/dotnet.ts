@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError } from '../../loc/strings';
+import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError, processExitedWithCode } from '../../loc/strings';
 import { ChildProcessWithoutNullStreams, execFile, spawn } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
@@ -63,25 +63,45 @@ class DotNetService implements IDotNetService {
         if (!isDevKitEnabled) {
             this.writeToDebugConsole('C# Dev Kit not available, building project using dotnet CLI...', 'stdout');
             const args = ['build', projectFile];
-            try {
-                const { stdout, stderr } = await this.execFileAsync('dotnet', args, { encoding: 'utf8' });
-                this.writeToDebugConsole(stdout, 'stdout');
-                this.writeToDebugConsole(stderr, 'stderr');
 
-                // if build succeeds, simply return. otherwise throw to trigger error handling
-                if (stderr) {
-                    throw new Error(stderr);
-                }
-                return;
-            } catch (err) {
-                const stdout = (err as any).stdout;
-                const stderr = (err as any).stderr;
-                if (stdout) {
-                    this.writeToDebugConsole(String(stdout), 'stderr');
-                }
+            return new Promise<void>((resolve, reject) => {
+                const buildProcess = spawn('dotnet', args);
 
-                throw new Error(buildFailedForProjectWithError(projectFile, String(stderr ?? stdout)));
-            }
+                let stdoutOutput = '';
+                let stderrOutput = '';
+
+                // Stream stdout in real-time
+                buildProcess.stdout?.on('data', (data: Buffer) => {
+                    const output = data.toString();
+                    stdoutOutput += output;
+                    this.writeToDebugConsole(output, 'stdout');
+                });
+
+                // Stream stderr in real-time
+                buildProcess.stderr?.on('data', (data: Buffer) => {
+                    const output = data.toString();
+                    stderrOutput += output;
+                    this.writeToDebugConsole(output, 'stderr');
+                });
+
+                buildProcess.on('error', (err) => {
+                    extensionLogOutputChannel.error(`dotnet build process error: ${err}`);
+                    reject(new Error(buildFailedForProjectWithError(projectFile, err.message)));
+                });
+
+                buildProcess.on('close', (code) => {
+                    if (code === 0) {
+                        // if build succeeds, simply return. otherwise throw to trigger error handling
+                        if (stderrOutput) {
+                            reject(new Error(stderrOutput));
+                        } else {
+                            resolve();
+                        }
+                    } else {
+                        reject(new Error(buildFailedForProjectWithError(projectFile, stdoutOutput || stderrOutput || `Exit code ${code}`)));
+                    }
+                });
+            });
         }
 
         // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
@@ -156,9 +176,10 @@ class DotNetService implements IDotNetService {
     }
 
     async getDotNetRunApiOutput(projectPath: string): Promise<string> {
+        let childProcess: ChildProcessWithoutNullStreams;
+
         return new Promise<string>(async (resolve, reject) => {
             try {
-                let childProcess: ChildProcessWithoutNullStreams;
                 const timeout = setTimeout(() => {
                     childProcess?.kill();
                     reject(new Error('Timeout while waiting for dotnet run-api response'));
@@ -175,7 +196,9 @@ class DotNetService implements IDotNetService {
                 childProcess.on('error', reject);
                 childProcess.on('exit', (code, signal) => {
                     clearTimeout(timeout);
-                    reject(new Error(`dotnet run-api exited with ${code ?? signal}`));
+                    if (code !== 0) {
+                        reject(new Error(processExitedWithCode(code?.toString() ?? "unknown")));
+                    }
                 });
 
                 const rl = readline.createInterface(childProcess.stdout);
@@ -192,7 +215,7 @@ class DotNetService implements IDotNetService {
             } catch (e) {
                 reject(e);
             }
-        });
+        }).finally(() => childProcess.removeAllListeners());
     }
 }
 
@@ -243,6 +266,8 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
             }
 
             const projectPath = launchConfig.project_path;
+
+            extensionLogOutputChannel.info(`Reading launch settings for: ${projectPath}`);
 
             // Apply launch profile settings if available
             const launchSettings = await readLaunchSettings(projectPath);
