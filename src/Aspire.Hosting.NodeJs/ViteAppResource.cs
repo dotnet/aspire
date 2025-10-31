@@ -10,4 +10,4 @@ namespace Aspire.Hosting.NodeJs;
 /// <param name="command">The command to execute the Vite application, such as the script or entry point.</param>
 /// <param name="workingDirectory">The working directory from which the Vite application command is executed.</param>
 public class ViteAppResource(string name, string command, string workingDirectory)
-    : NodeAppResource(name, command, workingDirectory), IResourceWithContainerFiles;
+    : JavaScriptAppResource(name, command, workingDirectory);

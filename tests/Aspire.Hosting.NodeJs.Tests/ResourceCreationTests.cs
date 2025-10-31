@@ -19,7 +19,7 @@ public class ResourceCreationTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var resource = appModel.Resources.OfType<NodeAppResource>().SingleOrDefault();
+        var resource = appModel.Resources.OfType<JavaScriptAppResource>().SingleOrDefault();
 
         Assert.NotNull(resource);
 
@@ -37,7 +37,7 @@ public class ResourceCreationTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var resource = appModel.Resources.OfType<NodeAppResource>().SingleOrDefault();
+        var resource = appModel.Resources.OfType<JavaScriptAppResource>().SingleOrDefault();
 
         Assert.NotNull(resource);
 
@@ -55,7 +55,7 @@ public class ResourceCreationTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var resource = appModel.Resources.OfType<NodeAppResource>().SingleOrDefault();
+        var resource = appModel.Resources.OfType<JavaScriptAppResource>().SingleOrDefault();
 
         Assert.NotNull(resource);
 
@@ -75,7 +75,7 @@ public class ResourceCreationTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var resource = appModel.Resources.OfType<NodeAppResource>().SingleOrDefault();
+        var resource = appModel.Resources.OfType<JavaScriptAppResource>().SingleOrDefault();
 
         Assert.NotNull(resource);
 
@@ -89,7 +89,7 @@ public class ResourceCreationTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        var nodeApp = builder.AddJavaScriptApp("test-app", "./test-app");
 
         // Add package installation with default settings (should use npm install)
         nodeApp.WithNpm(install: true);
@@ -99,16 +99,17 @@ public class ResourceCreationTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Verify the NodeApp resource exists
-        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        var nodeResource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
         Assert.Equal("npm", nodeResource.Command);
 
         // Verify the installer resource was created
-        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        var installerResource = Assert.Single(appModel.Resources.OfType<JavaScriptInstallerResource>());
         Assert.Equal("test-app-installer", installerResource.Name);
 
         // Verify the install command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("npm", packageManager.ExecutableName);
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
-        Assert.Equal("npm", installAnnotation.Command);
         Assert.Equal(["install"], installAnnotation.Args);
 
         // Verify the parent-child relationship
@@ -134,12 +135,12 @@ public class ResourceCreationTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var resource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        var resource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
 
         // Verify that command line arguments callback is configured
         Assert.True(resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbackAnnotations));
         List<object> args = [];
-        var ctx = new CommandLineArgsCallbackContext(args);
+        var ctx = new CommandLineArgsCallbackContext(args, resource);
 
         foreach (var annotation in argsCallbackAnnotations)
         {
@@ -160,7 +161,7 @@ public class ResourceCreationTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+        var nodeApp = builder.AddJavaScriptApp("test-app", "./test-app");
 
         // Configure npm without installing packages
         nodeApp.WithNpm(install: false);
@@ -170,16 +171,16 @@ public class ResourceCreationTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Verify the NodeApp resource exists with npm command
-        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        var nodeResource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
         Assert.Equal("npm", nodeResource.Command);
 
         // Verify the package manager annotations are set
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var _));
-        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var _));
-        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var _));
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var _));
 
         // Verify NO installer resource was created
-        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
+        var installerResources = appModel.Resources.OfType<JavaScriptInstallerResource>().ToList();
         Assert.Empty(installerResources);
 
         // Verify no wait annotations were added

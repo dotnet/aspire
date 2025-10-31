@@ -18,6 +18,9 @@ public class AddViteAppTests
         var viteDir = Path.Combine(tempDir.Path, "vite");
         Directory.CreateDirectory(viteDir);
 
+        // Create a lock file so npm ci is used in the Dockerfile
+        File.WriteAllText(Path.Combine(viteDir, "package-lock.json"), "empty");
+
         var nodeApp = builder.AddViteApp("vite", viteDir)
             .WithNpm(install: true);
 
@@ -52,7 +55,7 @@ public class AddViteAppTests
             FROM node:22-slim
             WORKDIR /app
             COPY . .
-            RUN npm install
+            RUN npm ci
             RUN npm run build
 
             """.Replace("\r\n", "\n");
