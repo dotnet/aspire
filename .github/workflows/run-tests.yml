@@ -180,8 +180,7 @@ jobs:
       - name: Install Azure Functions Core Tools
         if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Compute test project path
         id: compute_project_path
