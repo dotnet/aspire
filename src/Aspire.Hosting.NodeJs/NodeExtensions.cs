@@ -130,7 +130,7 @@ public static class NodeAppHostingExtension
                     var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
 
                     var builderStage = dockerfileContext.Builder
-                        .From($"node:{nodeVersion}-slim", "build")
+                        .From($"node:{nodeVersion}-alpine", "build")
                         .EmptyLine()
                         .WorkDir("/app")
                         .Copy(".", ".")
@@ -158,7 +158,7 @@ public static class NodeAppHostingExtension
                     }
 
                     var runtimeBuilder = dockerfileContext.Builder
-                        .From($"node:{nodeVersion}-slim", "runtime")
+                        .From($"node:{nodeVersion}-alpine", "runtime")
                             .EmptyLine()
                             .WorkDir("/app")
                             .CopyFrom("build", "/app", "/app")
