@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies. (Preview)</source>
-        <target state="new">Execute a specific pipeline step and its dependencies. (Preview)</target>
+        <target state="translated">Wykonaj określony krok potoku i jego zależności. (Wersja zapoznawcza)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Executing pipeline...</source>
-        <target state="new">Executing pipeline...</target>
+        <target state="translated">Wykonywanie potoku...</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCanceled">
@@ -19,22 +19,22 @@
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>OPERATION COMPLETED</source>
-        <target state="new">OPERATION COMPLETED</target>
+        <target state="translated">OPERACJA ZAKOŃCZONA</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>OPERATION FAILED</source>
-        <target state="new">OPERATION FAILED</target>
+        <target state="translated">OPERACJA NIE POWIODŁA SIĘ</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for artifacts.</source>
-        <target state="new">The optional output path for artifacts.</target>
+        <target state="translated">Opcjonalna ścieżka wyjściowa artefaktów.</target>
         <note />
       </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute.</source>
-        <target state="new">The name of the step to execute.</target>
+        <target state="translated">Nazwa kroku do wykonania.</target>
         <note />
       </trans-unit>
     </body>
