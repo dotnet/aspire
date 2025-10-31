@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration } from '../../loc/strings';
+import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError } from '../../loc/strings';
 import { ChildProcessWithoutNullStreams, execFile, spawn } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
@@ -18,6 +18,8 @@ import {
     determineServerReadyAction
 } from '../launchProfiles';
 import { debug } from 'util';
+import { AspireDebugSession } from '../AspireDebugSession';
+import { isCsDevKitInstalled } from '../../capabilities';
 
 interface IDotNetService {
     getAndActivateDevKit(): Promise<boolean>
@@ -27,7 +29,17 @@ interface IDotNetService {
 }
 
 class DotNetService implements IDotNetService {
+    private _debugSession: AspireDebugSession;
+
+    constructor(debugSession: AspireDebugSession) {
+        this._debugSession = debugSession;
+    }
+
     execFileAsync = util.promisify(execFile);
+
+    writeToDebugConsole(message: string, category: 'stdout' | 'stderr') {
+        this._debugSession.sendMessage(message, false, category);
+    }
 
     async getAndActivateDevKit(): Promise<boolean> {
         const csharpDevKit = vscode.extensions.getExtension('ms-dotnettools.csdevkit');
@@ -46,6 +58,32 @@ class DotNetService implements IDotNetService {
     }
 
     async buildDotNetProject(projectFile: string): Promise<void> {
+        const isDevKitEnabled = await this.getAndActivateDevKit();
+
+        if (!isDevKitEnabled) {
+            this.writeToDebugConsole('C# Dev Kit not available, building project using dotnet CLI...', 'stdout');
+            const args = ['build', projectFile];
+            try {
+                const { stdout, stderr } = await this.execFileAsync('dotnet', args, { encoding: 'utf8' });
+                this.writeToDebugConsole(stdout, 'stdout');
+                this.writeToDebugConsole(stderr, 'stderr');
+
+                // if build succeeds, simply return. otherwise throw to trigger error handling
+                if (stderr) {
+                    throw new Error(stderr);
+                }
+                return;
+            } catch (err) {
+                const stdout = (err as any).stdout;
+                const stderr = (err as any).stderr;
+                if (stdout) {
+                    this.writeToDebugConsole(String(stdout), 'stderr');
+                }
+
+                throw new Error(buildFailedForProjectWithError(projectFile, String(stderr ?? stdout)));
+            }
+        }
+
         // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
         const pRetry = (await import('p-retry')).default;
         const buildTask = await pRetry(async () => {
@@ -182,7 +220,7 @@ function getRunApiConfigFromOutput(runApiOutput: string, debugConfiguration: Asp
     };
 }
 
-export function createProjectDebuggerExtension(dotNetService: IDotNetService): ResourceDebuggerExtension {
+export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSession: AspireDebugSession) => IDotNetService): ResourceDebuggerExtension {
     return {
         resourceType: 'project',
         debugAdapter: 'coreclr',
@@ -197,6 +235,8 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
             throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
         },
         createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
+            const dotNetService: IDotNetService = dotNetServiceProducer(launchOptions.debugSession);
+
             if (!isProjectLaunchConfiguration(launchConfig)) {
                 extensionLogOutputChannel.info(`The resource type was not project for ${JSON.stringify(launchConfig)}`);
                 throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
@@ -224,10 +264,9 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
             debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
 
-            // Build project if needed
             if (!isSingleFileApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
-                if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild) && await dotNetService.getAndActivateDevKit()) {
+                if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild)) {
                     await dotNetService.buildDotNetProject(projectPath);
                 }
 
@@ -235,6 +274,7 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
                 debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
             }
             else {
+                // Single file apps should always be built
                 await dotNetService.buildDotNetProject(projectPath);
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 const runApiConfig = getRunApiConfigFromOutput(runApiOutput, debugConfiguration);
@@ -251,4 +291,4 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
     };
 }
 
-export const projectDebuggerExtension: ResourceDebuggerExtension = createProjectDebuggerExtension(new DotNetService());
+export const projectDebuggerExtension: ResourceDebuggerExtension = createProjectDebuggerExtension(debugSession => new DotNetService(debugSession));
