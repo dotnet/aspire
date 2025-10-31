@@ -172,8 +172,6 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
-
         builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(env: "HTTP_PORT");
