@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -200,5 +202,29 @@ public class AddViteAppTests
         var dockerfileContents = File.ReadAllText(Path.Combine(tempDir.Path, "vite.Dockerfile"));
         
         Assert.Contains($"FROM {expectedImage}", dockerfileContents);
+    }
+
+    [Fact]
+    public async Task VerifyCustomBaseImage()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        // Create a lock file so npm ci is used in the Dockerfile
+        File.WriteAllText(Path.Combine(tempDir.Path, "package-lock.json"), "empty");
+
+        var customImage = "node:22-alpine";
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpm(install: true)
+            .WithDockerfileBaseImage(runtimeImage: customImage);
+
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
+
+        // Verify the manifest structure
+        Assert.Equal("container.v1", manifest["type"]?.ToString());
+
+        // Verify the Dockerfile contains the custom base image
+        var dockerfileContents = File.ReadAllText(Path.Combine(tempDir.Path, "vite.Dockerfile"));
+        Assert.Contains($"FROM {customImage}", dockerfileContents);
     }
 }
