@@ -378,6 +378,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 // This isn't used by dotnet watch but still useful to have for debugging
                 _logger.LogInformation("OTLP/HTTP listening on: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().GetResolvedAddress());
             }
+            if (_mcpEndPointAccessor != null)
+            {
+                // This isn't used by dotnet watch but still useful to have for debugging
+                _logger.LogInformation("MCP listening on: {McpEndpointUri}", _mcpEndPointAccessor().GetResolvedAddress());
+            }
 
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
             {

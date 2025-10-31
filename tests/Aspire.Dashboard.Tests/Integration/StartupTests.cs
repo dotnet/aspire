@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
@@ -729,31 +730,40 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task LogOutput_LocalhostAddress_LocalhostInLogOutput()
     {
         // Arrange
-        TestSink? testSink = null;
+        var testSink = new TestSink();
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(testOutputHelper, testSink);
+
         DashboardWebApplication? app = null;
 
         int? frontendPort1 = null;
         int? frontendPort2 = null;
-        int? otlpPort = null;
+        int? otlpGrpcPort = null;
+        int? otlpHttpPort = null;
         try
         {
             await ServerRetryHelper.BindPortsWithRetry(async ports =>
             {
                 frontendPort1 = ports[0];
                 frontendPort2 = ports[1];
-                otlpPort = ports[2];
+                otlpGrpcPort = ports[2];
+                otlpHttpPort = ports[3];
 
-                testSink = new TestSink();
-                app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                // Reset sink writes. Required to clear out data from a previous failed retry.
+                var writes = (ConcurrentQueue<Microsoft.Extensions.Logging.Testing.WriteContext>)testSink.Writes;
+                writes.Clear();
+
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
                     additionalConfiguration: data =>
                     {
                         data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"https://localhost:{frontendPort1};http://localhost:{frontendPort2}";
-                        data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = $"http://localhost:{otlpPort}";
-                    }, testSink: testSink);
+                        data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = $"http://localhost:{otlpGrpcPort}";
+                        data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = $"http://localhost:{otlpHttpPort}";
+                        data[DashboardConfigNames.DashboardMcpUrlName.ConfigKey] = "http://127.0.0.1:0"; // Test that a dynamic port has a set value in logs.
+                    });
 
                 // Act
                 await app.StartAsync().DefaultTimeout();
-            }, NullLogger.Instance, portCount: 3);
+            }, loggerFactory.CreateLogger(GetType()), portCount: 4);
         }
         finally
         {
@@ -764,7 +774,6 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         }
 
         // Assert
-        Assert.NotNull(testSink);
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
         Assert.Collection(l,
             w =>
@@ -785,14 +794,21 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("OTLP/gRPC listening on: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
-                Assert.NotEqual(0, uri.Port);
+                Assert.Equal(otlpGrpcPort, uri.Port);
             },
             w =>
             {
                 Assert.Equal("OTLP/HTTP listening on: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
-                Assert.NotEqual(0, uri.Port);
+                Assert.Equal(otlpHttpPort, uri.Port);
+            },
+            w =>
+            {
+                Assert.Equal("MCP listening on: {McpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+
+                var uri = new Uri((string)GetValue(w.State, "McpEndpointUri")!);
+                Assert.NotEqual(0, uri.Port); // Check that allocated port is in log message
             },
             w =>
             {
