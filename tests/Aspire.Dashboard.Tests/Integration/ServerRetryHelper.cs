@@ -39,7 +39,12 @@ public static class ServerRetryHelper
                 var port = GetAvailablePort(nextPortAttempt, logger);
                 ports.Add(port);
 
-                nextPortAttempt = port + Random.Shared.Next(100);
+                nextPortAttempt = port + Random.Shared.Next(10, 100);
+            }
+
+            if (ports.Count != ports.Distinct().Count())
+            {
+                throw new InvalidOperationException($"Generated ports list contains duplicate numbers: {string.Join(", ", ports)}");
             }
 
             try
