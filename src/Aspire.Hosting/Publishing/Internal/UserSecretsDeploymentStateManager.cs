@@ -59,11 +59,7 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
             
             var json = flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions);
             
-            // Write synchronously to avoid async/await in the lock that's managed by the base class
-            await Task.Run(() =>
-            {
-                File.WriteAllText(userSecretsPath, json, System.Text.Encoding.UTF8);
-            }, cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(userSecretsPath, json, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }
