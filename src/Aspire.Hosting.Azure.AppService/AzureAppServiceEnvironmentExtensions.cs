@@ -277,7 +277,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> for chaining additional configuration.</returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
     {
         builder.Resource.EnableAutomaticScaling = true;
