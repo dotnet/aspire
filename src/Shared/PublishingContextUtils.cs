@@ -14,7 +14,6 @@ internal static class PublishingContextUtils
     public static string GetEnvironmentOutputPath(PipelineStepContext context, IComputeEnvironmentResource environment)
     {
         var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
-        
         if (context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1)
         {
             // If there are multiple compute environments, use resource-specific output path
