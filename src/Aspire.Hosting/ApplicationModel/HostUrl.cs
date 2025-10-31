@@ -43,23 +43,32 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
             {
                 if (context.ExecutionContext?.IsRunMode == true)
                 {
+                    // HostUrl isn't modeled as an expression, so we have to find the appropriate allocated endpoint to use manually in the case we're running in a container.
+                    // We're given a URL from the point of view of the host, so need to figure how to modify the URL to be correct from the point of view of the container.
+                    // This could simply be replacing the hostname, but if the container tunnel is running, we may need to translate the port as well.
+                    // Without doing this, we wouldn't be able to resolve the OTEL address correctly from a container as it currently depends on HostUrl rather than the dashboard endpoints.
                     var options = context.ExecutionContext.ServiceProvider.GetRequiredService<IOptions<DcpOptions>>();
 
                     var infoService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
                     var dcpInfo = await infoService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
+                    // Determine what hostname means that we want to contact the host machine from the container. If using the new tunnel feature, this needs to be the address of the tunnel instance.
+                    // Otherwise we want to try and determine the container runtime appropriate hostname (host.docker.internal or host.containers.internal).
                     uri.Host = options.Value.EnableAspireContainerTunnel? KnownHostNames.DefaultContainerTunnelHostName : dcpInfo?.Containers?.ContainerHostName ?? KnownHostNames.DockerDesktopHostBridge;
 
                     if (options.Value.EnableAspireContainerTunnel)
                     {
-                        // We need to consider that both the host and port may need to be remapped
+                        // If we're running with the container tunnel enabled, we need to lookup the port on the tunnel that corresponds to the
+                        // target port on the host machine.
                         var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
                         var targetEndpoint = model.Resources.Where(r => !r.IsContainer())
                             .OfType<IResourceWithEndpoints>()
                             .Select(r =>
                             {
+                                // Find if the resource has a host endpoint with a port matching the one from the request
                                 if (r.GetEndpoints(KnownNetworkIdentifiers.LocalhostNetwork).FirstOrDefault(ep => ep.Port == uri.Port) is EndpointReference ep)
                                 {
+                                    // Return the corresponding endpoint for the container network context. This will be used to determine the port to use when connecting from the container to the host machine.
                                     return r.GetEndpoint(ep.EndpointName, networkContext);
                                 }
 
@@ -70,6 +79,7 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
 
                         if (targetEndpoint is { })
                         {
+                            // If we found a container endpoint, remap the requested port
                             uri.Port = targetEndpoint.Port;
                         }
                     }
@@ -88,6 +98,7 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
         }
         catch (UriFormatException)
         {
+            // This was a connection string style value instead of a URL. In that case we'll do a simple hostname replacement, but can't do anything about ports.
             var replacementHost = KnownHostNames.DockerDesktopHostBridge;
             if (context.ExecutionContext?.IsRunMode == true)
             {
