@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
-        <target state="new">The operation was canceled.</target>
+        <target state="translated">Operacja została anulowana.</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
