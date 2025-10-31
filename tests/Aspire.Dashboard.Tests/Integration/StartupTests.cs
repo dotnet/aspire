@@ -756,6 +756,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 otlpHttpPort = ports[3];
 
                 // Reset sink writes. Required to clear out data from a previous failed retry.
+                // The following cast relies on the internal implementation detail that TestSink.Writes is a ConcurrentQueue<WriteContext>.
+                // If the implementation of TestSink changes, this may break. There is no public API to clear the writes.
                 var writes = (ConcurrentQueue<Microsoft.Extensions.Logging.Testing.WriteContext>)testSink.Writes;
                 writes.Clear();
 
