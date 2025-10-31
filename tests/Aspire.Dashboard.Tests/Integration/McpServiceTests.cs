@@ -204,6 +204,40 @@ public class McpServiceTests
         Assert.False(responseMessage.IsSuccessStatusCode);
     }
 
+    [Fact]
+    public async Task CallService_McpEndPointHttpOnly_Success()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://127.0.0.1:0;";
+                data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "https://127.0.0.1:0";
+                data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "https://127.0.0.1:0";
+
+                // Only HTTP endpoint
+                data[DashboardConfigNames.DashboardMcpUrlName.ConfigKey] = "http://127.0.0.1:0";
+            });
+
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        responseMessage.EnsureSuccessStatusCode();
+
+        var responseData = await GetDataFromSseResponseAsync(responseMessage);
+
+        // Assert
+        var jsonResponse = JsonNode.Parse(responseData!)!;
+        var tools = jsonResponse["result"]!["tools"]!.AsArray();
+
+        Assert.NotEmpty(tools);
+    }
+
     internal static HttpRequestMessage CreateListToolsRequest()
     {
         var json =
