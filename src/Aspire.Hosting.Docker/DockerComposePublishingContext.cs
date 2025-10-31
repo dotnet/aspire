@@ -78,17 +78,10 @@ internal sealed class DockerComposePublishingContext(
                 ? [r, .. model.Resources]
                 : model.Resources;
 
-        var containerImagesToBuild = new List<IResource>();
-
         foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
-                if (environment.BuildContainerImages)
-                {
-                    containerImagesToBuild.Add(serviceResource.TargetResource);
-                }
-
                 // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
                 if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
                     dockerfileBuildAnnotation.DockerfileFactory is not null)
@@ -143,12 +136,6 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        // Build container images for the services that require it
-        if (containerImagesToBuild.Count > 0)
-        {
-            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
-        }
-
         var writeTask = await reportingStep.CreateTaskAsync(
             "Writing the Docker Compose file to the output path.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -165,33 +152,19 @@ internal sealed class DockerComposePublishingContext(
 
             if (environment.CapturedEnvironmentVariables.Count > 0)
             {
-                // Write a .env file with the environment variable names
-                // that are used in the compose file
                 var envFilePath = Path.Combine(OutputPath, ".env");
-                var envFile = EnvFile.Load(envFilePath);
+                var envFile = environment.SharedEnvFile ?? EnvFile.Load(envFilePath);
 
                 foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                 {
-                    var (key, (description, defaultValue, source)) = entry;
-                    var onlyIfMissing = true;
+                    var (key, (description, _, _)) = entry;
 
-                    // If the source is a parameter and there's no explicit default value,
-                    // resolve the parameter's default value asynchronously
-                    if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
-                    {
-                        defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                    }
-
-                    if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
-                    {
-                        defaultValue = imageName;
-                        onlyIfMissing = false; // Always update the image name if it changes
-                    }
-
-                    envFile.Add(key, defaultValue, description, onlyIfMissing);
+                    envFile.Add(key, value: null, description, onlyIfMissing: true);
                 }
 
-                envFile.Save(envFilePath);
+                environment.SharedEnvFile = envFile;
+
+                envFile.Save(envFilePath, includeValues: false);
             }
 
             await writeTask.SucceedAsync(
