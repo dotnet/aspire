@@ -237,7 +237,6 @@ export default class AspireDcpServer {
         // If no WebSocket is available for the session, log a warning
         const ws = this.wsBySession.get(notification.dcp_id);
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            extensionLogOutputChannel.warn(`No WebSocket found for DCP ID: ${notification.dcp_id} or WebSocket is not open (state: ${ws?.readyState})`);
             this.pendingNotificationQueueByDcpId.set(notification.dcp_id, [...(this.pendingNotificationQueueByDcpId.get(notification.dcp_id) || []), notification]);
             return;
         }

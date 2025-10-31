@@ -157,8 +157,8 @@ class DotNetService implements IDotNetService {
     }
 }
 
-function isSingleFileAppHost(projectPath: string): boolean {
-    return path.basename(projectPath).toLowerCase() === 'apphost.cs';
+function isSingleFileApp(projectPath: string): boolean {
+    return path.extname(projectPath).toLowerCase().endsWith('.cs');
 }
 
 function applyRunApiOutputToDebugConfiguration(runApiOutput: string, debugConfiguration: AspireResourceExtendedDebugConfiguration) {
@@ -223,7 +223,7 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
             debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
 
             // Build project if needed
-            if (!isSingleFileAppHost(projectPath)) {
+            if (!isSingleFileApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
                 if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild) && await dotNetService.getAndActivateDevKit()) {
                     await dotNetService.buildDotNetProject(projectPath);
@@ -232,6 +232,7 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
                 debugConfiguration.program = outputPath;
             }
             else {
+                //await dotNetService.buildDotNetProject(projectPath);
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 applyRunApiOutputToDebugConfiguration(runApiOutput, debugConfiguration);
             }

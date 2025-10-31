@@ -58,13 +58,16 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
         vscode.commands.executeCommand('setContext', 'aspire.editorSupportsRunDebug', isSupportedFile);
 
-        const isApphostCsFile = path.basename(document.uri.fsPath).toLowerCase() === 'apphost.cs';
-        if (isApphostCsFile) {
+        if (this.isAppHostCsFile(document.uri.fsPath)) {
             vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', true);
         }
         else {
             vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', false);
         }
+    }
+
+    private isAppHostCsFile(filePath: string): boolean {
+        return path.basename(filePath).toLowerCase() === 'apphost.cs';
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -108,16 +111,23 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     }
 
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
-        if (!this._workspaceAppHostPath) {
+        let appHostToRun: string;
+        if (vscode.window.activeTextEditor && this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
+            appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
+        }
+        else if (this._workspaceAppHostPath) {
+            appHostToRun = this._workspaceAppHostPath;
+        }
+        else {
             vscode.window.showErrorMessage(noAppHostInWorkspace);
             return;
         }
 
         await vscode.debug.startDebugging(undefined, {
             type: 'aspire',
-            name: `Aspire: ${vscode.workspace.asRelativePath(this._workspaceAppHostPath)}`,
+            name: `Aspire: ${vscode.workspace.asRelativePath(appHostToRun)}`,
             request: 'launch',
-            program: this._workspaceAppHostPath,
+            program: appHostToRun,
             noDebug: noDebug
         });
     }

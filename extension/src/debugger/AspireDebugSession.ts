@@ -225,6 +225,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   async startAndGetDebugSession(debugConfig: AspireResourceExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
+      extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
       this.createDebugAdapterTrackerCore(debugConfig.type);
 
       const disposable = vscode.debug.onDidStartDebugSession(session => {
@@ -252,7 +253,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         }
       });
 
-      extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
       const started = await vscode.debug.startDebugging(undefined, debugConfig, this._session);
       if (!started) {
         disposable.dispose();
