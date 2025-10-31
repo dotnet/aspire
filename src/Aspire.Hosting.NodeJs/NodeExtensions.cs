@@ -315,8 +315,13 @@ public static class NodeAppHostingExtension
                     {
                         var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>() ?? NullLogger<JavaScriptAppResource>.Instance;
                         var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+                        
+                        // Get custom base image from annotation, if present
+                        dockerfileContext.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+                        var baseImage = baseImageAnnotation?.RuntimeImage ?? $"node:{nodeVersion}-slim";
+                        
                         var dockerBuilder = dockerfileContext.Builder
-                            .From($"node:{nodeVersion}-slim")
+                            .From(baseImage)
                             .WorkDir("/app")
                             .Copy(".", ".");
 
