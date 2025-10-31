@@ -11,10 +11,17 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// Default implementation of <see cref="IPipelineOutputService"/>.
 /// </summary>
-[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES004", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal sealed class PipelineOutputService : IPipelineOutputService
 {
+    /// <summary>
+    /// Stores the resolved output directory path, or <c>null</c> if not specified.
+    /// </summary>
     private readonly string? _outputPath;
+    
+    /// <summary>
+    /// Lazily creates and stores the path to the temporary directory for pipeline output.
+    /// </summary>
     private readonly Lazy<string> _tempDirectory;
 
     public PipelineOutputService(IOptions<PipelineOptions> options, IConfiguration configuration)
@@ -53,6 +60,12 @@ internal sealed class PipelineOutputService : IPipelineOutputService
         return Path.Combine(baseTempDir, resource.Name);
     }
 
+    /// <summary>
+    /// Creates a temporary directory for pipeline build artifacts.
+    /// Uses AppHost:PathSha256 from configuration to create an isolated temp directory per app host,
+    /// enabling multiple app hosts to run concurrently without conflicts.
+    /// If AppHost:PathSha256 is not available, falls back to a generic "aspire" temp directory.
+    /// </summary>
     private static string CreateTempDirectory(IConfiguration configuration)
     {
         var appHostSha = configuration["AppHost:PathSha256"];

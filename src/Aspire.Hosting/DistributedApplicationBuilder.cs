@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES004
 
 using System.Diagnostics;
 using System.Reflection;
