@@ -59,9 +59,4 @@ public sealed class PipelineStepContext
     /// Gets the service for managing pipeline output directories.
     /// </summary>
     public IPipelineOutputService OutputService => PipelineContext.OutputService;
-
-    /// <summary>
-    /// Gets the output path for deployment artifacts.
-    /// </summary>
-    public string OutputPath => PipelineContext.OutputPath;
 }

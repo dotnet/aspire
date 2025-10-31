@@ -78,7 +78,7 @@ internal static class JsonDocumentManifestPublishingExtensions
                 using var stream = new MemoryStream();
                 using var writer = new Utf8JsonWriter(stream, new() { Indented = true });
 
-                var manifestPath = context.OutputPath ?? "aspire-manifest.json";
+                var manifestPath = context.OutputService.GetOutputDirectory();
                 var publishingContext = new ManifestPublishingContext(executionContext, manifestPath, writer, context.CancellationToken);
 
                 await publishingContext.WriteModel(context.Model, context.CancellationToken).ConfigureAwait(false);

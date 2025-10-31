@@ -56,9 +56,4 @@ public sealed class PipelineContext(
     /// Gets the service for managing pipeline output directories.
     /// </summary>
     public IPipelineOutputService OutputService { get; } = new PipelineOutputService(outputPath, serviceProvider.GetRequiredService<IConfiguration>());
-
-    /// <summary>
-    /// Gets the output path for deployment artifacts.
-    /// </summary>
-    public string OutputPath => OutputService.GetOutputDirectory();
 }

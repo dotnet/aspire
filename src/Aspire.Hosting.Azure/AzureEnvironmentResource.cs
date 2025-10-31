@@ -122,7 +122,7 @@ public sealed class AzureEnvironmentResource : Resource
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
         var publishingContext = new AzurePublishingContext(
-            context.OutputPath,
+            context.OutputService.GetOutputDirectory(),
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,
