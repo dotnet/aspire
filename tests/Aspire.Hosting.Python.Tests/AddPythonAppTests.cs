@@ -3,6 +3,7 @@
 
 #pragma warning disable CS0612
 #pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
 
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
@@ -1312,6 +1313,64 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // PYTHONUTF8 should not be set in Publish mode, even on Windows
         Assert.False(environmentVariables.ContainsKey("PYTHONUTF8"));
+    }
+
+    [Fact]
+    public async Task WithUvEnvironment_CustomBaseImages_GeneratesDockerfileWithCustomImages()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a UV-based Python project with pyproject.toml and uv.lock
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.12"
+            dependencies = []
+
+            [build-system]
+            requires = ["hatchling"]
+            build-backend = "hatchling.build"
+            """;
+
+        var uvLockContent = """
+            version = 1
+            requires-python = ">=3.12"
+            """;
+
+        var scriptContent = """
+            print("Hello from UV project with custom images!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "uv.lock"), uvLockContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resource with custom base images
+        builder.AddPythonScript("custom-images-app", projectDirectory, "main.py")
+            .WithUvEnvironment()
+            .WithDockerfileBaseImage(
+                buildImage: "ghcr.io/astral-sh/uv:python3.13-bookworm",
+                runtimeImage: "python:3.13-slim");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "custom-images-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify the custom build image is used
+        Assert.Contains("FROM ghcr.io/astral-sh/uv:python3.13-bookworm AS builder", dockerfileContent);
+
+        // Verify the custom runtime image is used
+        Assert.Contains("FROM python:3.13-slim AS app", dockerfileContent);
     }
 }
 

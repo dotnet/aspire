@@ -469,8 +469,13 @@ public static class PythonAppResourceBuilderExtensions
                     var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
                     var hasUvLock = File.Exists(uvLockPath);
 
+                    // Get custom base images from annotation, if present
+                    context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+                    var buildImage = baseImageAnnotation?.BuildImage ?? $"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim";
+                    var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
+
                     var builderStage = context.Builder
-                        .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
+                        .From(buildImage, "builder")
                         .EmptyLine()
                         .Comment("Enable bytecode compilation and copy mode for the virtual environment")
                         .Env("UV_COMPILE_BYTECODE", "1")
@@ -518,7 +523,7 @@ public static class PythonAppResourceBuilderExtensions
                     }
 
                     var runtimeBuilder = context.Builder
-                        .From($"python:{pythonVersion}-slim-bookworm", "app")
+                        .From(runtimeImage, "app")
                         .EmptyLine()
                         .AddContainerFiles(context.Resource, "/app")
                         .Comment("------------------------------")
