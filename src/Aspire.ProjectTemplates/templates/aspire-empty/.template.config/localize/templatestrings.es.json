@@ -21,7 +21,7 @@
   "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",
   "symbols/NoHttps/description": "Si se va a desactivar HTTPS.",
   "symbols/LocalhostTld/displayName": "Usar el TLD .dev.localhost en la dirección URL de la aplicación",
-  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later.",
+  "symbols/LocalhostTld/description": "Si se debe combinar el nombre del proyecto con el TLD .dev.localhost en la URL de la aplicación para el desarrollo local, por ejemplo, https://myapp.dev.localhost:12345. Compatible con .NET 10 y versiones posteriores.",
   "postActions/set-startup-project/description": "Establece el proyecto de inicio en la solución",
   "postActions/restore/description": "Restaure los paquetes NuGet necesarios para este proyecto.",
   "postActions/restore/manualInstructions/default/text": "Ejecutar \"dotnet restore\""

@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="FallbackParsingWarning">
         <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
-        <target state="new">Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</target>
+        <target state="translated">Poznámka: Plán aktualizace byl vygenerován pomocí náhradní analýzy kvůli nevyřešitelné sadě AppHost SDK. Analýza závislostí může mít sníženou přesnost.</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingAddedFormat">

@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="FallbackParsingWarning">
         <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
-        <target state="new">Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</target>
+        <target state="translated">注意: 由於無法解析的 AppHost SDK，已使用後援剖析產生更新計劃。相依性分析的正確性可能因此降低。</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
