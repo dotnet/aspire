@@ -17,7 +17,6 @@ import {
     determineWorkingDirectory,
     determineServerReadyAction
 } from '../launchProfiles';
-import { debug } from 'util';
 import { AspireDebugSession } from '../AspireDebugSession';
 import { isCsDevKitInstalled } from '../../capabilities';
 
