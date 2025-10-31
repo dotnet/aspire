@@ -211,7 +211,7 @@ public class McpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
             additionalConfiguration: data =>
             {
-                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://127.0.0.1:0;";
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://127.0.0.1:0";
                 data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "https://127.0.0.1:0";
                 data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "https://127.0.0.1:0";
 
