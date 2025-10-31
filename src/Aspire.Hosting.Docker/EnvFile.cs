@@ -43,19 +43,12 @@ internal sealed class EnvFile
 
     public void Add(string key, string? value, string? comment, bool onlyIfMissing = true)
     {
-        if (_entries.ContainsKey(key))
+        if (_entries.ContainsKey(key) && onlyIfMissing)
         {
-            if (onlyIfMissing)
-            {
-                return;
-            }
+            return;
+        }
 
-            _entries[key] = new EnvEntry(key, value, comment);
-        }
-        else
-        {
-            _entries[key] = new EnvEntry(key, value, comment);
-        }
+        _entries[key] = new EnvEntry(key, value, comment);
     }
 
     private static bool TryParseKeyValue(string line, out string key, out string? value)
