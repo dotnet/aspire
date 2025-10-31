@@ -4,7 +4,6 @@
 using Aspire.Hosting.Yarp.Transforms;
 
 var builder = DistributedApplication.CreateBuilder(args);
-builder.Configuration["DcpPublisher:EnableAspireContainerTunnel"] = "true";
 
 var backendService = builder.AddProject<Projects.Yarp_Backend>("backend");
 
