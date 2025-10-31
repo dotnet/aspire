@@ -252,7 +252,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                     }
                     else
                     {
-                        await deployTask.CompleteAsync($"Docker Compose deployment complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                        await deployTask.CompleteAsync($"Service **{Name}** is now running with Docker Compose locally", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -364,7 +364,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
         var hostEnvironment = context.Services.GetService<Microsoft.Extensions.Hosting.IHostEnvironment>();
         var environmentName = hostEnvironment?.EnvironmentName ?? Name;
-        var envFilePath = Path.Combine(outputPath, $"{environmentName}.env");
+        var envFilePath = Path.Combine(outputPath, $".env.{environmentName}");
         return envFilePath;
     }
 }

@@ -136,8 +136,10 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
+        reportingStep.Log(LogLevel.Debug, "Writing the Docker Compose file to the output path.", enableMarkdown: false);
+
         var writeTask = await reportingStep.CreateTaskAsync(
-            "Writing the Docker Compose file to the output path.",
+            "Generating Docker Compose output",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         await using (writeTask.ConfigureAwait(false))
