@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// <summary>
 /// User secrets implementation of <see cref="IDeploymentStateManager"/>.
 /// </summary>
-public sealed class UserSecretsDeploymentStateManager : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>
+internal sealed class UserSecretsDeploymentStateManager : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>
 {
     private readonly IUserSecretsManager? _userSecretsManager;
 

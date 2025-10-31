@@ -9,7 +9,7 @@ namespace Aspire.Hosting.UserSecrets;
 /// <summary>
 /// Manages user secrets for an application, providing thread-safe read and write operations.
 /// </summary>
-public interface IUserSecretsManager
+internal interface IUserSecretsManager
 {
     /// <summary>
     /// Gets the path to the user secrets file.
