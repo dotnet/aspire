@@ -39,8 +39,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource.</param>
+    /// <param name="azureCloudName">The Azure cloud to deploy to. Defaults to <see cref="AzureCloudName.AzurePublic"/>.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name, AzureCloudName azureCloudName = AzureCloudName.AzurePublic)
     {
         builder.AddAzureAppServiceInfrastructureCore();
 
@@ -147,7 +148,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
                 infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                 {
-                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.{resource.AzureAppServiceDnsSuffix}")
                 });
             }
 
