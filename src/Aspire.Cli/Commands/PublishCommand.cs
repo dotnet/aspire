@@ -49,11 +49,10 @@ internal sealed class PublishCommand : PipelineCommandBase
     {
         var baseArgs = new List<string> { "--operation", "publish", "--step", "publish" };
 
-        var targetPath = fullyQualifiedOutputPath is not null
-            ? fullyQualifiedOutputPath
-            : Path.Combine(Environment.CurrentDirectory, "aspire-output");
-
-        baseArgs.AddRange(["--output-path", targetPath]);
+        if (fullyQualifiedOutputPath is not null)
+        {
+            baseArgs.AddRange(["--output-path", fullyQualifiedOutputPath]);
+        }
 
         // Add --log-level and --envionment flags if specified
         var logLevel = parseResult.GetValue(_logLevelOption);

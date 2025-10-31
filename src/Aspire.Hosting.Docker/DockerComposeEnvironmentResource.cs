@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Docker;
@@ -87,7 +86,11 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     private Task PublishAsync(PipelineStepContext context)
     {
-        var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
+        // Inline logic from PublishingContextUtils.GetEnvironmentOutputPath
+        var outputPath = context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1
+            ? Path.Combine(context.OutputPath, Name)
+            : context.OutputPath;
+
         var activityReporter = context.PipelineContext.Services.GetRequiredService<IPipelineActivityReporter>();
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 

@@ -69,10 +69,10 @@ public sealed class PipelineContext(
         
         if (!string.IsNullOrEmpty(appHostSha))
         {
-            return Path.Combine(Path.GetTempPath(), "aspire", appHostSha);
+            return Directory.CreateTempSubdirectory($"aspire-{appHostSha}").FullName;
         }
         
         // Fallback if AppHost:PathSha256 is not available
-        return Path.Combine(Path.GetTempPath(), "aspire", Guid.NewGuid().ToString("N"));
+        return Directory.CreateTempSubdirectory("aspire").FullName;
     }
 }

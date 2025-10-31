@@ -8,7 +8,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Kubernetes;
 
@@ -112,7 +111,10 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
 
     private Task PublishAsync(PipelineStepContext context)
     {
-        var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
+        // Inline logic from PublishingContextUtils.GetEnvironmentOutputPath
+        var outputPath = context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1
+            ? Path.Combine(context.OutputPath, Name)
+            : context.OutputPath;
 
         var kubernetesContext = new KubernetesPublishingContext(
             context.ExecutionContext,
