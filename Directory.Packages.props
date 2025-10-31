@@ -94,8 +94,8 @@
     <PackageVersion Include="Markdig" Version="0.43.0" />
     <PackageVersion Include="Microsoft.AI.Foundry.Local" Version="0.3.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.13.0" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.13.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.13.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.13.1" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="ModelContextProtocol" Version="0.4.0-preview.3" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="0.4.0-preview.3" />
