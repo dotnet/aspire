@@ -58,12 +58,17 @@ public static class YarpResourceExtensions
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 }
 
+                return Task.CompletedTask;
+            });
+
+            yarpBuilder.WithEnvironment(ctx =>
+            {
+                var developerCertificateService = @ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+
                 if (!developerCertificateService.SupportsContainerTrust)
                 {
-                    yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
+                    ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
                 }
-
-                return Task.CompletedTask;
             });
 
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
