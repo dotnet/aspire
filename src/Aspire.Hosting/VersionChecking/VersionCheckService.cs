@@ -32,12 +32,12 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly TimeProvider _timeProvider;
     private readonly SemVersion? _appHostVersion;
-    private readonly IUserSecretsManager? _userSecretsManager;
+    private readonly IUserSecretsManager _userSecretsManager;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
         IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
         DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider,
-        IUserSecretsManager? userSecretsManager = null)
+        IUserSecretsManager userSecretsManager)
     {
         _interactionService = interactionService;
         _logger = logger;
@@ -102,7 +102,7 @@ internal sealed class VersionCheckService : BackgroundService
         {
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
-            _userSecretsManager?.TrySetSecret(LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
+            _userSecretsManager.TrySetSecret(LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
         else
@@ -133,7 +133,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (IsVersionGreater(latestVersion, storedKnownLatestVersion) || storedKnownLatestVersion == null)
         {
             // Latest version is greater than the stored known latest version, so update it.
-            _userSecretsManager?.TrySetSecret(KnownLatestVersionKey, latestVersion.ToString());
+            _userSecretsManager.TrySetSecret(KnownLatestVersionKey, latestVersion.ToString());
         }
 
         var result = await _interactionService.PromptNotificationAsync(
@@ -151,7 +151,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (result.Data)
         {
             _logger.LogDebug("User chose to ignore version {Version}.", latestVersion);
-            _userSecretsManager?.TrySetSecret(IgnoreVersionKey, latestVersion.ToString());
+            _userSecretsManager.TrySetSecret(IgnoreVersionKey, latestVersion.ToString());
         }
     }
 

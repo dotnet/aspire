@@ -27,7 +27,7 @@ public class SecretsStoreTests
         var configuration = new ConfigurationManager();
         var value = TokenGenerator.GenerateToken();
 
-        var manager = UserSecretsManagerFactory.Instance.GetOrCreate(testAssembly);
+        var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
         manager?.GetOrSetSecret(configuration, key, () => value);
         var userSecrets = GetUserSecrets(userSecretsId);
 
@@ -52,7 +52,7 @@ public class SecretsStoreTests
         var valueInConfig = TokenGenerator.GenerateToken();
         configuration[key] = valueInConfig;
 
-        var manager = UserSecretsManagerFactory.Instance.GetOrCreate(testAssembly);
+        var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
         manager?.GetOrSetSecret(configuration, key, TokenGenerator.GenerateToken);
         var userSecrets = GetUserSecrets(userSecretsId);
 
@@ -63,7 +63,7 @@ public class SecretsStoreTests
 
     private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)
     {
-        var manager = UserSecretsManagerFactory.Instance.GetOrCreateFromId(userSecretsId);
+        var manager = UserSecretsManagerFactory.Instance.CreateFromId(userSecretsId);
         if (manager == null || !File.Exists(manager.FilePath))
         {
             return new Dictionary<string, string?>();

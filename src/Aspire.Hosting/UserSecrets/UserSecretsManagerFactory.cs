@@ -73,6 +73,44 @@ internal sealed class UserSecretsManagerFactory
         return GetOrCreateFromId(userSecretsId);
     }
 
+    /// <summary>
+    /// Creates a new user secrets manager for the specified file path without caching.
+    /// This method is intended for testing scenarios where isolation between tests is required.
+    /// </summary>
+    public IUserSecretsManager Create(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        
+        var normalizedPath = Path.GetFullPath(filePath);
+        var semaphore = GetSemaphore(normalizedPath);
+        return new UserSecretsManager(normalizedPath, semaphore);
+    }
+
+    /// <summary>
+    /// Creates a new user secrets manager for the specified user secrets ID without caching.
+    /// This method is intended for testing scenarios where isolation between tests is required.
+    /// </summary>
+    public IUserSecretsManager? CreateFromId(string? userSecretsId)
+    {
+        if (string.IsNullOrWhiteSpace(userSecretsId))
+        {
+            return null;
+        }
+
+        var filePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        return Create(filePath);
+    }
+
+    /// <summary>
+    /// Creates a new user secrets manager for the assembly with UserSecretsIdAttribute without caching.
+    /// This method is intended for testing scenarios where isolation between tests is required.
+    /// </summary>
+    public IUserSecretsManager? Create(Assembly? assembly)
+    {
+        var userSecretsId = assembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
+        return CreateFromId(userSecretsId);
+    }
+
     private SemaphoreSlim GetSemaphore(string filePath)
     {
         lock (_semaphoresLock)
