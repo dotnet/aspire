@@ -25,7 +25,7 @@ public static class NodeAppHostingExtension
     private const string DefaultNodeVersion = "22";
 
     /// <summary>
-    /// Adds a node application to the application model. Node should available on the PATH.
+    /// Adds a node application to the application model. Node should be available on the PATH.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
@@ -33,7 +33,7 @@ public static class NodeAppHostingExtension
     /// <param name="workingDirectory">The working directory to use for the command. If null, the directory of the <paramref name="scriptPath"/> is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use AddNodeApp that takes an appDirectory and file path instead.")]
+    [Obsolete("Use AddNodeApp that takes an appDirectory and relative scriptPath instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
@@ -55,11 +55,11 @@ public static class NodeAppHostingExtension
     }
 
     /// <summary>
-    /// Adds a node application to the application model. Node should available on the PATH.
+    /// Adds a node application to the application model. Node should be available on the PATH.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="appDirectory">The path to the directory containing the node script.</param>
+    /// <param name="appDirectory">The path to the directory containing the node application.</param>
     /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -90,7 +90,7 @@ public static class NodeAppHostingExtension
         appDirectory = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
         var resource = new NodeAppResource(name, "node", appDirectory);
 
-        var resourceBuilder =  builder.AddResource(resource)
+        var resourceBuilder = builder.AddResource(resource)
             .WithNodeDefaults()
             .WithArgs(c =>
             {
@@ -142,17 +142,15 @@ public static class NodeAppHostingExtension
 
                         if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
                         {
-                            var command = packageManager.ExecutableName;
+                            var commandArgs = new List<string>() { packageManager.ExecutableName };
                             if (!string.IsNullOrEmpty(packageManager.ScriptCommand))
                             {
-                                command += $" {packageManager.ScriptCommand}";
+                                commandArgs.Add(packageManager.ScriptCommand);
                             }
-                            var args = string.Join(' ', buildCommand.Args);
-                            if (args.Length > 0)
-                            {
-                                args = " " + args;
-                            }
-                            dockerBuilder.Run($"{command} {buildCommand.ScriptName}{args}");
+                            commandArgs.Add(buildCommand.ScriptName);
+                            commandArgs.AddRange(buildCommand.Args);
+
+                            dockerBuilder.Run(string.Join(' ', commandArgs));
                         }
                     }
 
@@ -315,17 +313,15 @@ public static class NodeAppHostingExtension
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
                         {
-                            var command = packageManager.ExecutableName;
+                            var commandArgs = new List<string>() { packageManager.ExecutableName };
                             if (!string.IsNullOrEmpty(packageManager.ScriptCommand))
                             {
-                                command += $" {packageManager.ScriptCommand}";
+                                commandArgs.Add(packageManager.ScriptCommand);
                             }
-                            var args = string.Join(' ', buildCommand.Args);
-                            if (args.Length > 0)
-                            {
-                                args = " " + args;
-                            }
-                            dockerBuilder.Run($"{command} {buildCommand.ScriptName}{args}");
+                            commandArgs.Add(buildCommand.ScriptName);
+                            commandArgs.AddRange(buildCommand.Args);
+
+                            dockerBuilder.Run(string.Join(' ', commandArgs));
                         }
                     }
                 });

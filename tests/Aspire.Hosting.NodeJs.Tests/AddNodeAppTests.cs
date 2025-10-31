@@ -117,6 +117,37 @@ public class AddNodeAppTests
     }
 
     [Fact]
+    public async Task VerifyDockerfileWithBuildScript()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        var appDir = Path.Combine(tempDir.Path, "js");
+        Directory.CreateDirectory(appDir);
+        File.WriteAllText(Path.Combine(appDir, "package.json"), "{}");
+
+        var nodeApp = builder.AddNodeApp("js", appDir, "app.js")
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null))
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["myinstall"]))
+            .WithBuildScript("mybuild");
+
+        await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
+
+        var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
+        var expectedDockerfile = $"""
+            FROM node:22-slim
+            WORKDIR /app
+            COPY . .
+            RUN mypm myinstall
+            RUN mypm mybuild
+            ENTRYPOINT ["node","app.js"]
+
+            """.Replace("\r\n", "\n");
+        Assert.Equal(expectedDockerfile, dockerfileContents);
+    }
+
+    [Fact]
     public void AddNodeApp_DoesNotAddNpmWhenNoPackageJson()
     {
         var tempDir = new TempDirectory();

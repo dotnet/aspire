@@ -3,16 +3,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 var weatherApi = builder.AddProject<Projects.AspireJavaScript_MinimalApi>("weatherapi")
     .WithExternalHttpEndpoints();
 
-builder.AddJavaScriptApp("angular", "../AspireJavaScript.Angular")
-    .WithRunScript("start")
+builder.AddJavaScriptApp("angular", "../AspireJavaScript.Angular", runScriptName: "start")
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-builder.AddJavaScriptApp("react", "../AspireJavaScript.React")
-    .WithRunScript("start")
+builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "start")
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
