@@ -121,8 +121,9 @@ public sealed class AzureEnvironmentResource : Resource
     private Task PublishAsync(PipelineStepContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+        var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
         var publishingContext = new AzurePublishingContext(
-            context.OutputService.GetOutputDirectory(),
+            outputService.GetOutputDirectory(),
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,

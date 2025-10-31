@@ -12,7 +12,6 @@ using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -25,7 +24,6 @@ internal sealed class PipelineExecutor(
     IPipelineActivityReporter activityReporter,
     IDistributedApplicationEventing eventing,
     BackchannelService backchannelService,
-    IOptions<PipelineOptions> options,
     IPipelineActivityReporter pipelineActivityReporter) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -99,8 +97,7 @@ internal sealed class PipelineExecutor(
 
     public async Task ExecutePipelineAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        var pipelineContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
-            Path.GetFullPath(options.Value.OutputPath) : null);
+        var pipelineContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken);
 
         var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
         await pipeline.ExecuteAsync(pipelineContext).ConfigureAwait(false);
