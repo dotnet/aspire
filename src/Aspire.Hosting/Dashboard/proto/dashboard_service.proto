@@ -143,6 +143,11 @@ message UrlDisplayProperties {
   int32 sort_order = 1;
   // The display name of the url, to appear in the UI.
   string display_name = 2;
+  // Optional icon name. This name should be a valid FluentUI icon name.
+  // https://aka.ms/fluentui-system-icons
+  optional string icon_name = 3;
+  // Optional icon variant.
+  optional IconVariant icon_variant = 4;
 }
 
 // Data about a volume mounted to a container.

@@ -228,7 +228,10 @@ public sealed record UrlSnapshot(string? Name, string Url, bool IsInternal)
 /// </summary>
 /// <param name="DisplayName">The display name of the url.</param>
 /// <param name="SortOrder">The order of the url in UI. Higher numbers are displayed first in the UI.</param>
-public sealed record UrlDisplayPropertiesSnapshot(string DisplayName = "", int SortOrder = 0);
+/// <param name="IconName">The icon name for the Url. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+/// <param name="IconVariant">The icon variant.</param>
+
+public sealed record UrlDisplayPropertiesSnapshot(string DisplayName = "", int SortOrder = 0, string? IconName = null, IconVariant? IconVariant = null);
 
 /// <summary>
 /// A snapshot of a volume, mounted to a container.
