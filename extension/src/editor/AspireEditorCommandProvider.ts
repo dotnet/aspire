@@ -55,7 +55,16 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     public async processDocument(document: vscode.TextDocument): Promise<void> {
         const fileExtension = path.extname(document.uri.fsPath).toLowerCase();
         const isSupportedFile = getResourceDebuggerExtensions().some(extension => extension.getSupportedFileTypes().includes(fileExtension));
+
         vscode.commands.executeCommand('setContext', 'aspire.editorSupportsRunDebug', isSupportedFile);
+
+        const isApphostCsFile = path.basename(document.uri.fsPath).toLowerCase() === 'apphost.cs';
+        if (isApphostCsFile) {
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', true);
+        }
+        else {
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', false);
+        }
     }
 
     private onChangeAppHostPath(newPath: string | null) {
