@@ -7,6 +7,9 @@
     <trans-unit id="command.add">
       <source xml:lang="en">Add an integration</source>
     </trans-unit>
+    <trans-unit id="walkthrough.restartVSCode.description">
+      <source xml:lang="en">After installing the Aspire CLI, restart VS Code to refresh the environment PATH.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireCliVersion">
       <source xml:lang="en">Aspire CLI Version: {0}.</source>
     </trans-unit>
@@ -42,6 +45,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
       <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
+    </trans-unit>
+    <trans-unit id="walkthrough.verifyInstallation.description">
+      <source xml:lang="en">Check that the Aspire CLI is properly installed and available on your PATH.&#10;[Verify Installation](command:aspire-vscode.verifyCliInstallation)</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespaces">
       <source xml:lang="en">Codespaces</source>
@@ -133,8 +139,20 @@
     <trans-unit id="aspire-vscode.strings.failedToStartProject">
       <source xml:lang="en">Failed to start project: {0}.</source>
     </trans-unit>
+    <trans-unit id="walkthrough.title">
+      <source xml:lang="en">Get Started with Aspire</source>
+    </trans-unit>
     <trans-unit id="command.init">
       <source xml:lang="en">Initialize Aspire</source>
+    </trans-unit>
+    <trans-unit id="walkthrough.installCli.title">
+      <source xml:lang="en">Install Aspire CLI</source>
+    </trans-unit>
+    <trans-unit id="command.installCli">
+      <source xml:lang="en">Install Aspire CLI</source>
+    </trans-unit>
+    <trans-unit id="walkthrough.installCli.description">
+      <source xml:lang="en">Install the Aspire CLI tool to create and manage Aspire projects.&#10;[Install Aspire CLI](command:aspire-vscode.installCli)</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
@@ -160,11 +178,17 @@
     <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
       <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
     </trans-unit>
+    <trans-unit id="walkthrough.description">
+      <source xml:lang="en">Learn how to set up and use Aspire for building cloud-native applications</source>
+    </trans-unit>
     <trans-unit id="command.config">
       <source xml:lang="en">Manage configuration settings</source>
     </trans-unit>
     <trans-unit id="command.new">
       <source xml:lang="en">New Aspire project</source>
+    </trans-unit>
+    <trans-unit id="walkthrough.nextSteps.title">
+      <source xml:lang="en">Next Steps</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noLabel">
       <source xml:lang="en">No</source>
@@ -223,6 +247,9 @@
     <trans-unit id="aspire-vscode.strings.requiredCapability">
       <source xml:lang="en">Required capability: {0}.</source>
     </trans-unit>
+    <trans-unit id="walkthrough.restartVSCode.title">
+      <source xml:lang="en">Restart VS Code</source>
+    </trans-unit>
     <trans-unit id="command.runAppHost">
       <source xml:lang="en">Run Aspire apphost</source>
     </trans-unit>
@@ -244,6 +271,12 @@
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
     </trans-unit>
+    <trans-unit id="command.verifyCliInstallation">
+      <source xml:lang="en">Verify Aspire CLI installation</source>
+    </trans-unit>
+    <trans-unit id="walkthrough.verifyInstallation.title">
+      <source xml:lang="en">Verify Installation</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>
     </trans-unit>
@@ -252,6 +285,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yes">
       <source xml:lang="en">Yes</source>
+    </trans-unit>
+    <trans-unit id="walkthrough.nextSteps.description">
+      <source xml:lang="en">You&apos;re all set! Learn more about creating Aspire projects and using the extension.</source>
     </trans-unit>
   </body></file>
 </xliff>
