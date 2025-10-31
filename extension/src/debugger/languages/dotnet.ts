@@ -17,6 +17,7 @@ import {
     determineWorkingDirectory,
     determineServerReadyAction
 } from '../launchProfiles';
+import { debug } from 'util';
 
 interface IDotNetService {
     getAndActivateDevKit(): Promise<boolean>
@@ -157,11 +158,16 @@ class DotNetService implements IDotNetService {
     }
 }
 
-function isSingleFileApp(projectPath: string): boolean {
+export function isSingleFileApp(projectPath: string): boolean {
     return path.extname(projectPath).toLowerCase().endsWith('.cs');
 }
 
-function applyRunApiOutputToDebugConfiguration(runApiOutput: string, debugConfiguration: AspireResourceExtendedDebugConfiguration) {
+interface RunApiOutput {
+    executablePath: string;
+    env?: { [key: string]: string };
+}
+
+function getRunApiConfigFromOutput(runApiOutput: string, debugConfiguration: AspireResourceExtendedDebugConfiguration): RunApiOutput {
     const parsed = JSON.parse(runApiOutput);
     if (parsed.$type === 'Error') {
         throw new Error(`dotnet run-api failed: ${parsed.Message}`);
@@ -170,13 +176,10 @@ function applyRunApiOutputToDebugConfiguration(runApiOutput: string, debugConfig
         throw new Error(`dotnet run-api failed: Unexpected response type '${parsed.$type}'`);
     }
 
-    debugConfiguration.program = parsed.ExecutablePath;
-    if (parsed.EnvironmentVariables) {
-        debugConfiguration.env = {
-            ...debugConfiguration.env,
-            ...parsed.EnvironmentVariables
-        };
-    }
+    return {
+        executablePath: parsed.ExecutablePath,
+        env: parsed.EnvironmentVariables
+    };
 }
 
 export function createProjectDebuggerExtension(dotNetService: IDotNetService): ResourceDebuggerExtension {
@@ -217,7 +220,6 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
             // Configure debug session with launch profile settings
             debugConfiguration.cwd = determineWorkingDirectory(projectPath, baseProfile);
             debugConfiguration.args = determineArguments(baseProfile?.commandLineArgs, args);
-            debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
             debugConfiguration.executablePath = baseProfile?.executablePath;
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
             debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
@@ -230,11 +232,20 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
                 }
 
                 debugConfiguration.program = outputPath;
+                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
             }
             else {
-                //await dotNetService.buildDotNetProject(projectPath);
+                await dotNetService.buildDotNetProject(projectPath);
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
-                applyRunApiOutputToDebugConfiguration(runApiOutput, debugConfiguration);
+                const runApiConfig = getRunApiConfigFromOutput(runApiOutput, debugConfiguration);
+                debugConfiguration.program = runApiConfig.executablePath;
+
+                if (runApiConfig.env) {
+                    debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
+                }
+                else {
+                    debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
+                }
             }
         }
     };
