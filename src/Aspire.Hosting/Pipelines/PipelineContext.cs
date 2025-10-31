@@ -3,6 +3,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
@@ -53,5 +55,24 @@ public sealed class PipelineContext(
     /// <summary>
     /// Gets the output path for deployment artifacts.
     /// </summary>
-    public string? OutputPath { get; } = outputPath;
+    public string OutputPath { get; } = outputPath ?? Path.Combine(Environment.CurrentDirectory, "aspire-output");
+
+    /// <summary>
+    /// Gets the intermediate output path for temporary build artifacts.
+    /// </summary>
+    public string IntermediateOutputPath { get; } = GetIntermediateOutputPath(serviceProvider);
+
+    private static string GetIntermediateOutputPath(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var appHostSha = configuration["AppHost:PathSha256"];
+        
+        if (!string.IsNullOrEmpty(appHostSha))
+        {
+            return Directory.CreateTempSubdirectory($"aspire-{appHostSha}").FullName;
+        }
+        
+        // Fallback if AppHost:PathSha256 is not available
+        return Directory.CreateTempSubdirectory("aspire").FullName;
+    }
 }
