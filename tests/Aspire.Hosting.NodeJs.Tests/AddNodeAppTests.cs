@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -172,6 +174,30 @@ public class AddNodeAppTests
 
             """.Replace("\r\n", "\n");
         Assert.Equal(expectedDockerfile, dockerfileContents);
+    }
+
+    [Fact]
+    public async Task VerifyDockerfileWithCustomBaseImage()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        var appDir = Path.Combine(tempDir.Path, "js");
+        Directory.CreateDirectory(appDir);
+        File.WriteAllText(Path.Combine(appDir, "package.json"), "{}");
+
+        var customBuildImage = "node:22-mySpecialBuildImage";
+        var customRuntimeImage = "node:22-mySpecialRuntimeImage";
+        var nodeApp = builder.AddNodeApp("js", appDir, "app.js")
+            .WithNpm(install: true)
+            .WithDockerfileBaseImage(customBuildImage, customRuntimeImage);
+
+        await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
+
+        // Verify the Dockerfile contains the custom base image
+        var dockerfileContents = File.ReadAllText(Path.Combine(tempDir.Path, "js.Dockerfile"));
+        Assert.Contains($"FROM {customBuildImage}", dockerfileContents);
+        Assert.Contains($"FROM {customRuntimeImage}", dockerfileContents);
     }
 
     [Fact]
