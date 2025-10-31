@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Pipelines;
@@ -28,9 +29,27 @@ internal sealed class PipelineOutputService : IPipelineOutputService
     }
 
     /// <inheritdoc/>
+    public string GetOutputDirectory(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var baseOutputDir = GetOutputDirectory();
+        return Path.Combine(baseOutputDir, resource.Name);
+    }
+
+    /// <inheritdoc/>
     public string GetTempDirectory()
     {
         return _tempDirectory.Value;
+    }
+
+    /// <inheritdoc/>
+    public string GetTempDirectory(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var baseTempDir = GetTempDirectory();
+        return Path.Combine(baseTempDir, resource.Name);
     }
 
     private static string CreateTempDirectory(IConfiguration configuration)
