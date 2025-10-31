@@ -203,7 +203,7 @@ internal sealed class UserSecretsManagerFactory
             await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var flattenedState = DeploymentStateManagerBase<object>.FlattenJsonObject(state);
+                var flattenedState = JsonFlattener.FlattenJsonObject(state);
                 EnsureUserSecretsDirectory();
                 
                 var json = flattenedState.ToJsonString(s_jsonSerializerOptions);
