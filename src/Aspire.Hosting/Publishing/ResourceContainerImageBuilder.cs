@@ -270,6 +270,14 @@ internal sealed class ResourceContainerImageBuilder(
             }
         }
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+        if (resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation) &&
+            baseImageAnnotation.RuntimeImage is string baseImage)
+        {
+            arguments += $" /p:ContainerBaseImage=\"{baseImage}\"";
+        }
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
+
         var spec = new ProcessSpec("dotnet")
         {
             Arguments = arguments,

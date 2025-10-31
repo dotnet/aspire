@@ -46,6 +46,39 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    public async Task CanBuildImageFromProjectResourceWithCustomBaseImage()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithDockerfileBaseImage(runtimeImage: "mcr.microsoft.com/dotnet/sdk:8.0-alpine");
+#pragma warning restore ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains("/p:ContainerBaseImage=\"mcr.microsoft.com/dotnet/sdk:8.0-alpine\""));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Fact]
+    [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource()
     {
