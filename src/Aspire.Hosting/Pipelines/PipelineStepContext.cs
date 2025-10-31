@@ -56,12 +56,12 @@ public sealed class PipelineStepContext
     public CancellationToken CancellationToken => PipelineContext.CancellationToken;
 
     /// <summary>
+    /// Gets the service for managing pipeline output directories.
+    /// </summary>
+    public IPipelineOutputService OutputService => PipelineContext.OutputService;
+
+    /// <summary>
     /// Gets the output path for deployment artifacts.
     /// </summary>
     public string OutputPath => PipelineContext.OutputPath;
-
-    /// <summary>
-    /// Gets the intermediate output path for temporary build artifacts.
-    /// </summary>
-    public string IntermediateOutputPath => PipelineContext.IntermediateOutputPath;
 }
