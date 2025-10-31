@@ -128,16 +128,19 @@ public static class NodeAppHostingExtension
                 {
                     var logger = dockerfileContext.Services.GetService<ILogger<NodeAppResource>>() ?? NullLogger<NodeAppResource>.Instance;
                     var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
-                    var dockerBuilder = dockerfileContext.Builder
-                            .From($"node:{nodeVersion}-slim")
-                            .WorkDir("/app")
-                            .Copy(".", ".");
+
+                    var builderStage = dockerfileContext.Builder
+                        .From($"node:{nodeVersion}-slim", "build")
+                        .EmptyLine()
+                        .WorkDir("/app")
+                        .Copy(".", ".")
+                        .EmptyLine();
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            dockerBuilder.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
+                            builderStage.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
                         }
 
                         if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
@@ -150,11 +153,22 @@ public static class NodeAppHostingExtension
                             commandArgs.Add(buildCommand.ScriptName);
                             commandArgs.AddRange(buildCommand.Args);
 
-                            dockerBuilder.Run(string.Join(' ', commandArgs));
+                            builderStage.Run(string.Join(' ', commandArgs));
                         }
                     }
 
-                    dockerBuilder.Entrypoint([resource.Command, scriptPath]);
+                    var runtimeBuilder = dockerfileContext.Builder
+                        .From($"node:{nodeVersion}-slim", "runtime")
+                            .EmptyLine()
+                            .WorkDir("/app")
+                            .CopyFrom("build", "/app", "/app")
+                            .EmptyLine()
+                            .Env("NODE_ENV", "production")
+                            .Expose(3000)
+                            .EmptyLine()
+                            .User("node")
+                            .EmptyLine()
+                            .Entrypoint([resource.Command, scriptPath]);
                 });
             });
 

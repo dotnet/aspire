@@ -93,6 +93,7 @@ public class AddNodeAppTests
         if (includePackageJson)
         {
             File.WriteAllText(Path.Combine(appDir, "package.json"), "{}");
+            File.WriteAllText(Path.Combine(appDir, "package-lock.json"), "{}");
         }
 
         var nodeApp = builder.AddNodeApp("js", appDir, "app.js");
@@ -102,10 +103,23 @@ public class AddNodeAppTests
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $"""
-            FROM node:22-slim
+            FROM node:22-slim AS build
+            
             WORKDIR /app
             COPY . .
-            {(includePackageJson ? "RUN npm install\n" : "")}ENTRYPOINT ["node","app.js"]
+            
+            {(includePackageJson ? "RUN npm ci\n" : "")}
+            FROM node:22-slim AS runtime
+            
+            WORKDIR /app
+            COPY --from=build /app /app
+            
+            ENV NODE_ENV=production
+            EXPOSE 3000
+            
+            USER node
+            
+            ENTRYPOINT ["node","app.js"]
 
             """.Replace("\r\n", "\n");
         Assert.Equal(expectedDockerfile, dockerfileContents);
@@ -136,11 +150,24 @@ public class AddNodeAppTests
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $"""
-            FROM node:22-slim
+            FROM node:22-slim AS build
+
             WORKDIR /app
             COPY . .
+
             RUN mypm myinstall
             RUN mypm mybuild
+
+            FROM node:22-slim AS runtime
+
+            WORKDIR /app
+            COPY --from=build /app /app
+
+            ENV NODE_ENV=production
+            EXPOSE 3000
+
+            USER node
+
             ENTRYPOINT ["node","app.js"]
 
             """.Replace("\r\n", "\n");
