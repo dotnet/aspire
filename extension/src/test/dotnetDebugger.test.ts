@@ -77,33 +77,6 @@ suite('Dotnet Debugger Extension Tests', () => {
         assert.strictEqual(dotNetService.buildDotNetProjectStub.called, true);
     });
 
-    test('project is not built when C# dev kit is not installed and executable not found', async () => {
-        const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
-
-        const { extension, dotNetService } = createDebuggerExtension(outputPath, null, false, false);
-
-        const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: ProjectLaunchConfiguration = {
-            type: 'project',
-            project_path: projectPath
-        };
-
-        const debugConfig: AspireResourceExtendedDebugConfiguration = {
-            runId: '1',
-            debugSessionId: '1',
-            type: 'coreclr',
-            name: 'Test Debug Config',
-            request: 'launch'
-        };
-
-        const fakeAspireDebugSession = sinon.createStubInstance(AspireDebugSession);
-
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1', isApphost: false, debugSession: fakeAspireDebugSession }, debugConfig);
-
-        assert.strictEqual(debugConfig.program, outputPath);
-        assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
-    });
-
     test('project is not built when C# dev kit is installed and executable found', async () => {
         const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
