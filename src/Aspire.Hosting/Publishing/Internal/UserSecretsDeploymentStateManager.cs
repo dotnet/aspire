@@ -23,11 +23,11 @@ public sealed class UserSecretsDeploymentStateManager : DeploymentStateManagerBa
     /// Initializes a new instance of the <see cref="UserSecretsDeploymentStateManager"/> class.
     /// </summary>
     /// <param name="logger">The logger.</param>
-    /// <param name="serviceProvider">Optional service provider to resolve IUserSecretsManager.</param>
-    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IServiceProvider? serviceProvider = null) 
+    /// <param name="userSecretsManager">Optional user secrets manager for managing secrets.</param>
+    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IUserSecretsManager? userSecretsManager = null) 
         : base(logger)
     {
-        _userSecretsManager = serviceProvider?.GetService(typeof(IUserSecretsManager)) as IUserSecretsManager;
+        _userSecretsManager = userSecretsManager;
     }
 
     /// <inheritdoc/>
