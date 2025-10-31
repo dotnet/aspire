@@ -171,7 +171,7 @@ public class FallbackProjectParserTests
         {
             var projectFile = Path.Combine(tempDir.FullName, $"Test{Guid.NewGuid()}.cs");
             var projectContent = """
-                #:sdk Aspire.AppHost.Sdk@13.1.0-preview.1.25519.5
+                #:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25519.5
                 #:package Aspire.Hosting.NodeJs@9.5.1
 
                 var builder = DistributedApplication.CreateBuilder(args);
@@ -187,7 +187,7 @@ public class FallbackProjectParserTests
             // Assert
             var properties = result.RootElement.GetProperty("Properties");
             var sdkVersion = properties.GetProperty("AspireHostingSDKVersion").GetString();
-            Assert.Equal("13.1.0-preview.1.25519.5", sdkVersion);
+            Assert.Equal("13.0.0-preview.1.25519.5", sdkVersion);
 
             // Should have fallback flag
             Assert.True(result.RootElement.GetProperty("Fallback").GetBoolean());
@@ -207,7 +207,7 @@ public class FallbackProjectParserTests
         {
             var projectFile = Path.Combine(tempDir.FullName, $"Test{Guid.NewGuid()}.cs");
             var projectContent = """
-                #:sdk Aspire.AppHost.Sdk@13.1.0-preview.1.25519.5
+                #:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25519.5
                 #:package Aspire.Hosting.NodeJs@9.5.1
                 #:package Aspire.Hosting.Python@9.5.1
                 #:package Aspire.Hosting.Redis@9.5.1

@@ -21,7 +21,7 @@
     "type": "solution",
     "editorTreatAs": "solution",
     "aspire-9.5-tfms": "net8.0;net9.0;net10.0",
-    "aspire-13.1-tfms": "net8.0;net9.0;net10.0"
+    "aspire-13.0-tfms": "net8.0;net9.0;net10.0"
   },
   "precedence": "9000",
   "identity": "Aspire.Empty.CSharp.8.0",
@@ -51,7 +51,7 @@
     {
       "source": "./13.0",
       "target": "./",
-      "condition": "AspireVersionActual == 13.1",
+      "condition": "AspireVersionActual == 13.0",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -92,9 +92,9 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "13.1",
-          "displayName": "13.1",
-          "description": "Chooses Aspire 13.1"
+          "choice": "13.0",
+          "displayName": "13.0",
+          "description": "Chooses Aspire 13.0"
         },
         {
           "choice": "9.5",
@@ -102,7 +102,7 @@
           "description": "Chooses Aspire 9.5"
         }
       ],
-      "defaultValue": "13.1"
+      "defaultValue": "13.0"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -116,7 +116,7 @@
           },
           {
             "condition": "",
-            "value": "13.1"
+            "value": "13.0"
           }
         ]
       }
@@ -276,7 +276,7 @@
     "LocalhostTld": {
       "type": "parameter",
       "datatype": "bool",
-      "isEnabled": "Framework == net10.0 && AspireVersion == 13.1",
+      "isEnabled": "Framework == net10.0 && AspireVersion == 13.0",
       "defaultValue": "false",
       "displayName": "Use the .dev.localhost TLD in the application URL",
       "description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
