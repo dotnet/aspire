@@ -103,13 +103,13 @@ public class AddNodeAppTests
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $"""
-            FROM node:22-slim AS build
+            FROM node:22-alpine AS build
             
             WORKDIR /app
             COPY . .
             
             {(includePackageJson ? "RUN npm ci\n" : "")}
-            FROM node:22-slim AS runtime
+            FROM node:22-alpine AS runtime
             
             WORKDIR /app
             COPY --from=build /app /app
@@ -150,7 +150,7 @@ public class AddNodeAppTests
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $"""
-            FROM node:22-slim AS build
+            FROM node:22-alpine AS build
 
             WORKDIR /app
             COPY . .
@@ -158,7 +158,7 @@ public class AddNodeAppTests
             RUN mypm myinstall
             RUN mypm mybuild
 
-            FROM node:22-slim AS runtime
+            FROM node:22-alpine AS runtime
 
             WORKDIR /app
             COPY --from=build /app /app
