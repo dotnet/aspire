@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -96,7 +97,7 @@ public class PackageInstallationTests
 
         // Verify the run command annotation
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runAnnotation));
-        Assert.Equal("start", runAnnotation.ScriptName);
+        Assert.Equal("dev", runAnnotation.ScriptName);
 
         // Verify the build command annotation
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildAnnotation));
@@ -161,7 +162,7 @@ public class PackageInstallationTests
 
         // Verify the run command annotation
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runAnnotation));
-        Assert.Equal("start", runAnnotation.ScriptName);
+        Assert.Equal("dev", runAnnotation.ScriptName);
 
         // Verify the build command annotation
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildAnnotation));
@@ -243,6 +244,29 @@ public class PackageInstallationTests
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildAnnotation));
         Assert.Equal("bun", buildAnnotation.ScriptName);
         Assert.Equal(["run", "build:prod"], buildAnnotation.Args);
+    }
+
+    [Fact]
+    public async Task WithRunScript_SetsCustomRunCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddJavaScriptApp("test-app", "./test-app");
+        nodeApp.WithRunScript("start", ["--my-args"]);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the JavaScriptApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
+
+        var args = await ArgumentEvaluator.GetArgumentListAsync(nodeResource);
+
+        Assert.Collection(args,
+            arg => Assert.Equal("run", arg),
+            arg => Assert.Equal("start", arg),
+            arg => Assert.Equal("--my-args", arg));
     }
 
     [Fact]
@@ -455,7 +479,7 @@ public class PackageInstallationTests
         Assert.Equal(["install", "--immutable"], installCommand.Args);
 
         var app2 = builder.AddViteApp("test-app2", tempDir.Path)
-            .WithYarn(installArgs:["--immutable-cache"]);
+            .WithYarn(installArgs: ["--immutable-cache"]);
 
         Assert.True(app2.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out installCommand));
         Assert.Equal(["install", "--immutable-cache"], installCommand.Args);

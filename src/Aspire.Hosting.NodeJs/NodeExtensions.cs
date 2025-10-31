@@ -3,7 +3,9 @@
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.NodeJs;
@@ -31,6 +33,8 @@ public static class NodeAppHostingExtension
     /// <param name="workingDirectory">The working directory to use for the command. If null, the directory of the <paramref name="scriptPath"/> is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use AddNodeApp that takes an appDirectory and file path instead.")]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -48,6 +52,136 @@ public static class NodeAppHostingExtension
                       .WithNodeDefaults()
                       .WithArgs(effectiveArgs)
                       .WithIconName("CodeJsRectangle");
+    }
+
+    /// <summary>
+    /// Adds a node application to the application model. Node should available on the PATH.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="appDirectory">The path to the directory containing the node script.</param>
+    /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method executes a Node script directly using <c>node script.js</c>. If you want to use a package manager
+    /// you can add one and configure the install and run scripts using the provided extension methods.
+    ///
+    /// If the application directory contains a <c>package.json</c> file, npm will be added as the default package manager.
+    /// </remarks>
+    /// <example>
+    /// Add a Node app to the application model using yarn and 'yarn run dev' for running during development:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddNodeApp("frontend", "../frontend", "app.js")
+    ///        .WithYarn()
+    ///        .WithRunScript("dev");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    [OverloadResolutionPriority(1)]
+    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
+
+        appDirectory = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
+        var resource = new NodeAppResource(name, "node", appDirectory);
+
+        var resourceBuilder =  builder.AddResource(resource)
+            .WithNodeDefaults()
+            .WithArgs(c =>
+            {
+                // If the JavaScriptRunScriptAnnotation is present, use that to run the app
+                if (c.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runCommand) &&
+                    c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    if (!string.IsNullOrEmpty(packageManager.ScriptCommand))
+                    {
+                        c.Args.Add(packageManager.ScriptCommand);
+                    }
+
+                    c.Args.Add(runCommand.ScriptName);
+
+                    foreach (var arg in runCommand.Args)
+                    {
+                        c.Args.Add(arg);
+                    }
+                }
+                else
+                {
+                    c.Args.Add(scriptPath);
+                }
+            })
+            .WithIconName("CodeJsRectangle")
+            .PublishAsDockerFile(c =>
+            {
+                // Only generate a Dockerfile if one doesn't already exist in the app directory
+                if (File.Exists(Path.Combine(resource.WorkingDirectory, "Dockerfile")))
+                {
+                    return;
+                }
+
+                c.WithDockerfileBuilder(resource.WorkingDirectory, dockerfileContext =>
+                {
+                    var logger = dockerfileContext.Services.GetService<ILogger<NodeAppResource>>() ?? NullLogger<NodeAppResource>.Instance;
+                    var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+                    var dockerBuilder = dockerfileContext.Builder
+                            .From($"node:{nodeVersion}-slim")
+                            .WorkDir("/app")
+                            .Copy(".", ".");
+
+                    if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                    {
+                        if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
+                        {
+                            dockerBuilder.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
+                        }
+
+                        if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
+                        {
+                            var command = packageManager.ExecutableName;
+                            if (!string.IsNullOrEmpty(packageManager.ScriptCommand))
+                            {
+                                command += $" {packageManager.ScriptCommand}";
+                            }
+                            var args = string.Join(' ', buildCommand.Args);
+                            if (args.Length > 0)
+                            {
+                                args = " " + args;
+                            }
+                            dockerBuilder.Run($"{command} {buildCommand.ScriptName}{args}");
+                        }
+                    }
+
+                    dockerBuilder.Entrypoint([resource.Command, scriptPath]);
+                });
+            });
+
+        if (File.Exists(Path.Combine(appDirectory, "package.json")))
+        {
+            // Automatically add npm as the package manager if a package.json file exists
+            resourceBuilder.WithNpm();
+        }
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            {
+                // set the command to the package manager executable if the JavaScriptRunScriptAnnotation is present
+                if (resourceBuilder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out _) &&
+                    resourceBuilder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    resourceBuilder.WithCommand(packageManager.ExecutableName);
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return resourceBuilder;
     }
 
     /// <summary>
@@ -104,14 +238,14 @@ public static class NodeAppHostingExtension
     /// <param name="builder">The distributed application builder to which the JavaScript application resource will be added.</param>
     /// <param name="name">The unique name of the JavaScript application resource. Cannot be null or empty.</param>
     /// <param name="appDirectory">The path to the directory containing the JavaScript application.</param>
-    /// <param name="runScriptName">The name of the npm script to run when starting the application. Defaults to "start". Cannot be null or empty.</param>
+    /// <param name="runScriptName">The name of the npm script to run when starting the application. Defaults to "dev". Cannot be null or empty.</param>
     /// <returns>A resource builder for the newly added JavaScript application resource.</returns>
     /// <remarks>
     /// If a Dockerfile does not exist in the application's directory, one will be generated
     /// automatically when publishing. The method configures the resource with Node.js defaults and sets up npm
     /// integration.
     /// </remarks>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "start")
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "dev")
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -144,6 +278,11 @@ public static class NodeAppHostingExtension
                     }
 
                     c.Args.Add(runCommand.ScriptName);
+
+                    foreach (var arg in runCommand.Args)
+                    {
+                        c.Args.Add(arg);
+                    }
                 }
 
                 argsCallback?.Invoke(c);
@@ -162,7 +301,7 @@ public static class NodeAppHostingExtension
                 {
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
-                        var logger = dockerfileContext.Services.GetService<ILogger<ViteAppResource>>() ?? NullLogger<ViteAppResource>.Instance;
+                        var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>() ?? NullLogger<JavaScriptAppResource>.Instance;
                         var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
                         var dockerBuilder = dockerfileContext.Builder
                             .From($"node:{nodeVersion}-slim")

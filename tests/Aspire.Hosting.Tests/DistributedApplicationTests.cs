@@ -843,7 +843,7 @@ public class DistributedApplicationTests
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
-        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
+        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath", "fake.js")
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();
