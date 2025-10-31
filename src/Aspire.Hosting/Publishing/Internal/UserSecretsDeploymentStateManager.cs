@@ -6,37 +6,32 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.UserSecrets;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Publishing.Internal;
 
 /// <summary>
 /// User secrets implementation of <see cref="IDeploymentStateManager"/>.
 /// </summary>
-public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>(logger)
+public sealed class UserSecretsDeploymentStateManager : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>
 {
-    private SemaphoreSlim? _sharedSemaphore;
-
-    /// <inheritdoc/>
-    public override string? StateFilePath => GetStatePath();
+    private readonly IUserSecretsManager? _userSecretsManager;
 
     /// <summary>
-    /// Gets the semaphore used for synchronizing state operations.
-    /// Uses the shared UserSecretsFileLock semaphore to coordinate with SecretsStore.
+    /// Initializes a new instance of the <see cref="UserSecretsDeploymentStateManager"/> class.
     /// </summary>
-    protected override SemaphoreSlim StateLock
+    /// <param name="logger">The logger.</param>
+    /// <param name="serviceProvider">Optional service provider to resolve IUserSecretsManager.</param>
+    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IServiceProvider? serviceProvider = null) 
+        : base(logger)
     {
-        get
-        {
-            if (_sharedSemaphore == null && StateFilePath != null)
-            {
-                _sharedSemaphore = UserSecretsFileLock.GetSemaphore(StateFilePath);
-            }
-            return _sharedSemaphore ?? base.StateLock;
-        }
+        _userSecretsManager = serviceProvider?.GetService(typeof(IUserSecretsManager)) as IUserSecretsManager;
     }
+
+    /// <inheritdoc/>
+    public override string? StateFilePath => _userSecretsManager?.FilePath ?? GetStatePath();
 
     /// <inheritdoc/>
     protected override string? GetStatePath()
@@ -53,13 +48,21 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
     {
         try
         {
-            var userSecretsPath = GetStatePath() ?? throw new InvalidOperationException("User secrets path could not be determined.");
-            var flattenedUserSecrets = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(state);
-            Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            
-            var json = flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions);
-            
-            await File.WriteAllTextAsync(userSecretsPath, json, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            if (_userSecretsManager != null)
+            {
+                // Use the shared manager which handles locking
+                await _userSecretsManager.SaveStateAsync(state, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                // Fallback to direct file write if no manager is available
+                var userSecretsPath = GetStatePath() ?? throw new InvalidOperationException("User secrets path could not be determined.");
+                var flattenedUserSecrets = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(state);
+                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
+                
+                var json = flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions);
+                await File.WriteAllTextAsync(userSecretsPath, json, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            }
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }

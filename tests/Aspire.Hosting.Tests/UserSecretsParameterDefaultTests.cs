@@ -5,8 +5,10 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Publishing.Internal;
+using Aspire.Hosting.UserSecrets;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Tests;
 
@@ -94,7 +96,11 @@ public class UserSecretsParameterDefaultTests
         {
             var key = kvp.Key;
             var value = kvp.Value;
-            tasks.Add(Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, key, value)));
+            tasks.Add(Task.Run(() =>
+            {
+                var manager = UserSecretsManagerFactory.Instance.GetOrCreate(testAssembly);
+                return manager?.TrySetSecret(key, value) ?? false;
+            }));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -124,8 +130,16 @@ public class UserSecretsParameterDefaultTests
             new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
 
         // Simulate SQL Server and RabbitMQ generating passwords concurrently
-        var sqlTask = Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, "Parameters:sql-password", "SqlPassword123!"));
-        var rabbitTask = Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, "Parameters:rabbit-password", "RabbitPassword456!"));
+        var sqlTask = Task.Run(() =>
+        {
+            var manager = UserSecretsManagerFactory.Instance.GetOrCreate(testAssembly);
+            return manager?.TrySetSecret("Parameters:sql-password", "SqlPassword123!") ?? false;
+        });
+        var rabbitTask = Task.Run(() =>
+        {
+            var manager = UserSecretsManagerFactory.Instance.GetOrCreate(testAssembly);
+            return manager?.TrySetSecret("Parameters:rabbit-password", "RabbitPassword456!") ?? false;
+        });
 
         var results = await Task.WhenAll(sqlTask, rabbitTask);
 
@@ -156,7 +170,11 @@ public class UserSecretsParameterDefaultTests
         for (int i = 0; i < 10; i++)
         {
             var value = $"Value{i}";
-            tasks.Add(Task.Run(() => SecretsStore.TrySetUserSecret(testAssembly, "Parameters:test-key", value)));
+            tasks.Add(Task.Run(() =>
+            {
+                var manager = UserSecretsManagerFactory.Instance.GetOrCreate(testAssembly);
+                return manager?.TrySetSecret("Parameters:test-key", value) ?? false;
+            }));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -183,15 +201,42 @@ public class UserSecretsParameterDefaultTests
 
     private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)
     {
-        var secretsStore = new SecretsStore(userSecretsId);
-        return secretsStore.AsEnumerable().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        var manager = UserSecretsManagerFactory.Instance.GetOrCreateFromId(userSecretsId);
+        if (manager == null)
+        {
+            return new Dictionary<string, string?>();
+        }
+        
+        // Read the secrets file directly
+        var secrets = new Dictionary<string, string?>();
+        if (File.Exists(manager.FilePath))
+        {
+            var json = File.ReadAllText(manager.FilePath);
+            if (!string.IsNullOrWhiteSpace(json))
+            {
+                var config = new ConfigurationBuilder()
+                    .AddJsonFile(manager.FilePath, optional: true)
+                    .Build();
+                    
+                foreach (var kvp in config.AsEnumerable())
+                {
+                    if (kvp.Value != null)
+                    {
+                        secrets[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+        }
+        return secrets;
     }
 
     private static void ClearUsersSecrets(string userSecretsId)
     {
-        var secretsStore = new SecretsStore(userSecretsId);
-        secretsStore.Clear();
-        secretsStore.Save();
+        var filePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
     }
 
     private static void DeleteUserSecretsFile(string userSecretsId)
