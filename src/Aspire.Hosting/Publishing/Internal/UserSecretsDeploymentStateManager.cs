@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Publishing.Internal;
 
@@ -37,7 +38,20 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
             var userSecretsPath = GetStatePath() ?? throw new InvalidOperationException("User secrets path could not be determined.");
             var flattenedUserSecrets = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(state);
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
+            
+            // Use the shared lock to synchronize with SecretsStore
+            var lockObj = UserSecretsFileLock.GetLock(userSecretsPath);
+            var json = flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions);
+            
+            // We need to use a synchronous lock, so we'll write synchronously inside the lock
+            // but still return a Task to maintain the async signature
+            await Task.Run(() =>
+            {
+                lock (lockObj)
+                {
+                    File.WriteAllText(userSecretsPath, json, System.Text.Encoding.UTF8);
+                }
+            }, cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }

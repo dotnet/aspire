@@ -16,37 +16,18 @@ namespace Microsoft.Extensions.SecretManager.Tools.Internal;
 /// </summary>
 internal sealed class SecretsStore
 {
-    // Static lock dictionary to synchronize access per userSecretsId
-    private static readonly Dictionary<string, object> s_locks = new();
-    private static readonly object s_locksLock = new();
-
     private readonly string _secretsFilePath;
     private readonly Dictionary<string, string?> _secrets;
-    private readonly string _userSecretsId;
 
     public SecretsStore(string userSecretsId)
     {
         ArgumentNullException.ThrowIfNull(userSecretsId);
 
-        _userSecretsId = userSecretsId;
         _secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
 
         EnsureUserSecretsDirectory();
 
         _secrets = Load(_secretsFilePath);
-    }
-
-    private static object GetLock(string userSecretsId)
-    {
-        lock (s_locksLock)
-        {
-            if (!s_locks.TryGetValue(userSecretsId, out var lockObj))
-            {
-                lockObj = new object();
-                s_locks[userSecretsId] = lockObj;
-            }
-            return lockObj;
-        }
     }
 
     public string? this[string key] => _secrets[key];
@@ -68,7 +49,7 @@ internal sealed class SecretsStore
 
     public void Save()
     {
-        var lockObj = GetLock(_userSecretsId);
+        var lockObj = UserSecretsFileLock.GetLock(_secretsFilePath);
         lock (lockObj)
         {
             // Reload from disk to merge with any concurrent changes
@@ -155,11 +136,11 @@ internal sealed class SecretsStore
             // Save the value to the secret store
             try
             {
-                var lockObj = GetLock(userSecretsId);
+                var secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+                var lockObj = UserSecretsFileLock.GetLock(secretsFilePath);
                 lock (lockObj)
                 {
                     // Load, set, and save in one atomic operation to ensure thread safety
-                    var secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
                     EnsureUserSecretsDirectory(secretsFilePath);
                     
                     var secrets = Load(secretsFilePath);
