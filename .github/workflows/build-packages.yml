@@ -25,7 +25,7 @@ jobs:
         run: npm i -g @vscode/vsce
 
       - name: Build with packages
-        run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true ${{ inputs.versionOverrideArg }}
+        run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true ${{ inputs.versionOverrideArg }}
 
       - name: Stage RID-specific NuGets and remaining packages
         id: stage_rid_specific
