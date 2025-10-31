@@ -1,9 +1,40 @@
 import * as vscode from 'vscode';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { cliInstalled, cliNotAvailable, aspireCliInstallation, cliInstallationStarted } from './loc/strings';
+import { cliInstalled, cliNotAvailable, aspireCliInstallation, cliInstallationStarted, dismissLabel, openCliInstallInstructions } from './loc/strings';
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * Checks if the Aspire CLI is available. If not, shows a message and opens the walkthrough.
+ * @param cliPath The path to the Aspire CLI executable
+ * @returns true if CLI is available, false otherwise
+ */
+export async function checkCliAvailableOrRedirect(cliPath: string): Promise<boolean> {
+    try {
+        // Remove surrounding quotes if present (both single and double quotes)
+        let cleanPath = cliPath.trim();
+        if ((cleanPath.startsWith("'") && cleanPath.endsWith("'")) ||
+            (cleanPath.startsWith('"') && cleanPath.endsWith('"'))) {
+            cleanPath = cleanPath.slice(1, -1);
+        }
+        await execFileAsync(cleanPath, ['--version'], { timeout: 5000 });
+        return true;
+    } catch (error) {
+        vscode.window.showErrorMessage(
+            cliNotAvailable,
+            openCliInstallInstructions,
+            dismissLabel
+        ).then(selection => {
+            if (selection === openCliInstallInstructions) {
+                // Go to Aspire README in external browser
+                vscode.env.openExternal(vscode.Uri.parse('https://github.com/dotnet/aspire/tree/main#install-the-aspire-cli'));
+            }
+        });
+
+        return false;
+    }
+}
 
 export async function verifyCliInstallation(): Promise<void> {
     try {

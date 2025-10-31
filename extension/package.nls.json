@@ -98,7 +98,9 @@
   "aspire-vscode.strings.buildFailedForProjectWithError": "Build failed for project {0} with error: {1}.",
   "aspire-vscode.strings.cliInstalled": "Aspire CLI is installed and available on PATH!",
   "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
-  "aspire-vscode.strings.aspireCliInstallation": "Aspire CLI installation",
+  "aspire-vscode.strings.aspireCliInstallation": "Aspire CLI Installation",
   "aspire-vscode.strings.cliInstallationStarted": "Aspire CLI installation started. Please restart VS Code after installation completes.",
-  "aspire-vscode.strings.aspireDebugSessionNotInitialized": "Aspire debug session is not initialized"
+  "aspire-vscode.strings.aspireDebugSessionNotInitialized": "Aspire debug session is not initialized",
+  "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
+  "aspire-vscode.strings.dismissLabel": "Dismiss"
 }

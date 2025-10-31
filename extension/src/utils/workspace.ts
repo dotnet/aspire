@@ -99,7 +99,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
             args.push('--cli-wait-for-debugger');
         }
 
-        proc = spawnCliProcess(terminalProvider, terminalProvider.getAspireCliExecutablePath(false), args, {
+        proc = spawnCliProcess(terminalProvider, terminalProvider.getAspireCliExecutablePath(), args, {
             errorCallback: error => {
                 extensionLogOutputChannel.error(`Error executing get-apphosts command: ${error}`);
                 reject();

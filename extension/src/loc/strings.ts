@@ -67,3 +67,5 @@ export const cliInstalled = vscode.l10n.t('Aspire CLI is installed and available
 export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.');
 export const aspireCliInstallation = vscode.l10n.t('Aspire CLI Installation');
 export const cliInstallationStarted = vscode.l10n.t('Aspire CLI installation started. Please restart VS Code after installation completes.');
+export const openCliInstallInstructions = vscode.l10n.t('See CLI installation instructions');
+export const dismissLabel = vscode.l10n.t('Dismiss');

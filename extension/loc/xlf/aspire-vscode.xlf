@@ -10,8 +10,20 @@
     <trans-unit id="walkthrough.restartVSCode.description">
       <source xml:lang="en">After installing the Aspire CLI, restart VS Code to refresh the environment PATH.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.aspireCliInstallation">
+      <source xml:lang="en">Aspire CLI Installation</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireCliVersion">
       <source xml:lang="en">Aspire CLI Version: {0}.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.cliInstallationStarted">
+      <source xml:lang="en">Aspire CLI installation started. Please restart VS Code after installation completes.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.cliInstalled">
+      <source xml:lang="en">Aspire CLI is installed and available on PATH!</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.cliNotAvailable">
+      <source xml:lang="en">Aspire CLI is not available on PATH. Please install it and restart VS Code.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireOutputChannelName">
       <source xml:lang="en">Aspire Extension</source>
@@ -21,6 +33,9 @@
     </trans-unit>
     <trans-unit id="extension.title">
       <source xml:lang="en">Aspire VSCode</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.aspireDebugSessionNotInitialized">
+      <source xml:lang="en">Aspire debug session is not initialized</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireConfigExists">
       <source xml:lang="en">Aspire launch configuration already exists in launch.json.</source>
@@ -39,6 +54,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.authorizationHeaderMustStartWithBearer">
       <source xml:lang="en">Authorization header must start with &apos;Bearer &apos;.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.buildFailedForProjectWithError">
+      <source xml:lang="en">Build failed for project {0} with error: {1}.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
       <source xml:lang="en">Build failed with exit code {0}.</source>
@@ -81,6 +99,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dismissLabel">
+      <source xml:lang="en">Dismiss</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.doYouWantToSelectDefaultApphost">
       <source xml:lang="en">Do you want to select the default apphost for this workspace?</source>
@@ -140,7 +161,7 @@
       <source xml:lang="en">Failed to start project: {0}.</source>
     </trans-unit>
     <trans-unit id="walkthrough.title">
-      <source xml:lang="en">Get Started with Aspire</source>
+      <source xml:lang="en">Get started with Aspire</source>
     </trans-unit>
     <trans-unit id="command.init">
       <source xml:lang="en">Initialize Aspire</source>
@@ -255,6 +276,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.runProject">
       <source xml:lang="en">Run {0}</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.openCliInstallInstructions">
+      <source xml:lang="en">See CLI installation instructions</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>

@@ -25,7 +25,7 @@ import { updateCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
 import { checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
-import { verifyCliInstallation, installCli } from './walkthroughCommands';
+import { verifyCliInstallation, installCli, checkCliAvailableOrRedirect } from './walkthroughCommands';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -70,6 +70,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration, verifyCliInstallationRegistration, installCliRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider();
+  debugConfigProvider.setTerminalProvider(terminalProvider);
+
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
   );
@@ -96,6 +98,16 @@ export function deactivate() {
 async function tryExecuteCommand(commandName: string, terminalProvider: AspireTerminalProvider, command: (terminalProvider: AspireTerminalProvider) => Promise<void>): Promise<void> {
   try {
     sendTelemetryEvent(`${commandName}.invoked`);
+
+    // Skip CLI check for walkthrough commands themselves
+    if (commandName !== 'aspire-vscode.verifyCliInstallation' && commandName !== 'aspire-vscode.installCli') {
+      const cliPath = terminalProvider.getAspireCliExecutablePath();
+      const isCliAvailable = await checkCliAvailableOrRedirect(cliPath);
+      if (!isCliAvailable) {
+        return;
+      }
+    }
+
     await command(terminalProvider);
   }
   catch (error) {
