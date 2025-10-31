@@ -9,11 +9,12 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// Service for managing pipeline output directories.
 /// </summary>
-[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES004", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IPipelineOutputService
 {
     /// <summary>
     /// Gets the output directory for deployment artifacts.
+    /// If no output path is configured, defaults to <c>{CurrentDirectory}/aspire-output</c>.
     /// </summary>
     /// <returns>The path to the output directory for deployment artifacts.</returns>
     string GetOutputDirectory();

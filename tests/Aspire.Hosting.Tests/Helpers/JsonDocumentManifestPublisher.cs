@@ -3,6 +3,7 @@
 
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES004
 
 using System.Text.Json;
 using Aspire.Hosting.Publishing;
