@@ -210,13 +210,10 @@ public class AddViteAppTests
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
-        // Create a lock file so npm ci is used in the Dockerfile
-        File.WriteAllText(Path.Combine(tempDir.Path, "package-lock.json"), "empty");
-
-        var customImage = "node:22-alpine";
+        var customImage = "node:22-myspecialimage";
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
             .WithNpm(install: true)
-            .WithDockerfileBaseImage(runtimeImage: customImage);
+            .WithDockerfileBaseImage(buildImage: customImage);
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 

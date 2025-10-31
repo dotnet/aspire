@@ -32,7 +32,6 @@ public class DockerfileBaseImageAnnotation : IResourceAnnotation
     /// <remarks>
     /// This image is used for the final runtime stage where the application actually runs.
     /// If not specified, the default runtime image for the resource type will be used.
-    /// For single-stage Dockerfiles (like Node.js), this is the only base image used.
     /// </remarks>
     public string? RuntimeImage { get; set; }
 }

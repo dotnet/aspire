@@ -1463,7 +1463,7 @@ public static class ContainerResourceBuilderExtensions
 
         if (buildImage is null && runtimeImage is null)
         {
-            throw new ArgumentException("At least one of buildImage or runtimeImage must be specified.");
+            throw new ArgumentException($"At least one of {nameof(buildImage)} or {nameof(runtimeImage)} must be specified.");
         }
 
         return builder.WithAnnotation(new DockerfileBaseImageAnnotation

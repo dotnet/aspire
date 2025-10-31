@@ -126,11 +126,14 @@ public static class NodeAppHostingExtension
 
                 c.WithDockerfileBuilder(resource.WorkingDirectory, dockerfileContext =>
                 {
-                    var logger = dockerfileContext.Services.GetService<ILogger<NodeAppResource>>() ?? NullLogger<NodeAppResource>.Instance;
-                    var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+                    var defaultBaseImage = new Lazy<string>(() => GetDefaultBaseImage(appDirectory, "alpine", dockerfileContext.Services));
 
+                    // Get custom base image from annotation, if present
+                    dockerfileContext.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+
+                    var baseBuildImage = baseImageAnnotation?.BuildImage ?? defaultBaseImage.Value;
                     var builderStage = dockerfileContext.Builder
-                        .From($"node:{nodeVersion}-alpine", "build")
+                        .From(baseBuildImage, "build")
                         .EmptyLine()
                         .WorkDir("/app")
                         .Copy(".", ".")
@@ -157,8 +160,9 @@ public static class NodeAppHostingExtension
                         }
                     }
 
+                    var baseRuntimeImage = baseImageAnnotation?.RuntimeImage ?? defaultBaseImage.Value;
                     var runtimeBuilder = dockerfileContext.Builder
-                        .From($"node:{nodeVersion}-alpine", "runtime")
+                        .From(baseRuntimeImage, "runtime")
                             .EmptyLine()
                             .WorkDir("/app")
                             .CopyFrom("build", "/app", "/app")
@@ -313,13 +317,10 @@ public static class NodeAppHostingExtension
                 {
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
-                        var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>() ?? NullLogger<JavaScriptAppResource>.Instance;
-                        var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
-                        
                         // Get custom base image from annotation, if present
                         dockerfileContext.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
-                        var baseImage = baseImageAnnotation?.RuntimeImage ?? $"node:{nodeVersion}-slim";
-                        
+                        var baseImage = baseImageAnnotation?.BuildImage ?? GetDefaultBaseImage(appDirectory, "slim", dockerfileContext.Services);
+
                         var dockerBuilder = dockerfileContext.Builder
                             .From(baseImage)
                             .WorkDir("/app")
@@ -606,6 +607,13 @@ public static class NodeAppHostingExtension
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }
+    }
+
+    private static string GetDefaultBaseImage(string appDirectory, string defaultSuffix, IServiceProvider serviceProvider)
+    {
+        var logger = serviceProvider.GetService<ILogger<JavaScriptAppResource>>() ?? NullLogger<JavaScriptAppResource>.Instance;
+        var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+        return $"node:{nodeVersion}-{defaultSuffix}";
     }
 
     /// <summary>
