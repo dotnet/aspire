@@ -204,3 +204,8 @@ These instructions are comprehensive and tested. Only search for additional info
 3. You need details about new features not yet documented
 
 For most development tasks, following these instructions should be sufficient to build, test, and validate changes successfully.
+
+## Typescript
+
+* When possible, you should create Typescript files instead of Javascript files.
+* You must not use dynamic imports unless absolutely necessary. Instead, use static imports.
