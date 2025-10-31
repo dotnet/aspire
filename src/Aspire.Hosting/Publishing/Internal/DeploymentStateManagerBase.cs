@@ -46,6 +46,12 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     private JsonObject? _state;
     private bool _isStateLoaded;
 
+    /// <summary>
+    /// Gets the semaphore used for synchronizing state operations.
+    /// Can be overridden by derived classes to use a different synchronization mechanism.
+    /// </summary>
+    protected virtual SemaphoreSlim StateLock => _stateLock;
+
     /// <inheritdoc/>
     public abstract string? StateFilePath { get; }
 
@@ -149,7 +155,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// <returns>The loaded state as a JsonObject.</returns>
     protected async Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
-        await _stateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await StateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (_isStateLoaded && _state is not null)
@@ -181,21 +187,21 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         }
         finally
         {
-            _stateLock.Release();
+            StateLock.Release();
         }
     }
 
     /// <inheritdoc/>
     public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
     {
-        await _stateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await StateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await SaveStateToStorageAsync(state, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            _stateLock.Release();
+            StateLock.Release();
         }
     }
 
@@ -219,8 +225,8 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
 
         var metadata = GetSectionMetadata(sectionName);
 
-        // Protect access to _state with _stateLock to prevent concurrent modification during enumeration
-        await _stateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Protect access to _state with StateLock to prevent concurrent modification during enumeration
+        await StateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
@@ -231,7 +237,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         }
         finally
         {
-            _stateLock.Release();
+            StateLock.Release();
         }
     }
 
@@ -268,7 +274,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         section.Version++;
 
         // Serialize state modification and file write to prevent concurrent enumeration
-        await _stateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await StateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Store a deep clone to ensure immutability
@@ -277,7 +283,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         }
         finally
         {
-            _stateLock.Release();
+            StateLock.Release();
         }
     }
 }

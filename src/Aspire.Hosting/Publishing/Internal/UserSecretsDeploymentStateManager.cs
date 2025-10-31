@@ -17,8 +17,26 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// </summary>
 public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>(logger)
 {
+    private SemaphoreSlim? _sharedSemaphore;
+
     /// <inheritdoc/>
     public override string? StateFilePath => GetStatePath();
+
+    /// <summary>
+    /// Gets the semaphore used for synchronizing state operations.
+    /// Uses the shared UserSecretsFileLock semaphore to coordinate with SecretsStore.
+    /// </summary>
+    protected override SemaphoreSlim StateLock
+    {
+        get
+        {
+            if (_sharedSemaphore == null && StateFilePath != null)
+            {
+                _sharedSemaphore = UserSecretsFileLock.GetSemaphore(StateFilePath);
+            }
+            return _sharedSemaphore ?? base.StateLock;
+        }
+    }
 
     /// <inheritdoc/>
     protected override string? GetStatePath()
@@ -39,18 +57,12 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
             var flattenedUserSecrets = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(state);
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
             
-            // Use the shared lock to synchronize with SecretsStore
-            var lockObj = UserSecretsFileLock.GetLock(userSecretsPath);
             var json = flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions);
             
-            // We need to use a synchronous lock, so we'll write synchronously inside the lock
-            // but still return a Task to maintain the async signature
+            // Write synchronously to avoid async/await in the lock that's managed by the base class
             await Task.Run(() =>
             {
-                lock (lockObj)
-                {
-                    File.WriteAllText(userSecretsPath, json, System.Text.Encoding.UTF8);
-                }
+                File.WriteAllText(userSecretsPath, json, System.Text.Encoding.UTF8);
             }, cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");

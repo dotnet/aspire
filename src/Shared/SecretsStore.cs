@@ -49,8 +49,9 @@ internal sealed class SecretsStore
 
     public void Save()
     {
-        var lockObj = UserSecretsFileLock.GetLock(_secretsFilePath);
-        lock (lockObj)
+        var semaphore = UserSecretsFileLock.GetSemaphore(_secretsFilePath);
+        semaphore.Wait();
+        try
         {
             // Reload from disk to merge with any concurrent changes
             var currentSecrets = Load(_secretsFilePath);
@@ -82,6 +83,10 @@ internal sealed class SecretsStore
             });
 
             File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
+        }
+        finally
+        {
+            semaphore.Release();
         }
     }
 
@@ -137,8 +142,9 @@ internal sealed class SecretsStore
             try
             {
                 var secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
-                var lockObj = UserSecretsFileLock.GetLock(secretsFilePath);
-                lock (lockObj)
+                var semaphore = UserSecretsFileLock.GetSemaphore(secretsFilePath);
+                semaphore.Wait();
+                try
                 {
                     // Load, set, and save in one atomic operation to ensure thread safety
                     EnsureUserSecretsDirectory(secretsFilePath);
@@ -166,6 +172,10 @@ internal sealed class SecretsStore
 
                     File.WriteAllText(secretsFilePath, json, Encoding.UTF8);
                     return true;
+                }
+                finally
+                {
+                    semaphore.Release();
                 }
             }
             catch (Exception) { } // Ignore user secret store errors
