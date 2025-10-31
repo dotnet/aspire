@@ -462,13 +462,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
-        _innerBuilder.Services.AddSingleton<IPipelineOutputService>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<PipelineOptions>>();
-            var configuration = sp.GetRequiredService<IConfiguration>();
-            var outputPath = options.Value.OutputPath is not null ? Path.GetFullPath(options.Value.OutputPath) : null;
-            return new PipelineOutputService(outputPath, configuration);
-        });
+        _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();
         _innerBuilder.Services.AddSingleton(Pipeline);
 
         // Configure pipeline logging options

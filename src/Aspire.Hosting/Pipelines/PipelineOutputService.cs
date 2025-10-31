@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -16,9 +17,9 @@ internal sealed class PipelineOutputService : IPipelineOutputService
     private readonly string? _outputPath;
     private readonly Lazy<string> _tempDirectory;
 
-    public PipelineOutputService(string? outputPath, IConfiguration configuration)
+    public PipelineOutputService(IOptions<PipelineOptions> options, IConfiguration configuration)
     {
-        _outputPath = outputPath;
+        _outputPath = options.Value.OutputPath is not null ? Path.GetFullPath(options.Value.OutputPath) : null;
         _tempDirectory = new Lazy<string>(() => CreateTempDirectory(configuration));
     }
 
