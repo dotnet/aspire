@@ -22,12 +22,20 @@ internal sealed class AspireTelemetryMcpTools
     private readonly TelemetryRepository _telemetryRepository;
     private readonly IEnumerable<IOutgoingPeerResolver> _outgoingPeerResolvers;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
+    private readonly IDashboardClient _dashboardClient;
+    private readonly ILogger<AspireTelemetryMcpTools> _logger;
 
-    public AspireTelemetryMcpTools(TelemetryRepository telemetryRepository, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, IOptionsMonitor<DashboardOptions> dashboardOptions)
+    public AspireTelemetryMcpTools(TelemetryRepository telemetryRepository,
+        IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers,
+        IOptionsMonitor<DashboardOptions> dashboardOptions,
+        IDashboardClient dashboardClient,
+        ILogger<AspireTelemetryMcpTools> logger)
     {
         _telemetryRepository = telemetryRepository;
         _outgoingPeerResolvers = outgoingPeerResolvers;
         _dashboardOptions = dashboardOptions;
+        _dashboardClient = dashboardClient;
+        _logger = logger;
     }
 
     [McpServerTool(Name = "list_structured_logs")]
@@ -36,6 +44,8 @@ internal sealed class AspireTelemetryMcpTools
         [Description("The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned.")]
         string? resourceName = null)
     {
+        _logger.LogDebug("MCP tool list_structured_logs called with resource '{ResourceName}'.", resourceName);
+
         if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
         {
             return message;
@@ -49,12 +59,21 @@ internal sealed class AspireTelemetryMcpTools
             StartIndex = 0,
             Count = int.MaxValue,
             Filters = []
-        });
+        }).Items;
+
+        if (_dashboardClient.IsEnabled)
+        {
+            var optOutResources = GetOptOutResources(_dashboardClient.GetResources());
+            if (optOutResources.Count > 0)
+            {
+                logs = logs.Where(l => !optOutResources.Any(r => l.ResourceView.ResourceKey.EqualsCompositeName(r.Name))).ToList();
+            }
+        }
 
         var resources = _telemetryRepository.GetResources();
 
         var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(
-            logs.Items,
+            logs,
             _dashboardOptions.CurrentValue,
             includeDashboardUrl: true,
             getResourceName: r => OtlpResource.GetResourceName(r, resources));
@@ -77,6 +96,8 @@ internal sealed class AspireTelemetryMcpTools
         [Description("The resource name. This limits traces returned to the specified resource. If no resource name is specified then distributed traces for all resources are returned.")]
         string? resourceName = null)
     {
+        _logger.LogDebug("MCP tool list_traces called with resource '{ResourceName}'.", resourceName);
+
         if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
         {
             return message;
@@ -89,12 +110,21 @@ internal sealed class AspireTelemetryMcpTools
             Count = int.MaxValue,
             Filters = [],
             FilterText = string.Empty
-        });
+        }).PagedResult.Items;
+
+        if (_dashboardClient.IsEnabled)
+        {
+            var optOutResources = GetOptOutResources(_dashboardClient.GetResources());
+            if (optOutResources.Count > 0)
+            {
+                traces = traces.Where(t => !optOutResources.Any(r => t.Spans.Any(s => s.Source.ResourceKey.EqualsCompositeName(r.Name)))).ToList();
+            }
+        }
 
         var resources = _telemetryRepository.GetResources();
 
         var (tracesData, limitMessage) = AIHelpers.GetTracesJson(
-            traces.PagedResult.Items,
+            traces,
             _outgoingPeerResolvers,
             _dashboardOptions.CurrentValue,
             includeDashboardUrl: true,
@@ -117,6 +147,8 @@ internal sealed class AspireTelemetryMcpTools
         [Description("The trace id of the distributed trace.")]
         string traceId)
     {
+        _logger.LogDebug("MCP tool list_trace_structured_logs called with trace '{TraceId}'.", traceId);
+
         // Condition of filter should be contains because a substring of the traceId might be provided.
         var traceIdFilter = new FieldTelemetryFilter
         {
@@ -176,5 +208,10 @@ internal sealed class AspireTelemetryMcpTools
         message = null;
         resourceKey = resource.ResourceKey;
         return true;
+    }
+
+    private static List<ResourceViewModel> GetOptOutResources(IEnumerable<ResourceViewModel> resources)
+    {
+        return resources.Where(AIHelpers.IsResourceAIOptOut).ToList();
     }
 }
