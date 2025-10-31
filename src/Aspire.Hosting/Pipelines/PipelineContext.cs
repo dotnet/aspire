@@ -3,8 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
@@ -17,15 +15,13 @@ namespace Aspire.Hosting.Pipelines;
 /// <param name="serviceProvider">The service provider for dependency resolution.</param>
 /// <param name="logger">The logger for pipeline operations.</param>
 /// <param name="cancellationToken">The cancellation token for the pipeline operation.</param>
-/// <param name="outputPath">The output path for deployment artifacts.</param>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PipelineContext(
     DistributedApplicationModel model,
     DistributedApplicationExecutionContext executionContext,
     IServiceProvider serviceProvider,
     ILogger logger,
-    CancellationToken cancellationToken,
-    string? outputPath)
+    CancellationToken cancellationToken)
 {
     /// <summary>
     /// Gets the distributed application model to be deployed.
@@ -51,9 +47,4 @@ public sealed class PipelineContext(
     /// Gets the cancellation token for the pipeline operation.
     /// </summary>
     public CancellationToken CancellationToken { get; set; } = cancellationToken;
-
-    /// <summary>
-    /// Gets the service for managing pipeline output directories.
-    /// </summary>
-    public IPipelineOutputService OutputService { get; } = new PipelineOutputService(outputPath, serviceProvider.GetRequiredService<IConfiguration>());
 }

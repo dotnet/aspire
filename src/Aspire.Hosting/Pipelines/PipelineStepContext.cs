@@ -54,9 +54,4 @@ public sealed class PipelineStepContext
     /// Gets the cancellation token for the pipeline operation.
     /// </summary>
     public CancellationToken CancellationToken => PipelineContext.CancellationToken;
-
-    /// <summary>
-    /// Gets the service for managing pipeline output directories.
-    /// </summary>
-    public IPipelineOutputService OutputService => PipelineContext.OutputService;
 }

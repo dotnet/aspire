@@ -78,7 +78,8 @@ internal static class JsonDocumentManifestPublishingExtensions
                 using var stream = new MemoryStream();
                 using var writer = new Utf8JsonWriter(stream, new() { Indented = true });
 
-                var manifestPath = context.OutputService.GetOutputDirectory();
+                var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
+                var manifestPath = outputService.GetOutputDirectory();
                 var publishingContext = new ManifestPublishingContext(executionContext, manifestPath, writer, context.CancellationToken);
 
                 await publishingContext.WriteModel(context.Model, context.CancellationToken).ConfigureAwait(false);
