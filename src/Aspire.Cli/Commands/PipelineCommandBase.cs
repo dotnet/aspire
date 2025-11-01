@@ -410,7 +410,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger(_hostEnvironment);
+        var logger = new ConsoleActivityLogger(_hostEnvironment, commandName: this.Name);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 
@@ -621,7 +621,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 logger.SetStepDurations(durationRecords);
 
                 // Provide final result to logger and print its structured summary.
-                logger.SetFinalResult(!hasErrors, this.Name);
+                logger.SetFinalResult(!hasErrors);
                 logger.WriteSummary();
 
                 // Visual bell
