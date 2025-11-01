@@ -72,14 +72,27 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         imageName == $"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.TagVNextPreview}";
 
     /// <summary>
+    /// Gets the account endpoint URI expression for the Cosmos DB account.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{name}.documents.azure.com:443/</c>.
+    /// </remarks>
+    public ReferenceExpression AccountEndpoint =>
+        IsEmulator ?
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Url)}") :
+            UseAccessKeyAuthentication ?
+                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
+                ReferenceExpression.Create($"{ConnectionStringOutput}");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        IsEmulator
-        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint, IsPreviewEmulator)
-        : UseAccessKeyAuthentication ?
-            ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-            ReferenceExpression.Create($"{ConnectionStringOutput}");
+        IsEmulator ?
+            AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint, IsPreviewEmulator) :
+            UseAccessKeyAuthentication ?
+                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
+                ReferenceExpression.Create($"{ConnectionStringOutput}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
@@ -119,15 +132,15 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a CosmosDBAccount with the same identifier already exists
         var existingStore = resources.OfType<CosmosDBAccount>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingStore is not null)
         {
             return existingStore;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var store = CosmosDBAccount.FromExisting(bicepIdentifier);
 
@@ -196,4 +209,10 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     internal static string GetKeyValueSecretName(string resourceName)
         => $"connectionstrings--{resourceName}";
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", AccountEndpoint);
+        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
+    }
 }

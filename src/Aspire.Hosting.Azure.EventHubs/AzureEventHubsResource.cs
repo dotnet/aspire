@@ -46,6 +46,29 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     public bool IsEmulator => this.IsContainer();
 
     /// <summary>
+    /// Gets the host name for the Event Hubs namespace.
+    /// </summary>
+    /// <remarks>
+    /// In container mode (emulator), resolves to the container's endpoint host and port.
+    /// In Azure mode, resolves to the Azure Event Hubs namespace endpoint.
+    /// </remarks>
+    public ReferenceExpression HostName =>
+        IsEmulator ?
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{EventHubsEndpoint}");
+
+    /// <summary>
+    /// Gets the connection URI expression for the Event Hubs namespace.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>sb://{host}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        IsEmulator ?
+            ReferenceExpression.Create($"sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{EventHubsEndpoint}");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => GetConnectionString();
@@ -85,7 +108,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     }
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName) =>
-        ApplyAzureFunctionsConfiguration(target, connectionName);
+            ApplyAzureFunctionsConfiguration(target, connectionName);
 
     internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName, string? eventHub = null, string? consumerGroup = null)
     {
@@ -129,15 +152,15 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if an EventHubsNamespace with the same identifier already exists
         var existingHubs = resources.OfType<EventHubsNamespace>().SingleOrDefault(hubs => hubs.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingHubs is not null)
         {
             return existingHubs;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var hubs = EventHubsNamespace.FromExisting(bicepIdentifier);
 
@@ -151,5 +174,12 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
         infra.Add(hubs);
         return hubs;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", HostName);
+        yield return new("Uri", UriExpression);
+        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }

@@ -36,12 +36,35 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     public bool IsEmulator => this.IsContainer();
 
     /// <summary>
+    /// Gets the host name for the Service Bus namespace.
+    /// </summary>
+    /// <remarks>
+    /// In container mode (emulator), resolves to the container's endpoint host and port.
+    /// In Azure mode, resolves to the Azure Service Bus namespace endpoint.
+    /// </remarks>
+    public ReferenceExpression HostName =>
+        IsEmulator ?
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{ServiceBusEndpoint}");
+
+    /// <summary>
+    /// Gets the connection URI expression for the Service Bus namespace.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>sb://{host}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        IsEmulator ?
+            ReferenceExpression.Create($"sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"sb://{ServiceBusEndpoint}");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
-        : ReferenceExpression.Create($"{ServiceBusEndpoint}");
+            ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
+            : ReferenceExpression.Create($"sb://{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
         => ApplyAzureFunctionsConfiguration(target, connectionName);
@@ -121,14 +144,21 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
             target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
-            if (queueOrTopicName != null)
+            if (queueOrTopicName is not null)
             {
                 target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__QueueOrTopicName"] = queueOrTopicName;
             }
-            if (subscriptionName != null)
+            if (subscriptionName is not null)
             {
                 target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__SubscriptionName"] = subscriptionName;
             }
         }
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", HostName);
+        yield return new("Uri", UriExpression);
+        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }
