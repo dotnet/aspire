@@ -18,6 +18,7 @@ internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly string _commandName;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -43,10 +44,11 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, string commandName, bool? forceColor = null)
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
+        _commandName = commandName;
 
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
@@ -252,6 +254,15 @@ internal sealed class ConsoleActivityLogger
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
+                
+                // If pipeline failed, show help message about using --log-level debug
+                if (!_pipelineSucceeded)
+                {
+                    var helpMessage = _enableColor
+                        ? $"[dim]For more details, re-run with: aspire {_commandName} --log-level debug[/]"
+                        : $"For more details, re-run with: aspire {_commandName} --log-level debug";
+                    AnsiConsole.MarkupLine(helpMessage);
+                }
             }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
@@ -259,6 +270,7 @@ internal sealed class ConsoleActivityLogger
     }
 
     private string? _finalStatusHeader;
+    private bool _pipelineSucceeded;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
@@ -266,6 +278,7 @@ internal sealed class ConsoleActivityLogger
     /// </summary>
     public void SetFinalResult(bool succeeded)
     {
+        _pipelineSucceeded = succeeded;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {
