@@ -18,7 +18,7 @@ internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly string? _commandName;
+    private readonly string _commandName;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -44,7 +44,7 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null, string? commandName = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, string commandName, bool? forceColor = null)
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
@@ -256,7 +256,7 @@ internal sealed class ConsoleActivityLogger
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
                 
                 // If pipeline failed, show help message about using --log-level debug
-                if (!_pipelineSucceeded && !string.IsNullOrEmpty(_commandName))
+                if (!_pipelineSucceeded)
                 {
                     var helpMessage = _enableColor
                         ? $"[dim]For more details, re-run with: aspire {_commandName} --log-level debug[/]"
