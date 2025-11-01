@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <Target Name="PublishToDisk"
-          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;_CheckMaxFileSize;PrepareOutputPathForPublishToDisk" />
+          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;_CheckMaxFileSize;PrepareOutputPathForPublishToDisk;_OrganizeLinuxArchiveStructure" />
 
   <Target Name="PrepareOutputPathForPublishToDisk">
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
@@ -90,6 +90,31 @@
            Text="`file` signature for `$(CliRuntime)` did not match the expected regex.
            Got     : $(_FileCommandOutput)
            vs regex: $(FileSignatureRegex)" />
+  </Target>
+
+  <!-- For Linux archives, organize the files into an aspire/ subdirectory -->
+  <Target Name="_OrganizeLinuxArchiveStructure" Condition="$(CliRuntime.StartsWith('linux-'))">
+    <PropertyGroup>
+      <_AspireSubdirectory>$([MSBuild]::NormalizePath($(OutputPath), 'aspire'))</_AspireSubdirectory>
+    </PropertyGroup>
+    
+    <!-- Ensure the aspire binary exists before proceeding -->
+    <Error Condition="!Exists('$(_NativeBinaryPath)')" Text="Cannot reorganize: aspire binary not found at $(_NativeBinaryPath)" />
+    
+    <!-- Rename aspire binary to avoid conflict with directory -->
+    <Move SourceFiles="$(_NativeBinaryPath)" DestinationFiles="$(_NativeBinaryPath).tmp" />
+    
+    <!-- Create aspire subdirectory -->
+    <MakeDir Directories="$(_AspireSubdirectory)" />
+    
+    <!-- Move renamed aspire binary to subdirectory -->
+    <Move SourceFiles="$(_NativeBinaryPath).tmp" DestinationFiles="$([MSBuild]::NormalizePath($(_AspireSubdirectory), 'aspire'))" />
+    
+    <!-- Move any other files that might exist -->
+    <ItemGroup>
+      <OtherFiles Include="$(OutputPath)*.*" />
+    </ItemGroup>
+    <Move SourceFiles="@(OtherFiles)" DestinationFolder="$(_AspireSubdirectory)" ContinueOnError="true" />
   </Target>
 
   <Target Name="_CheckMaxFileSize">
