@@ -99,10 +99,17 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
     {
         lock (step)
         {
-            // Prevent double completion if the step is already complete
+            // If the step is already in a terminal state
             if (step.CompletionState != CompletionState.InProgress)
             {
-                throw new InvalidOperationException($"Cannot complete step '{step.Id}' with state '{step.CompletionState}'. Only 'InProgress' steps can be completed.");
+                // If trying to complete with the same state, this is a noop (idempotent)
+                if (step.CompletionState == completionState)
+                {
+                    return;
+                }
+
+                // If trying to transition from a terminal state to a different terminal state, this is a coding bug
+                throw new InvalidOperationException($"Cannot complete step '{step.Id}' with state '{completionState}'. Step is already in terminal state '{step.CompletionState}'.");
             }
 
             step.CompletionState = completionState;
@@ -196,9 +203,17 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
             throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
         }
 
+        // If the task is already in a terminal state
         if (task.CompletionState != CompletionState.InProgress)
         {
-            throw new InvalidOperationException($"Cannot complete task '{task.Id}' with state '{task.CompletionState}'. Only 'InProgress' tasks can be completed.");
+            // If trying to complete with the same state, this is a noop (idempotent)
+            if (task.CompletionState == completionState)
+            {
+                return;
+            }
+
+            // If trying to transition from a terminal state to a different terminal state, this is a coding bug
+            throw new InvalidOperationException($"Cannot complete task '{task.Id}' with state '{completionState}'. Task is already in terminal state '{task.CompletionState}'.");
         }
 
         lock (parentStep)
