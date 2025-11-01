@@ -288,10 +288,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Core things
         // Create and register the user secrets manager
         _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
-        if (_userSecretsManager != null)
-        {
-            _innerBuilder.Services.AddSingleton(_userSecretsManager);
-        }
+        // Always register IUserSecretsManager so dependencies can resolve (can be null)
+        _innerBuilder.Services.AddSingleton(typeof(IUserSecretsManager), sp => _userSecretsManager!);
         
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
