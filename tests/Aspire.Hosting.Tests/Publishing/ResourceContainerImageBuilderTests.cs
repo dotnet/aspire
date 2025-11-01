@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
+[Trait("Partition", "Partition1")]
 public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 {
     [Fact]

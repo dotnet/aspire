@@ -156,17 +156,6 @@ These switches can be repeated to run tests on multiple classes or methods at on
 2. **Package Generation**: `./build.sh --pack` verifies all packages can be created
 3. **Specific Tests**: Target individual test projects related to your changes
 
-## Quarantined tests
-
-- Tests that are flaky and don't fail deterministically are marked with the `QuarantinedTest` attribute.
-- Such tests are not run as part of the regular tests workflow (`tests.yml`).
-    - Instead they are run in the `Quarantine` workflow (`tests-quarantine.yml`).
-- A github issue url is used with the attribute
-
-Example: `[QuarantinedTest("..issue url..")]`
-
-- To quarantine or unquarantine tests, use the tool in `tools/QuarantineTools/QuarantineTools.csproj`.
-
 ## Outerloop tests
 
 - Tests that are long-running, resource-intensive, or require special infrastructure are marked with the `OuterloopTest` attribute.
@@ -194,8 +183,6 @@ The `*.Designer.cs` files are in the repo, but are intended to match same named 
 * Code blocks should be formatted with triple backticks (```) and include the language identifier for syntax highlighting.
 * JSON code blocks should be indented properly.
 
-## Localization files
-* Files matching the pattern `*/localize/templatestrings.*.json` are localization files. Do not translate their content. It is done by a dedicated workflow.
 ## Trust These Instructions
 
 These instructions are comprehensive and tested. Only search for additional information if:

@@ -1,0 +1,133 @@
+<Project>
+  <!--
+    TestEnumerationRunsheetBuilder - Phase 1: Individual Test Project Enumeration
+
+    This runsheet builder is the first phase of test enumeration for CI/CD. It runs during
+    the build process for each test project and generates individual enumeration files
+    that describe how each test should be run.
+
+    Complete Test Enumeration Workflow:
+
+    Phase 1 (This file - runs per test project during build):
+      1. For each test project:
+         - Checks if it should run on GitHub Actions (via GetRunTestsOnGithubActions)
+         - Determines if tests should be split into partitions
+         - Builds the project and generates test metadata if needed
+         - Writes .testenumeration.json file containing:
+           * Project name, path, short name
+           * supportedOSes array
+           * splitTests flag
+           * hasTestMetadata flag
+           * Paths to test list and metadata files
+
+    Phase 2 (AfterSolutionBuild.targets + build-test-matrix.ps1):
+      1. After all projects are built:
+         - Finds all .testenumeration.json files
+         - Filters by OS and processes regular vs split test projects
+         - For split tests: reads .tests.list and creates multiple matrix entries
+         - For regular tests: creates one matrix entry per project
+         - Generates combined test matrix JSON in a single pass
+
+    Phase 3 (GitHub Actions):
+      1. Reads combined test matrix JSON
+      2. Expands matrix entries by supported OSes
+      3. Creates parallel jobs for each matrix entry
+      4. Runs tests with appropriate filters/partitions
+
+    Output per test project:
+      - artifacts/tmp/Debug/ProjectName.testenumeration.json
+      - artifacts/helix/ProjectName.tests.list (if splitTests=true)
+      - artifacts/helix/ProjectName.tests.metadata.json (if splitTests=true)
+
+    Usage:
+      .\build.cmd -test /p:TestRunnerName=TestEnumerationRunsheetBuilder /p:TestsListOutputPath=artifacts/TestsForGithubActions.list /p:TestMatrixOutputPath=artifacts/combined-test-matrix.json /p:ContinuousIntegrationBuild=true /p:BuildOs=linux
+
+    This replaces the manual invocation of GetTestProjects.proj and provides automatic
+    detection of split tests based on test project configuration (via SplitTests property
+    or auto-detection based on test count and collection attributes).
+    -->
+
+  <PropertyGroup>
+    <!-- Skip projects that should be excluded (same logic as GetTestProjects.proj) -->
+    <_ShouldSkipProject>false</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="$(MSBuildProjectDirectory.Contains('tests\Shared'))">true</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="$(MSBuildProjectDirectory.Contains('tests\testproject'))">true</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="$(MSBuildProjectDirectory.Contains('tests\TestingAppHost1'))">true</_ShouldSkipProject>
+
+    <!-- Generate short name (same logic as GetTestProjects.proj) -->
+    <_ShortName>$([System.IO.Path]::GetFileNameWithoutExtension('$(MSBuildProjectName)').Replace('Aspire.', '').Replace('.Tests', ''))</_ShortName>
+  </PropertyGroup>
+
+  <Target Name="RunTests"
+          Outputs="%(TestToRun.ResultsStdOutPath)"
+          Condition="'$(SkipTests)' != 'true' and '$(_ShouldSkipProject)' != 'true' and '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true'">
+
+    <!-- Reuse existing GetRunTestsOnGithubActions target from Testing.targets -->
+    <ItemGroup>
+      <_CurrentProject Include="$(MSBuildProjectFullPath)" />
+    </ItemGroup>
+
+    <!-- Get OS compatibility for this test project -->
+    <MSBuild Projects="@(_CurrentProject)"
+             Targets="GetTestOSCompatibility">
+      <Output TaskParameter="TargetOutputs" ItemName="_ProjectInfo" />
+    </MSBuild>
+
+    <!-- Build all test projects to generate test metadata (needed for requiresNugets, requiresTestSdk, etc.) -->
+    <MSBuild Projects="@(_CurrentProject)"
+             Properties="GenerateCIPartitions=true;BuildOs=$(BuildOs)"
+             Targets="Build;ExtractTestClassNames;WriteTestMetadata"
+             Condition="'@(_ProjectInfo->Count())' > 0 and '%(_ProjectInfo.SplitTests)' == 'true'" />
+
+    <MSBuild Projects="@(_CurrentProject)"
+             Properties="GenerateCIPartitions=true;BuildOs=$(BuildOs)"
+             Targets="WriteTestMetadata"
+             Condition="'@(_ProjectInfo->Count())' > 0 and '%(_ProjectInfo.SplitTests)' != 'true'" />
+
+    <!-- Generate enumeration data for this project -->
+    <PropertyGroup Condition="'@(_ProjectInfo->Count())' > 0">
+      <!-- Convert project path to relative path for consistency -->
+      <_RelativeProjectPath>$([System.String]::Copy('$(MSBuildProjectFullPath)').Replace('$(RepoRoot)', ''))</_RelativeProjectPath>
+      <!-- Remove leading slash/backslash if present -->
+      <_RelativeProjectPath Condition="$(_RelativeProjectPath.StartsWith('/')) or $(_RelativeProjectPath.StartsWith('\'))">$(_RelativeProjectPath.Substring(1))</_RelativeProjectPath>
+
+      <!-- Check if test metadata was generated -->
+      <!-- Use TestArchiveTestsDir if set (for Templates/EndToEnd tests), otherwise use default helix dir -->
+      <_HelixDir Condition="'$(TestArchiveTestsDir)' != ''">$(TestArchiveTestsDir)</_HelixDir>
+      <_HelixDir Condition="'$(TestArchiveTestsDir)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix'))</_HelixDir>
+      <_TestListFile>$(_HelixDir)$(MSBuildProjectName).tests.list</_TestListFile>
+      <_MetadataFile>$(_HelixDir)$(MSBuildProjectName).tests.metadata.json</_MetadataFile>
+      <_HasTestMetadata Condition="Exists('$(_MetadataFile)')">true</_HasTestMetadata>
+      <_HasTestMetadata Condition="'$(_HasTestMetadata)' != 'true'">false</_HasTestMetadata>
+
+      <!-- Build OS arrays from semicolon-separated values -->
+      <_OsArrayJson>%(_ProjectInfo.SupportedOSes)</_OsArrayJson>
+
+      <!-- Build enumeration JSON -->
+      <_EnumerationJson>{
+  "project": "$(MSBuildProjectName)",
+  "fullPath": "$(_RelativeProjectPath)",
+  "shortName": "$(_ShortName)",
+  "supportedOSes": [$(_OsArrayJson)],
+  "splitTests": "%(_ProjectInfo.SplitTests)",
+  "hasTestMetadata": "$(_HasTestMetadata)",
+  "testListFile": "$(_TestListFile.Replace('$(RepoRoot)', ''))",
+  "metadataFile": "$(_MetadataFile.Replace('$(RepoRoot)', ''))"
+}</_EnumerationJson>
+    </PropertyGroup>
+
+    <!-- Create output directory and write enumeration file -->
+    <MakeDir Directories="$(ArtifactsTmpDir)" Condition="'@(_ProjectInfo->Count())' > 0" />
+
+    <WriteLinesToFile File="$(ArtifactsTmpDir)/$(MSBuildProjectName).testenumeration.json"
+                      Lines="$(_EnumerationJson)"
+                      Overwrite="true"
+                      Condition="'@(_ProjectInfo->Count())' > 0" />
+
+    <!-- Log what we're doing -->
+    <Message Text="Generated test enumeration for $(MSBuildProjectName) -> $(_ShortName) (OSes=%(_ProjectInfo.SupportedOSes), SplitTests=%(_ProjectInfo.SplitTests), HasTestMetadata=$(_HasTestMetadata))"
+             Importance="Low"
+             Condition="'@(_ProjectInfo->Count())' > 0" />
+  </Target>
+
+</Project>
