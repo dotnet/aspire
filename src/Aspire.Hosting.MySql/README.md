@@ -32,7 +32,7 @@ When you reference a MySQL resource using `WithReference`, the following connect
 The MySQL server resource exposes the following connection properties:
 
 | Property Name | Description |
-|---------------|-------------|---------------|
+|---------------|-------------|
 | `Host` | The hostname or IP address of the MySQL server |
 | `Port` | The port number the MySQL server is listening on |
 | `Username` | The username for authentication |

@@ -32,7 +32,7 @@ When you reference a Valkey resource using `WithReference`, the following connec
 The Valkey resource exposes the following connection properties:
 
 | Property Name | Description |
-|---------------|-------------|---------------|
+|---------------|-------------|
 | `Host` | The hostname or IP address of the Valkey server |
 | `Port` | The port number the Valkey server is listening on |
 | `Password` | The password for authentication |

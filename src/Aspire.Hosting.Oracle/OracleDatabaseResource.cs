@@ -57,7 +57,7 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         Parent.CombineProperties([
             new("Database", ReferenceExpression.Create($"{DatabaseName}")),
-            new("Uri", ReferenceExpression.Create($"{UriExpression}")),
+            new("Uri", UriExpression),
             new("JdbcConnectionString", JdbcConnectionString),
         ]);
 }
