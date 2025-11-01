@@ -254,7 +254,7 @@ internal sealed class ConsoleActivityLogger
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
                 
                 // If pipeline failed, show help message about using --log-level debug
-                if (_finalStatusHeader.Contains("PIPELINE FAILED") && !string.IsNullOrEmpty(_commandName))
+                if (!_pipelineSucceeded && !string.IsNullOrEmpty(_commandName))
                 {
                     var helpMessage = _enableColor
                         ? $"[dim]For more details, re-run with: aspire {_commandName} --log-level debug[/]"
@@ -269,6 +269,7 @@ internal sealed class ConsoleActivityLogger
 
     private string? _finalStatusHeader;
     private string? _commandName;
+    private bool _pipelineSucceeded;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
@@ -276,6 +277,7 @@ internal sealed class ConsoleActivityLogger
     /// </summary>
     public void SetFinalResult(bool succeeded, string? commandName = null)
     {
+        _pipelineSucceeded = succeeded;
         _commandName = commandName;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
