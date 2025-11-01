@@ -17,62 +17,154 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
     public override string Name => "Podman";
     private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
-        var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+        // Check if this is a multi-platform build
+        var isMultiPlatform = options?.TargetPlatform is not null && 
+                              HasMultiplePlatforms(options.TargetPlatform.Value);
 
-        // Add platform support if specified
-        if (options?.TargetPlatform is not null)
+        string? manifestName = null;
+        
+        if (isMultiPlatform)
         {
-            arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
-        }
-
-        // Add format support if specified
-        if (options?.ImageFormat is not null)
-        {
-            var format = options.ImageFormat.Value switch
+            // For multi-platform builds, create a manifest
+            manifestName = imageName;
+            var createManifestResult = await CreateManifestAsync(manifestName, cancellationToken).ConfigureAwait(false);
+            
+            if (createManifestResult != 0)
             {
-                ContainerImageFormat.Oci => "oci",
-                ContainerImageFormat.Docker => "docker",
-                _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
-            };
-            arguments += $" --format \"{format}\"";
-        }
-
-        // Add output support if specified
-        if (!string.IsNullOrEmpty(options?.OutputPath))
-        {
-            // Extract resource name from imageName for the file name
-            var resourceName = imageName.Split('/').Last().Split(':').First();
-            arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
-        }
-
-        // Add build arguments if specified
-        arguments += BuildArgumentsString(buildArguments);
-
-        // Add build secrets if specified
-        arguments += BuildSecretsString(buildSecrets, requireValue: true);
-
-        // Add stage if specified
-        arguments += BuildStageString(stage);
-
-        arguments += $" \"{contextPath}\"";
-
-        // Prepare environment variables for build secrets
-        var environmentVariables = new Dictionary<string, string>();
-        foreach (var buildSecret in buildSecrets)
-        {
-            if (buildSecret.Value is not null)
-            {
-                environmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                Logger.LogError("Failed to create manifest {ManifestName} with exit code {ExitCode}.", manifestName, createManifestResult);
+                return createManifestResult;
             }
         }
 
+        try
+        {
+            var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+
+            // If we have a manifest, use it
+            if (manifestName is not null)
+            {
+                arguments += $" --manifest \"{manifestName}\"";
+            }
+
+            // Add platform support if specified
+            if (options?.TargetPlatform is not null)
+            {
+                arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
+            }
+
+            // Add format support if specified
+            if (options?.ImageFormat is not null)
+            {
+                var format = options.ImageFormat.Value switch
+                {
+                    ContainerImageFormat.Oci => "oci",
+                    ContainerImageFormat.Docker => "docker",
+                    _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                };
+                arguments += $" --format \"{format}\"";
+            }
+
+            // Add output support if specified
+            if (!string.IsNullOrEmpty(options?.OutputPath))
+            {
+                // Extract resource name from imageName for the file name
+                var resourceName = imageName.Split('/').Last().Split(':').First();
+                arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
+            }
+
+            // Add build arguments if specified
+            arguments += BuildArgumentsString(buildArguments);
+
+            // Add build secrets if specified
+            arguments += BuildSecretsString(buildSecrets, requireValue: true);
+
+            // Add stage if specified
+            arguments += BuildStageString(stage);
+
+            arguments += $" \"{contextPath}\"";
+
+            // Prepare environment variables for build secrets
+            var environmentVariables = new Dictionary<string, string>();
+            foreach (var buildSecret in buildSecrets)
+            {
+                if (buildSecret.Value is not null)
+                {
+                    environmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                }
+            }
+
+            return await ExecuteContainerCommandWithExitCodeAsync(
+                arguments,
+                "Podman build for {ImageName} failed with exit code {ExitCode}.",
+                "Podman build for {ImageName} succeeded.",
+                cancellationToken,
+                new object[] { imageName },
+                environmentVariables).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Clean up the manifest if we created one
+            if (manifestName is not null && isMultiPlatform)
+            {
+                await RemoveManifestAsync(manifestName, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static bool HasMultiplePlatforms(ContainerTargetPlatform platform)
+    {
+        // Count how many flags are set
+        var count = 0;
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxAmd64))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm64))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.Linux386))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsAmd64))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsArm64))
+        {
+            count++;
+        }
+        
+        return count > 1;
+    }
+
+    private async Task<int> CreateManifestAsync(string manifestName, CancellationToken cancellationToken)
+    {
+        var arguments = $"manifest create \"{manifestName}\"";
+
         return await ExecuteContainerCommandWithExitCodeAsync(
             arguments,
-            "Podman build for {ImageName} failed with exit code {ExitCode}.",
-            "Podman build for {ImageName} succeeded.",
+            "Failed to create manifest {ManifestName} with exit code {ExitCode}.",
+            "Successfully created manifest {ManifestName}.",
             cancellationToken,
-            new object[] { imageName },
-            environmentVariables).ConfigureAwait(false);
+            new object[] { manifestName }).ConfigureAwait(false);
+    }
+
+    private async Task<int> RemoveManifestAsync(string manifestName, CancellationToken cancellationToken)
+    {
+        var arguments = $"manifest rm \"{manifestName}\"";
+
+        return await ExecuteContainerCommandWithExitCodeAsync(
+            arguments,
+            "Failed to remove manifest {ManifestName} with exit code {ExitCode}.",
+            "Successfully removed manifest {ManifestName}.",
+            cancellationToken,
+            new object[] { manifestName }).ConfigureAwait(false);
     }
 
     public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
