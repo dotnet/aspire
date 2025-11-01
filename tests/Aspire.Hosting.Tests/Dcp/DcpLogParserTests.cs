@@ -215,4 +215,26 @@ public sealed class DcpLogParserTests
         Assert.Equal(LogLevel.Information, logLevel);
         Assert.Equal("dcpctrl.ExecutableReconciler", category);
     }
+
+    [Theory]
+    [InlineData("error", LogLevel.Error)]
+    [InlineData("warning", LogLevel.Warning)]
+    [InlineData("info", LogLevel.Information)]
+    [InlineData("debug", LogLevel.Debug)]
+    [InlineData("trace", LogLevel.Trace)]
+    public void TryParseDcpLog_ParsesAllLogLevels(string dcpLogLevel, LogLevel expectedLogLevel)
+    {
+        // Arrange
+        var logLine = $"2023-09-19T20:40:50.509-0700\t{dcpLogLevel}\tdcpctrl.TestReconciler\tTest message";
+        var bytes = Encoding.UTF8.GetBytes(logLine);
+
+        // Act
+        var result = DcpLogParser.TryParseDcpLog(bytes.AsSpan(), out var message, out var logLevel, out var category);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("Test message", message);
+        Assert.Equal(expectedLogLevel, logLevel);
+        Assert.Equal("dcpctrl.TestReconciler", category);
+    }
 }
