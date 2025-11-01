@@ -44,7 +44,7 @@ The Garnet resource exposes the following connection properties:
 | `Password` | The password for authentication (available when a password parameter is configured) |
 | `Uri` | The connection URI, with the format `redis://:{Password}@{Host}:{Port}` |
 
-These properties are automatically injected into your application's environment variables or available to create custom values.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 
