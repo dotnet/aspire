@@ -76,7 +76,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// </summary>
     /// <remarks>
     /// In container mode, resolves to the container's primary endpoint host and port.
-    /// In Azure mode, resolves to the Azure Redis server'shostname.
+    /// In Azure mode, resolves to the Azure Redis server's hostname.
     /// </remarks>
     public ReferenceExpression HostName =>
         InnerResource is not null ?
