@@ -17,4 +17,5 @@ internal static class KnownFeatures
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
+    public static string CopilotAssistEnabled => "copilotAssistEnabled";
 }

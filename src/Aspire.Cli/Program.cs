@@ -27,6 +27,8 @@ using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Git;
+using Aspire.Cli.CodingAgent;
 
 #if DEBUG
 using OpenTelemetry;
@@ -139,6 +141,8 @@ public class Program
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
+        builder.Services.AddSingleton<IGitCliRunner, GitCliRunner>();
+        builder.Services.AddSingleton<ICodingAgentConfigurator, CodingAgentConfigurator>();
         builder.Services.AddMemoryCache();
 
         // Template factories.

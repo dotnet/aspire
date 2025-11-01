@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="it" original="../CodingAgentStrings.resx">
+    <body>
+      <trans-unit id="ConfigureWorkspacePrompt">
+        <source>Configure workspace for coding agents?</source>
+        <target state="new">Configure workspace for coding agents?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfiguringWorkspace">
+        <source>Configuring workspace...</source>
+        <target state="new">Configuring workspace...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkspaceConfigurationFailed">
+        <source>Failed to configure workspace for coding agents.</source>
+        <target state="new">Failed to configure workspace for coding agents.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkspaceConfigured">
+        <source>Workspace configured successfully for coding agents.</source>
+        <target state="new">Workspace configured successfully for coding agents.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
