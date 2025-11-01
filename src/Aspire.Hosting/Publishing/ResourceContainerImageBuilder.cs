@@ -64,12 +64,7 @@ public enum ContainerTargetPlatform
     /// <summary>
     /// Windows ARM64 (windows/arm64).
     /// </summary>
-    WindowsArm64 = 32,
-
-    /// <summary>
-    /// All Linux platforms (AMD64 and ARM64).
-    /// </summary>
-    AllLinux = LinuxAmd64 | LinuxArm64
+    WindowsArm64 = 32
 }
 
 /// <summary>
