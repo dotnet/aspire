@@ -36,7 +36,7 @@ internal sealed class EnvFile
                 return;
             }
 
-            // Update the existing key's value
+            // Update the existing key's value.
             for (int i = 0; i < _lines.Count; i++)
             {
                 if (TryParseKey(_lines[i], out var lineKey) && lineKey == key)
