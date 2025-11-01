@@ -23,7 +23,23 @@ var launchProfile = builder.Configuration["DOTNET_LAUNCH_PROFILE"];
 
 if (builder.Environment.IsDevelopment() && launchProfile == "https")
 {
-    frontend.RunWithHttpsDevCertificate("HTTPS_CERT_FILE", "HTTPS_CERT_KEY_FILE");
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    frontend
+        .WithHttpsEndpoint(env: "HTTPS_PORT")
+        .WithDeveloperCertificateKeyPair()
+        .WithCertificateKeyPairConfiguration(ctx =>
+        {
+            ctx.EnvironmentVariables["HTTPS_CERT_FILE"] = ctx.CertificatePath;
+            ctx.EnvironmentVariables["HTTPS_CERT_KEY_FILE"] = ctx.KeyPath;
+            return Task.CompletedTask;
+        })
+        .WithEnvironment(ctx =>
+        {
+            var httpsEndpoint = frontend.GetEndpoint("https");
+            ctx.EnvironmentVariables["HTTPS_REDIRECT_PORT"] = ReferenceExpression.Create($"{httpsEndpoint.Property(EndpointProperty.Port)}");
+        });
+
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 }
 
 #if !SKIP_DASHBOARD_REFERENCE

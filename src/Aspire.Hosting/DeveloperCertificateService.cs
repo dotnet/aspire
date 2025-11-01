@@ -13,6 +13,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 {
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
+    private readonly Lazy<bool> _supportsTlsTermination;
 
     public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
@@ -58,6 +59,13 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             return containerTrustAvailable;
         });
 
+        _supportsTlsTermination = new Lazy<bool>(() =>
+        {
+            var supportsTlsTermination = Certificates.Any(c => c.HasPrivateKey);
+            logger.LogDebug("Developer certificate TLS termination support: {Available}", supportsTlsTermination);
+            return supportsTlsTermination;
+        });
+
         // Environment variable config > DistributedApplicationOptions > default true
         TrustCertificate = configuration.GetBool(KnownConfigNames.TrustDeveloperCertificate) ??
             options.TrustDeveloperCertificate ??
@@ -72,4 +80,6 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     /// <inheritdoc />
     public bool TrustCertificate { get; }
+
+    public bool SupportsTlsTermination => _supportsTlsTermination.Value;
 }
