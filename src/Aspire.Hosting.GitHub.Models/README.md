@@ -87,7 +87,7 @@ When you reference a GitHub Model resource using `WithReference`, the following 
 The GitHub Model resource exposes the following connection properties:
 
 | Property Name | Description |
-|---------------|-------------|---------------|
+|---------------|-------------|
 | `Uri` | The GitHub Models inference endpoint URI, with the format `https://models.github.ai/inference` |
 | `Key` | The API key (PAT or GitHub App token) for authentication |
 | `Model` | The model identifier for inference requests, for instance `openai/gpt-4o-mini` |

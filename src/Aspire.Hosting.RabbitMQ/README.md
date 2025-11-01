@@ -32,7 +32,7 @@ When you reference a RabbitMQ resource using `WithReference`, the following conn
 The RabbitMQ server resource exposes the following connection properties:
 
 | Property Name | Description |
-|---------------|-------------|---------------|
+|---------------|-------------|
 | `Host` | The hostname or IP address of the RabbitMQ server |
 | `Port` | The port number the RabbitMQ server is listening on |
 | `Username` | The username for authentication |

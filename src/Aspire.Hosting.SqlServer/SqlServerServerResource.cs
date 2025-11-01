@@ -151,19 +151,6 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
 
     internal IReadOnlyList<SqlServerDatabaseResource> DatabaseResources => _databaseResources;
 
-    internal IEnumerable<KeyValuePair<string, ReferenceExpression>> CombineProperties(IEnumerable<KeyValuePair<string, ReferenceExpression>> additional)
-    {
-        foreach (var property in ((IResourceWithConnectionString)this).GetConnectionProperties())
-        {
-            yield return property;
-        }
-
-        foreach (var property in additional)
-        {
-            yield return property;
-        }
-    }
-
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Host", ReferenceExpression.Create($"{Host}"));
