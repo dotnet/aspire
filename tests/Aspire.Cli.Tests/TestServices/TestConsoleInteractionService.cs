@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Spectre.Console;
@@ -14,6 +15,13 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Func<string, bool, bool>? ConfirmCallback { get; set; }
     public Action<string>? ShowStatusCallback { get; set;  }
+    
+    /// <summary>
+    /// Callback for capturing selection prompts in tests. Uses non-generic IEnumerable and object
+    /// to work with the generic PromptForSelectionAsync&lt;T&gt; method regardless of T's type.
+    /// This allows tests to inspect what choices are presented without knowing the generic type at compile time.
+    /// </summary>
+    public Func<string, IEnumerable, Func<object, string>, CancellationToken, object>? PromptForSelectionCallback { get; set; }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
@@ -36,6 +44,16 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         if (!choices.Any())
         {
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        if (PromptForSelectionCallback is not null)
+        {
+            // Invoke the callback - casting is safe here because:
+            // 1. 'choices' is IEnumerable<T>, and we cast items to T when calling choiceFormatter
+            // 2. 'result' comes from the callback which receives 'choices', so it must be of type T
+            // 3. These casts are for test infrastructure only, not production code
+            var result = PromptForSelectionCallback(promptText, choices, o => choiceFormatter((T)o), cancellationToken);
+            return Task.FromResult((T)result);
         }
 
         return Task.FromResult(choices.First());
