@@ -933,4 +933,59 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.True(supportsMultiArch);
         Assert.True(fakeRuntime.WasMultiArchCheckCalled);
     }
+
+    [Fact]
+    public async Task BuildImagesAsync_WhenMultiArchNotSupported_LogsWarningAndDefaultsToLinuxAmd64()
+    {
+        // Create a fake runtime that doesn't support multi-arch
+        var fakeRuntime = new FakeContainerRuntime(shouldFail: false, supportsMultiArch: false);
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        // Replace the default container runtime with our fake one
+        builder.Services.AddSingleton<IContainerRuntime>(fakeRuntime);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a dockerfile resource to build
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        // Request a multi-platform build (which should trigger the warning)
+        var options = new ContainerBuildOptions
+        {
+            TargetPlatform = ContainerTargetPlatform.AllLinux // This is multi-platform
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        
+        // Use BuildImagesAsync instead of BuildImageAsync to trigger the multi-arch check
+        await imageBuilder.BuildImagesAsync([container.Resource], options, cts.Token);
+
+        // Verify multi-arch check was called
+        Assert.True(fakeRuntime.WasMultiArchCheckCalled);
+
+        // Verify the build was still executed
+        Assert.True(fakeRuntime.WasBuildImageCalled);
+
+        // Verify that the options were modified to LinuxAmd64
+        var buildCall = fakeRuntime.BuildImageCalls.Single();
+        Assert.NotNull(buildCall.options);
+        Assert.Equal(ContainerTargetPlatform.LinuxAmd64, buildCall.options.TargetPlatform);
+
+        // Verify warning was logged
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+        Assert.Contains(logs, log => 
+            log.Level == LogLevel.Warning && 
+            log.Message.Contains("Multi-platform build requested") &&
+            log.Message.Contains("does not support multi-arch builds"));
+    }
 }
