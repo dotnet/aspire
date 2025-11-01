@@ -39,6 +39,8 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> AddYarp(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> PublishWithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, ApplicationModel.IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<IYarpConfigurationBuilder> configurationBuilder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }

@@ -42,6 +42,8 @@ namespace Aspire.Hosting.Testing
         public static System.Threading.Tasks.ValueTask<string?> GetConnectionStringAsync(this DistributedApplication app, string resourceName, System.Threading.CancellationToken cancellationToken = default) { throw null; }
 
         public static System.Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = null) { throw null; }
+
+        public static System.Uri GetEndpointForNetwork(this DistributedApplication app, string resourceName, ApplicationModel.NetworkIdentifier? networkIdentifier, string? endpointName = null) { throw null; }
     }
 
     public static partial class DistributedApplicationTestingBuilder
@@ -78,6 +80,8 @@ namespace Aspire.Hosting.Testing
         Eventing.IDistributedApplicationEventing Eventing { get; }
 
         DistributedApplicationExecutionContext ExecutionContext { get; }
+
+        Pipelines.IDistributedApplicationPipeline Pipeline { get; }
 
         ApplicationModel.IResourceCollection Resources { get; }
 
