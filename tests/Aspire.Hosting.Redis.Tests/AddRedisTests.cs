@@ -701,4 +701,30 @@ public class AddRedisTests
         Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith($"localhost:5001,password={password}", connectionString);
     }
+
+    [Fact]
+    public async Task RedisInsightEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var redis = appBuilder.AddRedis("redis")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
+            .WithRedisInsight();
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var redisInsightResource = Assert.Single(appModel.Resources.OfType<RedisInsightResource>());
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await redisInsightResource.GetEnvironmentVariableValuesAsync();
+        var config2 = await redisInsightResource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "RI_REDIS_HOST1");
+        Assert.Contains(config2, kvp => kvp.Key == "RI_REDIS_HOST1");
+        Assert.Equal(
+            config1.First(kvp => kvp.Key == "RI_REDIS_HOST1").Value,
+            config2.First(kvp => kvp.Key == "RI_REDIS_HOST1").Value);
+    }
 }

@@ -140,8 +140,8 @@ public static class KafkaBuilderExtensions
                 ? ReferenceExpression.Create($"{endpoint.Resource.Name}:{endpoint.Property(EndpointProperty.TargetPort)}")
                 : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.HostAndPort)}");
 
-            context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_NAME", endpoint.Resource.Name);
-            context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_BOOTSTRAPSERVERS", bootstrapServers);
+            context.EnvironmentVariables[$"KAFKA_CLUSTERS_{index}_NAME"] = endpoint.Resource.Name;
+            context.EnvironmentVariables[$"KAFKA_CLUSTERS_{index}_BOOTSTRAPSERVERS"] = bootstrapServers;
         }
 
     }
@@ -203,9 +203,9 @@ public static class KafkaBuilderExtensions
         // See https://github.com/confluentinc/kafka-images/blob/master/local/include/etc/confluent/docker/configureDefaults for more details.
 
         // Define the default listeners + an internal listener for the container to broker communication
-        context.EnvironmentVariables.Add($"KAFKA_LISTENERS", $"PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:{KafkaBrokerPort},PLAINTEXT_INTERNAL://0.0.0.0:{KafkaInternalBrokerPort}");
+        context.EnvironmentVariables[$"KAFKA_LISTENERS"] = $"PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:{KafkaBrokerPort},PLAINTEXT_INTERNAL://0.0.0.0:{KafkaInternalBrokerPort}";
         // Defaults default listeners security protocol map + the internal listener to be PLAINTEXT
-        context.EnvironmentVariables.Add("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT");
+        context.EnvironmentVariables["KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"] = "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT";
 
         // primaryEndpoint is the endpoint that is exposed to the host machine
         var primaryEndpoint = resource.PrimaryEndpoint;

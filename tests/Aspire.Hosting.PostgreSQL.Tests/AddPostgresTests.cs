@@ -684,4 +684,26 @@ public class AddPostgresTests
         Assert.Equal($"Host=localhost;Port=2000;Username=user1;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
 #pragma warning restore CS0618 // Type or member is obsolete
     }
+
+    [Fact]
+    public async Task PostgresEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = appBuilder.AddPostgres("postgres")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432));
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await postgres.Resource.GetEnvironmentVariableValuesAsync();
+        var config2 = await postgres.Resource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        // Verify that environment variables are set consistently across multiple calls
+        Assert.All(config1, kvp =>
+        {
+            Assert.True(config2.ContainsKey(kvp.Key), $"Key {kvp.Key} should exist in second call");
+            Assert.Equal(kvp.Value, config2[kvp.Key]);
+        });
+    }
 }
