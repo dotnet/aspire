@@ -621,7 +621,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 logger.SetStepDurations(durationRecords);
 
                 // Provide final result to logger and print its structured summary.
-                logger.SetFinalResult(!hasErrors);
+                logger.SetFinalResult(!hasErrors, this.Name);
                 logger.WriteSummary();
 
                 // Visual bell
