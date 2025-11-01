@@ -161,21 +161,16 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         await Verify(File.ReadAllText(composePath), "yaml");
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DockerComposeHandleImageBuilding(bool shouldBuildImages)
+    [Fact]
+    public void DockerComposeDoesNotHandleImageBuildingDuringPublish()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "publish-docker-compose")
             .WithTestAndResourceLogging(outputHelper);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
-        builder.AddDockerComposeEnvironment("docker-compose")
-               .WithProperties(e => e.BuildContainerImages = shouldBuildImages);
-
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.AddDockerComposeEnvironment("docker-compose");
 
         builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -187,12 +182,11 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         Assert.NotNull(mockImageBuilder);
 
-        // Act
         app.Run();
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
-        Assert.Equal(shouldBuildImages, mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.BuildImageCalled);
     }
 
     [Fact]
@@ -478,7 +472,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
         Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
         var actualContent = await File.ReadAllTextAsync(dockerfilePath);
-        
+
         await Verify(actualContent);
     }
 
@@ -501,6 +495,97 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         // In run mode, no compose file should be generated
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.False(File.Exists(composePath));
+    }
+
+    [Fact]
+    public async Task PrepareStep_GeneratesCorrectEnvFileWithDefaultEnvironmentName()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "prepare-docker-compose");
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Configuration["ConnectionStrings:cstest"] = "Server=localhost;Database=test";
+
+        var environment = builder.AddDockerComposeEnvironment("docker-compose");
+
+        var param1 = builder.AddParameter("param1", "defaultValue1");
+        var param2 = builder.AddParameter("param2", "defaultSecretValue", secret: true);
+        var cs = builder.AddConnectionString("cstest");
+
+        builder.AddContainer("testapp", "testimage")
+            .WithEnvironment("PARAM1", param1)
+            .WithEnvironment("PARAM2", param2)
+            .WithReference(cs);
+
+        var app = builder.Build();
+        app.Run();
+
+        var envFileContent = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, ".env.Production"));
+        await Verify(envFileContent, "env")
+            .UseParameters("default-environment");
+    }
+
+    [Fact]
+    public async Task PrepareStep_GeneratesCorrectEnvFileWithCustomEnvironmentName()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "prepare-docker-compose");
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        // Add a custom IHostEnvironment with a specific environment name
+        builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostEnvironment>(new TestHostEnvironment("Staging"));
+
+        var environment = builder.AddDockerComposeEnvironment("docker-compose");
+
+        var param1 = builder.AddParameter("param1", "stagingValue");
+        var param2 = builder.AddParameter("param2", "defaultStagingSecret", secret: true);
+
+        builder.AddContainer("testapp", "testimage")
+            .WithEnvironment("PARAM1", param1)
+            .WithEnvironment("PARAM2", param2);
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that the env file is created with the custom environment name
+        var envFilePath = Path.Combine(tempDir.Path, ".env.Staging");
+        Assert.True(File.Exists(envFilePath), $"Expected env file at {envFilePath}");
+
+        var envFileContent = await File.ReadAllTextAsync(envFilePath);
+        await Verify(envFileContent, "env")
+            .UseParameters("custom-environment");
+    }
+
+    [Fact]
+    public async Task PrepareStep_GeneratesEnvFileWithVariousParameterTypes()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "prepare-docker-compose");
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Configuration["ConnectionStrings:dbConnection"] = "Server=localhost;Database=mydb";
+
+        var environment = builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Various parameter types
+        var stringParam = builder.AddParameter("stringParam", "defaultString");
+        var secretParam = builder.AddParameter("secretParam", "defaultSecretParameter", secret: true);
+        var paramWithDefault = builder.AddParameter("paramWithDefault", "defaultValue", publishValueAsDefault: true);
+        var cs = builder.AddConnectionString("dbConnection");
+
+        builder.AddContainer("webapp", "webapp:latest")
+            .WithEnvironment("STRING_PARAM", stringParam)
+            .WithEnvironment("SECRET_PARAM", secretParam)
+            .WithEnvironment("PARAM_WITH_DEFAULT", paramWithDefault)
+            .WithReference(cs);
+
+        var app = builder.Build();
+        app.Run();
+
+        var envFileContent = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, ".env.Production"));
+        await Verify(envFileContent, "env")
+            .UseParameters("various-parameters");
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
@@ -566,5 +651,13 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                 }
             }
         };
+    }
+
+    private sealed class TestHostEnvironment(string environmentName) : Microsoft.Extensions.Hosting.IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = environmentName;
+        public string ApplicationName { get; set; } = "TestApplication";
+        public string ContentRootPath { get; set; } = "/test";
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
     }
 }

@@ -27,6 +27,15 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
        ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 
     /// <summary>
+    /// Gets the connection URI expression for the Oracle database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>oracle://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
     /// Gets the JDBC connection string for the Oracle Database.
     /// </summary>
     /// <remarks>
@@ -48,6 +57,7 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         Parent.CombineProperties([
             new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
             new("JdbcConnectionString", JdbcConnectionString),
         ]);
 }

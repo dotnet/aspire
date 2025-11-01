@@ -39,6 +39,11 @@ public class ConnectionPropertiesTests
             },
             property =>
             {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("oracle://system:{password.value}@{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
+            },
+            property =>
+            {
                 Assert.Equal("JdbcConnectionString", property.Key);
                 Assert.Equal("jdbc:oracle:thin:system/{password.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
             });

@@ -56,6 +56,15 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </remarks>
     public ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
+    /// <summary>
+    /// Gets the connection URI expression for the SQL Server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mssql://{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"mssql://{Host}:{Port}");
+
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
@@ -72,7 +81,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         {
             var databaseNameReference = ReferenceExpression.Create($"{databaseName:uri}");
             builder.AppendLiteral(";databaseName=");
-            builder.Append($"{databaseNameReference:uri}");
+            builder.Append($"{databaseNameReference}");
         }
 
         builder.AppendLiteral(";trustServerCertificate=true");
@@ -148,6 +157,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
         yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }

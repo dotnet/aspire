@@ -118,6 +118,30 @@ var chat = openai.AddModel("chat", "gpt-4o-mini");
 
 Both the parent and model connection strings will include the custom endpoint.
 
+## Connection Properties
+
+When you reference an OpenAI resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### OpenAIResource
+
+The OpenAI resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Endpoint` | The base endpoint URI for the OpenAI API, with the format `https://api.openai.com/v1` |
+| `Uri` | The endpoint URI (same as Endpoint), with the format `https://api.openai.com/v1` |
+| `Key` | The API key for authentication |
+
+### OpenAI model
+
+The OpenAI model resource combines the parent properties above and adds the following connection property:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Model` | The model identifier for inference requests, for instance `gpt-4o-mini` |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+
 ## Additional documentation
 
 * https://platform.openai.com/docs/models
