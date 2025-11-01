@@ -97,11 +97,6 @@
         <target state="translated">   매핑: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoAppHostFoundUpdateCliPrompt">
-        <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
-        <target state="new">No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
         <source>No changes detected in NuGet.config</source>
         <target state="translated">NuGet.config에서 변경 내용이 검색되지 않음</target>
@@ -160,11 +155,6 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">예기치 않은 코드 경로입니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
-        <source>An update is available for the Aspire CLI. Would you like to update it now?</source>
-        <target state="new">An update is available for the Aspire CLI. Would you like to update it now?</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">
