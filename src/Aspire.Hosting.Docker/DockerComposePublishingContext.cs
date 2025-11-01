@@ -37,7 +37,7 @@ internal sealed class DockerComposePublishingContext(
         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
-    public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Docker Compose publishing.");
+    public readonly string OutputPath = outputPath;
 
     internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
     {
