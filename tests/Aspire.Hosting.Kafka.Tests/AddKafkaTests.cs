@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -175,5 +176,56 @@ public class AddKafkaTests
         var kafkaUiEndpoint = kafkaUiResource.Annotations.OfType<EndpointAnnotation>().Single();
         Assert.Equal(8080, kafkaUiEndpoint.TargetPort);
         Assert.Equal(port, kafkaUiEndpoint.Port);
+    }
+
+    [Fact]
+    public async Task KafkaEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var kafka = appBuilder.AddKafka("kafka")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+        var config2 = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "KAFKA_LISTENERS");
+        Assert.Contains(config2, kvp => kvp.Key == "KAFKA_LISTENERS");
+        Assert.Equal(
+            config1.First(kvp => kvp.Key == "KAFKA_LISTENERS").Value,
+            config2.First(kvp => kvp.Key == "KAFKA_LISTENERS").Value);
+    }
+
+    [Fact]
+    public async Task KafkaUIEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var kafka = appBuilder.AddKafka("kafka1")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithKafkaUI();
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var kafkaUiResource = Assert.Single(appModel.Resources.OfType<KafkaUIContainerResource>());
+
+        // Trigger the BeforeResourceStartedEvent to add environment callbacks
+        await appBuilder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(kafkaUiResource, app.Services),
+            EventDispatchBehavior.BlockingSequential);
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await kafkaUiResource.GetEnvironmentVariableValuesAsync();
+        var config2 = await kafkaUiResource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME");
+        Assert.Contains(config2, kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME");
+        Assert.Equal("kafka1", config1.First(kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME").Value);
+        Assert.Equal("kafka1", config2.First(kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME").Value);
     }
 }
