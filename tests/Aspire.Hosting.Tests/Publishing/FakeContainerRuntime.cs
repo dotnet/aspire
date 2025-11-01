@@ -7,10 +7,11 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
-internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRuntime
+internal sealed class FakeContainerRuntime(bool shouldFail = false, bool supportsMultiArch = true) : IContainerRuntime
 {
     public string Name => "fake-runtime";
     public bool WasHealthCheckCalled { get; private set; }
+    public bool WasMultiArchCheckCalled { get; private set; }
     public bool WasTagImageCalled { get; private set; }
     public bool WasRemoveImageCalled { get; private set; }
     public bool WasPushImageCalled { get; private set; }
@@ -27,6 +28,12 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
     {
         WasHealthCheckCalled = true;
         return Task.FromResult(!shouldFail);
+    }
+
+    public Task<bool> SupportsMultiArchAsync(CancellationToken cancellationToken)
+    {
+        WasMultiArchCheckCalled = true;
+        return Task.FromResult(supportsMultiArch && !shouldFail);
     }
 
     public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)

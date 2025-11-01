@@ -161,6 +161,30 @@ internal sealed class ResourceContainerImageBuilder(
             }
 
             logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
+
+            // Check if multi-arch builds are supported when multi-platform builds are requested
+            if (options?.TargetPlatform is not null && HasMultiplePlatforms(options.TargetPlatform.Value))
+            {
+                logger.LogDebug("Checking {ContainerRuntimeName} multi-arch support", ContainerRuntime.Name);
+
+                var supportsMultiArch = await ContainerRuntime.SupportsMultiArchAsync(cancellationToken).ConfigureAwait(false);
+
+                if (!supportsMultiArch)
+                {
+                    logger.LogWarning(
+                        "Multi-platform build requested but {ContainerRuntimeName} does not support multi-arch builds. " +
+                        "Defaulting to linux/amd64 platform. To enable multi-arch builds, configure your container runtime appropriately.",
+                        ContainerRuntime.Name);
+                    
+                    // Modify options to default to LinuxAmd64
+                    options = new ContainerBuildOptions
+                    {
+                        OutputPath = options.OutputPath,
+                        ImageFormat = options.ImageFormat,
+                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                    };
+                }
+            }
         }
 
         foreach (var resource in resources)
@@ -170,6 +194,38 @@ internal sealed class ResourceContainerImageBuilder(
         }
 
         logger.LogDebug("Building container images completed");
+    }
+
+    private static bool HasMultiplePlatforms(ContainerTargetPlatform platform)
+    {
+        // Count how many flags are set
+        var count = 0;
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxAmd64))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm64))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.Linux386))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsAmd64))
+        {
+            count++;
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsArm64))
+        {
+            count++;
+        }
+        
+        return count > 1;
     }
 
     public async Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)

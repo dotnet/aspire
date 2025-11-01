@@ -35,6 +35,8 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public abstract Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
 
+    public abstract Task<bool> SupportsMultiArchAsync(CancellationToken cancellationToken);
+
     public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
 
     public virtual async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
