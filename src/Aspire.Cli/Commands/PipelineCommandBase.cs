@@ -131,7 +131,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+            var isSingleFileAppHost = string.Equals(effectiveAppHostFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase);
 
             var env = new Dictionary<string, string>();
 

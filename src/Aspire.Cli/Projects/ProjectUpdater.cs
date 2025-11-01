@@ -271,7 +271,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
     {
-        if (string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
+        if (ProjectFileExtensions.Supported.Contains(projectFile.Extension))
         {
             await UpdateSdkVersionInCsprojAppHostAsync(projectFile, package);
         }
