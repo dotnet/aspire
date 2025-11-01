@@ -73,7 +73,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// </remarks>
     public ReferenceExpression UriExpression =>
         IsContainer ?
-            InnerResource!.UriExpression :
+            InnerResource.UriExpression :
             ReferenceExpression.Create($"mssql://{FullyQualifiedDomainName}:1433");
 
     /// <summary>
