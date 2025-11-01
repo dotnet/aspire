@@ -520,7 +520,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var app = builder.Build();
         app.Run();
 
-        var envFileContent = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, "Production.env"));
+        var envFileContent = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, ".env.Production"));
         await Verify(envFileContent, "env")
             .UseParameters("default-environment");
     }
@@ -549,7 +549,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         app.Run();
 
         // Verify that the env file is created with the custom environment name
-        var envFilePath = Path.Combine(tempDir.Path, "Staging.env");
+        var envFilePath = Path.Combine(tempDir.Path, ".env.Staging");
         Assert.True(File.Exists(envFilePath), $"Expected env file at {envFilePath}");
 
         var envFileContent = await File.ReadAllTextAsync(envFilePath);
@@ -583,7 +583,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var app = builder.Build();
         app.Run();
 
-        var envFileContent = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, "Production.env"));
+        var envFileContent = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, ".env.Production"));
         await Verify(envFileContent, "env")
             .UseParameters("various-parameters");
     }
