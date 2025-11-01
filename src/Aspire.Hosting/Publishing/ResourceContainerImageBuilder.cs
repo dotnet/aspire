@@ -272,7 +272,20 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (options.TargetPlatform is not null)
             {
-                arguments += $" /p:RuntimeIdentifiers=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
+                // Use the appropriate MSBuild property based on the number of RIDs
+                var runtimeIds = options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString();
+                var ridArray = runtimeIds.Split(';');
+
+                if (ridArray.Length == 1)
+                {
+                    // Single platform - use ContainerRuntimeIdentifier
+                    arguments += $" /p:ContainerRuntimeIdentifier=\"{ridArray[0]}\"";
+                }
+                else
+                {
+                    // Multiple platforms - use RuntimeIdentifiers
+                    arguments += $" /p:RuntimeIdentifiers=\"{runtimeIds}\"";
+                }
             }
         }
 
