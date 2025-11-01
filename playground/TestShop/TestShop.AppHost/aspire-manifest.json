@@ -74,7 +74,7 @@
         "CATALOGDB_USERNAME": "postgres",
         "CATALOGDB_PASSWORD": "{postgres-password.value}",
         "CATALOGDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
-        "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb?user=postgres\u0026password={postgres-password-uri-encoded.value}",
         "CATALOGDB_DATABASE": "catalogdb"
       },
       "bindings": {
@@ -105,7 +105,7 @@
         "CATALOGDB_USERNAME": "postgres",
         "CATALOGDB_PASSWORD": "{postgres-password.value}",
         "CATALOGDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
-        "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb?user=postgres\u0026password={postgres-password-uri-encoded.value}",
         "CATALOGDB_DATABASE": "catalogdb"
       },
       "bindings": {

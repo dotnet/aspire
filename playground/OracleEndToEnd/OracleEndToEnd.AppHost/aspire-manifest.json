@@ -35,6 +35,7 @@
         "FREEPDB1_PORT": "{oracle.bindings.tcp.port}",
         "FREEPDB1_USERNAME": "system",
         "FREEPDB1_PASSWORD": "{oracle-password.value}",
+        "FREEPDB1_URI": "oracle://system:{oracle-password.value}@{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/FREEPDB1",
         "FREEPDB1_JDBCCONNECTIONSTRING": "jdbc:oracle:thin:system/{oracle-password-uri-encoded.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/FREEPDB1",
         "FREEPDB1_DATABASE": "FREEPDB1"
       },
