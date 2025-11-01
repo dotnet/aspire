@@ -8,15 +8,98 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
-    public static partial class NodeAppHostingExtension
+    public partial class JavaScriptAppResource : ApplicationModel.ExecutableResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, IResourceWithContainerFiles
     {
-        public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null) { throw null; }
-
-        public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName = "start", string[]? args = null) { throw null; }
+        public JavaScriptAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }
     }
 
-    public partial class NodeAppResource : ApplicationModel.ExecutableResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
+    public static partial class NodeAppHostingExtension
+    {
+        public static ApplicationModel.IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string runScriptName = "dev") { throw null; }
+
+        [System.Obsolete("Use AddNodeApp that takes an appDirectory and relative scriptPath instead.")]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath) { throw null; }
+
+        [System.Obsolete("Use AddJavaScriptApp instead.")]
+        public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName = "start", string[]? args = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<NodeJs.ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string runScriptName = "dev") { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<TResource> WithBuildScript<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, string scriptName, string[]? args = null)
+            where TResource : JavaScriptAppResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<TResource> WithNpm<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string? installCommand = null, string[]? installArgs = null)
+            where TResource : JavaScriptAppResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<TResource> WithPnpm<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null)
+            where TResource : JavaScriptAppResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<TResource> WithRunScript<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, string scriptName, string[]? args = null)
+            where TResource : JavaScriptAppResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<TResource> WithYarn<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null)
+            where TResource : JavaScriptAppResource { throw null; }
+    }
+
+    public partial class NodeAppResource : JavaScriptAppResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
     {
         public NodeAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }
+    }
+}
+
+namespace Aspire.Hosting.NodeJs
+{
+    public sealed partial class JavaScriptBuildScriptAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptBuildScriptAnnotation(string scriptName, string[]? args) { }
+
+        public string[] Args { get { throw null; } }
+
+        public string ScriptName { get { throw null; } }
+    }
+
+    public sealed partial class JavaScriptInstallCommandAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptInstallCommandAnnotation(string[] args) { }
+
+        public string[] Args { get { throw null; } }
+    }
+
+    public partial class JavaScriptInstallerResource : ApplicationModel.ExecutableResource
+    {
+        public JavaScriptInstallerResource(string name, string workingDirectory) : base(default!, default!, default!) { }
+    }
+
+    public sealed partial class JavaScriptPackageInstallerAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptPackageInstallerAnnotation(ApplicationModel.ExecutableResource installerResource) { }
+
+        public ApplicationModel.ExecutableResource Resource { get { throw null; } }
+    }
+
+    public sealed partial class JavaScriptPackageManagerAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptPackageManagerAnnotation(string executableName, string? runScriptCommand) { }
+
+        public string ExecutableName { get { throw null; } }
+
+        public string? ScriptCommand { get { throw null; } }
+    }
+
+    public sealed partial class JavaScriptRunScriptAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptRunScriptAnnotation(string scriptName, string[]? args) { }
+
+        public string[] Args { get { throw null; } }
+
+        public string ScriptName { get { throw null; } }
+    }
+
+    public partial class ViteAppResource : JavaScriptAppResource
+    {
+        public ViteAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }
     }
 }
