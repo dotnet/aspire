@@ -50,7 +50,7 @@ The SQL Server database resource inherits all properties from its parent `SqlSer
 | `JdbcConnectionString` | JDBC connection string with database name, with the format `jdbc:sqlserver://{Host}:{Port};user={Username};password={Password};trustServerCertificate=true;databaseName={DatabaseName}` |
 | `DatabaseName` | The name of the database |
 
-These properties are automatically injected into your application's environment variables or available to create custom values.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 https://learn.microsoft.com/dotnet/aspire/database/sql-server-component

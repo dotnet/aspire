@@ -50,7 +50,7 @@ The Oracle database resource inherits all properties from its parent `OracleData
 | `JdbcConnectionString` | JDBC connection string with database name, with the format `jdbc:oracle:thin:{Username}/{Password}@//{Host}:{Port}/{DatabaseName}` |
 | `Database` | The name of the database |
 
-These properties are automatically injected into your application's environment variables or available to create custom values.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 
