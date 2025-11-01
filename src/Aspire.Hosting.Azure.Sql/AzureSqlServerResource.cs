@@ -286,7 +286,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// Gets the JDBC connection string for the server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}?user={user}&amp;password={password}</c>.
+    /// Format: <c>jdbc:sqlserver://{host}:{port};authentication=ActiveDirectoryIntegrated</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString =>
         IsContainer ?
