@@ -155,6 +155,41 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
+    [Fact]
+    public void CanConfigureSqlServerOptions()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:DisableRetry", "true"),
+        ]);
+
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: sqlBuilder =>
+        {
+            sqlBuilder.CommandTimeout(123);
+        });
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+        // ensure the connection string from config was respected
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+
+        // ensure no retry strategy was registered
+        Assert.Null(extension.ExecutionStrategyFactory);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
