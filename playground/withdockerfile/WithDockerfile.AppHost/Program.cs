@@ -55,6 +55,7 @@ builder.AddContainer("dynamic-async", "dynamic-async-image")
     });
 
 builder.AddRedis("builder-sync")
+    .WithImageRegistry("netaspireci.azurecr.io")
     .WithDockerfileBuilder(".", context =>
     {
         if (!context.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName))
@@ -66,6 +67,7 @@ builder.AddRedis("builder-sync")
     });
 
 builder.AddRedis("builder-async")
+    .WithImageRegistry("netaspireci.azurecr.io")
     .WithDockerfileBuilder(".", async context =>
     {
         await Task.Delay(1, context.CancellationToken);
