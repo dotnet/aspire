@@ -141,6 +141,16 @@
         "title": "%command.debugAppHost%",
         "category": "Aspire",
         "icon": "$(debug-all)"
+      },
+      {
+        "command": "aspire-vscode.verifyCliInstallation",
+        "title": "%command.verifyCliInstallation%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.installCli",
+        "title": "%command.installCli%",
+        "category": "Aspire"
       }
     ],
     "menus": {
@@ -207,7 +217,55 @@
           "scope": "window"
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "aspire.gettingStarted",
+        "title": "%walkthrough.title%",
+        "description": "%walkthrough.description%",
+        "steps": [
+          {
+            "id": "aspire.installCli",
+            "title": "%walkthrough.installCli.title%",
+            "description": "%walkthrough.installCli.description%",
+            "media": {
+              "markdown": "walkthrough/install-cli.md"
+            },
+            "completionEvents": [
+              "onContext:aspire.cliInstalled"
+            ]
+          },
+          {
+            "id": "aspire.restartVSCode",
+            "title": "%walkthrough.restartVSCode.title%",
+            "description": "%walkthrough.restartVSCode.description%",
+            "media": {
+              "markdown": "walkthrough/restart-vscode.md"
+            },
+            "when": "aspire.cliInstalled"
+          },
+          {
+            "id": "aspire.verifyInstallation",
+            "title": "%walkthrough.verifyInstallation.title%",
+            "description": "%walkthrough.verifyInstallation.description%",
+            "media": {
+              "markdown": "walkthrough/verify-installation.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.verifyCliInstallation"
+            ]
+          },
+          {
+            "id": "aspire.nextSteps",
+            "title": "%walkthrough.nextSteps.title%",
+            "description": "%walkthrough.nextSteps.description%",
+            "media": {
+              "markdown": "walkthrough/next-steps.md"
+            }
+          }
+        ]
+      }
+    ]
   },
   "repository": {
     "type": "git",

@@ -139,7 +139,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     spawnCliProcess(
       this._terminalProvider,
-      this._terminalProvider.getAspireCliExecutablePath(false),
+      this._terminalProvider.getAspireCliExecutablePath(),
       args,
       {
         stdoutCallback: (data) => {

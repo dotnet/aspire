@@ -25,6 +25,7 @@ import { updateCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
 import { checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
+import { verifyCliInstallation, installCli, checkCliAvailableOrRedirect } from './walkthroughCommands';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -62,11 +63,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	const settingsCommandRegistration = vscode.commands.registerCommand('aspire-vscode.settings', () => tryExecuteCommand('aspire-vscode.settings', terminalProvider, settingsCommand));
 	const runAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.runAppHost', () => editorCommandProvider.tryExecuteRunAppHost(true));
 	const debugAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.debugAppHost', () => editorCommandProvider.tryExecuteRunAppHost(false));
+	const verifyCliInstallationRegistration = vscode.commands.registerCommand('aspire-vscode.verifyCliInstallation', () => tryExecuteCommand('aspire-vscode.verifyCliInstallation', terminalProvider, async () => await verifyCliInstallation()));
+	const installCliRegistration = vscode.commands.registerCommand('aspire-vscode.installCli', () => tryExecuteCommand('aspire-vscode.installCli', terminalProvider, async () => await installCli()));
 
 	context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
-	context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
+	context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration, verifyCliInstallationRegistration, installCliRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider();
+  debugConfigProvider.setTerminalProvider(terminalProvider);
+
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
   );
@@ -93,6 +98,16 @@ export function deactivate() {
 async function tryExecuteCommand(commandName: string, terminalProvider: AspireTerminalProvider, command: (terminalProvider: AspireTerminalProvider) => Promise<void>): Promise<void> {
   try {
     sendTelemetryEvent(`${commandName}.invoked`);
+
+    // Skip CLI check for walkthrough commands themselves
+    if (commandName !== 'aspire-vscode.verifyCliInstallation' && commandName !== 'aspire-vscode.installCli') {
+      const cliPath = terminalProvider.getAspireCliExecutablePath();
+      const isCliAvailable = await checkCliAvailableOrRedirect(cliPath);
+      if (!isCliAvailable) {
+        return;
+      }
+    }
+
     await command(terminalProvider);
   }
   catch (error) {
