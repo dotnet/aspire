@@ -97,6 +97,11 @@
         <target state="translated">   Сопоставление: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoAppHostFoundUpdateCliPrompt">
+        <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
+        <target state="new">No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
         <source>No changes detected in NuGet.config</source>
         <target state="translated">Изменений в NuGet.config не обнаружено</target>
@@ -155,6 +160,11 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">Непредвиденный путь к коду.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
+        <source>An update is available for the Aspire CLI. Would you like to update it now?</source>
+        <target state="new">An update is available for the Aspire CLI. Would you like to update it now?</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">

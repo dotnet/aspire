@@ -5,8 +5,10 @@ using System.Runtime.InteropServices;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -154,6 +156,130 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         return provider.GetRequiredService<UpdateCommand>();
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WhenNoProjectFound_PromptsForCliSelfUpdate()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var confirmCallbackInvoked = false;
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    // Simulate no project found by throwing ProjectLocatorException
+                    throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    // Verify the correct prompt is shown
+                    confirmCallbackInvoked = true;
+                    Assert.Contains("Would you like to update the Aspire CLI", prompt);
+                    return false; // User says no
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown");
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WhenProjectUpdatedSuccessfully_PromptsForCliUpdate()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var confirmCallbackInvoked = false;
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    confirmCallbackInvoked = true;
+                    // Verify the correct prompt is shown after project update
+                    Assert.Contains("An update is available for the Aspire CLI", prompt);
+                    return false; // User says no
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = true });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            // Configure update notifier to report that an update is available
+            options.CliUpdateNotifierFactory = _ => new TestCliUpdateNotifier()
+            {
+                IsUpdateAvailableCallback = () => true
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --project AppHost.csproj");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown after successful project update");
+        Assert.Equal(0, exitCode);
+    }
+}
+
+// Test implementation of ICliUpdateNotifier
+internal sealed class TestCliUpdateNotifier : ICliUpdateNotifier
+{
+    public Func<bool>? IsUpdateAvailableCallback { get; set; }
+
+    public Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public void NotifyIfUpdateAvailable()
+    {
+        // No-op for tests
+    }
+
+    public bool IsUpdateAvailable()
+    {
+        return IsUpdateAvailableCallback?.Invoke() ?? false;
     }
 }
 
