@@ -72,6 +72,6 @@ public class ConnectionPropertiesTests
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&
-                        property.Value.ValueExpression == "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/Customers");
+                        property.Value.ValueExpression == "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/Customers?user={user.value}&password={password.value}");
     }
 }
