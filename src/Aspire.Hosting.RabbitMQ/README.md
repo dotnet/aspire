@@ -23,8 +23,27 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(rmq);
 ```
 
+## Connection Properties
+
+When you reference a RabbitMQ resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### RabbitMQ server
+
+The RabbitMQ server resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|---------------|
+| `Host` | The hostname or IP address of the RabbitMQ server |
+| `Port` | The port number the RabbitMQ server is listening on |
+| `Username` | The username for authentication |
+| `Password` | The password for authentication |
+| `Uri` | The connection URI, with the format `amqp://{Username}:{Password}@{Host}:{Port}` |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
-https://learn.microsoft.com/dotnet/aspire/messaging/rabbitmq-client-component
+
+* https://learn.microsoft.com/dotnet/aspire/messaging/rabbitmq-client-component
 
 ## Feedback & contributing
 

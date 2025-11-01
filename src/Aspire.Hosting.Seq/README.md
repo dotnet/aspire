@@ -23,8 +23,25 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(seq);
 ```
 
+## Connection Properties
+
+When you reference a Seq resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Seq
+
+The Seq resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname or IP address of the Seq server |
+| `Port` | The port number the Seq server is listening on |
+| `Uri` | The connection URI, with the format `http://{Host}:{Port}` |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
-https://learn.microsoft.com/dotnet/aspire/logging/seq-component
+
+* https://learn.microsoft.com/dotnet/aspire/logging/seq-component
 
 ## Feedback & contributing
 
