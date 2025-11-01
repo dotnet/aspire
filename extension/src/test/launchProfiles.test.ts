@@ -19,13 +19,21 @@ suite('Launch Profile Tests', () => {
         const sampleLaunchSettings: LaunchSettings = {
             profiles: {
                 'Development': {
+                    commandName: 'Project',
                     environmentVariables: {
                         ASPNETCORE_ENVIRONMENT: 'Development'
                     }
                 },
                 'Production': {
+                    commandName: 'Project',
                     environmentVariables: {
                         ASPNETCORE_ENVIRONMENT: 'Production'
+                    }
+                },
+                'IISExpress': {
+                    commandName: 'IISExpress',
+                    environmentVariables: {
+                        ASPNETCORE_ENVIRONMENT: 'Development'
                     }
                 }
             }
@@ -81,6 +89,55 @@ suite('Launch Profile Tests', () => {
             assert.strictEqual(result.profile, null);
             assert.strictEqual(result.profileName, null);
         });
+
+        test('returns first profile with commandName=Project when no explicit profile specified', () => {
+            const launchConfig: ProjectLaunchConfiguration = {
+                type: 'project',
+                project_path: '/test/project.csproj'
+            };
+
+            const result = determineBaseLaunchProfile(launchConfig, sampleLaunchSettings);
+
+            assert.strictEqual(result.profileName, 'Development');
+            assert.strictEqual(result.profile?.commandName, 'Project');
+            assert.strictEqual(result.profile?.environmentVariables?.ASPNETCORE_ENVIRONMENT, 'Development');
+        });
+
+        test('returns null when no profile has commandName=Project', () => {
+            const settingsWithoutProject: LaunchSettings = {
+                profiles: {
+                    'IISExpress': {
+                        commandName: 'IISExpress',
+                        environmentVariables: {
+                            ASPNETCORE_ENVIRONMENT: 'Development'
+                        }
+                    }
+                }
+            };
+
+            const launchConfig: ProjectLaunchConfiguration = {
+                type: 'project',
+                project_path: '/test/project.csproj'
+            };
+
+            const result = determineBaseLaunchProfile(launchConfig, settingsWithoutProject);
+
+            assert.strictEqual(result.profile, null);
+            assert.strictEqual(result.profileName, null);
+        });
+
+        test('explicit profile takes precedence over default commandName=Project logic', () => {
+            const launchConfig: ProjectLaunchConfiguration = {
+                type: 'project',
+                project_path: '/test/project.csproj',
+                launch_profile: 'IISExpress'
+            };
+
+            const result = determineBaseLaunchProfile(launchConfig, sampleLaunchSettings);
+
+            assert.strictEqual(result.profileName, 'IISExpress');
+            assert.strictEqual(result.profile?.commandName, 'IISExpress');
+        });
     });
 
     suite('mergeEnvironmentVariables', () => {
@@ -105,6 +162,89 @@ suite('Launch Profile Tests', () => {
             assert.strictEqual(resultMap.get('VAR2'), 'session2'); // Run session takes precedence
             assert.strictEqual(resultMap.get('VAR3'), 'base3');
             assert.strictEqual(resultMap.get('VAR4'), 'session4');
+        });
+
+        test('merges with run API environment variables taking precedence over base profile', () => {
+            const baseProfileEnv = {
+                'VAR1': 'base1',
+                'VAR2': 'base2',
+                'VAR3': 'base3'
+            };
+
+            const runApiEnv = {
+                'VAR2': 'api2',
+                'VAR5': 'api5'
+            };
+
+            const runSessionEnv: EnvVar[] = [];
+
+            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv, runApiEnv);
+
+            assert.strictEqual(result.length, 4);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'base1');
+            assert.strictEqual(resultMap.get('VAR2'), 'api2'); // Run API takes precedence over base
+            assert.strictEqual(resultMap.get('VAR3'), 'base3');
+            assert.strictEqual(resultMap.get('VAR5'), 'api5');
+        });
+
+        test('run session environment takes precedence over run API environment', () => {
+            const baseProfileEnv = {
+                'VAR1': 'base1',
+                'VAR2': 'base2'
+            };
+
+            const runApiEnv = {
+                'VAR2': 'api2',
+                'VAR3': 'api3'
+            };
+
+            const runSessionEnv: EnvVar[] = [
+                { name: 'VAR2', value: 'session2' },
+                { name: 'VAR4', value: 'session4' }
+            ];
+
+            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv, runApiEnv);
+
+            assert.strictEqual(result.length, 4);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'base1');
+            assert.strictEqual(resultMap.get('VAR2'), 'session2'); // Run session has highest precedence
+            assert.strictEqual(resultMap.get('VAR3'), 'api3');
+            assert.strictEqual(resultMap.get('VAR4'), 'session4');
+        });
+
+        test('handles all three sources with correct precedence: session > api > base', () => {
+            const baseProfileEnv = {
+                'BASE_ONLY': 'base_value',
+                'OVERRIDDEN_BY_API': 'base_value',
+                'OVERRIDDEN_BY_SESSION': 'base_value',
+                'OVERRIDDEN_BY_BOTH': 'base_value'
+            };
+
+            const runApiEnv = {
+                'API_ONLY': 'api_value',
+                'OVERRIDDEN_BY_API': 'api_value',
+                'OVERRIDDEN_BY_BOTH': 'api_value'
+            };
+
+            const runSessionEnv: EnvVar[] = [
+                { name: 'SESSION_ONLY', value: 'session_value' },
+                { name: 'OVERRIDDEN_BY_SESSION', value: 'session_value' },
+                { name: 'OVERRIDDEN_BY_BOTH', value: 'session_value' }
+            ];
+
+            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv, runApiEnv);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('BASE_ONLY'), 'base_value');
+            assert.strictEqual(resultMap.get('API_ONLY'), 'api_value');
+            assert.strictEqual(resultMap.get('SESSION_ONLY'), 'session_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_API'), 'api_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_SESSION'), 'session_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_BOTH'), 'session_value');
         });
 
         test('handles empty base profile environment', () => {
@@ -132,6 +272,21 @@ suite('Launch Profile Tests', () => {
             const resultMap = new Map(result);
             assert.strictEqual(resultMap.get('VAR1'), 'base1');
             assert.strictEqual(resultMap.get('VAR2'), 'base2');
+        });
+
+        test('handles only run API environment without base or session', () => {
+            const runApiEnv = {
+                'VAR1': 'api1',
+                'VAR2': 'api2'
+            };
+
+            const result = mergeEnvironmentVariables(undefined, [], runApiEnv);
+
+            assert.strictEqual(result.length, 2);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'api1');
+            assert.strictEqual(resultMap.get('VAR2'), 'api2');
         });
     });
 
@@ -184,6 +339,7 @@ suite('Launch Profile Tests', () => {
 
         test('uses absolute working directory from launch profile', () => {
             const baseProfile: LaunchProfile = {
+                commandName: 'Project',
                 workingDirectory: path.join('C:', 'custom', 'working', 'dir')
             };
 
@@ -194,6 +350,7 @@ suite('Launch Profile Tests', () => {
 
         test('resolves relative working directory from launch profile', () => {
             const baseProfile: LaunchProfile = {
+                commandName: 'Project',
                 workingDirectory: 'custom'
             };
 
@@ -204,6 +361,7 @@ suite('Launch Profile Tests', () => {
 
         test('uses project directory when no working directory specified', () => {
             const baseProfile: LaunchProfile = {
+                commandName: 'Project'
             };
 
             const result = determineWorkingDirectory(projectPath, baseProfile);

@@ -159,12 +159,12 @@
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "aspire.workspaceHasAppHost && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "aspire.workspaceHasAppHost && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-3"
         }
       ],

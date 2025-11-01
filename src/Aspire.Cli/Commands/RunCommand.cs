@@ -138,13 +138,11 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var shouldBuildAppHostInExtension = await ShouldBuildAppHostInExtensionAsync(InteractionService, isSingleFileAppHost, cancellationToken);
-
             var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession));
 
             if (!watch)
             {
-                if (!isSingleFileAppHost || isExtensionHost)
+                if (!isSingleFileAppHost && !isExtensionHost)
                 {
                     var buildOptions = new DotNetCliRunnerInvocationOptions
                     {
@@ -152,17 +150,13 @@ internal sealed class RunCommand : BaseCommand
                         StandardErrorCallback = buildOutputCollector.AppendError,
                     };
 
-                    // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                    if (!shouldBuildAppHostInExtension)
-                    {
-                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
-                        if (buildExitCode != 0)
-                        {
-                            InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                            InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                            return ExitCodeConstants.FailedToBuildArtifacts;
-                        }
+                    if (buildExitCode != 0)
+                    {
+                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
                     }
                 }
             }
@@ -224,7 +218,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await InteractionService.ShowStatusAsync(shouldBuildAppHostInExtension ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
+            var backchannel = await InteractionService.ShowStatusAsync(isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
@@ -490,12 +484,5 @@ internal sealed class RunCommand : BaseCommand
 
             _resourceStates[resourceState.Resource] = resourceState;
         }
-    }
-
-    private static async Task<bool> ShouldBuildAppHostInExtensionAsync(IInteractionService interactionService, bool isSingleFileAppHost, CancellationToken cancellationToken)
-    {
-        return ExtensionHelper.IsExtensionHost(interactionService, out _, out var extensionBackchannel)
-                        && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken)
-                        && !isSingleFileAppHost;
     }
 }

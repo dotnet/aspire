@@ -82,5 +82,6 @@
   "aspire-vscode.strings.invalidOrMissingToken": "Invalid or missing token in Authorization header.",
   "aspire-vscode.strings.invalidTokenLength": "Invalid token length in Authorization header.",
   "aspire-vscode.strings.authorizationHeaderMustStartWithBearer": "Authorization header must start with 'Bearer '.",
-  "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required."
+  "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.",
+  "aspire-vscode.strings.buildFailedForProjectWithError": "Build failed for project {0} with error: {1}."
 }

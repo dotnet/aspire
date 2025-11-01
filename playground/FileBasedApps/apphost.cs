@@ -1,3 +1,7 @@
+/* Required SDK directive for Aspire CLI. This is only required in the Aspire repo itself.
+#:sdk Aspire.AppHost.Sdk
+*/
+
 // To run this app in this repo use the following command line to ensure latest changes are always picked up:
 // $ dotnet apphost.cs --no-cache
 
