@@ -85,7 +85,7 @@ When `RunAsContainer` is used, the resource inherits the standard Redis connecti
 | `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
 | `Azure` | Indicates this connection targets Azure (`true`) or a local container (`false`). |
 
-These properties are automatically injected into your application's environment variables or available to create custom values.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 

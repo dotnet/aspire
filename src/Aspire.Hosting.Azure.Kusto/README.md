@@ -34,7 +34,7 @@ When you reference Azure Kusto resources using `WithReference`, the following co
 | `Uri`         | The cluster endpoint URI, typically `https://<cluster-name>.<region>.kusto.windows.net/` (or the HTTP endpoint when using the emulator) |
 | `Azure`       | Indicates this is an Azure resource. This is `true` for Azure clusters and `false` when running the emulator |
 
-These properties are automatically injected into your application's environment variables or available to create custom values.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 

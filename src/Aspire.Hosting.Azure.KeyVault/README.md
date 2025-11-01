@@ -55,6 +55,8 @@ builder.AddProject<Projects.MyApp>("myapp")
        .WithReference(keyVault);
 ```
 
+Inside the the implementation of the application that depends on Key Vault (MyApp in this case) add the `Aspire.Azure.Security.KeyVault` package and follow the instructions in that package README to use the connection string that was injected by the code above.
+
 ## Connection Properties
 
 When you reference Azure Key Vault resources using `WithReference`, the following connection properties are made available to the consuming project:
@@ -64,9 +66,7 @@ When you reference Azure Key Vault resources using `WithReference`, the followin
 | `Uri`         | The Key Vault endpoint URI, typically `https://<vault-name>.vault.azure.net/` |
 | `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
-These properties are automatically injected into your application's environment variables or available to create custom values.
-
-Inside the the implementation of the application that depends on Key Vault (MyApp in this case) add the `Aspire.Azure.Security.KeyVault` package and follow the instructions in that package README to use the connection string that was injected by the code above.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ### Customizing the Azure Key Vault resource
 
