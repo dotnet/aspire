@@ -56,7 +56,7 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
             ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
 
     /// <summary>
-    /// Gets the JDBC connection string for the Azure Flexible Postgres Flexible Server.
+    /// Gets the JDBC connection string for the Azure Postgres Flexible Server database.
     /// </summary>
     /// <remarks>
     /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
