@@ -55,17 +55,6 @@ public partial class GitHubModel
     }
 
     /// <summary>
-    /// Models published by Core42.
-    /// </summary>
-    public static partial class Core42
-    {
-        /// <summary>
-        /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
-        /// </summary>
-        public static readonly GitHubModel Jais30bChat = new() { Id = "core42/jais-30b-chat" };
-    }
-
-    /// <summary>
     /// Models published by DeepSeek.
     /// </summary>
     public static partial class DeepSeek
@@ -179,19 +168,9 @@ public partial class GitHubModel
         public static readonly GitHubModel Ministral3B = new() { Id = "mistral-ai/ministral-3b" };
 
         /// <summary>
-        /// Mistral Large 24.11 offers enhanced system prompts, advanced reasoning and function calling capabilities.
-        /// </summary>
-        public static readonly GitHubModel MistralLarge2411 = new() { Id = "mistral-ai/mistral-large-2411" };
-
-        /// <summary>
         /// Mistral Medium 3 is an advanced Large Language Model (LLM) with state-of-the-art reasoning, knowledge, coding and vision capabilities.
         /// </summary>
         public static readonly GitHubModel MistralMedium32505 = new() { Id = "mistral-ai/mistral-medium-2505" };
-
-        /// <summary>
-        /// Mistral Nemo is a cutting-edge Language Model (LLM) boasting state-of-the-art reasoning, world knowledge, and coding capabilities within its size category.
-        /// </summary>
-        public static readonly GitHubModel MistralNemo = new() { Id = "mistral-ai/mistral-nemo" };
 
         /// <summary>
         /// Enhanced Mistral Small 3 with multimodal capabilities and a 128k context length.
