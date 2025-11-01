@@ -29,6 +29,7 @@ internal static class KnownProperties
         public const string ParentName = "resource.parentName";
         public const string AppArgs = "resource.appArgs";
         public const string AppArgsSensitivity = "resource.appArgsSensitivity";
+        public const string ExcludeFromMcp = "resource.excludeFromMcp";
     }
 
     public static class Container

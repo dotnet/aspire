@@ -581,4 +581,9 @@ internal static class AIHelpers
 
         return $"Returned latest {itemName.ToQuantity(returnedCount, formatProvider: CultureInfo.InvariantCulture)}. Earlier {itemName.ToQuantity(totalValues - returnedCount, formatProvider: CultureInfo.InvariantCulture)} not returned because of size limits.";
     }
+
+    public static bool IsResourceAIOptOut(ResourceViewModel r)
+    {
+        return r.Properties.TryGetValue(KnownProperties.Resource.ExcludeFromMcp, out var v) && v.Value.TryConvertToBool(out var b) && b;
+    }
 }
