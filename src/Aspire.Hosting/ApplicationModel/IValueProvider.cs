@@ -9,9 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 public class ValueProviderContext
 {
     /// <summary>
-    /// Additional services that can be used during value resolution.
+    /// The execution context for the distributed application.
     /// </summary>
-    public IServiceProvider? Services { get; init; }
+    public DistributedApplicationExecutionContext? ExecutionContext { get; init; }
 
     /// <summary>
     /// The resource that is requesting the value.

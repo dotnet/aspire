@@ -23,22 +23,12 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        return this.GetNetworkValueAsync(null, cancellationToken);
+        return Resource.GetValueAsync(cancellationToken);
     }
 
-    ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
+    async ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
-        return context.Network switch
-        {
-            NetworkIdentifier networkContext => GetNetworkValueAsync(networkContext, cancellationToken),
-            _ => GetNetworkValueAsync(null, cancellationToken)
-        };
-    }
-
-    private async ValueTask<string?> GetNetworkValueAsync(NetworkIdentifier? networkContext, CancellationToken cancellationToken)
-    {
-        ValueProviderContext vpc = new() { Network = networkContext };
-        var value = await Resource.GetValueAsync(vpc, cancellationToken).ConfigureAwait(false);
+        var value = await Resource.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
 
         if (string.IsNullOrEmpty(value) && !Optional)
         {

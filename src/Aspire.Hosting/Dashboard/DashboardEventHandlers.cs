@@ -612,26 +612,26 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         static ReferenceExpression GetTargetUrlExpression(EndpointReference e) =>
             ReferenceExpression.Create($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
 
-        var otlpGrpc = dashboardResource.GetEndpoint(OtlpGrpcEndpointName);
+        var otlpGrpc = dashboardResource.GetEndpoint(OtlpGrpcEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
         if (otlpGrpc.Exists)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = GetTargetUrlExpression(otlpGrpc);
         }
 
-        var otlpHttp = dashboardResource.GetEndpoint(OtlpHttpEndpointName);
+        var otlpHttp = dashboardResource.GetEndpoint(OtlpHttpEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
         if (otlpHttp.Exists)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = GetTargetUrlExpression(otlpHttp);
         }
 
-        var mcp = dashboardResource.GetEndpoint(McpEndpointName);
+        var mcp = dashboardResource.GetEndpoint(McpEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
         if (!mcp.Exists)
         {
             // Fallback to frontend https or http endpoint if not configured.
-            mcp = dashboardResource.GetEndpoint("https");
+            mcp = dashboardResource.GetEndpoint("https", KnownNetworkIdentifiers.LocalhostNetwork);
             if (!mcp.Exists)
             {
-                mcp = dashboardResource.GetEndpoint("http");
+                mcp = dashboardResource.GetEndpoint("http", KnownNetworkIdentifiers.LocalhostNetwork);
             }
         }
 
@@ -644,7 +644,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUrlName.EnvVarName] = GetTargetUrlExpression(mcp);
         }
 
-        var frontendEndpoints = dashboardResource.GetEndpoints().ToList();
+        var frontendEndpoints = dashboardResource.GetEndpoints(KnownNetworkIdentifiers.LocalhostNetwork).ToList();
         var aspnetCoreUrls = new ReferenceExpressionBuilder();
         var first = true;
 

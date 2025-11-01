@@ -168,7 +168,7 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
-        
+
         return builder;
     }
 
