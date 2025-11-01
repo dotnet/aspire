@@ -46,7 +46,7 @@ public class ConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                Assert.Equal("jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}", property.Value.ValueExpression);
+                Assert.Equal("jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}?user={user.value}&password={password.value}", property.Value.ValueExpression);
             });
     }
 
@@ -72,6 +72,6 @@ public class ConnectionPropertiesTests
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&
-                        property.Value.ValueExpression == "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/Customers");
+                        property.Value.ValueExpression == "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/Customers?user={user.value}&password={password.value}");
     }
 }

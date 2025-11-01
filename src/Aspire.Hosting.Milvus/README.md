@@ -23,7 +23,33 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(milvus);
 ```
 
+## Connection Properties
+
+When you reference a Milvus resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Milvus server
+
+The Milvus server resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname or IP address of the Milvus server |
+| `Port` | The gRPC port exposed by the Milvus server |
+| `Token` | The authentication token, with the format `root:{ApiKey}` |
+| `Uri` | The gRPC endpoint URI, with the format `http://{Host}:{Port}` |
+
+### Milvus database
+
+The Milvus database resource combines the server properties above and adds the following connection property:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Database` | The Milvus database name |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+
 ## Additional documentation
+
 * https://milvus.io/docs
 
 ## Feedback & contributing

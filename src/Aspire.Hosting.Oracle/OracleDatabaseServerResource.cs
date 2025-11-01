@@ -59,6 +59,15 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// </remarks>
     public ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
+    /// <summary>
+    /// Gets the connection URI expression for the Oracle server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>oracle://{user}:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"oracle://{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
@@ -105,6 +114,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
         yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }
