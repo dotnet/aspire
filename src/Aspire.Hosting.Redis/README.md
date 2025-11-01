@@ -23,6 +23,23 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(redis);
 ```
 
+## Connection Properties
+
+When you reference a Redis resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Redis
+
+The Redis resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname or IP address of the Redis server |
+| `Port` | The port number the Redis server is listening on |
+| `Password` | The password for authentication |
+| `Uri` | The connection URI, with the format `redis://:{Password}@{Host}:{Port}` |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-component
