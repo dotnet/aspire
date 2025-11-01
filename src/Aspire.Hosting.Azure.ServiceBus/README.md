@@ -53,6 +53,46 @@ The `WithReference` method passes that connection information into a connection 
 builder.AddAzureServiceBusClient("sb");
 ```
 
+## Connection Properties
+
+When you reference Azure Service Bus resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Service Bus namespace
+
+The Service Bus namespace resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname of the Service Bus namespace |
+| `Uri` | The connection URI, with the format `sb://myservicebus.servicebus.windows.net` |
+| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
+
+### Service Bus queue
+
+The Service Bus queue resource inherits all properties from its parent Service Bus namespace and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `QueueName` | The name of the queue |
+
+### Service Bus topic
+
+The Service Bus topic resource inherits all properties from its parent Service Bus namespace and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `TopicName` | The name of the topic |
+
+### Service Bus subscription
+
+The Service Bus subscription resource inherits all properties from its parent Service Bus topic and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `SubscriptionName` | The name of the subscription |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/README.md

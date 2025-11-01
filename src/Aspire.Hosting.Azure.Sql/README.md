@@ -54,6 +54,33 @@ The `WithReference` method configures a connection in the `MyService` project na
 builder.AddSqlServerClient("sqldata");
 ```
 
+## Connection Properties
+
+When you reference Azure SQL Server resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Azure SQL Server resource
+
+The Azure SQL Server resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The fully qualified domain name of the Azure SQL Server |
+| `Port` | The SQL Server port (`1433`) |
+| `Uri` | The connection URI, with the format `mssql://{Host}:{Port}` |
+| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when using a container) |
+
+### Azure SQL database resource
+
+The Azure SQL database resource inherits all properties from its parent Azure SQL Server resource and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Database` | The name of the database |
+| `Uri` | The connection URI, with the format `mssql://{Host}:{Port}/{DatabaseName}` |
+| `JdbcConnectionString` | JDBC connection string with the format `jdbc:sqlserver://{Host}:{Port};database={DatabaseName};authentication=ActiveDirectoryDefault`; |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Azure SQL DB defaults
 
 Unless otherwise specified, the Azure SQL DB created will be a 2vCores General Purpose Serverless database (GP_S_Gen5_2) with the free offer enabled.

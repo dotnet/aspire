@@ -53,6 +53,16 @@ The `WithReference` method passes that connection information into a connection 
 builder.AddAzureSearchClient("search");
 ```
 
+## Connection Properties
+
+When you reference an Azure AI Search service using `WithReference`, the following connection properties are made available to the consuming project:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The HTTPS endpoint of the Azure AI Search service in the format `https://{name}.search.windows.net`. |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/search/search-howto-dotnet-sdk

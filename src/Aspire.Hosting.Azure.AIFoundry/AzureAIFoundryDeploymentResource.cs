@@ -94,4 +94,21 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     public ReferenceExpression ConnectionStringExpression => Parent.IsEmulator
         ? ReferenceExpression.Create($"{Parent};Model={ModelId ?? ModelName}")
         : ReferenceExpression.Create($"{Parent};Deployment={DeploymentName}");
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        foreach (var property in ((IResourceWithConnectionString)Parent).GetConnectionProperties())
+        {
+            yield return property;
+        }
+
+        if (Parent.IsEmulator)
+        {
+            yield return new("Model", ReferenceExpression.Create($"{ModelId ?? ModelName}"));
+        }
+        else
+        {
+            yield return new("Deployment", ReferenceExpression.Create($"{DeploymentName}"));
+        }
+    }
 }

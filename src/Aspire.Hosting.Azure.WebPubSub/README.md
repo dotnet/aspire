@@ -27,6 +27,16 @@ var web = builder.AddProject<Projects.WebPubSubWeb>("webfrontend")
                        .WithReference(wps);
 ```
 
+## Connection Properties
+
+When you reference an Azure Web PubSub resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The HTTPS endpoint for the Web PubSub service, typically `https://<resource-name>.webpubsub.azure.com/` |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md

@@ -35,6 +35,18 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the connection URI expression for the AI Foundry endpoint.
+    /// </summary>
+    /// <remarks>
+    /// In emulator mode, resolves to the emulator service URI.
+    /// In Azure mode, resolves to the Azure AI Foundry endpoint.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        IsEmulator && EmulatorServiceUri is not null ?
+            ReferenceExpression.Create($"{EmulatorServiceUri.ToString()}") :
+            ReferenceExpression.Create($"{Endpoint}");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
@@ -91,5 +103,11 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
         ArgumentNullException.ThrowIfNull(deployment);
 
         _deployments.Add(deployment);
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
+        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }

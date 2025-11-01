@@ -54,6 +54,17 @@ builder.Services.AddSignalR()
     .AddNamedAzureSignalR("sr");
 ```
 
+## Connection Properties
+
+When you reference an Azure SignalR resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The connection URI for the SignalR service, with the format `https://{host}` in Azure (typically `https://<resource-name>.service.signalr.net`) or the emulator-provided endpoint when running locally |
+| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md

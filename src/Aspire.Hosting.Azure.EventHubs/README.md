@@ -53,6 +53,38 @@ The `WithReference` method passes that connection information into a connection 
 builder.AddAzureEventProcessorClient("eh");
 ```
 
+## Connection Properties
+
+When you reference Azure Event Hubs resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Event Hubs namespace
+
+The Event Hubs namespace resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host`        | The hostname of the Event Hubs namespace |
+| `Uri`         | The connection URI for the Event Hubs namespace, with the format `sb://myeventhubs.servicebus.windows.net` |
+| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
+
+### Event Hub
+
+The Event Hub resource inherits all properties from its parent Event Hubs namespace and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `EventHubName` | The name of the event hub |
+
+### Event Hub consumer group
+
+The Event Hub consumer group resource inherits all properties from its parent Event Hub and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `ConsumerGroup` | The name of the consumer group |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Microsoft.Azure.EventHubs/README.md

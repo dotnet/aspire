@@ -76,7 +76,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// </summary>
     /// <remarks>
     /// In container mode, resolves to the container's primary endpoint host and port.
-    /// In Azure mode, resolves to the Azure Redis server's hostname.
+    /// In Azure mode, resolves to the Azure Redis server'shostname.
     /// </remarks>
     public ReferenceExpression HostName =>
         InnerResource is not null ?
@@ -93,7 +93,17 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     public ReferenceExpression? Password =>
         InnerResource is not null && InnerResource.PasswordParameter is not null ?
             ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
-            null;
+        null;
+
+    /// <summary>
+    /// Gets the connection URI expression for the Redis server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>redis://[:{password}@]{host}:{port}</c>. The password segment is omitted when using Entra ID authentication in Azure mode.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        InnerResource?.UriExpression ??
+            ReferenceExpression.Create($"redis://{HostName}");
 
     internal void SetInnerResource(RedisResource innerResource)
     {
@@ -170,5 +180,22 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
             AccessPolicyName = "default",
             UserObjectId = principalId
         });
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        if (InnerResource is not null)
+        {
+            foreach (var property in ((IResourceWithConnectionString)InnerResource).GetConnectionProperties())
+            {
+                yield return property;
+            }
+            yield return new("Azure", ReferenceExpression.Create($"false"));
+            yield break;
+        }
+
+        yield return new("Host", HostName);
+        yield return new("Uri", UriExpression);
+        yield return new("Azure", ReferenceExpression.Create($"true"));
     }
 }

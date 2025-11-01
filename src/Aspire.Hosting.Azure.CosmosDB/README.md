@@ -69,6 +69,37 @@ When the AppHost starts up a local container running the Azure CosmosDB will als
 builder.AddAzureCosmosClient("cosmos");
 ```
 
+## Connection Properties
+
+When you reference Azure Cosmos DB resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Cosmos DB account
+
+The Cosmos DB account resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The account endpoint URI for the Cosmos DB account, with the format `https://mycosmosaccount.documents.azure.com:443/` |
+| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
+
+### Cosmos DB database
+
+The Cosmos DB database resource inherits all properties from its parent Cosmos DB account and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Database` | The name of the database |
+
+### Cosmos DB container
+
+The Cosmos DB container resource inherits all properties from its parent Cosmos DB database and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `ContainerName` | The name of the container |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-dotnet-v3

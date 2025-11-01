@@ -79,6 +79,30 @@ When the AppHost starts up the local foundry service also be started.
 
 This requires the local machine to have the [Foundry Local](https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started) installed and running.
 
+## Connection Properties
+
+When you reference Azure AI Foundry resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Azure AI Foundry resource
+
+The Azure AI Foundry resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri`         | The endpoint URI for the Azure AI Foundry resource |
+| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using Foundry Local) |
+
+### Azure AI Foundry deployment
+
+The Azure AI Foundry deployment resource inherits all properties from its parent Azure AI Foundry resource and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Deployment`  | The deployment name when targeting Azure |
+| `Model`       | The model identifier when running Foundry Local |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry

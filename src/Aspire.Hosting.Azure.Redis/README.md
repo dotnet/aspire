@@ -63,6 +63,30 @@ builder.AddRedisClient("cache", configureOptions: options =>
 });
 ```
 
+## Connection Properties
+
+When you reference Azure Redis resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Azure Cache for Redis
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname of the Azure Cache for Redis instance. |
+| `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
+| `Azure` | Indicates this connection targets Azure (`true`) or a local container (`false`). |
+
+When `RunAsContainer` is used, the resource inherits the standard Redis connection properties (`Host`, `Port`, optional `Password`, `Uri`) from `RedisResource` and reports `Azure` as `false`.
+
+### Azure Redis Enterprise
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname of the Azure Redis Enterprise database endpoint. |
+| `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
+| `Azure` | Indicates this connection targets Azure (`true`) or a local container (`false`). |
+
+These properties are automatically injected into your application's environment variables or available to create custom values.
+
 ## Additional documentation
 
 * https://stackexchange.github.io/StackExchange.Redis/Basics
