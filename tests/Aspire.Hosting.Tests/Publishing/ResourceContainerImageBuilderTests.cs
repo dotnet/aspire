@@ -893,4 +893,44 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         // Null parameter should resolve to null
         Assert.Null(fakeContainerRuntime.CapturedBuildSecrets["NULL_SECRET"]);
     }
+
+    [Fact]
+    public async Task DockerRuntimeSupportsMultiArchAsync()
+    {
+        // This test verifies that the SupportsMultiArchAsync method can be called
+        // We can't test the actual detection without a real Docker daemon
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        using var app = builder.Build();
+
+        var runtime = app.Services.GetRequiredService<IContainerRuntime>();
+        
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        
+        // Just verify the method can be called without throwing
+        // The actual result depends on the Docker configuration
+        var supportsMultiArch = await runtime.SupportsMultiArchAsync(cts.Token);
+        
+        // We can't assert the result since it depends on the environment
+        // but we can log it for diagnostic purposes
+        output.WriteLine($"Runtime {runtime.Name} supports multi-arch: {supportsMultiArch}");
+    }
+
+    [Fact]
+    public async Task FakeRuntimeSupportsMultiArch()
+    {
+        var fakeRuntime = new FakeContainerRuntime(shouldFail: false);
+        
+        using var cts = new CancellationTokenSource(TestConstants.DefaultTimeoutTimeSpan);
+        var supportsMultiArch = await fakeRuntime.SupportsMultiArchAsync(cts.Token);
+        
+        Assert.True(supportsMultiArch);
+        Assert.True(fakeRuntime.WasMultiArchCheckCalled);
+    }
 }

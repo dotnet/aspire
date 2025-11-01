@@ -111,4 +111,37 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
             return false;
         }
     }
+
+    public override async Task<bool> SupportsMultiArchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check if podman manifest command is available
+            var exitCode = await ExecuteContainerCommandWithExitCodeAsync(
+                "manifest --help",
+                "Podman manifest command failed with exit code {ExitCode}.",
+                "Podman manifest command is available.",
+                cancellationToken,
+                Array.Empty<object>()).ConfigureAwait(false);
+            
+            if (exitCode == 0)
+            {
+                Logger.LogDebug("Podman supports manifest commands. Multi-arch builds are supported.");
+                return true;
+            }
+            else
+            {
+                Logger.LogWarning(
+                    "Podman does not support manifest commands. " +
+                    "Multi-arch builds require manifest support. " +
+                    "Please ensure you are using a recent version of Podman.");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error checking Podman multi-arch support");
+            return false;
+        }
+    }
 }

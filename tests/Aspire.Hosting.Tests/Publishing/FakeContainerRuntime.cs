@@ -11,6 +11,7 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
 {
     public string Name => "fake-runtime";
     public bool WasHealthCheckCalled { get; private set; }
+    public bool WasMultiArchCheckCalled { get; private set; }
     public bool WasTagImageCalled { get; private set; }
     public bool WasRemoveImageCalled { get; private set; }
     public bool WasPushImageCalled { get; private set; }
@@ -26,6 +27,12 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
     public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
         WasHealthCheckCalled = true;
+        return Task.FromResult(!shouldFail);
+    }
+
+    public Task<bool> SupportsMultiArchAsync(CancellationToken cancellationToken)
+    {
+        WasMultiArchCheckCalled = true;
         return Task.FromResult(!shouldFail);
     }
 

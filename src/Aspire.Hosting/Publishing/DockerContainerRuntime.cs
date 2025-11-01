@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES003
 
+using System.Text.Json;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
@@ -170,6 +171,106 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
 
         // Then check if Docker buildx is available
         return await CheckDockerBuildxAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public override async Task<bool> SupportsMultiArchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var outputBuilder = new System.Text.StringBuilder();
+            
+            // Run docker info --format json to get Docker daemon information
+            var spec = new ProcessSpec(RuntimeExecutable)
+            {
+                Arguments = "info --format json",
+                OnOutputData = output => outputBuilder.AppendLine(output),
+                OnErrorData = _ => { },
+                ThrowOnNonZeroReturnCode = false,
+                InheritEnv = true,
+            };
+
+            Logger.LogDebug("Checking Docker multi-arch support using 'docker info --format json'");
+            
+            var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+            await using (processDisposable)
+            {
+                var processResult = await pendingProcessResult
+                    .WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (processResult.ExitCode != 0)
+                {
+                    Logger.LogWarning("Failed to get Docker info. Exit code: {ExitCode}", processResult.ExitCode);
+                    return false;
+                }
+
+                var dockerInfo = outputBuilder.ToString();
+                
+                // Parse JSON to check for containerd image store
+                try
+                {
+                    using var jsonDoc = JsonDocument.Parse(dockerInfo);
+                    var root = jsonDoc.RootElement;
+
+                    // Check if containerd is configured as the image store
+                    // The containerd image store is indicated by the presence of Containerd configuration
+                    if (root.TryGetProperty("DriverStatus", out var driverStatus) && driverStatus.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in driverStatus.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.Array && item.GetArrayLength() >= 2)
+                            {
+                                var key = item[0].GetString();
+                                var value = item[1].GetString();
+                                
+                                // Check for "Image store" entry which indicates containerd image store
+                                if (key == "Image store" && value == "containerd")
+                                {
+                                    Logger.LogDebug("Docker is configured with containerd image store. Multi-arch builds are supported.");
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    // If we have Containerd configuration with image store support, multi-arch is supported
+                    if (root.TryGetProperty("Containerd", out _))
+                    {
+                        // Check if we're using the containerd image store through the Driver field
+                        if (root.TryGetProperty("Driver", out var driver))
+                        {
+                            var driverValue = driver.GetString();
+                            // When containerd image store is enabled, the driver might be "containerd" or we need additional checks
+                            if (driverValue == "containerd")
+                            {
+                                Logger.LogDebug("Docker is using containerd driver. Multi-arch builds are supported.");
+                                return true;
+                            }
+                        }
+                    }
+
+                    // If containerd image store is not configured, log a warning
+                    Logger.LogWarning(
+                        "Docker does not appear to be configured with containerd image store. " +
+                        "Multi-arch builds require containerd image store to be enabled. " +
+                        "You can enable it in Docker Desktop settings under 'Features in development' > 'Use containerd for pulling and storing images'. " +
+                        "See https://docs.docker.com/engine/storage/containerd/ for more information.");
+                    
+                    return false;
+                }
+                catch (JsonException ex)
+                {
+                    Logger.LogWarning(ex, "Failed to parse Docker info JSON output");
+                    return false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error checking Docker multi-arch support");
+            return false;
+        }
     }
 
     private async Task<bool> CheckDockerDaemonAsync(CancellationToken cancellationToken)
