@@ -18,6 +18,7 @@ internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly string? _commandName;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -43,10 +44,11 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null, string? commandName = null)
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
+        _commandName = commandName;
 
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
@@ -268,17 +270,15 @@ internal sealed class ConsoleActivityLogger
     }
 
     private string? _finalStatusHeader;
-    private string? _commandName;
     private bool _pipelineSucceeded;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
     /// Optional usage so existing callers remain compatible.
     /// </summary>
-    public void SetFinalResult(bool succeeded, string? commandName = null)
+    public void SetFinalResult(bool succeeded)
     {
         _pipelineSucceeded = succeeded;
-        _commandName = commandName;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {
