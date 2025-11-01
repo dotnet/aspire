@@ -5,6 +5,8 @@
 #pragma warning disable ASPIREPIPELINES001
 
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
@@ -103,6 +105,11 @@ internal sealed class DockerComposePublishingContext(
                     File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
                 }
 
+                // Detect collisions before processing bind mounts and configs
+                var hasCollisions = DetectSourcePathCollisions(serviceResource);
+
+                HandleComposeFileBindMounts(serviceResource, hasCollisions);
+
                 var composeService = serviceResource.BuildComposeService();
 
                 HandleComposeFileVolumes(serviceResource, composeFile);
@@ -119,7 +126,7 @@ internal sealed class DockerComposePublishingContext(
                         var files = await a.Callback(new() { Model = serviceResource.TargetResource, ServiceProvider = executionContext.ServiceProvider }, CancellationToken.None).ConfigureAwait(false);
                         foreach (var file in files)
                         {
-                            HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath);
+                            HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath, hasCollisions);
                         }
                     }
                 }
@@ -173,13 +180,54 @@ internal sealed class DockerComposePublishingContext(
         }
     }
 
-    private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)
+    /// <summary>
+    /// Detects if there are source path collisions (same filename from different sources) for a service.
+    /// </summary>
+    /// <param name="serviceResource">The service resource to check for collisions.</param>
+    /// <returns>True if collisions are detected, false otherwise.</returns>
+    private static bool DetectSourcePathCollisions(DockerComposeServiceResource serviceResource)
+    {
+        var fileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        // Check bind mount sources
+        foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type == "bind" && !string.IsNullOrEmpty(volume.Source)))
+        {
+            if (File.Exists(volume.Source))
+            {
+                var fileName = Path.GetFileName(volume.Source);
+                if (!fileNames.Add(fileName))
+                {
+                    return true; // Collision detected
+                }
+            }
+            else if (Directory.Exists(volume.Source))
+            {
+                var dirName = Path.GetFileName(volume.Source.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (string.IsNullOrEmpty(dirName))
+                {
+                    dirName = "data"; // Default name for root paths
+                }
+                if (!fileNames.Add(dirName))
+                {
+                    return true; // Collision detected
+                }
+            }
+        }
+        
+        // Check container file sources (this would need to be implemented when we have access to the config files)
+        // For now, we can't easily check these until HandleComposeFileConfig is called
+        // So we'll be conservative and assume no collisions from this source for now
+        
+        return false; // No collisions detected
+    }
+
+    private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path, bool hasCollisions = false)
     {
         if (item is ContainerDirectory dir)
         {
             foreach (var dirItem in dir.Entries)
             {
-                HandleComposeFileConfig(composeFile, composeService, dirItem, item.Owner ?? uid, item.Group ?? gid, umask, path += "/" + item.Name);
+                HandleComposeFileConfig(composeFile, composeService, dirItem, item.Owner ?? uid, item.Group ?? gid, umask, path += "/" + item.Name, hasCollisions);
             }
 
             return;
@@ -195,14 +243,8 @@ internal sealed class DockerComposePublishingContext(
             {
                 try
                 {
-                    // Determine the path to copy the file to
-                    sourcePath = Path.Combine(OutputPath, composeService.Name, Path.GetFileName(file.SourcePath));
-                    // Files will be copied to a subdirectory named after the service
-                    Directory.CreateDirectory(Path.Combine(OutputPath, composeService.Name));
-                    File.Copy(file.SourcePath, sourcePath);
-                    // Use a relative path for the compose file to make it portable
-                    // Use unix style path separators even on Windows
-                    sourcePath = Path.GetRelativePath(OutputPath, sourcePath).Replace('\\', '/');
+                    // Use hash-based directories if collisions are detected
+                    sourcePath = CopySourceToOutput(composeService.Name, file.SourcePath, useHashBasedDir: hasCollisions);
                 }
                 catch
                 {
@@ -249,5 +291,141 @@ internal sealed class DockerComposePublishingContext(
 
             composeFile.AddVolume(newVolume);
         }
+    }
+
+    private void HandleComposeFileBindMounts(DockerComposeServiceResource serviceResource, bool hasCollisions = false)
+    {
+        // Get all skip annotations to check against
+        var skipAnnotations = serviceResource.TargetResource
+            .Annotations
+            .OfType<SkipBindMountCopyingAnnotation>()
+            .Select(annotation => annotation.SourcePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type == "bind"))
+        {
+            if (string.IsNullOrEmpty(volume.Source))
+            {
+                continue;
+            }
+
+            // Skip copying if there's an annotation for this source path
+            if (skipAnnotations.Contains(volume.Source))
+            {
+                continue;
+            }
+
+            if (File.Exists(volume.Source) || Directory.Exists(volume.Source))
+            {
+                try
+                {
+                    // Use hash-based directories if collisions are detected
+                    var copiedSourceRelativePath = CopySourceToOutput(serviceResource.Name, volume.Source, useHashBasedDir: hasCollisions);
+                    
+                    // Update the volume source to use relative path
+                    volume.Source = copiedSourceRelativePath;
+                }
+                catch (Exception ex)
+                {
+                    logger.FailedToCopyBindMountSource(ex, volume.Source);
+                    throw;
+                }
+            }
+            else
+            {
+                logger.BindMountSourceDoesNotExist(volume.Source);
+            }
+        }
+    }
+
+    private static void CopyDirectory(string sourceDir, string destDir)
+    {
+        // Create destination directory if it doesn't exist
+        Directory.CreateDirectory(destDir);
+
+        // Copy all files
+        foreach (string file in Directory.GetFiles(sourceDir))
+        {
+            string fileName = Path.GetFileName(file);
+            string destFile = Path.Combine(destDir, fileName);
+            File.Copy(file, destFile, overwrite: true);
+        }
+
+        // Copy all subdirectories recursively
+        foreach (string subDir in Directory.GetDirectories(sourceDir))
+        {
+            string subDirName = Path.GetFileName(subDir);
+            string destSubDir = Path.Combine(destDir, subDirName);
+            CopyDirectory(subDir, destSubDir);
+        }
+    }
+
+    /// <summary>
+    /// Copies a source file or directory to the output path with collision-aware directory structure.
+    /// Uses hash-based directories only when name collisions would occur.
+    /// </summary>
+    /// <param name="serviceName">Name of the service the source belongs to.</param>
+    /// <param name="sourcePath">Path to the source file or directory to copy.</param>
+    /// <param name="useHashBasedDir">Whether to always use hash-based directories to avoid collisions.</param>
+    /// <returns>Relative path to the copied source that can be used in docker-compose.yaml.</returns>
+    private string CopySourceToOutput(string serviceName, string sourcePath, bool useHashBasedDir = false)
+    {
+        var serviceDir = Path.Combine(OutputPath, serviceName);
+        Directory.CreateDirectory(serviceDir);
+
+        string destinationDir;
+        if (useHashBasedDir)
+        {
+            // Use hash-based directory to avoid name collisions
+            var sourceHash = GenerateSourceHash(sourcePath);
+            destinationDir = Path.Combine(serviceDir, sourceHash);
+        }
+        else
+        {
+            // Use service directory directly for backward compatibility
+            destinationDir = serviceDir;
+        }
+
+        Directory.CreateDirectory(destinationDir);
+
+        string copiedSourcePath;
+        if (File.Exists(sourcePath))
+        {
+            // Handle file
+            var fileName = Path.GetFileName(sourcePath);
+            copiedSourcePath = Path.Combine(destinationDir, fileName);
+            File.Copy(sourcePath, copiedSourcePath, overwrite: true);
+        }
+        else if (Directory.Exists(sourcePath))
+        {
+            // Handle directory
+            var sourceDirName = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (string.IsNullOrEmpty(sourceDirName))
+            {
+                // If the source is a root path, use a generic folder name
+                sourceDirName = "data";
+            }
+            
+            copiedSourcePath = Path.Combine(destinationDir, sourceDirName);
+            CopyDirectory(sourcePath, copiedSourcePath);
+        }
+        else
+        {
+            throw new FileNotFoundException($"Source path does not exist: {sourcePath}");
+        }
+
+        // Return relative path with unix-style separators for docker-compose compatibility
+        return Path.GetRelativePath(OutputPath, copiedSourcePath).Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// Generates a short hash from the source path to create unique directory names.
+    /// </summary>
+    private static string GenerateSourceHash(string sourcePath)
+    {
+        var normalizedPath = Path.GetFullPath(sourcePath).ToLowerInvariant();
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
+        // Use first 8 characters of the hash for a short but unique directory name
+        return Convert.ToHexString(hashBytes)[..8].ToLowerInvariant();
     }
 }
