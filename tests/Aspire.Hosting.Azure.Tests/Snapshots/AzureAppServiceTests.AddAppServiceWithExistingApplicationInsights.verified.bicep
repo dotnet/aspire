@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param userPrincipalId string = ''
@@ -36,8 +36,10 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: take('envasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
+    elasticScaleEnabled: false
     perSiteScaling: true
     reserved: true
+    maximumElasticWorkerCount: 10
   }
   kind: 'Linux'
   sku: {
@@ -115,6 +117,8 @@ resource dashboard 'Microsoft.Web/sites@2024-11-01' = {
       alwaysOn: true
       http20Enabled: true
       http20ProxyFlag: 1
+      functionAppScaleLimit: 1
+      elasticWebAppScaleLimit: 1
     }
   }
   identity: {

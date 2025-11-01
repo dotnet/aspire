@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param userPrincipalId string = ''
@@ -34,8 +34,8 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: take('envasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
-    elasticScaleEnabled: false
-    perSiteScaling: true
+    elasticScaleEnabled: true
+    perSiteScaling: false
     reserved: true
     maximumElasticWorkerCount: 10
   }
@@ -128,27 +128,6 @@ resource dashboard 'Microsoft.Web/sites@2024-11-01' = {
   kind: 'app,linux,aspiredashboard'
 }
 
-resource env_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
-  name: take('envlaw-${uniqueString(resourceGroup().id)}', 63)
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-}
-
-resource env_ai 'Microsoft.Insights/components@2020-02-02' = {
-  name: take('env_ai-${uniqueString(resourceGroup().id)}', 260)
-  kind: 'web'
-  location: location
-  properties: {
-    Application_Type: 'web'
-    IngestionMode: 'LogAnalytics'
-    WorkspaceResourceId: env_law.id
-  }
-}
-
 output name string = env_asplan.name
 
 output planId string = env_asplan.id
@@ -168,7 +147,3 @@ output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID string = env_contributor_mi
 output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID string = env_contributor_mi.properties.principalId
 
 output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
-
-output AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY string = env_ai.properties.InstrumentationKey
-
-output AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING string = env_ai.properties.ConnectionString
