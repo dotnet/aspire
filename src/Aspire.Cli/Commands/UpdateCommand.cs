@@ -130,7 +130,8 @@ internal sealed class UpdateCommand : BaseCommand
                 
                 if (shouldUpdateCli)
                 {
-                    return await ExecuteSelfUpdateAsync(parseResult, cancellationToken);
+                    // Use the same channel that was selected for the project update
+                    return await ExecuteSelfUpdateAsync(parseResult, cancellationToken, channel.Name);
                 }
             }
         }
@@ -166,9 +167,9 @@ internal sealed class UpdateCommand : BaseCommand
         return 0;
     }
 
-    private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken, string? selectedQuality = null)
     {
-        var quality = parseResult.GetValue<string?>("--quality");
+        var quality = selectedQuality ?? parseResult.GetValue<string?>("--quality");
 
         // If quality is not specified, prompt the user
         if (string.IsNullOrEmpty(quality))
