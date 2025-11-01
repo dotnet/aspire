@@ -292,7 +292,7 @@ internal sealed class DcpHost
 
             // Map DCP log levels to Debug/Trace to reduce noise in AppHost output.
             // DCP errors are now flowing to resources and can be hidden from output,
-            // so we log them at Debug/Trace level instead of using the original DCP log level.
+            // so we log them at Debug or Trace level instead of using the original DCP log level.
             var appHostLogLevel = logLevel == LogLevel.Trace ? LogLevel.Trace : LogLevel.Debug;
 
             return (logger, appHostLogLevel, parsedMessage);
