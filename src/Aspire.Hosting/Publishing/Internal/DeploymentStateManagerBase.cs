@@ -76,9 +76,6 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// <param name="source">The flattened JsonObject to unflatten.</param>
     /// <returns>An unflattened JsonObject with nested structure.</returns>
     public static JsonObject UnflattenJsonObject(JsonObject source) => JsonFlattener.UnflattenJsonObject(source);
-            }
-        }
-    }
 
     /// <summary>
     /// Loads the deployment state from storage, using caching to avoid repeated loads.
