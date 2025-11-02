@@ -10,6 +10,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" Link="Process\ProcessResult.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Process\ProcessSpec.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Process\ProcessUtil.cs" />
+    <Compile Include="$(SharedDir)CustomResourceSnapshotExtensions.cs" Link="Utils\CustomResourceSnapshotExtensions.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)Model\KnownRelationshipTypes.cs" />
   </ItemGroup>
 
   <ItemGroup>

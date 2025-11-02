@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES004
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using System.Diagnostics;
 using System.Reflection;

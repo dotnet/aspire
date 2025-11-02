@@ -111,8 +111,6 @@
     <InternalsVisibleTo Include="Aspire.Hosting.Containers.Tests" />
     <InternalsVisibleTo Include="Aspire.TestUtilities" />
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure" />
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
 
 </Project>

@@ -4,6 +4,7 @@
 using Aspire.Hosting.Publishing;
 
 #pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 namespace Aspire.Hosting.Tests.Publishing;
 
