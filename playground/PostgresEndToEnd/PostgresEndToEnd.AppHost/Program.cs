@@ -11,6 +11,29 @@ builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db1).WaitFor(db1);
 
+// Python (Flask)
+builder.AddPythonModule("pythonservice", "../PostgresEndToEnd.PythonService", "flask")
+       .WithEnvironment("FLASK_APP", "app:app")
+       .WithArgs("run", "--host=0.0.0.0")
+       .WithHttpEndpoint(targetPort: 5000, env: "FLASK_RUN_PORT")
+       .WithReference(db1)
+       .WaitFor(db1)
+       .WithExternalHttpEndpoints();
+
+// NodeJS (TypeScript)
+builder.AddNodeApp("nodeservice", "../PostgresEndToEnd.NodeService", "app.ts")
+       .WithHttpEndpoint(env: "PORT")
+       .WithReference(db1)
+       .WaitFor(db1)
+       .WithExternalHttpEndpoints();
+
+// Java - Using AddExecutable for Java Spark application
+builder.AddExecutable("javaservice", "java", "../PostgresEndToEnd.JavaService", "-jar", "target/javaservice.jar")
+       .WithHttpEndpoint(env: "PORT")
+       .WithReference(db1)
+       .WaitFor(db1)
+       .WithExternalHttpEndpoints();
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
