@@ -56,7 +56,7 @@ internal sealed class UpdateCommand : BaseCommand
         Options.Add(projectOption);
 
         // Only add --self option if not running as dotnet tool
-        if (!CliExecutionContext.IsRunningAsDotNetTool())
+        if (!executionContext.IsRunningAsDotNetTool())
         {
             var selfOption = new Option<bool>("--self");
             selfOption.Description = "Update the Aspire CLI itself to the latest version";

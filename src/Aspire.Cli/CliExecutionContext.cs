@@ -42,7 +42,8 @@ internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, Direct
     /// <returns>
     /// <c>true</c> if the CLI is running as a dotnet tool; otherwise, <c>false</c> if running as a native binary.
     /// </returns>
-    public static bool IsRunningAsDotNetTool()
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Needs to be instance method to allow mocking in tests")]
+    public bool IsRunningAsDotNetTool()
     {
         // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
         // When running as a native binary, it points to "aspire" or "aspire.exe"
