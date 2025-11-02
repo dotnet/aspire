@@ -97,6 +97,7 @@ internal static partial class ProcessUtil
             if (processSpec.StandardInputContent != null)
             {
                 process.StandardInput.WriteLine(processSpec.StandardInputContent);
+                process.StandardInput.Flush();
                 process.StandardInput.Close();
             }
             

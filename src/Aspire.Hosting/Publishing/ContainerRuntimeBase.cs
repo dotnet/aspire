@@ -78,7 +78,10 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public virtual async Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
     {
-        var arguments = $"login \"{registryServer}\" --username \"{username}\" --password-stdin";
+        // Escape quotes in arguments to prevent command injection
+        var escapedRegistryServer = registryServer.Replace("\"", "\\\"");
+        var escapedUsername = username.Replace("\"", "\\\"");
+        var arguments = $"login \"{escapedRegistryServer}\" --username \"{escapedUsername}\" --password-stdin";
         
         var spec = new ProcessSpec(RuntimeExecutable)
         {
