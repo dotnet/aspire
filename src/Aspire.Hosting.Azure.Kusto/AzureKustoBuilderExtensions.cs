@@ -321,7 +321,7 @@ public static class AzureKustoBuilderExtensions
             commandOptions: new CommandOptions
             {
                 UpdateState = UpdateStateDesktop,
-                IconName = "ServerLink"
+                IconName = "DatabaseSearch"
             });
 
         resourceBuilder.WithCommand(
@@ -331,7 +331,7 @@ public static class AzureKustoBuilderExtensions
             commandOptions: new CommandOptions
             {
                 UpdateState = context => UpdateStateWeb(resourceBuilder, context),
-                IconName = "ServerLink"
+                IconName = "DatabaseSearch"
             });
 
         static ResourceCommandState UpdateStateDesktop(UpdateCommandStateContext context)
