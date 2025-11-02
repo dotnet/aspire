@@ -6,7 +6,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure.Core;
@@ -51,8 +50,8 @@ internal static class AzureEnvironmentResourceHelpers
 
             logger.LogDebug("Logging in to registry {RegistryEndpoint} using container runtime {RuntimeName}", registryEndpoint, containerRuntime.Name);
 
-            // Login to the registry using the container runtime with custom logging
-            await LoginToRegistryWithLoggingAsync(containerRuntime, registryEndpoint, AcrUsername, accessToken.Token, logger, cancellationToken).ConfigureAwait(false);
+            // Login to the registry using the container runtime
+            await containerRuntime.LoginToRegistryAsync(registryEndpoint, AcrUsername, accessToken.Token, cancellationToken).ConfigureAwait(false);
 
             await loginTask.CompleteAsync($"Successfully logged in to **{registryEndpoint}**", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         }
@@ -60,45 +59,6 @@ internal static class AzureEnvironmentResourceHelpers
         {
             await loginTask.FailAsync($"Login to ACR **{registryEndpoint}** failed: {ex.Message}", cancellationToken: cancellationToken).ConfigureAwait(false);
             throw;
-        }
-    }
-
-    private static async Task LoginToRegistryWithLoggingAsync(IContainerRuntime containerRuntime, string registryServer, string username, string password, ILogger logger, CancellationToken cancellationToken)
-    {
-        var arguments = $"login \"{registryServer}\" --username \"{username}\" --password-stdin";
-        
-        var spec = new ProcessSpec(containerRuntime is DockerContainerRuntime ? "docker" : "podman")
-        {
-            Arguments = arguments,
-            StandardInputContent = password,
-            OnOutputData = output =>
-            {
-                logger.LogDebug("{RuntimeName} login (stdout): {Output}", containerRuntime.Name, output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogDebug("{RuntimeName} login (stderr): {Error}", containerRuntime.Name, error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-        
-        logger.LogDebug("Running {RuntimeName} login to registry: {RegistryServer}", containerRuntime.Name, registryServer);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", containerRuntime.Name, registryServer, processResult.ExitCode);
-                throw new DistributedApplicationException($"{containerRuntime.Name} login failed with exit code {processResult.ExitCode}.");
-            }
-
-            logger.LogDebug("{RuntimeName} login to {RegistryServer} succeeded.", containerRuntime.Name, registryServer);
         }
     }
 
