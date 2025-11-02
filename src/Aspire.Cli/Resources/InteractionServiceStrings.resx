@@ -201,8 +201,8 @@
     <value>Waiting for debugger to attach to app host process</value>
   </data>
   <data name="NewCliVersionAvailable" xml:space="preserve">
-    <value>[yellow]A new version of the Aspire CLI is available: {0}. Use {1} to update.[/]</value>
-    <comment>Do not translate [yellow] and also leave [/] as-is. {0} is the version number, {1} is the update command</comment>
+    <value>[yellow]A new version of the Aspire CLI is available: {0}. Use [white]{1}[/] to update.[/]</value>
+    <comment>Do not translate [yellow], [white], or [/]. {0} is the version number, {1} is the update command</comment>
   </data>
   <data name="MoreInfoNewCliVersion" xml:space="preserve">
     <value>[dim]For more information, see: [link]{0}[/][/]</value>
