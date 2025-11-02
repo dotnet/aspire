@@ -9,8 +9,9 @@ using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
+using Azure.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -19,64 +20,86 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 internal static class AzureEnvironmentResourceHelpers
 {
+    private const string AcrUsername = "00000000-0000-0000-0000-000000000000";
+    private const string AcrScope = "https://containerregistry.azure.com/.default";
+
     public static async Task LoginToRegistryAsync(IContainerRegistry registry, PipelineStepContext context)
     {
-        var processRunner = context.Services.GetRequiredService<IProcessRunner>();
-        var configuration = context.Services.GetRequiredService<IConfiguration>();
+        var containerRuntime = context.Services.GetRequiredService<IContainerRuntime>();
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                          throw new InvalidOperationException("Failed to retrieve container registry information.");
+        
+        var registryEndpoint = await registry.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
+                              throw new InvalidOperationException("Failed to retrieve container registry endpoint.");
 
         var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
         await using (loginTask.ConfigureAwait(false))
         {
-            await AuthenticateToAcrHelper(loginTask, registryName, context.CancellationToken, processRunner, configuration).ConfigureAwait(false);
+            await AuthenticateToAcrHelper(loginTask, registryEndpoint, containerRuntime, tokenCredentialProvider.TokenCredential, context.Logger, context.CancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static async Task AuthenticateToAcrHelper(IReportingTask loginTask, string registryName, CancellationToken cancellationToken, IProcessRunner processRunner, IConfiguration configuration)
+    private static async Task AuthenticateToAcrHelper(IReportingTask loginTask, string registryEndpoint, IContainerRuntime containerRuntime, TokenCredential credential, ILogger logger, CancellationToken cancellationToken)
     {
-        var command = BicepCliCompiler.FindFullPathFromPath("az") ?? throw new InvalidOperationException("Failed to find 'az' command");
         try
         {
-            var loginSpec = new ProcessSpec(command)
-            {
-                Arguments = $"acr login --name {registryName}",
-                ThrowOnNonZeroReturnCode = false
-            };
+            // Acquire access token for Azure Container Registry
+            var tokenRequestContext = new TokenRequestContext([AcrScope]);
+            var accessToken = await credential.GetTokenAsync(tokenRequestContext, cancellationToken).ConfigureAwait(false);
 
-            // Set DOCKER_COMMAND environment variable if using podman
-            var containerRuntime = GetContainerRuntime(configuration);
-            if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
-            {
-                loginSpec.EnvironmentVariables["DOCKER_COMMAND"] = "podman";
-            }
+            logger.LogDebug("Logging in to registry {RegistryEndpoint} using container runtime {RuntimeName}", registryEndpoint, containerRuntime.Name);
 
-            var (pendingResult, processDisposable) = processRunner.Run(loginSpec);
-            await using (processDisposable.ConfigureAwait(false))
-            {
-                var result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // Login to the registry using the container runtime with custom logging
+            await LoginToRegistryWithLoggingAsync(containerRuntime, registryEndpoint, AcrUsername, accessToken.Token, logger, cancellationToken).ConfigureAwait(false);
 
-                if (result.ExitCode != 0)
-                {
-                    await loginTask.FailAsync($"Login to ACR **{registryName}** failed with exit code {result.ExitCode}", cancellationToken: cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    await loginTask.CompleteAsync($"Successfully logged in to **{registryName}**", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
-                }
-            }
+            await loginTask.CompleteAsync($"Successfully logged in to **{registryEndpoint}**", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            await loginTask.FailAsync($"Login to ACR **{registryEndpoint}** failed: {ex.Message}", cancellationToken: cancellationToken).ConfigureAwait(false);
             throw;
         }
     }
 
-    private static string? GetContainerRuntime(IConfiguration configuration)
+    private static async Task LoginToRegistryWithLoggingAsync(IContainerRuntime containerRuntime, string registryServer, string username, string password, ILogger logger, CancellationToken cancellationToken)
     {
-        // Fall back to known config names (primary and legacy)
-        return configuration["ASPIRE_CONTAINER_RUNTIME"] ?? configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
+        var arguments = $"login \"{registryServer}\" --username \"{username}\" --password-stdin";
+        
+        var spec = new ProcessSpec(containerRuntime is DockerContainerRuntime ? "docker" : "podman")
+        {
+            Arguments = arguments,
+            StandardInputContent = password,
+            OnOutputData = output =>
+            {
+                logger.LogDebug("{RuntimeName} login (stdout): {Output}", containerRuntime.Name, output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogDebug("{RuntimeName} login (stderr): {Error}", containerRuntime.Name, error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+        
+        logger.LogDebug("Running {RuntimeName} login to registry: {RegistryServer}", containerRuntime.Name, registryServer);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", containerRuntime.Name, registryServer, processResult.ExitCode);
+                throw new DistributedApplicationException($"{containerRuntime.Name} login failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogDebug("{RuntimeName} login to {RegistryServer} succeeded.", containerRuntime.Name, registryServer);
+        }
     }
 
     public static async Task PushImageToRegistryAsync(IContainerRegistry registry, IResource resource, PipelineStepContext context, IResourceContainerImageBuilder containerImageBuilder)

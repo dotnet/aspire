@@ -76,6 +76,45 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             imageName).ConfigureAwait(false);
     }
 
+    public virtual async Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
+    {
+        var arguments = $"login \"{registryServer}\" --username \"{username}\" --password-stdin";
+        
+        var spec = new ProcessSpec(RuntimeExecutable)
+        {
+            Arguments = arguments,
+            StandardInputContent = password,
+            OnOutputData = output =>
+            {
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+            },
+            OnErrorData = error =>
+            {
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+        
+        _logger.LogDebug("Running {RuntimeName} login to registry: {RegistryServer}", Name, registryServer);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                _logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", Name, registryServer, processResult.ExitCode);
+                throw new DistributedApplicationException($"{Name} login failed with exit code {processResult.ExitCode}.");
+            }
+
+            _logger.LogInformation("{RuntimeName} login to {RegistryServer} succeeded.", Name, registryServer);
+        }
+    }
+
     /// <summary>
     /// Executes a container runtime command with standard logging and error handling.
     /// </summary>

@@ -13,4 +13,5 @@ internal interface IContainerRuntime
     Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken);
     Task RemoveImageAsync(string imageName, CancellationToken cancellationToken);
     Task PushImageAsync(string imageName, CancellationToken cancellationToken);
+    Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken);
 }

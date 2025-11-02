@@ -15,10 +15,12 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
     public bool WasRemoveImageCalled { get; private set; }
     public bool WasPushImageCalled { get; private set; }
     public bool WasBuildImageCalled { get; private set; }
+    public bool WasLoginToRegistryCalled { get; private set; }
     public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
     public List<string> RemoveImageCalls { get; } = [];
     public List<string> PushImageCalls { get; } = [];
     public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
+    public List<(string registryServer, string username, string password)> LoginToRegistryCalls { get; } = [];
     public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
     public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
     public string? CapturedStage { get; private set; }
@@ -77,6 +79,17 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
         }
 
         // For testing, we don't need to actually build anything
+        return Task.CompletedTask;
+    }
+
+    public Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
+    {
+        WasLoginToRegistryCalled = true;
+        LoginToRegistryCalls.Add((registryServer, username, password));
+        if (shouldFail)
+        {
+            throw new InvalidOperationException("Fake container runtime is configured to fail");
+        }
         return Task.CompletedTask;
     }
 }
