@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.UserSecrets;
@@ -20,29 +22,29 @@ internal sealed class NoopUserSecretsManager : IUserSecretsManager
         _assemblyName = assemblyName;
     }
 
-    public bool TryGetValue(string key, out string? value)
+    public string FilePath => string.Empty;
+
+    public bool TrySetSecret(string name, string value)
     {
-        LogWarning(nameof(TryGetValue));
-        value = null;
+        LogWarning(nameof(TrySetSecret));
         return false;
     }
 
-    public bool TrySetValue(string key, string value)
+    public Task<bool> TrySetSecretAsync(string name, string value, CancellationToken cancellationToken = default)
     {
-        LogWarning(nameof(TrySetValue));
-        return false;
-    }
-
-    public Task<bool> TrySetValueAsync(string key, string value, CancellationToken cancellationToken = default)
-    {
-        LogWarning(nameof(TrySetValueAsync));
+        LogWarning(nameof(TrySetSecretAsync));
         return Task.FromResult(false);
     }
 
-    public string? GetOrSetValue(string key, Func<string> valueFactory)
+    public void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator)
     {
-        LogWarning(nameof(GetOrSetValue));
-        return null;
+        LogWarning(nameof(GetOrSetSecret));
+    }
+
+    public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
+    {
+        LogWarning(nameof(SaveStateAsync));
+        return Task.CompletedTask;
     }
 
     private void LogWarning(string operation)
