@@ -125,7 +125,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
 
-    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
+    public void DisplayVersionUpdateNotification(string newerVersion)
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }

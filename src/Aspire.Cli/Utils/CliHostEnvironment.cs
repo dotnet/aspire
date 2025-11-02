@@ -174,4 +174,24 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         return !string.IsNullOrEmpty(playgroundMode) &&
                playgroundMode.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Determines whether the CLI is running as a dotnet tool.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if the CLI is running as a dotnet tool; otherwise, <c>false</c> if running as a native binary.
+    /// </returns>
+    public static bool IsRunningAsDotNetTool()
+    {
+        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
+        // When running as a native binary, it points to "aspire" or "aspire.exe"
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(processPath))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(processPath);
+        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
+    }
 }

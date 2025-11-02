@@ -243,16 +243,16 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
-    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
+    public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         
-        if (!string.IsNullOrEmpty(updateCommand))
-        {
-            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
-        }
+        // Determine the update command based on how the CLI is running
+        var updateCommand = CliHostEnvironment.IsRunningAsDotNetTool() 
+            ? "dotnet tool update aspire.cli" 
+            : "aspire update --self";
         
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion, updateCommand));
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }
