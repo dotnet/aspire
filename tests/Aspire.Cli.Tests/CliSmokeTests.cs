@@ -38,4 +38,13 @@ public class CliSmokeTests
             Console.SetError(oldErrorOutput);
         }, locale, isValid.ToString(), environmentVariableName).Dispose();
     }
+
+    [Theory]
+    [InlineData("--version")]
+    [InlineData("version")]
+    public async Task VersionCommandsReturnExitCode0(string arg)
+    {
+        var exitCode = await Aspire.Cli.Program.Main([arg]);
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
 }

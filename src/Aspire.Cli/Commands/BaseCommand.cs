@@ -14,6 +14,7 @@ namespace Aspire.Cli.Commands;
 internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
+    protected virtual bool AppendEmptyLineAfterExecution { get; } = true;
     private readonly CliExecutionContext _executionContext;
 
     protected CliExecutionContext ExecutionContext => _executionContext;
@@ -45,7 +46,10 @@ internal abstract class BaseCommand : Command
                 }
             }
 
-            InteractionService.DisplayEmptyLine();
+            if (AppendEmptyLineAfterExecution)
+            {
+                InteractionService.DisplayEmptyLine();
+            }
 
             return exitCode;
         });

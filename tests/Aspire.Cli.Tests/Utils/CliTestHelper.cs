@@ -108,6 +108,7 @@ internal static class CliTestHelper
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
         services.AddTransient<UpdateCommand>();
+        services.AddTransient<VersionCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
