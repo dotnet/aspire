@@ -37,6 +37,10 @@ public static class AzureProvisionerExtensions
 
         builder.Services.TryAddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
 
+        // Register ACR login service for container registry authentication
+        builder.Services.TryAddSingleton<IAcrLoginService, AcrLoginService>();
+        builder.Services.AddHttpClient(); // Add IHttpClientFactory for ACR OAuth2 exchange
+
         // Register BicepProvisioner via interface
         builder.Services.TryAddSingleton<IBicepProvisioner, BicepProvisioner>();
 
