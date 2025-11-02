@@ -18,7 +18,7 @@ internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly string _commandName;
+    private readonly bool _isDebugOrTraceLoggingEnabled;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -47,11 +47,11 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, string commandName, bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool isDebugOrTraceLoggingEnabled = false, bool? forceColor = null)
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
-        _commandName = commandName;
+        _isDebugOrTraceLoggingEnabled = isDebugOrTraceLoggingEnabled;
 
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
@@ -258,12 +258,12 @@ internal sealed class ConsoleActivityLogger
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
                 
-                // If pipeline failed, show help message about using --log-level debug
-                if (!_pipelineSucceeded)
+                // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
+                if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
                 {
                     var helpMessage = _enableColor
-                        ? $"[dim]For more details, re-run with: aspire {_commandName} --log-level debug[/]"
-                        : $"For more details, re-run with: aspire {_commandName} --log-level debug";
+                        ? "[dim]For more details, add --log-level debug/trace to the command.[/]"
+                        : "For more details, add --log-level debug/trace to the command.";
                     AnsiConsole.MarkupLine(helpMessage);
                 }
             }
