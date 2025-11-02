@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Azure;
 internal static class AzureEnvironmentResourceHelpers
 {
     private const string AcrUsername = "00000000-0000-0000-0000-000000000000";
-    private const string AcrScope = "https://containerregistry.azure.com/.default";
+    private const string AcrScope = "https://containerregistry.azure.net/.default";
 
     public static async Task LoginToRegistryAsync(IContainerRegistry registry, PipelineStepContext context)
     {
