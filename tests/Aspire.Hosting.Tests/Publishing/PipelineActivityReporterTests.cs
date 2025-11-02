@@ -388,13 +388,13 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete the same task again with the same state (should be idempotent, no exception)
         await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
         // Assert - No new activity should be emitted (noop)
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.Completed, taskInternal.CompletionState);
@@ -413,13 +413,13 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync(null, CompletionState.Completed, cancellationToken: CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete with a different state (should be idempotent, no exception)
         await task.CompleteAsync("Error", CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
 
         // Assert - No new activity should be emitted (noop)
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.Completed, taskInternal.CompletionState); // Original state is retained
@@ -437,13 +437,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Complete", cancellationToken: CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete the same step again with the same state (should be idempotent, no exception)
         await step.CompleteAsync("Complete again", cancellationToken: CancellationToken.None);
 
         // Assert - No new activity should be emitted (noop)
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
@@ -462,13 +462,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Complete", CompletionState.Completed, cancellationToken: CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete with a different state (should be idempotent, no exception)
         await step.CompleteAsync("Error", CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
 
         // Assert - No new activity should be emitted (noop)
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState); // Original state is retained
@@ -690,7 +690,7 @@ public class PublishingActivityReporterTests
         await task2.SucceedAsync(null, CancellationToken.None);
 
         // Clear previous activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act
         await step.DisposeAsync();
@@ -721,13 +721,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Step completed manually", CompletionState.Completed, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Dispose should not cause another completion
         await step.DisposeAsync();
 
         // Assert - No new activities should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
         Assert.Equal("Step completed manually", stepInternal.CompletionText);
@@ -936,13 +936,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Completed", CompletionState.Completed, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Step is completed, so logging should be a no-op
         step.Log(LogLevel.Information, "Test log", enableMarkdown: false);
 
         // Assert - No new activity should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
     }
 
     [Fact]
@@ -986,13 +986,13 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync("Warning message", CompletionState.CompletedWithWarning, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete again with same state (should be idempotent)
         await task.CompleteAsync("Different warning message", CompletionState.CompletedWithWarning, CancellationToken.None);
 
         // Assert - No new activity should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.CompletedWithWarning, taskInternal.CompletionState);
@@ -1011,13 +1011,13 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync("Error message", CompletionState.CompletedWithError, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete again with same state (should be idempotent)
         await task.CompleteAsync("Different error message", CompletionState.CompletedWithError, CancellationToken.None);
 
         // Assert - No new activity should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.CompletedWithError, taskInternal.CompletionState);
@@ -1035,13 +1035,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Warning", CompletionState.CompletedWithWarning, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete again with same state (should be idempotent)
         await step.CompleteAsync("Different warning", CompletionState.CompletedWithWarning, CancellationToken.None);
 
         // Assert - No new activity should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.CompletedWithWarning, stepInternal.CompletionState);
@@ -1059,13 +1059,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Error", CompletionState.CompletedWithError, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete again with same state (should be idempotent)
         await step.CompleteAsync("Different error", CompletionState.CompletedWithError, CancellationToken.None);
 
         // Assert - No new activity should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.CompletedWithError, stepInternal.CompletionState);
@@ -1090,13 +1090,13 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync("First completion", firstState, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete with different state (should be idempotent, no exception)
         await task.CompleteAsync("Second completion", secondState, CancellationToken.None);
 
         // Assert - No new activity should be emitted (noop)
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(firstState, taskInternal.CompletionState); // Original state is retained
@@ -1120,16 +1120,26 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("First completion", firstState, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Try to complete with different state (should be idempotent, no exception)
         await step.CompleteAsync("Second completion", secondState, CancellationToken.None);
 
         // Assert - No new activity should be emitted (noop)
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(firstState, stepInternal.CompletionState); // Original state is retained
+    }
+
+    private static void ClearActivities(PipelineActivityReporter reporter)
+    {
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+    }
+
+    private static void AssertNoActivitiesEmitted(PipelineActivityReporter reporter)
+    {
+        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
     }
 
     private PipelineActivityReporter CreatePublishingReporter()
