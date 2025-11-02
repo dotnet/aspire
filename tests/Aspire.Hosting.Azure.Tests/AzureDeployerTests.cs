@@ -395,7 +395,7 @@ public class AzureDeployerTests
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
         var aasEnv = builder.AddAzureAppServiceEnvironment("aas-env");
