@@ -36,6 +36,9 @@ internal sealed class ConsoleActivityLogger
     private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
     private int _spinnerIndex;
 
+    private string? _finalStatusHeader;
+    private bool _pipelineSucceeded;
+
     // No raw ANSI escape codes; rely on Spectre.Console markup tokens.
 
     private const string SuccessSymbol = "✓";
@@ -268,9 +271,6 @@ internal sealed class ConsoleActivityLogger
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
         }
     }
-
-    private string? _finalStatusHeader;
-    private bool _pipelineSucceeded;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
