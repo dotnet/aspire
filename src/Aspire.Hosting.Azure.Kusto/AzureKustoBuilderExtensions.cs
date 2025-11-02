@@ -347,7 +347,7 @@ public static class AzureKustoBuilderExtensions
 
         static ResourceCommandState UpdateStateWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, UpdateCommandStateContext context)
         {
-            // The web explorer will only auto-connect to allowlisted domains, so do not show the command when running as an emulator.
+            // The web explorer will only auto-connect to allowed domains, so do not show the command when running as an emulator.
             if (resourceBuilder.Resource.IsEmulator)
             {
                 return ResourceCommandState.Hidden;
