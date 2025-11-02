@@ -713,7 +713,8 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="virtualEnvironmentPath">
     /// The path to the virtual environment. Can be absolute or relative to the app directory.
-    /// When relative, it is resolved from the working directory of the Python application.
+    /// When relative, the virtual environment is resolved from the working directory of the Python application.
+    /// If not found there, it falls back to checking the AppHost directory (when the Python app is nearby).
     /// Common values include ".venv", "venv", or "myenv".
     /// </param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
@@ -725,6 +726,15 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// Virtual environments allow Python applications to have isolated dependencies separate from
     /// the system Python installation. This is the recommended approach for Python applications.
+    /// </para>
+    /// <para>
+    /// When using a relative path (like ".venv"), the method checks multiple locations:
+    /// <list type="number">
+    /// <item>First, it checks if the virtual environment exists in the Python app directory.</item>
+    /// <item>If not found and the Python app is a subdirectory or sibling of the AppHost, it checks the AppHost directory.</item>
+    /// <item>If neither exists, it defaults to the Python app directory (for future creation).</item>
+    /// </list>
+    /// This allows sharing a single virtual environment across multiple Python apps in a workspace.
     /// </para>
     /// </remarks>
     /// <example>
