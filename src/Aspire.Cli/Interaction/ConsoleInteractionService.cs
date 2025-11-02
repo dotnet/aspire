@@ -248,7 +248,7 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine();
         
         // Determine the update command based on how the CLI is running
-        var updateCommand = CliHostEnvironment.IsRunningAsDotNetTool() 
+        var updateCommand = CliExecutionContext.IsRunningAsDotNetTool() 
             ? "dotnet tool update aspire.cli" 
             : "aspire update --self";
         
