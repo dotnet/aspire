@@ -674,6 +674,62 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void WithVirtualEnvironment_ExplicitPath_UsesVerbatim()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        
+        // Create app directory as a subdirectory of AppHost
+        var appDirName = "python-app-" + Path.GetRandomFileName();
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in the AppHost directory
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        // Create a custom venv in the app directory
+        var customVenvPath = Path.Combine(appDirPath, "custom-venv");
+        Directory.CreateDirectory(customVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            
+            // Explicitly specify a custom venv path - should use it verbatim, not fall back to AppHost .venv
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName)
+                .WithVirtualEnvironment("custom-venv");
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should use the explicitly specified path, NOT the AppHost .venv
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Equal(Path.Join(customVenvPath, "Scripts", "python.exe"), pythonProjectResource.Command);
+            }
+            else
+            {
+                Assert.Equal(Path.Join(customVenvPath, "bin", "python"), pythonProjectResource.Command);
+            }
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
+    }
+
+    [Fact]
     public void WithUvEnvironment_CreatesUvEnvironmentResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
