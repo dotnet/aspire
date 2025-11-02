@@ -93,12 +93,15 @@ internal static partial class ProcessUtil
 
             process.Start();
             
-            // Write standard input if provided
+            // Write standard input if provided and ensure it's flushed before closing
             if (processSpec.StandardInputContent != null)
             {
-                process.StandardInput.WriteLine(processSpec.StandardInputContent);
-                process.StandardInput.Flush();
-                process.StandardInput.Close();
+                var writer = process.StandardInput;
+                writer.WriteLine(processSpec.StandardInputContent);
+                writer.Flush();
+                // Ensure the write completes before closing
+                writer.BaseStream.Flush();
+                writer.Close();
             }
             
             process.BeginOutputReadLine();

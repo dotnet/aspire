@@ -50,6 +50,7 @@ internal static class AzureEnvironmentResourceHelpers
             var accessToken = await credential.GetTokenAsync(tokenRequestContext, cancellationToken).ConfigureAwait(false);
 
             logger.LogDebug("Logging in to registry {RegistryEndpoint} using container runtime {RuntimeName}", registryEndpoint, containerRuntime.Name);
+            logger.LogDebug("Access token acquired, length: {TokenLength}", accessToken.Token.Length);
 
             // Login to the registry using the container runtime
             await containerRuntime.LoginToRegistryAsync(registryEndpoint, AcrUsername, accessToken.Token, cancellationToken).ConfigureAwait(false);

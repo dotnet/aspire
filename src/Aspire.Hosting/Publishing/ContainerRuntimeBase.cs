@@ -100,7 +100,8 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             InheritEnv = true
         };
         
-        _logger.LogDebug("Running {RuntimeName} login to registry: {RegistryServer}", Name, registryServer);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, arguments);
+        _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
