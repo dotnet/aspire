@@ -8,7 +8,7 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
-internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRuntime
+public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRuntime
 {
     public string Name => "fake-runtime";
     public bool WasHealthCheckCalled { get; private set; }

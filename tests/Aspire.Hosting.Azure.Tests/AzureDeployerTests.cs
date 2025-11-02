@@ -7,6 +7,7 @@
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -17,6 +18,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
+using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -799,6 +801,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
         {
@@ -837,7 +840,7 @@ public class AzureDeployerTests
         };
 
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider(deploymentOutputsProvider);
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -870,10 +873,11 @@ public class AzureDeployerTests
         Assert.Equal("https://testfuncstorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["funcstorage_outputs_blobendpoint"]!).GetValueAsync());
         Assert.Equal("https://testhoststorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["hoststorage_outputs_blobendpoint"]!).GetValueAsync());
 
-        // Assert - Verify ACR login command was called since Functions image needs to be built and pushed
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert - Verify ACR login was called using IContainerRuntime since Functions image needs to be built and pushed
+        Assert.True(fakeContainerRuntime.WasLoginToRegistryCalled);
+        Assert.Contains(fakeContainerRuntime.LoginToRegistryCalls, call =>
+            call.registryServer == "testregistry.azurecr.io" &&
+            call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -899,6 +903,7 @@ public class AzureDeployerTests
         IArmClientProvider? armClientProvider = null,
         MockProcessRunner? processRunner = null,
         IPipelineActivityReporter? activityReporter = null,
+        IContainerRuntime? containerRuntime = null,
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
@@ -929,6 +934,7 @@ public class AzureDeployerTests
         }
         builder.Services.AddSingleton<IProcessRunner>(processRunner ?? new MockProcessRunner());
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IContainerRuntime>(containerRuntime ?? new FakeContainerRuntime());
     }
 
     private sealed class NoOpDeploymentStateManager : IDeploymentStateManager
