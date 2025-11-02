@@ -740,9 +740,44 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
 
-        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
-            ? virtualEnvironmentPath
-            : Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory));
+        string resolvedVirtualEnvironmentPath;
+        if (Path.IsPathRooted(virtualEnvironmentPath))
+        {
+            // If the path is absolute, use it as-is
+            resolvedVirtualEnvironmentPath = virtualEnvironmentPath;
+        }
+        else
+        {
+            // For relative paths, check if the virtual environment exists in the app directory first
+            var appDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory);
+            
+            // Only check the AppHost directory if the Python app is a subdirectory or sibling of the AppHost
+            // This prevents picking up unrelated .venv directories from test fixtures or other sources
+            var appHostDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, builder.ApplicationBuilder.AppHostDirectory);
+            
+            // Check if the app directory is under or near the AppHost directory
+            var appDirRelativeToAppHost = Path.GetRelativePath(builder.ApplicationBuilder.AppHostDirectory, builder.Resource.WorkingDirectory);
+            var isAppDirNearAppHost = !appDirRelativeToAppHost.StartsWith("..", StringComparison.Ordinal) && 
+                                       !Path.IsPathRooted(appDirRelativeToAppHost);
+            
+            if (Directory.Exists(appDirVenvPath))
+            {
+                // Use the app directory if it exists there
+                resolvedVirtualEnvironmentPath = appDirVenvPath;
+            }
+            else if (isAppDirNearAppHost && Directory.Exists(appHostDirVenvPath))
+            {
+                // Use the AppHost directory if it exists there and the app is nearby
+                resolvedVirtualEnvironmentPath = appHostDirVenvPath;
+            }
+            else
+            {
+                // Default to app directory if neither exists (for cases where the venv will be created later)
+                resolvedVirtualEnvironmentPath = appDirVenvPath;
+            }
+        }
+
+        var virtualEnvironment = new VirtualEnvironment(resolvedVirtualEnvironmentPath);
 
         // Get the entrypoint annotation to determine how to update the command
         if (!builder.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
