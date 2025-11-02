@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// <summary>
 /// Provides utility methods for flattening and unflattening JSON objects using colon-separated keys.
 /// </summary>
-public static class JsonFlattener
+internal static class JsonFlattener
 {
     /// <summary>
     /// Flattens a JsonObject using colon-separated keys for configuration compatibility.

@@ -253,15 +253,19 @@ internal sealed class UserSecretsManagerFactory
                 contents[secret.Key] = secret.Value;
             }
 
+            var json = contents.ToJsonString(s_jsonSerializerOptions);
+
             // Create a temp file with the correct Unix file mode before moving it to the expected path.
             if (!OperatingSystem.IsWindows())
             {
                 var tempFilename = Path.GetTempFileName();
+                File.WriteAllText(tempFilename, json, Encoding.UTF8);
                 File.Move(tempFilename, FilePath, overwrite: true);
             }
-
-            var json = contents.ToJsonString(s_jsonSerializerOptions);
-            File.WriteAllText(FilePath, json, Encoding.UTF8);
+            else
+            {
+                File.WriteAllText(FilePath, json, Encoding.UTF8);
+            }
         }
 
         private async Task SaveAsync(Dictionary<string, string?> secrets, CancellationToken cancellationToken)
@@ -272,15 +276,19 @@ internal sealed class UserSecretsManagerFactory
                 contents[secret.Key] = secret.Value;
             }
 
+            var json = contents.ToJsonString(s_jsonSerializerOptions);
+
             // Create a temp file with the correct Unix file mode before moving it to the expected path.
             if (!OperatingSystem.IsWindows())
             {
                 var tempFilename = Path.GetTempFileName();
+                await File.WriteAllTextAsync(tempFilename, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
                 File.Move(tempFilename, FilePath, overwrite: true);
             }
-
-            var json = contents.ToJsonString(s_jsonSerializerOptions);
-            await File.WriteAllTextAsync(FilePath, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            else
+            {
+                await File.WriteAllTextAsync(FilePath, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         private void EnsureUserSecretsDirectory()
