@@ -392,7 +392,7 @@ public static class AzureKustoBuilderExtensions
                 {
                     _ = await interactionService.PromptMessageBoxAsync(
                         title: "Kusto Web Explorer",
-                        message: $"Could not automatically open Kusto Web Explorer for resource '{resourceBuilder.Resource.Name}'. Click {connectionString} to manually open the Web Explorer.",
+                        message: $"Could not automatically open Kusto Web Explorer for resource '{resourceBuilder.Resource.Name}'. Click [{connectionString}]({connectionString}) to manually open the Web Explorer.",
                         new MessageBoxInteractionOptions
                         {
                             Intent = MessageIntent.Information,
