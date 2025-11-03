@@ -27,7 +27,7 @@ public class SecretsStoreTests
         var configuration = new ConfigurationManager();
         var value = TokenGenerator.GenerateToken();
 
-        var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
+        var manager = UserSecretsManagerFactory.Create(testAssembly);
         manager?.GetOrSetSecret(configuration, key, () => value);
         var userSecrets = GetUserSecrets(userSecretsId);
 
@@ -52,7 +52,7 @@ public class SecretsStoreTests
         var valueInConfig = TokenGenerator.GenerateToken();
         configuration[key] = valueInConfig;
 
-        var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
+        var manager = UserSecretsManagerFactory.Create(testAssembly);
         manager?.GetOrSetSecret(configuration, key, TokenGenerator.GenerateToken);
         var userSecrets = GetUserSecrets(userSecretsId);
 

@@ -98,7 +98,7 @@ public class UserSecretsParameterDefaultTests
             var value = kvp.Value;
             tasks.Add(Task.Run(() =>
             {
-                var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
+                var manager = UserSecretsManagerFactory.Create(testAssembly);
                 return manager?.TrySetSecret(key, value) ?? false;
             }));
         }
@@ -132,12 +132,12 @@ public class UserSecretsParameterDefaultTests
         // Simulate SQL Server and RabbitMQ generating passwords concurrently
         var sqlTask = Task.Run(() =>
         {
-            var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
+            var manager = UserSecretsManagerFactory.Create(testAssembly);
             return manager?.TrySetSecret("Parameters:sql-password", "SqlPassword123!") ?? false;
         });
         var rabbitTask = Task.Run(() =>
         {
-            var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
+            var manager = UserSecretsManagerFactory.Create(testAssembly);
             return manager?.TrySetSecret("Parameters:rabbit-password", "RabbitPassword456!") ?? false;
         });
 
@@ -172,7 +172,7 @@ public class UserSecretsParameterDefaultTests
             var value = $"Value{i}";
             tasks.Add(Task.Run(() =>
             {
-                var manager = UserSecretsManagerFactory.Instance.Create(testAssembly);
+                var manager = UserSecretsManagerFactory.Create(testAssembly);
                 return manager?.TrySetSecret("Parameters:test-key", value) ?? false;
             }));
         }

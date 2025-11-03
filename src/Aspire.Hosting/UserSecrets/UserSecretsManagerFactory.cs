@@ -76,7 +76,7 @@ internal sealed class UserSecretsManagerFactory
     /// Creates a new user secrets manager for the specified file path without caching.
     /// This method is intended for testing scenarios where isolation between tests is required.
     /// </summary>
-    public IUserSecretsManager Create(string filePath)
+    public static IUserSecretsManager Create(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         
@@ -88,7 +88,7 @@ internal sealed class UserSecretsManagerFactory
     /// Creates a new user secrets manager for the specified user secrets ID without caching.
     /// This method is intended for testing scenarios where isolation between tests is required.
     /// </summary>
-    public IUserSecretsManager CreateFromId(string? userSecretsId)
+    public static IUserSecretsManager CreateFromId(string? userSecretsId)
     {
         if (string.IsNullOrWhiteSpace(userSecretsId))
         {
@@ -103,7 +103,7 @@ internal sealed class UserSecretsManagerFactory
     /// Creates a new user secrets manager for the assembly with UserSecretsIdAttribute without caching.
     /// This method is intended for testing scenarios where isolation between tests is required.
     /// </summary>
-    public IUserSecretsManager Create(Assembly? assembly)
+    public static IUserSecretsManager Create(Assembly? assembly)
     {
         var userSecretsId = assembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
         return CreateFromId(userSecretsId);
@@ -113,7 +113,7 @@ internal sealed class UserSecretsManagerFactory
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
         
-        // Static dictionary of semaphores keyed by file path ensures thread safety across all instances for the same file
+        // Static dictionary of semaphores ensures thread safety across all instances writing to the same file
         private static readonly Dictionary<string, SemaphoreSlim> s_semaphores = new();
         private static readonly object s_semaphoreLock = new();
         
