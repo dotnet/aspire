@@ -383,9 +383,9 @@ public static class AzureServiceBusExtensions
         {
             var sqlEndpoint = sqlServerResource.Resource.GetEndpoint("tcp");
 
-            context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
-            context.EnvironmentVariables.Add("SQL_SERVER", $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}");
-            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", passwordParameter);
+            context.EnvironmentVariables["ACCEPT_EULA"] = "Y";
+            context.EnvironmentVariables["SQL_SERVER"] = $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}";
+            context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
         }));
 
         var lifetime = ContainerLifetime.Session;

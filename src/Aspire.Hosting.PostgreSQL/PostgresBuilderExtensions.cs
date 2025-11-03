@@ -340,12 +340,12 @@ public static class PostgresBuilderExtensions
     private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.
-        context.EnvironmentVariables.Add("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False");
-        context.EnvironmentVariables.Add("PGADMIN_CONFIG_SERVER_MODE", "False");
+        context.EnvironmentVariables["PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED"] = "False";
+        context.EnvironmentVariables["PGADMIN_CONFIG_SERVER_MODE"] = "False";
 
         // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
-        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
-        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
+        context.EnvironmentVariables["PGADMIN_DEFAULT_EMAIL"] = "admin@domain.com";
+        context.EnvironmentVariables["PGADMIN_DEFAULT_PASSWORD"] = "admin";
 
         // When running in the context of Codespaces we need to set some additional environment
         // variables so that PGAdmin will trust the forwarded headers that Codespaces port
