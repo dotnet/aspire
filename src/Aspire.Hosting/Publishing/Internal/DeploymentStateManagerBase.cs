@@ -15,7 +15,34 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// </summary>
 /// <typeparam name="T">The type of the derived class for logger typing.</typeparam>
 /// <remarks>
+/// <para>
 /// Initializes a new instance of the <see cref="DeploymentStateManagerBase{T}"/> class.
+/// </para>
+/// <para>
+/// <strong>Thread Safety:</strong>
+/// This class is thread-safe and designed for concurrent access. It uses the following synchronization mechanisms:
+/// <list type="bullet">
+/// <item>
+/// <description>
+/// <c>_stateLock</c> (SemaphoreSlim): Protects access to the state file during load and save operations,
+/// ensuring that file I/O operations are serialized and preventing concurrent modifications during enumeration.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// <c>_sectionsLock</c> (object): Protects access to the <c>_sections</c> dictionary for version tracking,
+/// ensuring atomic version checks and updates during section save operations.
+/// </description>
+/// </item>
+/// </list>
+/// The combination of these locks enables:
+/// <list type="number">
+/// <item>Safe concurrent reads of different sections</item>
+/// <item>Optimistic concurrency control through version tracking</item>
+/// <item>Serialized file writes to prevent corruption</item>
+/// <item>Detection of concurrent modifications via version conflicts</item>
+/// </list>
+/// </para>
 /// </remarks>
 /// <param name="logger">The logger instance.</param>
 public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploymentStateManager where T : class
@@ -40,10 +67,30 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// Logger instance for the derived class.
     /// </summary>
     protected readonly ILogger<T> logger = logger;
+
+    /// <summary>
+    /// Semaphore protecting state file I/O operations. Ensures serialized access to file reads and writes.
+    /// </summary>
     private readonly SemaphoreSlim _stateLock = new(1, 1);
+
+    /// <summary>
+    /// Lock protecting access to the _sections dictionary for thread-safe version tracking.
+    /// </summary>
     private readonly object _sectionsLock = new();
+
+    /// <summary>
+    /// Dictionary tracking version metadata for each section, protected by _sectionsLock.
+    /// </summary>
     private readonly Dictionary<string, SectionMetadata> _sections = new();
+
+    /// <summary>
+    /// Cached state loaded from storage, protected by _stateLock during modification.
+    /// </summary>
     private JsonObject? _state;
+
+    /// <summary>
+    /// Flag indicating whether state has been loaded from storage, accessed under _stateLock.
+    /// </summary>
     private bool _isStateLoaded;
 
     /// <inheritdoc/>
@@ -147,6 +194,10 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The loaded state as a JsonObject.</returns>
+    /// <remarks>
+    /// <strong>Thread Safety:</strong> This method uses _stateLock to ensure only one thread loads state from disk at a time.
+    /// Subsequent calls return the cached state without re-reading the file.
+    /// </remarks>
     protected async Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         await _stateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -185,20 +236,6 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         }
     }
 
-    /// <inheritdoc/>
-    public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
-    {
-        await _stateLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            await SaveStateToStorageAsync(state, cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            _stateLock.Release();
-        }
-    }
-
     private SectionMetadata GetSectionMetadata(string sectionName)
     {
         lock (_sectionsLock)
@@ -213,6 +250,11 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <strong>Thread Safety:</strong> This method is thread-safe. It uses _stateLock to protect access to the state
+    /// during section data retrieval, ensuring no concurrent modifications occur during the read operation.
+    /// The returned section is a deep copy, making it safe to modify without affecting the stored state.
+    /// </remarks>
     public async Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
     {
         await LoadStateAsync(cancellationToken).ConfigureAwait(false);
@@ -236,6 +278,25 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <strong>Thread Safety:</strong> This method is thread-safe and uses a two-phase locking strategy:
+    /// <list type="number">
+    /// <item>
+    /// <description>
+    /// First, it acquires _sectionsLock to atomically check and update the version number,
+    /// preventing concurrent modifications to the same section from succeeding.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// Then, it acquires _stateLock to serialize the file write operation,
+    /// ensuring no corruption occurs from concurrent saves.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// If a version conflict is detected, an <see cref="InvalidOperationException"/> is thrown,
+    /// indicating that the section was modified by another operation since it was acquired.
+    /// </remarks>
     public async Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
     {
         await LoadStateAsync(cancellationToken).ConfigureAwait(false);

@@ -16,6 +16,17 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// <summary>
 /// File-based deployment state manager for deployment scenarios.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This implementation stores deployment state in a JSON file in the user's profile directory
+/// under <c>~/.aspire/deployments/{appHostSha}/{environment}.json</c>.
+/// </para>
+/// <para>
+/// <strong>Thread Safety:</strong> This class inherits thread-safety from <see cref="DeploymentStateManagerBase{T}"/>.
+/// All public methods are thread-safe and can be called concurrently from multiple threads.
+/// File I/O operations are serialized through the base class's _stateLock semaphore.
+/// </para>
+/// </remarks>
 public sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
     IConfiguration configuration,

@@ -203,17 +203,23 @@ public class DeploymentStateManagerTests
     {
         var stateManager = CreateFileDeploymentStateManager();
 
-        var state = new JsonObject
+        // Simulate an old-format state file by directly writing flattened JSON
+        var flattenedState = new JsonObject
         {
             ["Parameters:param1"] = "value1",
             ["Azure:resource1"] = "azure-value1"
         };
 
-        await stateManager.SaveStateAsync(state);
+        // Write the old-format file directly
+        var statePath = stateManager.StateFilePath!;
+        Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
+        await File.WriteAllTextAsync(statePath, flattenedState.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
 
+        // Verify the state manager can load and unflatten the old format
         var parametersSection = await stateManager.AcquireSectionAsync("Parameters");
 
         Assert.Equal(0, parametersSection.Version);
+        Assert.Equal("value1", parametersSection.Data["param1"]?.GetValue<string>());
     }
 
     private static FileDeploymentStateManager CreateFileDeploymentStateManager(string? sha = null)

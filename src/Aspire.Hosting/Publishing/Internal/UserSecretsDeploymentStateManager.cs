@@ -14,6 +14,17 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// <summary>
 /// User secrets implementation of <see cref="IDeploymentStateManager"/>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This implementation stores deployment state in the user secrets file identified by the
+/// <see cref="UserSecretsIdAttribute"/> on the entry assembly or the DOTNET_USER_SECRETS_ID environment variable.
+/// </para>
+/// <para>
+/// <strong>Thread Safety:</strong> This class inherits thread-safety from <see cref="DeploymentStateManagerBase{T}"/>.
+/// All public methods are thread-safe and can be called concurrently from multiple threads.
+/// File I/O operations are serialized through the base class's _stateLock semaphore.
+/// </para>
+/// </remarks>
 public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>(logger)
 {
     /// <inheritdoc/>
