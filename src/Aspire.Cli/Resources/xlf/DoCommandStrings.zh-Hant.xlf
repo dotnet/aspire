@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies. (Preview)</source>
-        <target state="new">Execute a specific pipeline step and its dependencies. (Preview)</target>
+        <target state="translated">執行特定管線步驟及其相依性。(預覽)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Executing pipeline...</source>
-        <target state="new">Executing pipeline...</target>
+        <target state="translated">正在執行管線...</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
-        <target state="new">The operation was canceled.</target>
+        <target state="translated">已取消作業。</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>OPERATION COMPLETED</source>
-        <target state="new">OPERATION COMPLETED</target>
+        <target state="translated">作業完成</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>OPERATION FAILED</source>
-        <target state="new">OPERATION FAILED</target>
+        <target state="translated">作業失敗</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for artifacts.</source>
-        <target state="new">The optional output path for artifacts.</target>
+        <target state="translated">成品的選用輸出路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute.</source>
-        <target state="new">The name of the step to execute.</target>
+        <target state="translated">要執行的步驟名稱。</target>
         <note />
       </trans-unit>
     </body>

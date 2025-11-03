@@ -28,6 +28,22 @@ internal static class ValueExtensions
         return false;
     }
 
+    public static bool TryConvertToBool(this Value value, out bool b)
+    {
+        if (value.HasStringValue && bool.TryParse(value.StringValue, out b))
+        {
+            return true;
+        }
+        else if (value.HasBoolValue)
+        {
+            b = value.BoolValue;
+            return true;
+        }
+
+        b = false;
+        return false;
+    }
+
     public static bool TryConvertToString(this Value value, [NotNullWhen(returnValue: true)] out string? s)
     {
         if (value.HasStringValue)

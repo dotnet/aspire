@@ -271,7 +271,6 @@ public static class ResourceExtensions
     /// </param>
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
-    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
@@ -279,8 +278,7 @@ public static class ResourceExtensions
         // (unprocessed, processed, exception, isSensitive)
         Action<object?, string?, Exception?, bool> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default,
-        NetworkIdentifier? networkContext = null)
+        CancellationToken cancellationToken = default)
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
@@ -296,13 +294,11 @@ public static class ResourceExtensions
                 await callback.Callback(context).ConfigureAwait(false);
             }
 
-            networkContext ??= resource.GetDefaultResourceNetwork();
-
             foreach (var a in args)
             {
                 try
                 {
-                    var resolvedValue = await ResolveValueAsync(executionContext, logger, a, null, networkContext, cancellationToken).ConfigureAwait(false);
+                    var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
 
                     if (resolvedValue?.Value != null)
                     {
@@ -325,15 +321,13 @@ public static class ResourceExtensions
     /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
-    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default,
-        NetworkIdentifier? networkContext = null)
+        CancellationToken cancellationToken = default)
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
@@ -348,13 +342,11 @@ public static class ResourceExtensions
                 await callback.Callback(context).ConfigureAwait(false);
             }
 
-            networkContext ??= resource.GetDefaultResourceNetwork();
-
             foreach (var (key, expr) in config)
             {
                 try
                 {
-                    var resolvedValue = await ResolveValueAsync(executionContext, logger, expr, key, networkContext, cancellationToken).ConfigureAwait(false);
+                    var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
 
                     if (resolvedValue?.Value is not null)
                     {
@@ -374,12 +366,17 @@ public static class ResourceExtensions
         return resource.IsContainer() ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
     }
 
+    internal static IEnumerable<NetworkIdentifier> GetSupportedNetworks(this IResource resource)
+    {
+        return resource.IsContainer() ? [KnownNetworkIdentifiers.DefaultAspireContainerNetwork, KnownNetworkIdentifiers.LocalhostNetwork] : [KnownNetworkIdentifiers.LocalhostNetwork];
+    }
+
     /// <summary>
     /// Processes trusted certificates configuration for the specified resource within the given execution context.
     /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
     /// annotations on the resource to configure certificate trust as needed and therefore must be run before
-    /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, CancellationToken, NetworkIdentifier?)"/>
-    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, CancellationToken, NetworkIdentifier?)"/> are called.
+    /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, CancellationToken)"/>
+    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, CancellationToken)"/> are called.
     /// </summary>
     /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
     /// <param name="executionContext">The execution context used during the processing.</param>
@@ -388,7 +385,6 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information during the processing.</param>
     /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
     /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
-    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
@@ -401,7 +397,6 @@ public static class ResourceExtensions
         ILogger logger,
         Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
         Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
-        NetworkIdentifier? networkContext = null,
         CancellationToken cancellationToken = default)
     {
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
@@ -494,7 +489,7 @@ public static class ResourceExtensions
         {
             try
             {
-                var resolvedValue = await ResolveValueAsync(executionContext, logger, a, null, networkContext, cancellationToken).ConfigureAwait(false);
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
 
                 if (resolvedValue?.Value != null)
                 {
@@ -511,7 +506,7 @@ public static class ResourceExtensions
         {
             try
             {
-                var resolvedValue = await ResolveValueAsync(executionContext, logger, expr, key, networkContext, cancellationToken).ConfigureAwait(false);
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
 
                 if (resolvedValue?.Value is not null)
                 {
@@ -528,18 +523,18 @@ public static class ResourceExtensions
     }
 
     private static async ValueTask<ResolvedValue?> ResolveValueAsync(
+        this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
-        object value,
+        object? value,
         string? key = null,
-        NetworkIdentifier? networkContext = null,
         CancellationToken cancellationToken = default)
     {
         return (executionContext.Operation, value) switch
         {
             (_, string s) => new(s, false),
-            (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, networkContext, cancellationToken).ConfigureAwait(false),
-            (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, networkContext, cancellationToken).ConfigureAwait(false),
+            (DistributedApplicationOperation.Run, IValueProvider provider) => await resource.GetValue(executionContext, key, provider, logger, cancellationToken).ConfigureAwait(false),
+            (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await resource.GetValue(executionContext, key, provider, logger, cancellationToken).ConfigureAwait(false),
             (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
             (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
             (_, { } o) => new(o.ToString(), false),
@@ -556,10 +551,10 @@ public static class ResourceExtensions
 
     internal static async ValueTask ProcessContainerRuntimeArgValues(
         this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
         Action<string?, Exception?> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default,
-        NetworkIdentifier? context = null)
+        CancellationToken cancellationToken = default)
     {
         // Apply optional extra arguments to the container run command.
         if (resource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
@@ -580,7 +575,7 @@ public static class ResourceExtensions
                     var value = arg switch
                     {
                         string s => s,
-                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, context, cancellationToken).ConfigureAwait(false))?.Value,
+                        IValueProvider valueProvider => (await resource.GetValue(executionContext, key: null, valueProvider, logger, cancellationToken).ConfigureAwait(false))?.Value,
                         { } obj => obj.ToString(),
                         null => null
                     };
@@ -598,21 +593,21 @@ public static class ResourceExtensions
         }
     }
 
-    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, NetworkIdentifier? networkContext, CancellationToken cancellationToken)
+    private static async Task<ResolvedValue?> GetValue(this IResource resource, DistributedApplicationExecutionContext executionContext, string? key, IValueProvider valueProvider, ILogger logger, CancellationToken cancellationToken)
     {
-        var task = ExpressionResolver.ResolveAsync(valueProvider, new ValueProviderContext() { Network = networkContext }, cancellationToken);
+        var task = ExpressionResolver.ResolveAsync(valueProvider, new ValueProviderContext() { ExecutionContext = executionContext, Caller = resource }, cancellationToken);
 
         if (!task.IsCompleted)
         {
-            if (valueProvider is IResource resource)
+            if (valueProvider is IResource providerResource)
             {
                 if (key is null)
                 {
-                    logger.LogInformation("Waiting for value from resource '{ResourceName}'", resource.Name);
+                    logger.LogInformation("Waiting for value from resource '{ResourceName}'", providerResource.Name);
                 }
                 else
                 {
-                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, providerResource.Name);
                 }
             }
             else if (valueProvider is ConnectionStringReference { Resource: var cs })

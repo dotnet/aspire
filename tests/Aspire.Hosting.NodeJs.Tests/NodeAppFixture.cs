@@ -31,11 +31,13 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
         _nodeAppPath = CreateNodeApp();
         var scriptPath = Path.Combine(_nodeAppPath, "app.js");
 
-        NodeAppBuilder = _builder.AddNodeApp("nodeapp", scriptPath)
+        NodeAppBuilder = _builder.AddNodeApp("nodeapp", _nodeAppPath, scriptPath)
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
+#pragma warning disable CS0618 // Type or member is obsolete
         NpmAppBuilder = _builder.AddNpmApp("npmapp", _nodeAppPath)
             .WithHttpEndpoint(port: 5032, env: "PORT");
+#pragma warning restore CS0618 // Type or member is obsolete
 
         _app = _builder.Build();
 
