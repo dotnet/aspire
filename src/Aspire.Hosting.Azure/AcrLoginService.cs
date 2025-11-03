@@ -49,11 +49,12 @@ internal sealed class AcrLoginService : IAcrLoginService
     /// <inheritdoc/>
     public async Task LoginAsync(
         string registryEndpoint,
-        string? tenantId,
+        string tenantId,
         TokenCredential credential,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(registryEndpoint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(credential);
 
         // Step 1: Acquire AAD access token for ACR audience
@@ -75,7 +76,7 @@ internal sealed class AcrLoginService : IAcrLoginService
 
     private async Task<string> ExchangeAadTokenForAcrRefreshTokenAsync(
         string registryEndpoint,
-        string? tenantId,
+        string tenantId,
         string aadAccessToken,
         CancellationToken cancellationToken)
     {
@@ -85,22 +86,17 @@ internal sealed class AcrLoginService : IAcrLoginService
         // ACR OAuth2 exchange endpoint
         var exchangeUrl = $"https://{registryEndpoint}/oauth2/exchange";
 
-        _logger.LogDebug("Exchanging AAD token for ACR refresh token at {ExchangeUrl}{TenantInfo}",
+        _logger.LogDebug("Exchanging AAD token for ACR refresh token at {ExchangeUrl} (tenant: {TenantId})",
             exchangeUrl,
-            string.IsNullOrEmpty(tenantId) ? "" : $" (tenant: {tenantId})");
+            tenantId);
 
         var formData = new Dictionary<string, string>
         {
             ["grant_type"] = "access_token",
             ["service"] = registryEndpoint,
+            ["tenant"] = tenantId,
             ["access_token"] = aadAccessToken
         };
-
-        // Tenant ID is required for ACR authentication
-        if (!string.IsNullOrEmpty(tenantId))
-        {
-            formData["tenant"] = tenantId;
-        }
 
         using var content = new FormUrlEncodedContent(formData);
         var response = await httpClient.PostAsync(exchangeUrl, content, cancellationToken).ConfigureAwait(false);

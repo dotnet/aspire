@@ -16,13 +16,13 @@ internal interface IAcrLoginService
     /// Logs into an Azure Container Registry using Azure credentials.
     /// </summary>
     /// <param name="registryEndpoint">The ACR endpoint (e.g., "myregistry.azurecr.io").</param>
-    /// <param name="tenantId">The Azure tenant ID (optional but recommended).</param>
+    /// <param name="tenantId">The Azure tenant ID.</param>
     /// <param name="credential">The Azure credential to use for authentication.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when login succeeds.</returns>
     Task LoginAsync(
         string registryEndpoint,
-        string? tenantId,
+        string tenantId,
         TokenCredential credential,
         CancellationToken cancellationToken = default);
 }

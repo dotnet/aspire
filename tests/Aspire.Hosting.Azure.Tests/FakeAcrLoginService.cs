@@ -13,7 +13,7 @@ internal sealed class FakeAcrLoginService : IAcrLoginService
 
     public Task LoginAsync(
         string registryEndpoint,
-        string? tenantId,
+        string tenantId,
         TokenCredential credential,
         CancellationToken cancellationToken = default)
     {

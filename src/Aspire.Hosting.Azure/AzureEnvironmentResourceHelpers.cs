@@ -44,7 +44,8 @@ internal static class AzureEnvironmentResourceHelpers
             {
                 // Get tenant ID from the provisioning context (always available from subscription)
                 var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
-                var tenantId = provisioningContext.Tenant.TenantId?.ToString();
+                var tenantId = provisioningContext.Tenant.TenantId?.ToString()
+                    ?? throw new InvalidOperationException("Tenant ID is required for ACR authentication but was not available in provisioning context.");
 
                 // Use the ACR login service to perform authentication
                 await acrLoginService.LoginAsync(
