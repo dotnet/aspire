@@ -304,12 +304,7 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 const runApiConfig = getRunApiConfigFromOutput(runApiOutput, debugConfiguration);
                 debugConfiguration.program = runApiConfig.executablePath;
 
-                if (runApiConfig.env) {
-                    debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
-                }
-                else {
-                    debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
-                }
+                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
             }
         }
     };

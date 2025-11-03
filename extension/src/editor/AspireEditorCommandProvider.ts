@@ -58,7 +58,7 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
         vscode.commands.executeCommand('setContext', 'aspire.editorSupportsRunDebug', isSupportedFile);
 
-        if (this.isAppHostCsFile(document.uri.fsPath)) {
+        if (await this.isAppHostCsFile(document.uri.fsPath)) {
             vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', true);
         }
         else {
@@ -66,8 +66,11 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         }
     }
 
-    private isAppHostCsFile(filePath: string): boolean {
-        return path.basename(filePath).toLowerCase() === 'apphost.cs';
+    private async isAppHostCsFile(filePath: string): Promise<boolean> {
+        const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
+        const lines = fileText.split(/\r?\n/);
+
+        return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'));
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -112,7 +115,7 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
         let appHostToRun: string;
-        if (vscode.window.activeTextEditor && this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
+        if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
             appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
         }
         else if (this._workspaceAppHostPath) {
