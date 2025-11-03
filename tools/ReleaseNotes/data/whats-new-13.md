@@ -1345,7 +1345,7 @@ Aspire 13.0 completely reimplements the deployment workflow on top of the new [D
 The new deployment pipeline automatically parallelizes independent operations. Here's a real execution graph from `aspire do diagnostics` for an Azure deployment:
 
 ```
-aspire do deploy
+aspire deploy
 
 Execution order (14 total steps):
   [0] build-prereq | deploy-prereq (parallel)
@@ -1383,7 +1383,7 @@ aspire do push-static
 aspire do provision-azure-bicep-resources
 
 # Deploy everything
-aspire do deploy
+aspire deploy
 ```
 
 This granular control enables powerful workflows:
@@ -1393,14 +1393,14 @@ This granular control enables powerful workflows:
 aspire do build                              # Build containers locally
 aspire do push-static                        # Push to registry
 aspire do provision-azure-bicep-resources    # Deploy infrastructure
-aspire do deploy                             # Complete deployment
+aspire deploy                                # Complete deployment
 ```
 
 **Debugging builds**: Iterate on specific steps
 ```bash
 aspire do build-fe        # Build just the frontend
 aspire do build-static    # Build just the static files
-aspire do deploy          # Then deploy everything
+aspire deploy             # Then deploy everything
 ```
 
 **CI/CD integration**: Split pipeline stages
@@ -1409,8 +1409,65 @@ aspire do deploy          # Then deploy everything
 aspire do build
 
 # CD stage: Push and deploy
-aspire do deploy
+aspire deploy
 ```
+
+#### Pipeline Diagnostics
+
+Aspire 13.0 includes a built-in `aspire do diagnostics` command to help you understand and troubleshoot your pipeline graph:
+
+```bash
+aspire do diagnostics
+```
+
+This command provides comprehensive information about your pipeline:
+
+**Execution order analysis:**
+Shows the complete execution order with parallelization indicators:
+```
+Execution order (14 total steps):
+  [0] build-prereq | deploy-prereq (parallel)
+  [1] build-fe | validate-azure-login (parallel)
+  [2] build-static | create-provisioning-context (parallel)
+  ...
+```
+
+**Detailed step analysis:**
+For each step, see:
+- Dependencies (with validation)
+- Associated resources
+- Tags for categorization
+
+```
+Step: push-static
+    Dependencies: ✓ build-static, ✓ login-to-acr-env, ✓ provision-env
+    Resource: static-containerapp (AzureContainerAppResource)
+    Tags: push-container-image
+```
+
+**"What If" simulation:**
+See exactly what steps will run for any target:
+```
+If targeting 'build':
+  Total steps: 5
+  Execution order:
+    [0] build-prereq | deploy-prereq (parallel)
+    [1] build-fe
+    [2] build-static
+    [3] build
+```
+
+**Problem detection:**
+Identifies configuration issues:
+- Orphaned steps (not required by anything)
+- Missing dependencies
+- Circular dependencies
+
+Use `aspire do diagnostics` when:
+- Setting up a new deployment pipeline
+- Adding custom pipeline steps
+- Debugging why certain steps aren't running
+- Understanding deployment performance
 
 #### Pipeline Step Benefits
 
@@ -1421,6 +1478,7 @@ The pipeline-based deployment provides:
 - **Failure isolation**: Identify exactly which step failed
 - **Selective execution**: Run only the steps you need
 - **Extensibility**: Add custom deployment steps via pipeline API
+- **Built-in diagnostics**: `aspire do diagnostics` for pipeline visualization and troubleshooting
 
 For more details on the underlying pipeline system, see [Distributed Application Pipeline](#distributed-application-pipeline).
 
@@ -1439,11 +1497,11 @@ Aspire 13.0 introduces deployment state management that automatically persists d
 
 ```bash
 # First deployment - you're prompted for configuration
-aspire do deploy
+aspire deploy
 # Select Azure subscription, resource group, location, tenant...
 
 # Subsequent deployments - no prompts, uses saved state
-aspire do deploy
+aspire deploy
 # Uses previous selections automatically
 ```
 
@@ -1454,7 +1512,7 @@ This eliminates repetitive prompts and makes iterative deployments faster. Your 
 1. First time: Select subscription "My Subscription", resource group "my-rg", location "eastus"
 2. Deploy completes, state saved locally
 3. Make code changes
-4. Run `aspire do deploy` again - automatically uses "My Subscription", "my-rg", "eastus"
+4. Run `aspire deploy` again - automatically uses "My Subscription", "my-rg", "eastus"
 5. No need to re-enter configuration
 
 The state is stored in your local user profile, making it seamless to work across multiple Aspire projects with different Azure configurations.
