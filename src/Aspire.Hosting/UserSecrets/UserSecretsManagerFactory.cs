@@ -177,6 +177,10 @@ internal sealed class UserSecretsManagerFactory
             }
         }
 
+        /// <summary>
+        /// Saves state to user secrets asynchronously (for deployment state manager).
+        /// If multiple callers save state concurrently, the last write wins.
+        /// </summary>
         public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
             await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);

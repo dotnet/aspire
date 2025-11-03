@@ -34,6 +34,7 @@ internal interface IUserSecretsManager
 
     /// <summary>
     /// Saves state to user secrets asynchronously (for deployment state manager).
+    /// If multiple callers save state concurrently, the last write wins.
     /// </summary>
     /// <param name="state">The state to save as a JSON object.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
