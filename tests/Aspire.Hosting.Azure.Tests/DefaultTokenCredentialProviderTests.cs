@@ -187,7 +187,7 @@ public class DefaultTokenCredentialProviderTests
     {
         var options = new AzureProvisionerOptions
         {
-            CredentialSource = credentialSource ?? "Default"
+            CredentialSource = credentialSource!
         };
         return Options.Create(options);
     }
