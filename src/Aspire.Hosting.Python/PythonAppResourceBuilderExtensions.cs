@@ -651,29 +651,39 @@ public static class PythonAppResourceBuilderExtensions
     {
         var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
         
-        // Priority 1: Check if the virtual environment exists in the app directory
-        var appDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, appDirectoryFullPath);
-        if (Directory.Exists(appDirVenvPath))
-        {
-            return appDirVenvPath;
-        }
-
-        // Priority 2: Check the AppHost directory if the Python app is a child or at the same level
-        // We only look up to the AppHost's direct parent, not beyond
-        var appHostDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, builder.AppHostDirectory);
+        // Walk up from the Python app directory looking for the virtual environment
+        // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
+        var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
+        var currentDirectory = appDirectoryFullPath;
         
-        // Check if the app directory is within the AppHost's tree (child or same directory)
-        // The relative path should not start with ".." which would indicate going up beyond the AppHost
-        var appDirRelativeToAppHost = Path.GetRelativePath(builder.AppHostDirectory, appDirectoryFullPath);
-        var isAppDirWithinAppHostTree = !appDirRelativeToAppHost.StartsWith("..", StringComparison.Ordinal);
-
-        if (isAppDirWithinAppHostTree && Directory.Exists(appHostDirVenvPath))
+        while (currentDirectory != null)
         {
-            return appHostDirVenvPath;
+            var venvPath = Path.Combine(currentDirectory, virtualEnvironmentPath);
+            if (Directory.Exists(venvPath))
+            {
+                return venvPath;
+            }
+            
+            // Stop if we've reached the AppHost's parent directory
+            if (string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+            
+            // Move up to the parent directory
+            var parentDirectory = Path.GetDirectoryName(currentDirectory);
+            
+            // Stop if we can't go up anymore or if we've gone beyond the AppHost's parent
+            if (parentDirectory == null || parentDirectory == currentDirectory)
+            {
+                break;
+            }
+            
+            currentDirectory = parentDirectory;
         }
 
         // Default: Return app directory path (for cases where the venv will be created later)
-        return appDirVenvPath;
+        return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
     }
 
     /// <summary>
