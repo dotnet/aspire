@@ -43,6 +43,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Polyglot Infrastructure](#polyglot-infrastructure)
     - [Polyglot Connection Properties](#polyglot-connection-properties)
     - [Certificate Trust Across Languages](#certificate-trust-across-languages)
+    - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
 - [CLI and tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update improvements](#aspire-update-improvements)
@@ -54,9 +55,8 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Container Files as Build Artifacts](#container-files-as-build-artifacts)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
-- [Integration Packages and Resources](#-integration-packages-and-resources)
+- [Integrations](#-integrations)
   - [.NET MAUI Integration](#net-maui-integration)
-  - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
 - [Dashboard enhancements](#-dashboard-enhancements)
   - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
   - [Console logs refactoring](#console-logs-refactoring)
@@ -68,10 +68,15 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Network identifiers](#network-identifiers)
   - [Dynamic input system](#dynamic-input-system)
   - [Reference and connection improvements](#reference-and-connection-improvements)
-  - [Deployment state management](#deployment-state-management)
-  - [Container files management](#container-files-management)
   - [Event system](#event-system)
-  - [Azure deployment enhancements](#azure-deployment-enhancements)
+  - [Other app model improvements](#other-app-model-improvements)
+- [Deployment improvements](#-deployment-improvements)
+  - [Deployment pipeline reimplementation](#deployment-pipeline-reimplementation)
+  - [Deployment state management](#deployment-state-management)
+- [Azure](#-azure)
+  - [Azure tenant selection](#azure-tenant-selection)
+  - [Azure Key Vault emulator support](#azure-key-vault-emulator-support)
+  - [Azure App Service automatic scaling](#azure-app-service-automatic-scaling)
 - [Breaking changes](#-breaking-changes)
 
 ## Upgrade to Aspire 13.0
@@ -389,6 +394,42 @@ Aspire automatically:
 - **All platforms**: Generates and manages development certificates without manual intervention
 
 This enables secure HTTPS communication during local development across all languages and containerized services.
+
+#### Simplified Service URL Environment Variables
+
+Aspire 13.0 introduces polyglot-friendly environment variables that make service discovery easier for non-.NET applications.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api");
+
+// Python app gets simple environment variables
+var pythonApp = builder.AddPythonModule("worker", "./worker", "worker.main")
+    .WithReference(api); // Sets API and API_HTTPS env vars
+
+await builder.Build().RunAsync();
+```
+
+Instead of complex service discovery formats, non-.NET apps receive simple environment variables:
+
+- `API=http://localhost:5000` - HTTP endpoint
+- `API_HTTPS=https://localhost:5001` - HTTPS endpoint
+
+This can be customized per-resource or per-type using `WithReferenceEnvironment()`:
+
+```csharp
+var api = builder.AddProject<Projects.Api>("api");
+
+var nodeApp = builder.AddJavaScriptApp("frontend", "./frontend")
+    .WithReference(api, env =>
+    {
+        // Customize environment variable generation
+        env.EnvironmentVariables["API_URL"] = api.GetEndpoint("http");
+    });
+```
+
+This feature makes Aspire's service discovery mechanism accessible to any programming language, not just .NET applications with service discovery libraries.
 
 ## 🛠️ CLI and tooling
 
@@ -794,6 +835,29 @@ Container files integrate seamlessly with the Distributed Application Pipeline:
 
 This makes container files a natural fit for complex build workflows with multiple dependent services.
 
+#### Building Blocks: Container Files API
+
+The container files functionality is built on several key APIs that provide the building blocks for this paradigm:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithContainerFiles("./config", "/app/config", continueOnError: false)
+    .WithContainerFilesSource("./shared-configs");
+
+await builder.Build().RunAsync();
+```
+
+Key features:
+
+- **ContinueOnError**: Control failure behavior for file copy operations - set to `false` to fail fast if files are missing
+- **Source tracking**: `ContainerFilesSourceAnnotation` tracks file sources for debugging and tooling
+- **PublishWithContainerFiles**: Share files between resources during publishing (shown in examples above)
+- **IResourceWithContainerFiles**: Interface for resources that support container files
+
+These APIs provide fine-grained control over how files are copied between containers and enable the container-as-artifact pattern throughout Aspire 13.
+
 ### Dockerfile Builder API (Experimental)
 
 Aspire 13.0 introduces an experimental programmatic Dockerfile generation API that allows you to define Dockerfiles using C# code with a composable, type-safe API.
@@ -907,7 +971,7 @@ Certificate management features include:
 
 These features enable production-ready certificate handling in development, testing, and deployment scenarios.
 
-## 📦 Integration Packages and Resources
+## 📦 Integrations
 
 Aspire 13.0 introduces new integration packages that expand platform support.
 
@@ -939,42 +1003,6 @@ MAUI integration features:
 - **Full orchestration**: MAUI apps participate in service discovery and can reference backend services
 
 This enables a complete mobile + cloud development experience where you can run and debug your mobile app alongside your backend services in a single Aspire project.
-
-### Simplified Service URL Environment Variables
-
-Aspire 13.0 introduces polyglot-friendly environment variables that make service discovery easier for non-.NET applications.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var api = builder.AddProject<Projects.Api>("api");
-
-// Python app gets simple environment variables
-var pythonApp = builder.AddPythonApp("worker", "../worker", "app.py")
-    .WithReference(api); // Sets PROJECTS_API and PROJECTS_API_HTTPS env vars
-
-await builder.Build().RunAsync();
-```
-
-Instead of complex service discovery formats, non-.NET apps receive simple environment variables:
-
-- `WEATHERAPI=http://localhost:5000` - HTTP endpoint
-- `WEATHERAPI_HTTPS=https://localhost:5001` - HTTPS endpoint
-
-This can be customized per-resource or per-type using `WithReferenceEnvironment()`:
-
-```csharp
-var api = builder.AddProject<Projects.Api>("api");
-
-var nodeApp = builder.AddNpmApp("frontend", "../frontend")
-    .WithReference(api, env =>
-    {
-        // Customize environment variable generation
-        env.EnvironmentVariables["API_URL"] = api.GetEndpoint("http");
-    });
-```
-
-This feature makes Aspire's service discovery mechanism accessible to any programming language, not just .NET applications with service discovery libraries.
 
 ## 📊 Dashboard enhancements
 
@@ -1101,7 +1129,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var api = builder.AddProject<Projects.Api>("api");
 
 // Get endpoint with specific network context
-var hostEndpoint = api.GetEndpoint("http", NetworkIdentifier.Host);
+var localhostEndpoint = api.GetEndpoint("http", KnownNetworkIdentifiers.LocalhostNetwork);
 var containerEndpoint = api.GetEndpoint("http", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
 
 await builder.Build().RunAsync();
@@ -1262,51 +1290,6 @@ var child = builder.AddContainer("child", "child-image")
 await builder.Build().RunAsync();
 ```
 
-### Deployment state management
-
-Aspire 13.0 introduces deployment state management for persisting deployment information across runs.
-
-```csharp
-// Deployment state is automatically managed by the runtime
-var builder = DistributedApplication.CreateBuilder(args);
-
-// State persists across deployments
-var api = builder.AddProject<Projects.Api>("api");
-
-await builder.Build().RunAsync();
-```
-
-Deployment state features:
-
-- **IDeploymentStateManager**: Interface for state management
-- **FileDeploymentStateManager**: File-based state storage
-- **UserSecretsDeploymentStateManager**: User secrets integration
-- **Optimistic concurrency**: Prevents conflicting state updates
-- **Section-based storage**: Organize state into logical sections
-
-This enables scenarios like remembering parameter values, tracking deployed resources, and maintaining deployment history.
-
-### Container files management
-
-Enhanced container file operations with better error handling and source tracking.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithContainerFiles("./config", "/app/config", continueOnError: false)
-    .WithContainerFilesSource("./shared-configs");
-
-await builder.Build().RunAsync();
-```
-
-Container files features:
-
-- **ContinueOnError**: Control failure behavior for file copy operations
-- **Source tracking**: ContainerFilesSourceAnnotation tracks file sources
-- **PublishWithContainerFiles**: Share files between resources during publishing
-- **IResourceWithContainerFiles**: Interface for resources supporting container files
-
 ### Event system
 
 Aspire 13.0 replaces lifecycle hooks with a new eventing system for better composability and testability.
@@ -1333,56 +1316,6 @@ Event system features:
 - **Composable subscriptions**: Register multiple subscribers for the same event
 - **Cancellation support**: Properly handle cancellation during event processing
 
-### Azure deployment enhancements
-
-#### Azure tenant selection
-
-Aspire 13.0 introduces interactive tenant selection during Azure provisioning, fixing issues with multi-tenant scenarios (work and personal accounts).
-
-When provisioning Azure resources, if multiple tenants are available, the CLI will prompt you to select the appropriate tenant. The tenant selection is stored alongside your subscription, location, and resource group choices for consistent deployments.
-
-```bash
-aspire deploy
-
-# If you have multiple tenants, you'll be prompted:
-# Select Azure tenant:
-#   > work@company.com (Default Directory)
-#     personal@outlook.com (Personal Account)
-```
-
-#### Azure Key Vault emulator support
-
-Azure Key Vault hosting now supports local development with the Azure Key Vault emulator, eliminating the need for an Azure subscription during development.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Uses emulator in development, real Key Vault in production
-var keyVault = builder.AddAzureKeyVault("keyvault");
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(keyVault);
-
-await builder.Build().RunAsync();
-```
-
-The emulator integration uses connection string redirect for local development scenarios.
-
-#### Azure App Service automatic scaling
-
-Enable automatic scaling for Azure App Service Plan to improve performance and avoid cold start issues in production.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-builder.AddAzureAppService("api")
-    .WithAutomaticScaling(); // Enables automatic scaling
-
-await builder.Build().RunAsync();
-```
-
-This is a best practice for production deployments to ensure your application scales appropriately with load.
-
 ### Other app model improvements
 
 **Compute environment support (graduated from experimental)**:
@@ -1400,6 +1333,181 @@ This is a best practice for production deployments to ensure your application sc
 **Helper methods**:
 - `TryCreateResourceBuilder` for safely attempting resource builder creation with failure handling
 - Returns false instead of throwing when resource builder creation fails
+
+## 🚀 Deployment improvements
+
+### Deployment pipeline reimplementation
+
+Aspire 13.0 completely reimplements the deployment workflow on top of the new [Distributed Application Pipeline](#distributed-application-pipeline) system. This architectural change transforms deployment from a monolithic operation into a composable set of discrete, parallelizable steps.
+
+#### Maximum Parallelization
+
+The new deployment pipeline automatically parallelizes independent operations. Here's a real execution graph from `aspire do diagnostics` for an Azure deployment:
+
+```
+aspire do deploy
+
+Execution order (14 total steps):
+  [0] build-prereq | deploy-prereq (parallel)
+  [1] build-fe | validate-azure-login (parallel)
+  [2] build-static | create-provisioning-context (parallel)
+  [3] provision-env
+  [4] login-to-acr-env
+  [5] push-static
+  [6] provision-static-containerapp
+  [7] print-static-summary | provision-azure-bicep-resources (parallel)
+  [8] print-dashboard-url-env
+  [9] deploy
+```
+
+Notice how the pipeline automatically parallelizes at multiple levels:
+- **Level 0**: Prerequisites run in parallel
+- **Level 1**: Frontend builds while Azure login validates (parallel)
+- **Level 2**: Static files build while provisioning context is created (parallel)
+- **Level 7**: Summary printing and Bicep resource provisioning run in parallel
+
+This dramatically reduces deployment time for applications with multiple services by executing independent steps concurrently.
+
+#### Granular Step Control
+
+You can now execute individual deployment phases as discrete operations using `aspire do`:
+
+```bash
+# Build all containers
+aspire do build
+
+# Push a specific container image
+aspire do push-static
+
+# Provision Azure infrastructure
+aspire do provision-azure-bicep-resources
+
+# Deploy everything
+aspire do deploy
+```
+
+This granular control enables powerful workflows:
+
+**Incremental deployments**: Build once, reuse across environments
+```bash
+aspire do build                              # Build containers locally
+aspire do push-static                        # Push to registry
+aspire do provision-azure-bicep-resources    # Deploy infrastructure
+aspire do deploy                             # Complete deployment
+```
+
+**Debugging builds**: Iterate on specific steps
+```bash
+aspire do build-fe        # Build just the frontend
+aspire do build-static    # Build just the static files
+aspire do deploy          # Then deploy everything
+```
+
+**CI/CD integration**: Split pipeline stages
+```bash
+# CI stage: Build and test
+aspire do build
+
+# CD stage: Push and deploy
+aspire do deploy
+```
+
+#### Pipeline Step Benefits
+
+The pipeline-based deployment provides:
+
+- **Dependency tracking**: Steps automatically run prerequisites
+- **Progress reporting**: Real-time status for each step
+- **Failure isolation**: Identify exactly which step failed
+- **Selective execution**: Run only the steps you need
+- **Extensibility**: Add custom deployment steps via pipeline API
+
+For more details on the underlying pipeline system, see [Distributed Application Pipeline](#distributed-application-pipeline).
+
+### Deployment state management
+
+Aspire 13.0 introduces deployment state management that automatically persists deployment information locally across runs. When you deploy to Azure, Aspire now remembers your choices and deployment state between sessions.
+
+**What persists locally:**
+
+- **Azure configuration**: Subscription, resource group, location, and tenant selections
+- **Parameter values**: Input values from previous deployments
+- **Deployed resources**: Track what's been deployed and where
+- **Deployment context**: Maintain context across multiple deployment runs
+
+**User experience:**
+
+```bash
+# First deployment - you're prompted for configuration
+aspire do deploy
+# Select Azure subscription, resource group, location, tenant...
+
+# Subsequent deployments - no prompts, uses saved state
+aspire do deploy
+# Uses previous selections automatically
+```
+
+This eliminates repetitive prompts and makes iterative deployments faster. Your deployment configuration is stored locally (not in source control), so each developer can have their own Azure configuration without conflicts.
+
+**Example workflow:**
+
+1. First time: Select subscription "My Subscription", resource group "my-rg", location "eastus"
+2. Deploy completes, state saved locally
+3. Make code changes
+4. Run `aspire do deploy` again - automatically uses "My Subscription", "my-rg", "eastus"
+5. No need to re-enter configuration
+
+The state is stored in your local user profile, making it seamless to work across multiple Aspire projects with different Azure configurations.
+
+## ☁️ Azure
+
+### Azure tenant selection
+
+Aspire 13.0 introduces interactive tenant selection during Azure provisioning, fixing issues with multi-tenant scenarios (work and personal accounts).
+
+When provisioning Azure resources, if multiple tenants are available, the CLI will prompt you to select the appropriate tenant. The tenant selection is stored alongside your subscription, location, and resource group choices for consistent deployments.
+
+```bash
+aspire deploy
+
+# If you have multiple tenants, you'll be prompted:
+# Select Azure tenant:
+#   > work@company.com (Default Directory)
+#     personal@outlook.com (Personal Account)
+```
+
+### Azure Key Vault emulator support
+
+Azure Key Vault hosting now supports local development with the Azure Key Vault emulator, eliminating the need for an Azure subscription during development.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Uses emulator in development, real Key Vault in production
+var keyVault = builder.AddAzureKeyVault("keyvault");
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(keyVault);
+
+await builder.Build().RunAsync();
+```
+
+The emulator integration uses connection string redirect for local development scenarios.
+
+### Azure App Service automatic scaling
+
+Enable automatic scaling for Azure App Service Plan to improve performance and avoid cold start issues in production.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddAzureAppService("api")
+    .WithAutomaticScaling(); // Enables automatic scaling
+
+await builder.Build().RunAsync();
+```
+
+This is a best practice for production deployments to ensure your application scales appropriately with load.
 
 ## ⚠️ Breaking changes
 
