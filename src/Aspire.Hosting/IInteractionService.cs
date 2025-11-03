@@ -512,7 +512,7 @@ public sealed class InputsDialogValidationContext
     /// <summary>
     /// Gets the service provider for resolving services during validation.
     /// </summary>
-    public required IServiceProvider ServiceProvider { get; init; }
+    public required IServiceProvider Services { get; init; }
 
     /// <summary>
     /// Adds a validation error for the specified input.
