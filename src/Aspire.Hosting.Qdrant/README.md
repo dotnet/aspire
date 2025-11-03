@@ -23,7 +23,28 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(qdrant);
 ```
 
+## Connection Properties
+
+When you reference a Qdrant resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Qdrant server
+
+The Qdrant server resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `GrpcHost` | The gRPC hostname of the Qdrant server |
+| `GrpcPort` | The gRPC port of the Qdrant server |
+| `HttpHost` | The HTTP hostname of the Qdrant server |
+| `HttpPort` | The HTTP port of the Qdrant server |
+| `ApiKey` | The API key for authentication |
+| `Uri` | The gRPC connection URI, with the format `http://{GrpcHost}:{GrpcPort}` |
+| `HttpUri` | The HTTP connection URI, with the format `http://{HttpHost}:{HttpPort}` |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+
 ## Additional documentation
+
 * https://qdrant.tech/documentation
 
 ## Feedback & contributing
