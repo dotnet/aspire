@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -15,20 +15,18 @@ namespace Aspire.Hosting.UserSecrets;
 
 /// <summary>
 /// Factory for creating and caching IUserSecretsManager instances.
-/// Uses ConditionalWeakTable to allow instances to be shared across assemblies while still being GC-friendly.
+/// Uses ConcurrentDictionary to cache instances by normalized file path.
 /// </summary>
 internal sealed class UserSecretsManagerFactory
 {
     // Singleton instance
     public static readonly UserSecretsManagerFactory Instance = new();
 
-    // Use ConditionalWeakTable to cache instances by file path
-    // This allows the same instance to be reused while still being GC-friendly
-    private readonly ConditionalWeakTable<string, IUserSecretsManager> _managerCache = new();
+    // Use ConcurrentDictionary to cache instances by file path
+    private readonly ConcurrentDictionary<string, IUserSecretsManager> _managerCache = new();
     
-    // Semaphores are stored separately and never GC'd to ensure thread safety
-    private readonly Dictionary<string, SemaphoreSlim> _semaphores = new();
-    private readonly object _semaphoresLock = new();
+    // Semaphores are stored separately to ensure thread safety across all manager instances for the same file
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphores = new();
 
     private UserSecretsManagerFactory()
     {
@@ -43,7 +41,7 @@ internal sealed class UserSecretsManagerFactory
         
         var normalizedPath = Path.GetFullPath(filePath);
         
-        return _managerCache.GetValue(normalizedPath, path =>
+        return _managerCache.GetOrAdd(normalizedPath, path =>
         {
             var semaphore = GetSemaphore(path);
             return new UserSecretsManager(path, semaphore);
@@ -113,15 +111,7 @@ internal sealed class UserSecretsManagerFactory
 
     private SemaphoreSlim GetSemaphore(string filePath)
     {
-        lock (_semaphoresLock)
-        {
-            if (!_semaphores.TryGetValue(filePath, out var semaphore))
-            {
-                semaphore = new SemaphoreSlim(1, 1);
-                _semaphores[filePath] = semaphore;
-            }
-            return semaphore;
-        }
+        return _semaphores.GetOrAdd(filePath, _ => new SemaphoreSlim(1, 1));
     }
 
     private sealed class UserSecretsManager : IUserSecretsManager
@@ -215,7 +205,7 @@ internal sealed class UserSecretsManagerFactory
                 .Build()
                 .AsEnumerable()
                 .Where(i => i.Value != null)
-                .ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(i => i.Key, i => i.Value);
         }
 
         private void Save(Dictionary<string, string?> secrets)

@@ -29,7 +29,9 @@ internal sealed class NoopUserSecretsManager : IUserSecretsManager
 
     public void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator)
     {
-        Debug.WriteLine($"User secrets are not enabled. Cannot get or set secret '{name}'.");
+        Debug.WriteLine($"User secrets are not enabled. Generating and adding secret '{name}' to configuration in-memory.");
+        var value = valueGenerator();
+        configuration.AddInMemoryCollection(new Dictionary<string, string?> { [name] = value });
     }
 
     public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
