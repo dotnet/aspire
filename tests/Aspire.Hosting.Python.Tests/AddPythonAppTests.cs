@@ -1372,5 +1372,165 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // Verify the custom runtime image is used
         Assert.Contains("FROM python:3.13-slim AS app", dockerfileContent);
     }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileWithoutUv_WithRequirementsTxt()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project without UV but with requirements.txt
+        var requirementsContent = """
+            flask==3.0.0
+            requests==2.31.0
+            """;
+
+        var scriptContent = """
+            print("Hello from non-UV project!")
+            """;
+
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.12"
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "requirements.txt"), requirementsContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources without UV environment
+        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for non-UV Python app");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify it's a fallback Dockerfile (single stage, no UV)
+        Assert.DoesNotContain("uv sync", dockerfileContent);
+        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
+
+        // Verify it uses pip install for requirements.txt
+        Assert.Contains("pip install --no-cache-dir -r requirements.txt", dockerfileContent);
+
+        // Verify it uses the same runtime image as UV workflow
+        Assert.Contains("FROM python:3.12-slim-bookworm", dockerfileContent);
+
+        await Verify(dockerfileContent);
+    }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileWithoutUv_WithoutRequirementsTxt()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project without UV and without requirements.txt
+        var scriptContent = """
+            print("Hello from non-UV project with no dependencies!")
+            """;
+
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.11"
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources without UV environment
+        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for non-UV Python app");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify it's a fallback Dockerfile (single stage, no UV)
+        Assert.DoesNotContain("uv sync", dockerfileContent);
+        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
+
+        // Verify it doesn't have pip install since there's no requirements.txt
+        Assert.DoesNotContain("pip install", dockerfileContent);
+
+        // Verify it uses the same runtime image as UV workflow
+        Assert.Contains("FROM python:3.11-slim-bookworm", dockerfileContent);
+
+        await Verify(dockerfileContent);
+    }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileForAllEntrypointTypes()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project without UV
+        var scriptContent = """
+            print("Hello!")
+            """;
+
+        var pythonVersionContent = "3.12";
+
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+        File.WriteAllText(Path.Combine(projectDirectory, ".python-version"), pythonVersionContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources with different entrypoint types, none using UV
+        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+        builder.AddPythonModule("module-app", projectDirectory, "mymodule");
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfiles were generated for each entrypoint type
+        var scriptDockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(scriptDockerfilePath), "Dockerfile should be generated for script entrypoint");
+
+        var moduleDockerfilePath = Path.Combine(outputDir.Path, "module-app.Dockerfile");
+        Assert.True(File.Exists(moduleDockerfilePath), "Dockerfile should be generated for module entrypoint");
+
+        var executableDockerfilePath = Path.Combine(outputDir.Path, "executable-app.Dockerfile");
+        Assert.True(File.Exists(executableDockerfilePath), "Dockerfile should be generated for executable entrypoint");
+
+        var scriptDockerfileContent = File.ReadAllText(scriptDockerfilePath);
+        var moduleDockerfileContent = File.ReadAllText(moduleDockerfilePath);
+        var executableDockerfileContent = File.ReadAllText(executableDockerfilePath);
+
+        // Verify none use UV
+        Assert.DoesNotContain("uv sync", scriptDockerfileContent);
+        Assert.DoesNotContain("uv sync", moduleDockerfileContent);
+        Assert.DoesNotContain("uv sync", executableDockerfileContent);
+
+        // Verify correct entrypoints
+        Assert.Contains("ENTRYPOINT [\"python\",\"main.py\"]", scriptDockerfileContent);
+        Assert.Contains("ENTRYPOINT [\"python\",\"-m\",\"mymodule\"]", moduleDockerfileContent);
+        Assert.Contains("ENTRYPOINT [\"pytest\"]", executableDockerfileContent);
+
+        await Verify(scriptDockerfileContent)
+            .AppendContentAsFile(moduleDockerfileContent)
+            .AppendContentAsFile(executableDockerfileContent);
+    }
 }
 
