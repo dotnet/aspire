@@ -518,6 +518,37 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void WithVirtualEnvironment_UsesVirtualEnvEnvironmentVariableWhenSet()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+        using var tempVirtualEnvDir = new TempDirectory();
+
+        // Create a .venv directory from VIRTUAL_ENV
+        var virtualEnvPath = Path.Combine(tempVirtualEnvDir.Path, "custom-venv");
+        Directory.CreateDirectory(virtualEnvPath);
+
+        // Also create .venv in the app directory to verify VIRTUAL_ENV takes priority
+        var appVenvPath = Path.Combine(tempAppDir.Path, ".venv");
+        Directory.CreateDirectory(appVenvPath);
+
+        // Set VIRTUAL_ENV in configuration
+        builder.Configuration["VIRTUAL_ENV"] = virtualEnvPath;
+
+        var scriptName = "main.py";
+        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        // Should use the VIRTUAL_ENV path since it has highest priority
+        AssertPythonCommandPath(virtualEnvPath, pythonProjectResource.Command);
+    }
+
+    [Fact]
     public void WithVirtualEnvironment_UsesAppDirectoryWhenVenvExistsThere()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);

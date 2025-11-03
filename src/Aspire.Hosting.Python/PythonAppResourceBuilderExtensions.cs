@@ -77,7 +77,13 @@ public static class PythonAppResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This method executes a Python script directly using <c>python script.py</c>.
-    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// By default, the virtual environment is resolved using the following priority:
+    /// <list type="number">
+    /// <item>If the <c>VIRTUAL_ENV</c> environment variable is set and the directory exists, use it.</item>
+    /// <item>If <c>.venv</c> exists in the app directory, use it.</item>
+    /// <item>If <c>.venv</c> exists in the AppHost directory (and the app is nearby), use it.</item>
+    /// <item>Otherwise, default to <c>.venv</c> in the app directory.</item>
+    /// </list>
     /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
@@ -359,7 +365,7 @@ public static class PythonAppResourceBuilderExtensions
         var resolvedVenvPath = virtualEnvironmentPath;
         if (virtualEnvironmentPath == DefaultVirtualEnvFolder && !Path.IsPathRooted(virtualEnvironmentPath))
         {
-            resolvedVenvPath = ResolveDefaultVirtualEnvironmentPath(builder.AppHostDirectory, resource.WorkingDirectory, virtualEnvironmentPath);
+            resolvedVenvPath = ResolveDefaultVirtualEnvironmentPath(builder, resource.WorkingDirectory, virtualEnvironmentPath);
         }
 
         var resourceBuilder = builder
@@ -718,39 +724,42 @@ public static class PythonAppResourceBuilderExtensions
     /// <summary>
     /// Resolves the default virtual environment path by checking multiple candidate locations.
     /// </summary>
-    /// <param name="appHostDirectory">The AppHost directory.</param>
+    /// <param name="builder">The distributed application builder.</param>
     /// <param name="appWorkingDirectory">The Python app working directory.</param>
     /// <param name="virtualEnvironmentPath">The relative virtual environment path (e.g., ".venv").</param>
     /// <returns>The resolved virtual environment path.</returns>
-    private static string ResolveDefaultVirtualEnvironmentPath(string appHostDirectory, string appWorkingDirectory, string virtualEnvironmentPath)
+    private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appWorkingDirectory, string virtualEnvironmentPath)
     {
-        // Check if the virtual environment exists in the app directory first
+        // Priority 1: Check if VIRTUAL_ENV is set in configuration (standard Python convention)
+        var virtualEnvFromConfig = builder.Configuration["VIRTUAL_ENV"];
+        if (!string.IsNullOrEmpty(virtualEnvFromConfig) && Directory.Exists(virtualEnvFromConfig))
+        {
+            return virtualEnvFromConfig;
+        }
+
+        // Priority 2: Check if the virtual environment exists in the app directory
         var appDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, appWorkingDirectory);
+        if (Directory.Exists(appDirVenvPath))
+        {
+            return appDirVenvPath;
+        }
 
-        // Only check the AppHost directory if the Python app is a subdirectory or sibling of the AppHost
+        // Priority 3: Check the AppHost directory if the Python app is a subdirectory or sibling of the AppHost
         // This prevents picking up unrelated .venv directories from test fixtures or other sources
-        var appHostDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, appHostDirectory);
-
+        var appHostDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, builder.AppHostDirectory);
+        
         // Check if the app directory is under or near the AppHost directory
-        var appDirRelativeToAppHost = Path.GetRelativePath(appHostDirectory, appWorkingDirectory);
+        var appDirRelativeToAppHost = Path.GetRelativePath(builder.AppHostDirectory, appWorkingDirectory);
         var isAppDirNearAppHost = !appDirRelativeToAppHost.StartsWith("..", StringComparison.Ordinal) &&
                                    !Path.IsPathRooted(appDirRelativeToAppHost);
 
-        if (Directory.Exists(appDirVenvPath))
+        if (isAppDirNearAppHost && Directory.Exists(appHostDirVenvPath))
         {
-            // Use the app directory if it exists there
-            return appDirVenvPath;
-        }
-        else if (isAppDirNearAppHost && Directory.Exists(appHostDirVenvPath))
-        {
-            // Use the AppHost directory if it exists there and the app is nearby
             return appHostDirVenvPath;
         }
-        else
-        {
-            // Default to app directory if neither exists (for cases where the venv will be created later)
-            return appDirVenvPath;
-        }
+
+        // Default: Return app directory path (for cases where the venv will be created later)
+        return appDirVenvPath;
     }
 
     /// <summary>
