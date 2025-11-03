@@ -28,6 +28,11 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Dashboard AI Assistant](#dashboard-ai-assistant)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
+- [Integration Packages and Resources](#-integration-packages-and-resources)
+  - [Vite App Support](#vite-app-support)
+  - [.NET MAUI Integration](#net-maui-integration)
+  - [Python Enhancements](#python-enhancements)
+  - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
 - [Dashboard enhancements](#-dashboard-enhancements)
   - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
   - [Console logs refactoring](#console-logs-refactoring)
@@ -42,6 +47,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Deployment state management](#deployment-state-management)
   - [Container files management](#container-files-management)
   - [Event system](#event-system)
+  - [Azure deployment enhancements](#azure-deployment-enhancements)
 - [Breaking changes](#-breaking-changes)
 
 ## Upgrade to Aspire 13.0
@@ -473,6 +479,151 @@ Certificate management features include:
 
 These features enable production-ready certificate handling in development, testing, and deployment scenarios.
 
+## 📦 Integration Packages and Resources
+
+Aspire 13.0 introduces several new integration packages and resource types that expand support beyond traditional .NET scenarios.
+
+### Vite App Support
+
+Aspire 13.0 adds first-class support for Vite-based frontend applications with automatic package manager detection and Dockerfile generation.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add a Vite app with automatic package manager detection
+var frontend = builder.AddViteApp("frontend", "../frontend")
+    .WithHttpEndpoint(env: "PORT")
+    .WithExternalHttpEndpoints();
+
+// Or specify the package manager explicitly
+var frontendWithNpm = builder.AddViteApp("frontend-npm", "../frontend")
+    .WithNpm() // or .WithYarn() or .WithPnpm()
+    .WithHttpEndpoint(env: "PORT");
+
+await builder.Build().RunAsync();
+```
+
+Vite app features include:
+
+- **Automatic package manager detection**: Detects npm, yarn, or pnpm from lock files
+- **Node.js version detection**: Automatically detects Node.js version from project configuration files
+- **Dockerfile generation**: Automatic multi-stage Dockerfile for production builds
+- **Package manager methods**: `WithNpm()`, `WithYarn()`, `WithPnpm()` for explicit package manager selection
+- **Auto-install packages**: Automatically runs package install commands during startup
+
+This feature was contributed from the Community Toolkit and is now part of core Aspire, making Vite (and similar modern JavaScript build tools) a first-class citizen alongside .NET projects.
+
+### .NET MAUI Integration
+
+Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api");
+
+// Add MAUI app for Windows
+var mauiWindows = builder.AddMauiWindows("myapp-windows", "../MyApp/MyApp.csproj")
+    .WithReference(api);
+
+// Add MAUI app for Mac Catalyst
+var mauiMac = builder.AddMauiMacCatalyst("myapp-mac", "../MyApp/MyApp.csproj")
+    .WithReference(api);
+
+await builder.Build().RunAsync();
+```
+
+MAUI integration features:
+
+- **Platform support**: Windows and Mac Catalyst platforms
+- **Device registration**: Register multiple device instances for testing
+- **Platform validation**: Automatically detects host OS compatibility and marks resources as unsupported when needed
+- **Full orchestration**: MAUI apps participate in service discovery and can reference backend services
+
+This enables a complete mobile + cloud development experience where you can run and debug your mobile app alongside your backend services in a single Aspire project.
+
+### Python Enhancements
+
+#### Uvicorn App Resource
+
+Aspire 13.0 introduces a specialized `UvicornAppResource` for Python ASGI applications, following the same pattern as `ViteAppResource`.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add a Uvicorn app (FastAPI, Starlette, etc.)
+var api = builder.AddUvicornApp("api", "../api", "main:app")
+    .WithHttpEndpoint(port: 8000, env: "PORT")
+    .WithExternalHttpEndpoints();
+
+await builder.Build().RunAsync();
+```
+
+The `AddUvicornApp` method returns `IResourceBuilder<UvicornAppResource>` instead of the generic `PythonAppResource`, providing better type safety and enabling Uvicorn-specific extensions in the future.
+
+#### Python Module Debugging
+
+Aspire 13.0 adds comprehensive debugging support for Python modules (not just scripts), including popular frameworks.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Debug a Flask app
+var flaskApp = builder.AddPythonModule("flask-app", "../app", "flask")
+    .WithArgs("run", "--debug")
+    .WithDebugging(); // Enables module debugging
+
+// Debug a Uvicorn app
+var uvicornApp = builder.AddPythonModule("api", "../api", "uvicorn")
+    .WithArgs("main:app", "--reload")
+    .WithDebugging(); // Enables module debugging
+
+await builder.Build().RunAsync();
+```
+
+Python debugging enhancements:
+
+- **Module debugging**: Full debugging support for `python -m module` execution
+- **Framework support**: Pre-configured debugging for Flask, Uvicorn, and Gunicorn
+- **IDE integration**: Enhanced IDE spec with `interpreter_path` and `module` properties
+- **New method**: `AddGunicornApp()` for Gunicorn-based applications
+
+### Simplified Service URL Environment Variables
+
+Aspire 13.0 introduces polyglot-friendly environment variables that make service discovery easier for non-.NET applications.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api");
+
+// Python app gets simple environment variables
+var pythonApp = builder.AddPythonApp("worker", "../worker", "app.py")
+    .WithReference(api); // Sets PROJECTS_API and PROJECTS_API_HTTPS env vars
+
+await builder.Build().RunAsync();
+```
+
+Instead of complex service discovery formats, non-.NET apps receive simple environment variables:
+
+- `WEATHERAPI=http://localhost:5000` - HTTP endpoint
+- `WEATHERAPI_HTTPS=https://localhost:5001` - HTTPS endpoint
+
+This can be customized per-resource or per-type using `WithReferenceEnvironment()`:
+
+```csharp
+var api = builder.AddProject<Projects.Api>("api");
+
+var nodeApp = builder.AddNpmApp("frontend", "../frontend")
+    .WithReference(api, env =>
+    {
+        // Customize environment variable generation
+        env.EnvironmentVariables["API_URL"] = api.GetEndpoint("http");
+    });
+```
+
+This feature makes Aspire's service discovery mechanism accessible to any programming language, not just .NET applications with service discovery libraries.
+
 ## 📊 Dashboard enhancements
 
 ### Model Context Protocol (MCP) server
@@ -830,6 +981,56 @@ Event system features:
 - **Composable subscriptions**: Register multiple subscribers for the same event
 - **Cancellation support**: Properly handle cancellation during event processing
 
+### Azure deployment enhancements
+
+#### Azure tenant selection
+
+Aspire 13.0 introduces interactive tenant selection during Azure provisioning, fixing issues with multi-tenant scenarios (work and personal accounts).
+
+When provisioning Azure resources, if multiple tenants are available, the CLI will prompt you to select the appropriate tenant. The tenant selection is stored alongside your subscription, location, and resource group choices for consistent deployments.
+
+```bash
+aspire deploy
+
+# If you have multiple tenants, you'll be prompted:
+# Select Azure tenant:
+#   > work@company.com (Default Directory)
+#     personal@outlook.com (Personal Account)
+```
+
+#### Azure Key Vault emulator support
+
+Azure Key Vault hosting now supports local development with the Azure Key Vault emulator, eliminating the need for an Azure subscription during development.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Uses emulator in development, real Key Vault in production
+var keyVault = builder.AddAzureKeyVault("keyvault");
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(keyVault);
+
+await builder.Build().RunAsync();
+```
+
+The emulator integration uses connection string redirect for local development scenarios.
+
+#### Azure App Service automatic scaling
+
+Enable automatic scaling for Azure App Service Plan to improve performance and avoid cold start issues in production.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddAzureAppService("api")
+    .WithAutomaticScaling(); // Enables automatic scaling
+
+await builder.Build().RunAsync();
+```
+
+This is a best practice for production deployments to ensure your application scales appropriately with load.
+
 ### Other app model improvements
 
 **Compute environment support (graduated from experimental)**:
@@ -917,6 +1118,49 @@ await resource.ProcessArgumentValuesAsync(
 ```
 
 The `containerHostName` parameter has been removed from these extension methods. Network context is now handled through the `NetworkIdentifier` type.
+
+### Major architectural changes
+
+#### Universal Container-to-Host Communication
+
+Aspire 13.0 introduces a major architectural change to enable universal container-to-host communication, independent of container orchestrator support.
+
+**What changed:**
+- Leverages DCP's container tunnel capability for container-to-host connectivity
+- `EndpointReference` resolution is now context-aware (uses `NetworkIdentifier`)
+- Endpoint references are tracked by their `EndpointAnnotation`
+- `AllocatedEndpoint` constructor signature changed (see above)
+
+**Impact:**
+- This enables containers to communicate with host-based services reliably across all deployment scenarios
+- Code that directly constructs `AllocatedEndpoint` objects will need updates
+- Extension methods that process endpoint references may need Network Identifier context
+
+**Migration:**
+Most applications won't need changes as the endpoint resolution happens automatically. However, if you have custom code that creates or processes endpoints:
+
+```csharp
+// Before (9.x)
+var endpoint = new AllocatedEndpoint("http", 8080, containerHostAddress: "localhost");
+
+// After (13.0) - specify network context
+var endpoint = new AllocatedEndpoint("http", 8080, networkIdentifier: NetworkIdentifier.Host);
+```
+
+This change fixes long-standing issues with container-to-host communication (issue #6547).
+
+#### Refactored AddNodeApp API
+
+The `AddNodeApp` API has been refactored in Aspire 13.0, introducing breaking changes to how Node.js applications are added.
+
+**What changed:**
+- Updated method signatures and behavior
+- Package manager integration changes (npm/yarn/pnpm now auto-install by default)
+
+**Impact:**
+If you're using `AddNodeApp` directly, review your code for compatibility with the new API. The new Vite app support (`AddViteApp`) follows similar patterns.
+
+For most users, the changes are improvements that reduce boilerplate, but may require minor code updates if you have custom Node.js integrations.
 
 ### Migration guide
 
