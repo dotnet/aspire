@@ -13,7 +13,8 @@ This release introduces:
 - **First-class JavaScript support**: Vite and npm-based apps with package manager auto-detection, debugging support, and container-based build pipelines
 - **Polyglot infrastructure**: Connection properties work in any language (URI, JDBC, individual properties), certificate trust across languages and containers
 - **Container files as build artifacts**: A new paradigm where build outputs are containers, not folders - enabling reproducible, isolated, and portable builds
-- **Modern CLI**: `aspire init` to Aspirify existing apps, and `aspire do` as the foundation for the next-generation build/publish/deploy pipeline
+- **New platform for build, publish, and deployment**: A foundational pipeline system that powers `aspire do` - enabling parallel execution, dependency tracking, and extensible workflows for building, publishing, and deploying applications
+- **Modern CLI**: `aspire init` to Aspirify existing apps, and improved deployment state management that remembers your configuration across runs
 
 Along with the rebranding, Aspire now has a new home at **[aspire.dev](https://aspire.dev)** - your central hub for documentation, getting started guides, and community resources.
 
