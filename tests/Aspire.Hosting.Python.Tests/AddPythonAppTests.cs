@@ -1390,16 +1390,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             print("Hello from non-UV project!")
             """;
 
-        var pyprojectContent = """
-            [project]
-            name = "test-app"
-            version = "0.1.0"
-            requires-python = ">=3.12"
-            """;
-
         File.WriteAllText(Path.Combine(projectDirectory, "requirements.txt"), requirementsContent);
         File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
-        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
@@ -1423,7 +1415,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.Contains("pip install --no-cache-dir -r requirements.txt", dockerfileContent);
 
         // Verify it uses the same runtime image as UV workflow
-        Assert.Contains("FROM python:3.12-slim-bookworm", dockerfileContent);
+        Assert.Contains("FROM python:3.13-slim-bookworm", dockerfileContent);
 
         await Verify(dockerfileContent);
     }
