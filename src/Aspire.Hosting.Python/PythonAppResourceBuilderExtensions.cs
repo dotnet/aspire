@@ -734,6 +734,27 @@ public static class PythonAppResourceBuilderExtensions
         // Walk up from the Python app directory looking for the virtual environment
         // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
         var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
+        
+        // Check if the app directory is under the AppHost's parent directory
+        // If not, only look in the app directory itself
+        if (appHostParentDirectory != null)
+        {
+            var relativePath = Path.GetRelativePath(appHostParentDirectory, appDirectoryFullPath);
+            var isUnderAppHostParent = !relativePath.StartsWith("..", StringComparison.Ordinal) &&
+                                        !Path.IsPathRooted(relativePath);
+            
+            if (!isUnderAppHostParent)
+            {
+                // App is not under AppHost's parent, only check the app directory
+                var appDirVenvPath = Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
+                if (Directory.Exists(appDirVenvPath))
+                {
+                    return appDirVenvPath;
+                }
+                return appDirVenvPath;
+            }
+        }
+        
         var currentDirectory = appDirectoryFullPath;
         
         while (currentDirectory != null)
