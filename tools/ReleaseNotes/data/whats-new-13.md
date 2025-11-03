@@ -192,15 +192,14 @@ The Aspire IDE extensions automatically configure the Python debugger with the c
 
 #### Automatic Dockerfile Generation
 
-Aspire can automatically generate production-ready Dockerfiles for Python applications using the Dockerfile Builder API:
+Aspire automatically generates production-ready Dockerfiles for Python applications when publishing. No additional configuration is required:
 
 ```csharp
 builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUvEnvironment()
-    .PublishAsDockerFile();
+    .WithUvEnvironment();
 ```
 
-The generated Dockerfile:
+When you publish this app, Aspire automatically generates a Dockerfile that:
 - Uses appropriate Python base images
 - Installs dependencies using uv or pip
 - Configures the working directory
@@ -209,11 +208,10 @@ The generated Dockerfile:
 
 #### Certificate Trust for Python
 
-Python applications can trust development certificates for secure communication:
+Python applications automatically trust development certificates without any additional configuration:
 
 ```csharp
-var api = builder.AddUvicornApp("api", "./api", "main:app")
-    .WithCertificateTrustConfiguration();
+var api = builder.AddUvicornApp("api", "./api", "main:app");
 ```
 
 Aspire automatically configures Python's `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE` environment variables to trust Aspire-managed certificates, enabling secure HTTPS communication during local development.
@@ -246,39 +244,47 @@ The new `AddJavaScriptApp` method replaces the older `AddNpmApp` (now obsolete) 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add a JavaScript application with npm
-var frontend = builder.AddJavaScriptApp("frontend", "./frontend")
-    .WithNpm()
-    .WithRunScript("dev");
+// Add a JavaScript application - runs "npm run dev" by default
+var frontend = builder.AddJavaScriptApp("frontend", "./frontend");
 
 // Use a different package manager
 var admin = builder.AddJavaScriptApp("admin", "./admin")
-    .WithYarn()
-    .WithRunScript("start");
+    .WithYarn();
 ```
+
+By default, `AddJavaScriptApp`:
+- Automatically detects npm from `package.json`
+- Runs the "dev" script during local development
+- Runs the "build" script when publishing to create production assets
 
 #### Package Manager Flexibility
 
-Aspire automatically detects and supports multiple JavaScript package managers:
+Aspire automatically detects and supports multiple JavaScript package managers. You can explicitly specify a package manager or customize installation:
 
 ```csharp
-// npm with custom install command
+// Explicitly use npm with custom install command
 var app1 = builder.AddJavaScriptApp("app1", "./app1")
-    .WithNpm(installCommand: "ci")  // Use npm ci for faster, deterministic installs
-    .WithRunScript("dev");
+    .WithNpm(installCommand: "ci");  // Use npm ci for faster, deterministic installs
 
-// yarn with frozen lockfile in production
+// Use yarn with frozen lockfile in production
 var app2 = builder.AddJavaScriptApp("app2", "./app2")
-    .WithYarn(installArgs: ["--immutable"])
-    .WithRunScript("start");
+    .WithYarn(installArgs: ["--immutable"]);
 
-// pnpm with specific flags
+// Use pnpm with specific flags
 var app3 = builder.AddJavaScriptApp("app3", "./app3")
-    .WithPnpm(installArgs: ["--frozen-lockfile"])
-    .WithRunScript("dev");
+    .WithPnpm(installArgs: ["--frozen-lockfile"]);
 ```
 
-If a `package.json` exists in your app directory, Aspire automatically adds npm as the default package manager.
+#### Customizing Scripts
+
+You can customize which scripts run during development and build:
+
+```csharp
+// Use different script names
+var app = builder.AddJavaScriptApp("app", "./app")
+    .WithRunScript("start")      // Run "npm run start" during development instead of "dev"
+    .WithBuildScript("prod");     // Run "npm run prod" during publish instead of "build"
+```
 
 #### Vite Support
 
@@ -286,7 +292,6 @@ If a `package.json` exists in your app directory, Aspire automatically adds npm 
 
 ```csharp
 var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithNpm()
     .WithReference(api);
 ```
 
@@ -298,13 +303,10 @@ Vite applications get:
 
 #### Dynamic Dockerfile Generation
 
-JavaScript applications automatically generate Dockerfiles when published, with intelligent defaults based on your package manager and build scripts:
+JavaScript applications automatically generate Dockerfiles when published, with intelligent defaults based on your package manager:
 
 ```csharp
-var app = builder.AddJavaScriptApp("app", "./app")
-    .WithNpm()
-    .WithBuildScript("build")  // Runs during Docker build
-    .WithRunScript("dev");     // Runs during local development
+var app = builder.AddJavaScriptApp("app", "./app");
 ```
 
 The generated Dockerfile:
@@ -319,8 +321,7 @@ The generated Dockerfile:
 JavaScript applications can specify that their build output should be used as container files for other services:
 
 ```csharp
-var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithBuildScript("build");  // Builds to ./dist
+var frontend = builder.AddViteApp("frontend", "./frontend");
 
 var api = builder.AddUvicornApp("api", "./api", "main:app")
     .WithReference(frontend);
@@ -367,19 +368,17 @@ Connection expressions support:
 
 #### Cross-Language Certificate Trust
 
-Certificate trust now works across all languages and environments:
+Certificate trust now works automatically across all languages without any additional configuration:
 
 ```csharp
-// Python trusts development certificates
-builder.AddUvicornApp("python-api", "./api", "main:app")
-    .WithCertificateTrustConfiguration();
+// Python automatically trusts development certificates
+var pythonApi = builder.AddUvicornApp("python-api", "./api", "main:app");
 
-// JavaScript/Node.js trusts development certificates
-builder.AddJavaScriptApp("node-api", "./node-api")
-    .WithCertificateTrustConfiguration();
+// JavaScript/Node.js automatically trusts development certificates
+var nodeApi = builder.AddJavaScriptApp("node-api", "./node-api");
 
-// .NET trusts development certificates (existing behavior)
-builder.AddProject<Projects.Api>();
+// .NET automatically trusts development certificates
+var dotnetApi = builder.AddProject<Projects.Api>();
 ```
 
 Aspire automatically:
@@ -593,8 +592,7 @@ This approach has several limitations:
 Aspire 13 changes this by treating containers as the **primary build artifact**:
 
 ```csharp
-var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithBuildScript("build");  // Builds INSIDE a container
+var frontend = builder.AddViteApp("frontend", "./frontend");
 
 var api = builder.AddUvicornApp("api", "./api", "main:app");
 
@@ -618,8 +616,7 @@ Every build happens in the same container environment:
 
 ```csharp
 // This ALWAYS uses node:22-slim with the exact same tools
-var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithBuildScript("build");
+var frontend = builder.AddViteApp("frontend", "./frontend");
 ```
 
 No matter who runs the build or where it runs, you get identical results because the build environment is defined in the container image, not your local machine.
@@ -680,9 +677,7 @@ A common pattern is building a frontend and serving it from a backend:
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Build a Vite frontend in a container
-var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithNpm()
-    .WithBuildScript("build");  // Creates /app/dist in container
+var frontend = builder.AddViteApp("frontend", "./frontend");
 
 // Python FastAPI backend
 var api = builder.AddUvicornApp("api", "./api", "main:app")
@@ -721,7 +716,7 @@ def get_data():
 
 ### Advanced Usage: Multi-Stage Builds
 
-You can also use container files with projects that produce build artifacts:
+You can also use container files with .NET projects that produce build artifacts:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -729,12 +724,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 // .NET Blazor WebAssembly app that builds to wwwroot
 var blazorWasm = builder.AddProject<Projects.BlazorWasm>("blazor-wasm");
 
-// Go API that serves static files
-var goApi = builder.AddExecutable("api", "go", "./api", ["run", "main.go"])
-    .PublishAsContainer();
+// .NET API that serves static files
+var api = builder.AddProject<Projects.Api>("api");
 
-// Copy Blazor's published wwwroot into the Go API container
-goApi.PublishWithContainerFiles(blazorWasm, "./static");
+// Copy Blazor's published wwwroot into the API container
+api.PublishWithContainerFiles(blazorWasm, "./static");
 ```
 
 ### Container Files in the Build Pipeline
