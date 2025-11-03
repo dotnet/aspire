@@ -135,49 +135,52 @@ Aspire 13.0 introduces an experimental programmatic Dockerfile generation API th
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Define a Dockerfile programmatically
 var app = builder.AddContainer("myapp", "myapp")
-    .WithDockerfileBuilder(dockerfile =>
+    .PublishAsDockerFile(publish =>
     {
-        var buildStage = dockerfile.AddStage("build", "mcr.microsoft.com/dotnet/sdk:10.0");
-        buildStage.AddWorkdir("/src");
-        buildStage.AddCopy(".", "/src");
-        buildStage.AddRun("dotnet build -c Release");
+        publish.WithDockerfileBuilder("/path/to/workdir", context =>
+        {
+            // Build stage - install dependencies
+            var buildStage = context.Builder
+                .From("mcr.microsoft.com/dotnet/sdk:10.0", "builder")
+                .EmptyLine()
+                .Comment("Install dependencies")
+                .WorkDir("/src")
+                .Copy("*.csproj", "./")
+                .Run("dotnet restore")
+                .EmptyLine()
+                .Comment("Build and publish the application")
+                .Copy(".", "./")
+                .Run("dotnet publish -c Release -o /app");
 
-        var publishStage = dockerfile.AddStage("publish", "build");
-        publishStage.AddRun("dotnet publish -c Release -o /app");
-
-        var finalStage = dockerfile.AddStage("final", "mcr.microsoft.com/dotnet/aspnet:10.0");
-        finalStage.AddWorkdir("/app");
-        finalStage.AddCopyFrom("publish", "/app", ".");
-        finalStage.AddEntrypoint("dotnet", "myapp.dll");
+            // Runtime stage - minimal runtime image
+            context.Builder
+                .From("mcr.microsoft.com/dotnet/aspnet:10.0", "runtime")
+                .EmptyLine()
+                .Comment("Create non-root user for security")
+                .Run("adduser --disabled-password --gecos '' appuser")
+                .EmptyLine()
+                .Comment("Copy published app from builder stage")
+                .CopyFrom(buildStage.StageName!, "/app", "/app", "appuser:appuser")
+                .EmptyLine()
+                .WorkDir("/app")
+                .User("appuser")
+                .Env("ASPNETCORE_URLS", "http://+:8080")
+                .EmptyLine()
+                .Entrypoint(["dotnet", "myapp.dll"]);
+        });
     });
 
 await builder.Build().RunAsync();
 ```
 
-The Dockerfile Builder provides:
+The Dockerfile Builder API provides:
 
-- **Multi-stage build support**: Define build, publish, and runtime stages
-- **Type-safe API**: IntelliSense and compile-time validation
-- **Composable statements**: Build complex Dockerfiles from reusable components
-- **Dynamic generation**: Generate Dockerfiles based on runtime conditions
-- **Factory pattern**: Share Dockerfile templates across multiple resources with `WithDockerfileFactory`
-
-Alternatively, use the factory pattern for simple string-based Dockerfile generation:
-
-```csharp
-var app = builder.AddContainer("myapp", "myapp")
-    .WithDockerfileFactory((context) =>
-    {
-        return """
-            FROM mcr.microsoft.com/dotnet/aspnet:10.0
-            WORKDIR /app
-            COPY . .
-            ENTRYPOINT ["dotnet", "myapp.dll"]
-            """;
-    });
-```
+- **Multi-stage builds**: Create stages with `From(image, stageName)` and reference them with `CopyFrom`
+- **Fluent API**: Chain methods like `WorkDir`, `Copy`, `Run`, `Env`, `User`, `Entrypoint`
+- **Comments and formatting**: Add comments and empty lines for readable generated Dockerfiles
+- **BuildKit features**: Use `RunWithMounts` for cache mounts and bind mounts
+- **Dynamic generation**: Access resource configuration via `context.Resource` to customize based on annotations
 
 This experimental feature enables sophisticated container image construction scenarios while maintaining the developer experience of working in C#.
 
