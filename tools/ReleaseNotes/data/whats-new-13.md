@@ -1408,6 +1408,17 @@ This eliminates repetitive prompts and makes iterative deployments faster. Your 
 
 The state is stored in your local user profile, making it seamless to work across multiple Aspire projects with different Azure configurations.
 
+**Resetting deployment state:**
+
+If you need to reset your deployment state (for example, to change subscriptions or start fresh), use the `--clear-cache` flag:
+
+```bash
+aspire deploy --clear-cache
+# Clears saved state and prompts for configuration again
+```
+
+This removes all saved deployment state, including Azure configuration, parameter values, and deployment context. The next deployment will prompt you for all configuration values as if it were the first deployment.
+
 ## ☁️ Azure
 
 ### Azure tenant selection
