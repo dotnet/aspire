@@ -15,6 +15,8 @@ This release introduces:
 - **Container files as build artifacts**: A new paradigm where build outputs are containers, not folders - enabling reproducible, isolated, and portable builds
 - **Modern CLI**: `aspire init` to Aspirify existing apps, and `aspire do` as the foundation for the next-generation build/publish/deploy pipeline
 
+Along with the rebranding, Aspire now has a new home at **[aspire.dev](https://aspire.dev)** - your central hub for documentation, getting started guides, and community resources.
+
 **Requirements:**
 - .NET 10 SDK or later
 
@@ -30,17 +32,17 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Modern Python Tooling with uv](#modern-python-tooling-with-uv)
     - [VS Code Debugging Support](#vs-code-debugging-support)
     - [Automatic Dockerfile Generation](#automatic-dockerfile-generation)
-    - [Certificate Trust for Python](#certificate-trust-for-python)
     - [Starter Template: Vite + FastAPI](#starter-template-vite--fastapi)
   - [JavaScript as a First-Class Citizen](#javascript-as-a-first-class-citizen)
     - [Unified JavaScript Application Model](#unified-javascript-application-model)
     - [Package Manager Flexibility](#package-manager-flexibility)
+    - [Customizing Scripts](#customizing-scripts)
     - [Vite Support](#vite-support)
     - [Dynamic Dockerfile Generation](#dynamic-dockerfile-generation-1)
     - [Container Files as Build Artifacts](#container-files-as-build-artifacts-1)
   - [Polyglot Infrastructure](#polyglot-infrastructure)
     - [Polyglot Connection Properties](#polyglot-connection-properties)
-    - [Cross-Language Certificate Trust](#cross-language-certificate-trust)
+    - [Certificate Trust Across Languages](#certificate-trust-across-languages)
 - [CLI and tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update command](#aspire-update-command)
@@ -206,16 +208,6 @@ When you publish this app, Aspire automatically generates a Dockerfile that:
 - Sets up the ASGI server with production settings
 - Follows Python container best practices
 
-#### Certificate Trust for Python
-
-Python applications automatically trust development certificates without any additional configuration:
-
-```csharp
-var api = builder.AddUvicornApp("api", "./api", "main:app");
-```
-
-Aspire automatically configures Python's `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE` environment variables to trust Aspire-managed certificates, enabling secure HTTPS communication during local development.
-
 #### Starter Template: Vite + FastAPI
 
 Aspire 13 includes a new `aspire-py-starter` template that demonstrates a full-stack Python application:
@@ -344,7 +336,7 @@ Beyond language-specific support, Aspire 13 introduces infrastructure features t
 
 #### Polyglot Connection Properties
 
-The `WithReference` method now supports multiple connection string formats for different languages and frameworks:
+Database resources now expose multiple connection string formats automatically, making it easy to connect from any language:
 
 ```csharp
 var postgres = builder.AddPostgres("db").AddDatabase("mydb");
@@ -357,37 +349,55 @@ var dotnetApi = builder.AddProject<Projects.Api>()
 var pythonWorker = builder.AddPythonModule("worker", "./worker", "worker.main")
     .WithEnvironment("DATABASE_URL", postgres.Resource.ConnectionStringExpression);
 
-// Java app can use JDBC format (if needed via custom expression)
-// Connection properties are now flexible and language-agnostic
+// Java app can use JDBC format
+var javaApp = builder.AddExecutable("java-app", "java", "./app", ["-jar", "app.jar"])
+    .WithEnvironment("DB_JDBC", postgres.Resource.JdbcConnectionStringExpression);
 ```
 
-Connection expressions support:
-- **URI format**: `postgresql://user:pass@host:port/db` (Python, Node.js, Go, Ruby)
-- **.NET format**: Individual properties via service discovery
-- **Individual properties**: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+When you reference a database resource with `WithReference`, Aspire automatically exposes multiple connection properties as environment variables:
 
-#### Cross-Language Certificate Trust
+**PostgreSQL example** - for a resource named `db`, Aspire exposes:
+- `DB_URI` - PostgreSQL URI format: `postgresql://user:pass@host:port/dbname`
+- `DB_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:postgresql://host:port/dbname?user=user&password=pass`
+- `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASENAME` - Individual properties
 
-Certificate trust now works automatically across all languages without any additional configuration:
+**SQL Server example** - for a resource named `sql`, Aspire exposes:
+- `SQL_URI` - SQL Server URI format: `mssql://user:pass@host:port/dbname`
+- `SQL_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:sqlserver://host:port;user=user;password=pass;databaseName=dbname;trustServerCertificate=true`
+- `SQL_HOST`, `SQL_PORT`, `SQL_USERNAME`, `SQL_PASSWORD`, `SQL_DATABASENAME` - Individual properties
+
+**Oracle example** - for a resource named `oracle`, Aspire exposes:
+- `ORACLE_URI` - Oracle URI format: `oracle://user:pass@host:port/dbname`
+- `ORACLE_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:oracle:thin:user/pass@//host:port/dbname`
+- `ORACLE_HOST`, `ORACLE_PORT`, `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_DATABASE` - Individual properties
+
+This works automatically for all supported databases including PostgreSQL, SQL Server, Oracle, MySQL, MongoDB, and more. No additional configuration needed - just use `WithReference` and access the connection format your language needs.
+
+> [!NOTE]
+> These new connection property conventions are available in the built-in Aspire database integrations (PostgreSQL, SQL Server, Oracle, MySQL, MongoDB, etc.). If you have custom or community integrations, they may need to be updated to expose these properties. See the [connection properties agent documentation](https://github.com/dotnet/aspire/blob/main/.github/agents/connectionproperties.agent.md) for guidance on implementing these conventions in your own integrations.
+
+#### Certificate Trust Across Languages
+
+Aspire 13 automatically configures certificate trust for Python, Node.js, and containerized applications without any additional configuration:
 
 ```csharp
-// Python automatically trusts development certificates
-var pythonApi = builder.AddUvicornApp("python-api", "./api", "main:app");
+// Python applications automatically trust development certificates
+var pythonApi = builder.AddUvicornApp("api", "./api", "main:app");
 
-// JavaScript/Node.js automatically trusts development certificates
-var nodeApi = builder.AddJavaScriptApp("node-api", "./node-api");
+// Node.js applications automatically trust development certificates
+var nodeApi = builder.AddJavaScriptApp("frontend", "./frontend");
 
-// .NET automatically trusts development certificates
-var dotnetApi = builder.AddProject<Projects.Api>();
+// Containerized applications automatically trust development certificates
+var container = builder.AddContainer("service", "myimage");
 ```
 
 Aspire automatically:
-- Generates and manages development certificates
-- Configures language-specific environment variables (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, etc.)
-- Supports both appending to existing trust stores and replacing them
-- Works in both local development and containerized environments
+- **Python**: Configures `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE` environment variables
+- **Node.js**: Configures `NODE_EXTRA_CA_CERTS` environment variable
+- **Containers**: Mounts certificate bundles and configures appropriate environment variables
+- **All platforms**: Generates and manages development certificates without manual intervention
 
-This enables secure HTTPS communication between services written in different languages without manual certificate management.
+This enables secure HTTPS communication during local development across all languages and containerized services.
 
 ## 🛠️ CLI and tooling
 
