@@ -187,6 +187,7 @@ public class DefaultTokenCredentialProviderTests
     {
         var options = new AzureProvisionerOptions
         {
+            // Intentionally allow CredentialSource to be null for tests that verify null handling.
             CredentialSource = credentialSource!
         };
         return Options.Create(options);
