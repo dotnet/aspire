@@ -358,6 +358,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         outputHelper.WriteLine($"{label}:\n\n{output}");
     }
 
+    private static void AssertPythonCommandPath(string expectedVenvPath, string actualCommand)
+    {
+        var expectedCommand = OperatingSystem.IsWindows()
+            ? Path.Join(expectedVenvPath, "Scripts", "python.exe")
+            : Path.Join(expectedVenvPath, "bin", "python");
+        
+        Assert.Equal(expectedCommand, actualCommand);
+    }
+
     private const string PythonApp = """"
         import logging
 
@@ -531,23 +540,17 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
         var expectedVenvPath = Path.Combine(expectedProjectDirectory, ".venv");
 
-        if (OperatingSystem.IsWindows())
-        {
-            Assert.Equal(Path.Join(expectedVenvPath, "Scripts", "python.exe"), pythonProjectResource.Command);
-        }
-        else
-        {
-            Assert.Equal(Path.Join(expectedVenvPath, "bin", "python"), pythonProjectResource.Command);
-        }
+        AssertPythonCommandPath(expectedVenvPath, pythonProjectResource.Command);
     }
 
     [Fact]
     public void WithVirtualEnvironment_UsesAppHostDirectoryWhenVenvOnlyExistsThere()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
         
         // Create app directory as a subdirectory of AppHost (realistic scenario)
-        var appDirName = "python-app-" + Path.GetRandomFileName();
+        var appDirName = "python-app";
         var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
         Directory.CreateDirectory(appDirPath);
 
@@ -567,14 +570,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var pythonProjectResource = Assert.Single(executableResources);
 
             // Should use the AppHost directory .venv since it only exists there
-            if (OperatingSystem.IsWindows())
-            {
-                Assert.Equal(Path.Join(appHostVenvPath, "Scripts", "python.exe"), pythonProjectResource.Command);
-            }
-            else
-            {
-                Assert.Equal(Path.Join(appHostVenvPath, "bin", "python"), pythonProjectResource.Command);
-            }
+            AssertPythonCommandPath(appHostVenvPath, pythonProjectResource.Command);
         }
         finally
         {
@@ -596,7 +592,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         
         // Create app directory as a subdirectory of AppHost (realistic scenario)
-        var appDirName = "python-app-" + Path.GetRandomFileName();
+        var appDirName = "python-app";
         var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
         Directory.CreateDirectory(appDirPath);
 
@@ -619,14 +615,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var pythonProjectResource = Assert.Single(executableResources);
 
             // Should prefer the app directory .venv when it exists in both locations
-            if (OperatingSystem.IsWindows())
-            {
-                Assert.Equal(Path.Join(appVenvPath, "Scripts", "python.exe"), pythonProjectResource.Command);
-            }
-            else
-            {
-                Assert.Equal(Path.Join(appVenvPath, "bin", "python"), pythonProjectResource.Command);
-            }
+            AssertPythonCommandPath(appVenvPath, pythonProjectResource.Command);
         }
         finally
         {
@@ -663,14 +652,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
         var expectedVenvPath = Path.Combine(expectedProjectDirectory, ".venv");
 
-        if (OperatingSystem.IsWindows())
-        {
-            Assert.Equal(Path.Join(expectedVenvPath, "Scripts", "python.exe"), pythonProjectResource.Command);
-        }
-        else
-        {
-            Assert.Equal(Path.Join(expectedVenvPath, "bin", "python"), pythonProjectResource.Command);
-        }
+        AssertPythonCommandPath(expectedVenvPath, pythonProjectResource.Command);
     }
 
     [Fact]
@@ -679,7 +661,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         
         // Create app directory as a subdirectory of AppHost
-        var appDirName = "python-app-" + Path.GetRandomFileName();
+        var appDirName = "python-app";
         var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
         Directory.CreateDirectory(appDirPath);
 
@@ -706,14 +688,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var pythonProjectResource = Assert.Single(executableResources);
 
             // Should use the explicitly specified path, NOT the AppHost .venv
-            if (OperatingSystem.IsWindows())
-            {
-                Assert.Equal(Path.Join(customVenvPath, "Scripts", "python.exe"), pythonProjectResource.Command);
-            }
-            else
-            {
-                Assert.Equal(Path.Join(customVenvPath, "bin", "python"), pythonProjectResource.Command);
-            }
+            AssertPythonCommandPath(customVenvPath, pythonProjectResource.Command);
         }
         finally
         {
