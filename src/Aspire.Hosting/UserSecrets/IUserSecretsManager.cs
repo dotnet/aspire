@@ -25,15 +25,6 @@ internal interface IUserSecretsManager
     bool TrySetSecret(string name, string value);
 
     /// <summary>
-    /// Attempts to set a user secret value asynchronously.
-    /// </summary>
-    /// <param name="name">The name of the secret.</param>
-    /// <param name="value">The value of the secret.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if the secret was set successfully; otherwise, false.</returns>
-    Task<bool> TrySetSecretAsync(string name, string value, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets a secret value if it exists in configuration, or sets it using the value generator if it doesn't.
     /// </summary>
     /// <param name="configuration">The configuration manager to check and update.</param>

@@ -158,27 +158,6 @@ internal sealed class UserSecretsManagerFactory
             }
         }
 
-        public async Task<bool> TrySetSecretAsync(string name, string value, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    await SetSecretCoreAsync(name, value, cancellationToken).ConfigureAwait(false);
-                    return true;
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
         public void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator)
         {
             var existingValue = configuration[name];
@@ -225,16 +204,6 @@ internal sealed class UserSecretsManagerFactory
             Save(secrets);
         }
 
-        private async Task SetSecretCoreAsync(string name, string value, CancellationToken cancellationToken)
-        {
-            EnsureUserSecretsDirectory();
-            
-            // Load existing secrets, merge with new value, save
-            var secrets = Load();
-            secrets[name] = value;
-            await SaveAsync(secrets, cancellationToken).ConfigureAwait(false);
-        }
-
         private Dictionary<string, string?> Load()
         {
             return new ConfigurationBuilder()
@@ -265,29 +234,6 @@ internal sealed class UserSecretsManagerFactory
             else
             {
                 File.WriteAllText(FilePath, json, Encoding.UTF8);
-            }
-        }
-
-        private async Task SaveAsync(Dictionary<string, string?> secrets, CancellationToken cancellationToken)
-        {
-            var contents = new JsonObject();
-            foreach (var secret in secrets)
-            {
-                contents[secret.Key] = secret.Value;
-            }
-
-            var json = contents.ToJsonString(s_jsonSerializerOptions);
-
-            // Create a temp file with the correct Unix file mode before moving it to the expected path.
-            if (!OperatingSystem.IsWindows())
-            {
-                var tempFilename = Path.GetTempFileName();
-                await File.WriteAllTextAsync(tempFilename, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-                File.Move(tempFilename, FilePath, overwrite: true);
-            }
-            else
-            {
-                await File.WriteAllTextAsync(FilePath, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
             }
         }
 

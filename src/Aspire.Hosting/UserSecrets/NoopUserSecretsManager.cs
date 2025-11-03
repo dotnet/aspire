@@ -27,12 +27,6 @@ internal sealed class NoopUserSecretsManager : IUserSecretsManager
         return false;
     }
 
-    public Task<bool> TrySetSecretAsync(string name, string value, CancellationToken cancellationToken = default)
-    {
-        Debug.WriteLine($"User secrets are not enabled. Cannot set secret '{name}'.");
-        return Task.FromResult(false);
-    }
-
     public void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator)
     {
         Debug.WriteLine($"User secrets are not enabled. Cannot get or set secret '{name}'.");
