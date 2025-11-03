@@ -15,11 +15,6 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
 ## Table of contents
 
 - [Upgrade to Aspire 13.0](#upgrade-to-aspire-130)
-- [Major new features](#major-new-features)
-  - [Distributed Application Pipeline](#distributed-application-pipeline)
-  - [Dashboard AI Assistant](#dashboard-ai-assistant)
-  - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
-  - [Certificate Management](#certificate-management)
 - [CLI and tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update command](#aspire-update-command)
@@ -28,6 +23,11 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation)
   - [Other CLI improvements](#other-cli-improvements)
+- [Major new features](#major-new-features)
+  - [Distributed Application Pipeline](#distributed-application-pipeline)
+  - [Dashboard AI Assistant](#dashboard-ai-assistant)
+  - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
+  - [Certificate Management](#certificate-management)
 - [Dashboard enhancements](#-dashboard-enhancements)
   - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
   - [Console logs refactoring](#console-logs-refactoring)
@@ -81,157 +81,6 @@ The easiest way to upgrade to Aspire 13.0 is using the `aspire update` command:
 
 > [!NOTE]
 > If you're upgrading from Aspire 8.x, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md) first to upgrade to 9.x, then upgrade to 13.0.
-
-## Major new features
-
-### Distributed Application Pipeline
-
-Aspire 13.0 introduces a comprehensive pipeline system for coordinating build, deployment, and publishing operations. This new architecture provides a foundation for orchestrating complex deployment workflows with built-in support for step dependencies, parallel execution, and detailed progress reporting.
-
-The pipeline system replaces the previous publishing infrastructure with a more flexible, extensible model that allows resource-specific deployment logic to be decentralized and composed into larger workflows.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Resources participate in the pipeline automatically
-var api = builder.AddProject<Projects.Api>("api");
-var database = builder.AddPostgres("postgres");
-
-// Pipeline handles coordination, dependencies, and reporting
-await builder.Build().RunAsync();
-```
-
-The pipeline system includes:
-
-- **Step abstraction**: Define custom deployment steps with dependency tracking
-- **Parallel execution**: Steps run concurrently when dependencies allow
-- **Progress reporting**: Built-in activity reporting for deployment operations
-- **Resource-specific logic**: Each resource type can define its own deployment behavior
-- **Output management**: Centralized pipeline output service for artifacts
-
-For more details on the pipeline architecture, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
-
-### Dashboard AI Assistant
-
-The Dashboard now includes an integrated AI assistant that provides context-aware help, error explanations, and intelligent suggestions directly within the dashboard experience.
-
-Key features include:
-
-- **Interactive chat interface**: Converse with the AI assistant about your application
-- **Context-aware assistance**: The assistant understands your resource configuration and telemetry
-- **Error explanations**: Click "Explain Errors" on traces and logs to get AI-powered insights
-- **Markdown support**: Rich formatting with code blocks and syntax highlighting
-- **GenAI telemetry visualization**: Enhanced visualization of AI operations in your application
-
-The AI assistant integration makes debugging and understanding distributed applications more intuitive by providing intelligent insights based on your application's actual runtime behavior.
-
-### Dockerfile Builder API (Experimental)
-
-Aspire 13.0 introduces an experimental programmatic Dockerfile generation API that allows you to define Dockerfiles using C# code with a composable, type-safe API.
-
-> [!IMPORTANT]
-> 🧪 **Experimental Feature**: The Dockerfile Builder API is experimental and may change before general availability.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var app = builder.AddContainer("myapp", "myapp")
-    .PublishAsDockerFile(publish =>
-    {
-        publish.WithDockerfileBuilder("/path/to/workdir", context =>
-        {
-            // Build stage - install dependencies
-            var buildStage = context.Builder
-                .From("mcr.microsoft.com/dotnet/sdk:10.0", "builder")
-                .EmptyLine()
-                .Comment("Install dependencies")
-                .WorkDir("/src")
-                .Copy("*.csproj", "./")
-                .Run("dotnet restore")
-                .EmptyLine()
-                .Comment("Build and publish the application")
-                .Copy(".", "./")
-                .Run("dotnet publish -c Release -o /app");
-
-            // Runtime stage - minimal runtime image
-            context.Builder
-                .From("mcr.microsoft.com/dotnet/aspnet:10.0", "runtime")
-                .EmptyLine()
-                .Comment("Create non-root user for security")
-                .Run("adduser --disabled-password --gecos '' appuser")
-                .EmptyLine()
-                .Comment("Copy published app from builder stage")
-                .CopyFrom(buildStage.StageName!, "/app", "/app", "appuser:appuser")
-                .EmptyLine()
-                .WorkDir("/app")
-                .User("appuser")
-                .Env("ASPNETCORE_URLS", "http://+:8080")
-                .EmptyLine()
-                .Entrypoint(["dotnet", "myapp.dll"]);
-        });
-    });
-
-await builder.Build().RunAsync();
-```
-
-The Dockerfile Builder API provides:
-
-- **Multi-stage builds**: Create stages with `From(image, stageName)` and reference them with `CopyFrom`
-- **Fluent API**: Chain methods like `WorkDir`, `Copy`, `Run`, `Env`, `User`, `Entrypoint`
-- **Comments and formatting**: Add comments and empty lines for readable generated Dockerfiles
-- **BuildKit features**: Use `RunWithMounts` for cache mounts and bind mounts
-- **Dynamic generation**: Access resource configuration via `context.Resource` to customize based on annotations
-
-This experimental feature enables sophisticated container image construction scenarios while maintaining the developer experience of working in C#.
-
-### Certificate Management
-
-Aspire 13.0 introduces comprehensive certificate management capabilities for handling custom certificate authorities and developer certificate trust in containerized environments.
-
-#### Certificate Authority Collections
-
-Define and manage custom certificate collections for your distributed applications:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add a certificate authority collection
-var certs = builder.AddCertificateAuthorityCollection("custom-certs")
-    .WithCertificatesFromFile("./certs/my-ca.pem")
-    .WithCertificatesFromStore(
-        StoreName.CertificateAuthority,
-        StoreLocation.LocalMachine,
-        allowInvalid: false);
-
-// Use the certificate collection in your resources
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(certs);
-
-await builder.Build().RunAsync();
-```
-
-#### Developer Certificate Trust
-
-Automatically configure container trust for developer certificates on Mac and Linux:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithDeveloperCertificateTrust(); // Automatically trust dev certs in container
-
-await builder.Build().RunAsync();
-```
-
-Certificate management features include:
-
-- **Multiple certificate sources**: Load from PEM files, Windows certificate stores, or programmatically
-- **Flexible trust scoping**: System-level, append, override, or no trust
-- **Container certificate paths**: Customize where certificates are placed in containers
-- **Developer certificate support**: Automatic trust configuration for local development
-- **Environment variable control**: Configure certificate behavior through environment variables
-
-These features enable production-ready certificate handling in development, testing, and deployment scenarios.
 
 ## 🛠️ CLI and tooling
 
@@ -289,8 +138,8 @@ The update command makes it easy to stay current with Aspire releases while main
 The new `aspire do` command serves as a general-purpose pipeline entry point for executing deployment and build operations.
 
 ```bash
-# Execute a specific pipeline step (e.g., step)
-aspire do step
+# Execute a specific pipeline step (e.g., deploy)
+aspire do deploy
 
 # Execute with custom output path
 aspire do publish --output-path ./artifacts
@@ -406,6 +255,223 @@ When enabled, this preview feature can improve the onboarding experience for new
 - Automatic port forwarding configuration for VS Code SSH Remote
 - Consistent experience with Devcontainers and Codespaces
 - Environment variable detection (`SSH_CONNECTION`, `VSCODE_IPC_HOOK_CLI`)
+
+## Major new features
+
+### Distributed Application Pipeline
+
+Aspire 13.0 introduces a comprehensive pipeline system for coordinating build, deployment, and publishing operations. This new architecture provides a foundation for orchestrating complex deployment workflows with built-in support for step dependencies, parallel execution, and detailed progress reporting.
+
+The pipeline system replaces the previous publishing infrastructure with a more flexible, extensible model that allows resource-specific deployment logic to be decentralized and composed into larger workflows.
+
+> [!IMPORTANT]
+> 🧪 **Early Preview**: The pipeline APIs are in early preview and marked as experimental. While these APIs may evolve based on feedback, we're confident this is the right direction as it enables much more flexible modeling of arbitrary build, publish, and deployment steps. The pipeline system provides the foundation for advanced deployment scenarios that weren't possible with the previous publishing model.
+
+**Global pipeline steps:**
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add a custom pipeline step that runs before build
+builder.Pipeline.AddStep("validate", (context) =>
+{
+    context.Logger.LogInformation("Running validation checks...");
+    // Your custom validation logic
+    context.Logger.LogInformation("Validation complete!");
+    return Task.CompletedTask;
+}, requiredBy: "build");
+
+await builder.Build().RunAsync();
+```
+
+You can run this step directly using the CLI:
+
+```bash
+# Run the validate step and all its dependencies
+aspire do validate
+```
+
+**Resource-specific pipeline steps:**
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithPipelineStepFactory(context => new PipelineStep
+    {
+        Name = "seed-database",
+        Action = async (ctx) =>
+        {
+            ctx.Logger.LogInformation("Seeding database for {Resource}...", context.Resource.Name);
+            // Your seeding logic here
+            await Task.CompletedTask;
+        }
+    });
+
+await builder.Build().RunAsync();
+```
+
+**Configure step dependencies between resources:**
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api");
+
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+    .WithPipelineConfiguration(context =>
+    {
+        // Get the build steps for this resource
+        var frontendBuild = context.GetSteps(context.Resource, WellKnownPipelineTags.BuildCompute);
+
+        // Get the build steps for the API resource
+        var apiBuild = context.GetSteps(api.Resource, WellKnownPipelineTags.BuildCompute);
+ 
+        // Make frontend build depend on API build
+        frontendBuild.DependsOn(apiBuild);
+    });
+
+await builder.Build().RunAsync();
+```
+
+The pipeline system includes:
+
+- **Global steps**: Define custom deployment steps with `builder.Pipeline.AddStep`
+- **Resource steps**: Resources contribute steps via `WithPipelineStepFactory`
+- **Dependency configuration**: Control step ordering with `WithPipelineConfiguration`
+- **Parallel execution**: Steps run concurrently when dependencies allow
+- **Built-in logging**: Use `context.Logger` to log step progress
+- **CLI execution**: Run specific steps with `aspire do <step-name>`
+
+For more details on the pipeline architecture, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
+
+### Dashboard AI Assistant
+
+The Dashboard now includes an integrated AI assistant that provides context-aware help, error explanations, and intelligent suggestions directly within the dashboard experience.
+
+Key features include:
+
+- **Interactive chat interface**: Converse with the AI assistant about your application
+- **Context-aware assistance**: The assistant understands your resource configuration and telemetry
+- **Error explanations**: Click "Explain Errors" on traces and logs to get AI-powered insights
+- **Markdown support**: Rich formatting with code blocks and syntax highlighting
+- **GenAI telemetry visualization**: Enhanced visualization of AI operations in your application
+
+The AI assistant integration makes debugging and understanding distributed applications more intuitive by providing intelligent insights based on your application's actual runtime behavior.
+
+### Dockerfile Builder API (Experimental)
+
+Aspire 13.0 introduces an experimental programmatic Dockerfile generation API that allows you to define Dockerfiles using C# code with a composable, type-safe API.
+
+> [!IMPORTANT]
+> 🧪 **Experimental Feature**: The Dockerfile Builder API is experimental and may change before general availability.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var app = builder.AddContainer("goapp", "goapp")
+    .PublishAsDockerFile(publish =>
+    {
+        publish.WithDockerfileBuilder("/path/to/goapp", context =>
+        {
+            // Build stage - compile Go application
+            var buildStage = context.Builder
+                .From("golang:1.23-alpine", "builder")
+                .EmptyLine()
+                .Comment("Install build dependencies")
+                .Run("apk add --no-cache git")
+                .EmptyLine()
+                .WorkDir("/build")
+                .Comment("Download dependencies first for better caching")
+                .Copy("go.mod", "./")
+                .Copy("go.sum", "./")
+                .Run("go mod download")
+                .EmptyLine()
+                .Comment("Copy source and build")
+                .Copy(".", "./")
+                .Run("CGO_ENABLED=0 GOOS=linux go build -o /app/server .");
+
+            // Runtime stage - minimal runtime image
+            context.Builder
+                .From("alpine:latest", "runtime")
+                .EmptyLine()
+                .Comment("Install CA certificates for HTTPS")
+                .Run("apk add --no-cache ca-certificates")
+                .EmptyLine()
+                .Comment("Create non-root user")
+                .Run("adduser -D -u 1000 appuser")
+                .EmptyLine()
+                .Comment("Copy binary from builder")
+                .CopyFrom(buildStage.StageName!, "/app/server", "/app/server", "appuser:appuser")
+                .EmptyLine()
+                .User("appuser")
+                .WorkDir("/app")
+                .EmptyLine()
+                .Entrypoint(["/app/server"]);
+        });
+    });
+
+await builder.Build().RunAsync();
+```
+
+The Dockerfile Builder API provides:
+
+- **Multi-stage builds**: Create stages with `From(image, stageName)` and reference them with `CopyFrom`
+- **Fluent API**: Chain methods like `WorkDir`, `Copy`, `Run`, `Env`, `User`, `Entrypoint`
+- **Comments and formatting**: Add comments and empty lines for readable generated Dockerfiles
+- **BuildKit features**: Use `RunWithMounts` for cache mounts and bind mounts
+- **Dynamic generation**: Access resource configuration via `context.Resource` to customize based on annotations
+
+This experimental feature enables sophisticated container image construction scenarios while maintaining the developer experience of working in C#.
+
+### Certificate Management
+
+Aspire 13.0 introduces comprehensive certificate management capabilities for handling custom certificate authorities and developer certificate trust in containerized environments.
+
+#### Certificate Authority Collections
+
+Define and manage custom certificate collections for your distributed applications:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add a certificate authority collection
+var certs = builder.AddCertificateAuthorityCollection("custom-certs")
+    .WithCertificatesFromFile("./certs/my-ca.pem")
+    .WithCertificatesFromStore(
+        StoreName.CertificateAuthority,
+        StoreLocation.LocalMachine,
+        allowInvalid: false);
+
+// Use the certificate collection in your resources
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(certs);
+
+await builder.Build().RunAsync();
+```
+
+#### Developer Certificate Trust
+
+Automatically configure container trust for developer certificates on Mac and Linux:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithDeveloperCertificateTrust(); // Automatically trust dev certs in container
+
+await builder.Build().RunAsync();
+```
+
+Certificate management features include:
+
+- **Multiple certificate sources**: Load from PEM files, Windows certificate stores, or programmatically
+- **Flexible trust scoping**: System-level, append, override, or no trust
+- **Container certificate paths**: Customize where certificates are placed in containers
+- **Developer certificate support**: Automatic trust configuration for local development
+- **Environment variable control**: Configure certificate behavior through environment variables
+
+These features enable production-ready certificate handling in development, testing, and deployment scenarios.
 
 ## 📊 Dashboard enhancements
 
