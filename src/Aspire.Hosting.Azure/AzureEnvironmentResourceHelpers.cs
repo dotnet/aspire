@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIREAZURE001
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
@@ -21,9 +22,14 @@ internal static class AzureEnvironmentResourceHelpers
     public static async Task LoginToRegistryAsync(IContainerRegistry registry, PipelineStepContext context)
     {
         var acrLoginService = context.Services.GetRequiredService<IAcrLoginService>();
-        var containerRuntime = context.Services.GetRequiredService<IContainerRuntime>();
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
-        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
+
+        // Find the AzureEnvironmentResource from the application model
+        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+        if (azureEnvironment == null)
+        {
+            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
+        }
 
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                          throw new InvalidOperationException("Failed to retrieve container registry information.");
@@ -37,7 +43,7 @@ internal static class AzureEnvironmentResourceHelpers
             try
             {
                 // Get tenant ID from the provisioning context (always available from subscription)
-                var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(context.CancellationToken).ConfigureAwait(false);
+                var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
                 var tenantId = provisioningContext.Tenant.TenantId?.ToString();
 
                 // Use the ACR login service to perform authentication
@@ -45,7 +51,6 @@ internal static class AzureEnvironmentResourceHelpers
                     registryEndpoint,
                     tenantId,
                     tokenCredentialProvider.TokenCredential,
-                    containerRuntime,
                     context.CancellationToken).ConfigureAwait(false);
 
                 await loginTask.CompleteAsync($"Successfully logged in to **{registryEndpoint}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);

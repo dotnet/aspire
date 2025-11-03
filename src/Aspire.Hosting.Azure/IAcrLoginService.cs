@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 
-using Aspire.Hosting.Publishing;
 using Azure.Core;
 
 namespace Aspire.Hosting.Azure;
@@ -14,18 +13,16 @@ namespace Aspire.Hosting.Azure;
 internal interface IAcrLoginService
 {
     /// <summary>
-    /// Logs into an Azure Container Registry using Azure credentials and container runtime.
+    /// Logs into an Azure Container Registry using Azure credentials.
     /// </summary>
     /// <param name="registryEndpoint">The ACR endpoint (e.g., "myregistry.azurecr.io").</param>
     /// <param name="tenantId">The Azure tenant ID (optional but recommended).</param>
     /// <param name="credential">The Azure credential to use for authentication.</param>
-    /// <param name="containerRuntime">The container runtime to use for login.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when login succeeds.</returns>
     Task LoginAsync(
         string registryEndpoint,
         string? tenantId,
         TokenCredential credential,
-        IContainerRuntime containerRuntime,
         CancellationToken cancellationToken = default);
 }
