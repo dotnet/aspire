@@ -740,7 +740,12 @@ public static class PythonAppResourceBuilderExtensions
         // This prevents picking up unrelated .venv directories from test fixtures or other sources
         var appHostDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, builder.AppHostDirectory);
         
-        // Check if the app directory is under or near the AppHost directory
+        // Check if the app directory is "nearby" the AppHost directory.
+        // "Nearby" means the Python app is either:
+        // - A subdirectory of the AppHost directory (e.g., AppHost/python-app)
+        // - A sibling of the AppHost directory (e.g., AppHost/../python-app)
+        // This is determined by checking if the relative path doesn't start with ".." (going up directories)
+        // and isn't an absolute path (completely unrelated location like /tmp or C:\Temp).
         var appDirRelativeToAppHost = Path.GetRelativePath(builder.AppHostDirectory, appWorkingDirectory);
         var isAppDirNearAppHost = !appDirRelativeToAppHost.StartsWith("..", StringComparison.Ordinal) &&
                                    !Path.IsPathRooted(appDirRelativeToAppHost);
