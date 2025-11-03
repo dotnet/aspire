@@ -936,7 +936,7 @@ public class AzureDeployerTests
         builder.Services.AddSingleton<IProcessRunner>(processRunner ?? new MockProcessRunner());
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(containerRuntime ?? new FakeContainerRuntime());
-        builder.Services.AddSingleton<IAcrLoginService, FakeAcrLoginService>();
+        builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
     }
 
     private sealed class NoOpDeploymentStateManager : IDeploymentStateManager
@@ -1179,7 +1179,7 @@ public class AzureDeployerTests
         builder.Services.AddSingleton<IProcessRunner>(new MockProcessRunner());
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(new FakeContainerRuntime());
-        builder.Services.AddSingleton<IAcrLoginService, FakeAcrLoginService>();
+        builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
     }
 
     private sealed class TestPublishingActivityReporter : IPipelineActivityReporter
