@@ -475,11 +475,29 @@ public static class NodeAppHostingExtension
         return resource;
     }
 
-    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
-        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
-            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "yarn.lock"))
-            ? ["--immutable"]
-            : [];
+    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
+    {
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
+            !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
+        {
+            // Not publish mode or no yarn.lock, use default install args
+            return [];
+        }
+
+        var yarnRcYml = Path.Combine(workingDirectory, ".yarnrc.yml");
+        var yarnBerryReleaseDir = Path.Combine(workingDirectory, ".yarn", "releases");
+        var hasYarnBerry = File.Exists(yarnRcYml) || Directory.Exists(yarnBerryReleaseDir);
+
+        if (hasYarnBerry)
+        {
+            // Yarn 2+ detected
+            return ["--immutable"];
+        }
+
+        // Fallback: default to Yarn v1.x behavior
+        return ["--frozen-lockfile"];
+    }
 
     /// <summary>
     /// Configures the Node.js resource to use pnmp as the package manager and optionally installs packages before the application starts.
