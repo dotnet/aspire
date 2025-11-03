@@ -490,7 +490,7 @@ public class PackageInstallationTests
     {
         using var tempDir = new TempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
-        File.WriteAllText(Path.Combine(tempDir.Path, ".yarnrc.yml"), "empty"); // .yarnrc.yml present
+        File.WriteAllText(Path.Combine(tempDir.Path, ".yarnrc.yml"), "empty");
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
