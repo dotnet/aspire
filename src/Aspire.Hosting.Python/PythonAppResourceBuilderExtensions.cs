@@ -23,6 +23,7 @@ namespace Aspire.Hosting;
 public static class PythonAppResourceBuilderExtensions
 {
     private const string DefaultVirtualEnvFolder = ".venv";
+    private const string DefaultPythonVersion = "3.13";
 
     /// <summary>
     /// Adds a python application to the application model.
@@ -432,135 +433,39 @@ public static class PythonAppResourceBuilderExtensions
             c.WithDockerfileBuilder(resource.WorkingDirectory,
                 context =>
                 {
-                    if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
-                        !pythonEnvironmentAnnotation.Uv)
-                    {
-                        // Use the default Dockerfile if not using UV
-                        return;
-                    }
-
                     if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
                     {
                         // No entrypoint annotation found, cannot generate Dockerfile
                         return;
                     }
 
-                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
+                    // Try to get Python environment annotation
+                    context.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation);
 
+                    // Detect Python version
+                    var pythonVersion = pythonEnvironmentAnnotation?.Version;
                     if (pythonVersion is null)
                     {
-                        // Could not detect Python version, skip Dockerfile generation
-                        return;
+                        var virtualEnvironment = pythonEnvironmentAnnotation?.VirtualEnvironment;
+                        pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
                     }
+
+                    // if we could not detect Python version, use the default
+                    pythonVersion ??= DefaultPythonVersion;
 
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
+                    
+                    // Check if using UV
+                    var isUsingUv = pythonEnvironmentAnnotation?.Uv ?? false;
 
-                    // Determine entry command for Dockerfile
-                    string[] entryCommand = entrypointType switch
+                    if (isUsingUv)
                     {
-                        EntrypointType.Script => ["python", entrypoint],
-                        EntrypointType.Module => ["python", "-m", entrypoint],
-                        EntrypointType.Executable => [entrypoint],
-                        _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
-                    };
-
-                    // Check if uv.lock exists in the working directory
-                    var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
-                    var hasUvLock = File.Exists(uvLockPath);
-
-                    // Get custom base images from annotation, if present
-                    context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
-                    var buildImage = baseImageAnnotation?.BuildImage ?? $"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim";
-                    var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
-
-                    var builderStage = context.Builder
-                        .From(buildImage, "builder")
-                        .EmptyLine()
-                        .Comment("Enable bytecode compilation and copy mode for the virtual environment")
-                        .Env("UV_COMPILE_BYTECODE", "1")
-                        .Env("UV_LINK_MODE", "copy")
-                        .EmptyLine()
-                        .WorkDir("/app")
-                        .EmptyLine();
-
-                    if (hasUvLock)
-                    {
-                        // If uv.lock exists, use locked mode for reproducible builds
-                        builderStage
-                            .Comment("Install dependencies first for better layer caching")
-                            .Comment("Uses BuildKit cache mounts to speed up repeated builds")
-                            .RunWithMounts(
-                                "uv sync --locked --no-install-project --no-dev",
-                                "type=cache,target=/root/.cache/uv",
-                                "type=bind,source=uv.lock,target=uv.lock",
-                                "type=bind,source=pyproject.toml,target=pyproject.toml")
-                            .EmptyLine()
-                            .Comment("Copy the rest of the application source and install the project")
-                            .Copy(".", "/app")
-                            .RunWithMounts(
-                                "uv sync --locked --no-dev",
-                                "type=cache,target=/root/.cache/uv");
+                        GenerateUvDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
                     else
                     {
-                        // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
-                        builderStage
-                            .Comment("Copy pyproject.toml to install dependencies")
-                            .Copy("pyproject.toml", "/app/")
-                            .EmptyLine()
-                            .Comment("Install dependencies and generate lock file")
-                            .Comment("Uses BuildKit cache mount to speed up repeated builds")
-                            .RunWithMounts(
-                                "uv sync --no-install-project --no-dev",
-                                "type=cache,target=/root/.cache/uv")
-                            .EmptyLine()
-                            .Comment("Copy the rest of the application source and install the project")
-                            .Copy(".", "/app")
-                            .RunWithMounts(
-                                "uv sync --no-dev",
-                                "type=cache,target=/root/.cache/uv");
-                    }
-
-                    var runtimeBuilder = context.Builder
-                        .From(runtimeImage, "app")
-                        .EmptyLine()
-                        .AddContainerFiles(context.Resource, "/app")
-                        .Comment("------------------------------")
-                        .Comment("🚀 Runtime stage")
-                        .Comment("------------------------------")
-                        .Comment("Create non-root user for security")
-                        .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
-                        .EmptyLine()
-                        .Comment("Copy the application and virtual environment from builder")
-                        .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
-                        .EmptyLine()
-                        .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
-                        .Env("PATH", "/app/.venv/bin:${PATH}")
-                        .Env("VIRTUAL_ENV", "/app/.venv")
-                        .Env("PYTHONDONTWRITEBYTECODE", "1")
-                        .Env("PYTHONUNBUFFERED", "1")
-                        .EmptyLine()
-                        .Comment("Use the non-root user to run the application")
-                        .User("appuser")
-                        .EmptyLine()
-                        .Comment("Set working directory")
-                        .WorkDir("/app")
-                        .EmptyLine()
-                        .Comment("Run the application");
-
-                    // Set the appropriate entrypoint and command based on entrypoint type
-                    switch (entrypointType)
-                    {
-                        case EntrypointType.Script:
-                            runtimeBuilder.Entrypoint(["python", entrypoint]);
-                            break;
-                        case EntrypointType.Module:
-                            runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
-                            break;
-                        case EntrypointType.Executable:
-                            runtimeBuilder.Entrypoint([entrypoint]);
-                            break;
+                        GenerateFallbackDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
                 });
         });
@@ -579,6 +484,181 @@ public static class PythonAppResourceBuilderExtensions
         });
 
         return resourceBuilder;
+    }
+
+    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource, 
+        string pythonVersion, EntrypointType entrypointType, string entrypoint)
+    {
+        // Check if uv.lock exists in the working directory
+        var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
+        var hasUvLock = File.Exists(uvLockPath);
+
+        // Get custom base images from annotation, if present
+        context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+        var buildImage = baseImageAnnotation?.BuildImage ?? $"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim";
+        var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
+
+        var builderStage = context.Builder
+            .From(buildImage, "builder")
+            .EmptyLine()
+            .Comment("Enable bytecode compilation and copy mode for the virtual environment")
+            .Env("UV_COMPILE_BYTECODE", "1")
+            .Env("UV_LINK_MODE", "copy")
+            .EmptyLine()
+            .WorkDir("/app")
+            .EmptyLine();
+
+        if (hasUvLock)
+        {
+            // If uv.lock exists, use locked mode for reproducible builds
+            builderStage
+                .Comment("Install dependencies first for better layer caching")
+                .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                .RunWithMounts(
+                    "uv sync --locked --no-install-project --no-dev",
+                    "type=cache,target=/root/.cache/uv",
+                    "type=bind,source=uv.lock,target=uv.lock",
+                    "type=bind,source=pyproject.toml,target=pyproject.toml")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source and install the project")
+                .Copy(".", "/app")
+                .RunWithMounts(
+                    "uv sync --locked --no-dev",
+                    "type=cache,target=/root/.cache/uv");
+        }
+        else
+        {
+            // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
+            builderStage
+                .Comment("Copy pyproject.toml to install dependencies")
+                .Copy("pyproject.toml", "/app/")
+                .EmptyLine()
+                .Comment("Install dependencies and generate lock file")
+                .Comment("Uses BuildKit cache mount to speed up repeated builds")
+                .RunWithMounts(
+                    "uv sync --no-install-project --no-dev",
+                    "type=cache,target=/root/.cache/uv")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source and install the project")
+                .Copy(".", "/app")
+                .RunWithMounts(
+                    "uv sync --no-dev",
+                    "type=cache,target=/root/.cache/uv");
+        }
+
+        var runtimeBuilder = context.Builder
+            .From(runtimeImage, "app")
+            .EmptyLine()
+            .AddContainerFiles(context.Resource, "/app")
+            .Comment("------------------------------")
+            .Comment("🚀 Runtime stage")
+            .Comment("------------------------------")
+            .Comment("Create non-root user for security")
+            .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+            .EmptyLine()
+            .Comment("Copy the application and virtual environment from builder")
+            .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
+            .EmptyLine()
+            .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
+            .Env("PATH", "/app/.venv/bin:${PATH}")
+            .Env("VIRTUAL_ENV", "/app/.venv")
+            .Env("PYTHONDONTWRITEBYTECODE", "1")
+            .Env("PYTHONUNBUFFERED", "1")
+            .EmptyLine()
+            .Comment("Use the non-root user to run the application")
+            .User("appuser")
+            .EmptyLine()
+            .Comment("Set working directory")
+            .WorkDir("/app")
+            .EmptyLine()
+            .Comment("Run the application");
+
+        // Set the appropriate entrypoint and command based on entrypoint type
+        switch (entrypointType)
+        {
+            case EntrypointType.Script:
+                runtimeBuilder.Entrypoint(["python", entrypoint]);
+                break;
+            case EntrypointType.Module:
+                runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
+                break;
+            case EntrypointType.Executable:
+                runtimeBuilder.Entrypoint([entrypoint]);
+                break;
+        }
+    }
+
+    private static void GenerateFallbackDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
+        string pythonVersion, EntrypointType entrypointType, string entrypoint)
+    {
+        // Use the same runtime image as UV workflow for consistency
+        context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+        var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
+
+        // Check if requirements.txt exists
+        var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
+        var hasRequirementsTxt = File.Exists(requirementsTxtPath);
+
+        var stage = context.Builder
+            .From(runtimeImage)
+            .EmptyLine()
+            .AddContainerFiles(context.Resource, "/app")
+            .Comment("------------------------------")
+            .Comment("🚀 Python Application")
+            .Comment("------------------------------")
+            .Comment("Create non-root user for security")
+            .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+            .EmptyLine()
+            .Comment("Set working directory")
+            .WorkDir("/app")
+            .EmptyLine();
+
+        if (hasRequirementsTxt)
+        {
+            // Copy requirements.txt first for better layer caching
+            stage
+                .Comment("Copy requirements.txt for dependency installation")
+                .Copy("requirements.txt", "/app/requirements.txt")
+                .EmptyLine()
+                .Comment("Install dependencies using pip")
+                .Run(
+                """
+                apt-get update \
+                  && apt-get install -y --no-install-recommends build-essential \
+                  && pip install --no-cache-dir -r requirements.txt \
+                  && apt-get purge -y --auto-remove build-essential \
+                  && rm -rf /var/lib/apt/lists/*
+                """)
+                .EmptyLine();
+        }
+
+        // Copy the rest of the application
+        stage
+            .Comment("Copy application files")
+            .Copy(".", "/app", "appuser:appuser")
+            .EmptyLine()
+            .Comment("Set environment variables")
+            .Env("PYTHONDONTWRITEBYTECODE", "1")
+            .Env("PYTHONUNBUFFERED", "1")
+            .EmptyLine()
+            .Comment("Use the non-root user to run the application")
+            .User("appuser")
+            .EmptyLine()
+            .Comment("Run the application");
+
+        // Set the appropriate entrypoint based on entrypoint type
+        switch (entrypointType)
+        {
+            case EntrypointType.Script:
+                stage.Entrypoint(["python", entrypoint]);
+                break;
+            case EntrypointType.Module:
+                stage.Entrypoint(["python", "-m", entrypoint]);
+                break;
+            case EntrypointType.Executable:
+                stage.Entrypoint([entrypoint]);
+                break;
+        }
     }
 
     private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
