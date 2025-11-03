@@ -35,9 +35,9 @@ internal sealed class UserSecretsManagerFactory
     public IUserSecretsManager GetOrCreate(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        
+
         var normalizedPath = Path.GetFullPath(filePath);
-        
+
         lock (_lock)
         {
             if (!_managerCache.TryGetValue(normalizedPath, out var manager))
@@ -79,7 +79,7 @@ internal sealed class UserSecretsManagerFactory
     public static IUserSecretsManager Create(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        
+
         var normalizedPath = Path.GetFullPath(filePath);
         return new UserSecretsManager(normalizedPath);
     }
@@ -112,26 +112,12 @@ internal sealed class UserSecretsManagerFactory
     private sealed class UserSecretsManager : IUserSecretsManager
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
-        
-        // Static dictionary of semaphores ensures thread safety across all instances writing to the same file
-        private static readonly Dictionary<string, SemaphoreSlim> s_semaphores = new();
-        private static readonly object s_semaphoreLock = new();
-        
-        private readonly SemaphoreSlim _semaphore;
+
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public UserSecretsManager(string filePath)
         {
             FilePath = filePath;
-            
-            // Get or create semaphore for this file path
-            lock (s_semaphoreLock)
-            {
-                if (!s_semaphores.TryGetValue(filePath, out _semaphore!))
-                {
-                    _semaphore = new SemaphoreSlim(1, 1);
-                    s_semaphores[filePath] = _semaphore;
-                }
-            }
         }
 
         public string FilePath { get; }
@@ -187,7 +173,7 @@ internal sealed class UserSecretsManagerFactory
             {
                 var flattenedState = JsonFlattener.FlattenJsonObject(state);
                 EnsureUserSecretsDirectory();
-                
+
                 var json = flattenedState.ToJsonString(s_jsonSerializerOptions);
                 await File.WriteAllTextAsync(FilePath, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
             }
@@ -200,7 +186,7 @@ internal sealed class UserSecretsManagerFactory
         private void SetSecretCore(string name, string value)
         {
             EnsureUserSecretsDirectory();
-            
+
             // Load existing secrets, merge with new value, save
             var secrets = Load();
             secrets[name] = value;

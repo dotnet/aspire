@@ -3,11 +3,9 @@
 
 #pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.UserSecrets;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing.Internal;
@@ -24,23 +22,19 @@ internal sealed class UserSecretsDeploymentStateManager : DeploymentStateManager
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="userSecretsManager">User secrets manager for managing secrets.</param>
-    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IUserSecretsManager userSecretsManager) 
+    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IUserSecretsManager userSecretsManager)
         : base(logger)
     {
         _userSecretsManager = userSecretsManager;
     }
 
     /// <inheritdoc/>
-    public override string? StateFilePath => _userSecretsManager.FilePath;
+    public override string? StateFilePath => GetStatePath();
 
     /// <inheritdoc/>
     protected override string? GetStatePath()
     {
-        return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
-        {
-            null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
-            string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
-        };
+        return _userSecretsManager.FilePath;
     }
 
     /// <inheritdoc/>
