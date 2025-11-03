@@ -6,8 +6,16 @@ ms.date: 11/03/2025
 
 # What's new in Aspire 13.0
 
-📢 Aspire 13.0 is a major version release of Aspire, introducing transformational features for cloud-native application development. It requires:
+📢 **Aspire 13 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot cloud-native application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
 
+This release introduces:
+- **First-class Python support**: Debug Python modules in VS Code, deploy with uvicorn, use modern tooling like uv, and generate production Dockerfiles automatically
+- **First-class JavaScript support**: Vite and npm-based apps with package manager auto-detection, debugging support, and container-based build pipelines
+- **Polyglot infrastructure**: Connection properties work in any language (URI, JDBC, individual properties), certificate trust across languages and containers
+- **Container files as build artifacts**: A new paradigm where build outputs are containers, not folders - enabling reproducible, isolated, and portable builds
+- **Modern CLI**: `aspire init` to Aspirify existing apps, and `aspire do` as the foundation for the next-generation build/publish/deploy pipeline
+
+**Requirements:**
 - .NET 10 SDK or later
 
 If you have feedback, questions, or want to contribute to Aspire, collaborate with us on [:::image type="icon" source="../media/github-mark.svg" border="false"::: GitHub](https://github.com/dotnet/aspire) or join us on [:::image type="icon" source="../media/discord-icon.svg" border="false"::: Discord](https://aka.ms/aspire-discord) to chat with the team and other community members.
@@ -15,6 +23,24 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
 ## Table of contents
 
 - [Upgrade to Aspire 13.0](#upgrade-to-aspire-130)
+- [Aspire as a Polyglot Platform](#-aspire-as-a-polyglot-platform)
+  - [Python as a First-Class Citizen](#python-as-a-first-class-citizen)
+    - [Flexible Python Application Models](#flexible-python-application-models)
+    - [Uvicorn Integration for ASGI Applications](#uvicorn-integration-for-asgi-applications)
+    - [Modern Python Tooling with uv](#modern-python-tooling-with-uv)
+    - [VS Code Debugging Support](#vs-code-debugging-support)
+    - [Automatic Dockerfile Generation](#automatic-dockerfile-generation)
+    - [Certificate Trust for Python](#certificate-trust-for-python)
+    - [Starter Template: Vite + FastAPI](#starter-template-vite--fastapi)
+  - [JavaScript as a First-Class Citizen](#javascript-as-a-first-class-citizen)
+    - [Unified JavaScript Application Model](#unified-javascript-application-model)
+    - [Package Manager Flexibility](#package-manager-flexibility)
+    - [Vite Support](#vite-support)
+    - [Dynamic Dockerfile Generation](#dynamic-dockerfile-generation-1)
+    - [Container Files as Build Artifacts](#container-files-as-build-artifacts-1)
+  - [Polyglot Infrastructure](#polyglot-infrastructure)
+    - [Polyglot Connection Properties](#polyglot-connection-properties)
+    - [Cross-Language Certificate Trust](#cross-language-certificate-trust)
 - [CLI and tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update command](#aspire-update-command)
@@ -23,15 +49,20 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation)
   - [Other CLI improvements](#other-cli-improvements)
+- [Container Files as Build Artifacts](#-container-files-as-build-artifacts)
+  - [The Traditional Approach: File System Dependencies](#the-traditional-approach-file-system-dependencies)
+  - [The New Approach: Containers as Build Artifacts](#the-new-approach-containers-as-build-artifacts)
+  - [Key Benefits](#key-benefits)
+  - [Real-World Example: Static Site with API](#real-world-example-static-site-with-api)
+  - [Advanced Usage: Multi-Stage Builds](#advanced-usage-multi-stage-builds)
+  - [Container Files in the Build Pipeline](#container-files-in-the-build-pipeline)
 - [Major new features](#major-new-features)
   - [Distributed Application Pipeline](#distributed-application-pipeline)
   - [Dashboard AI Assistant](#dashboard-ai-assistant)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
 - [Integration Packages and Resources](#-integration-packages-and-resources)
-  - [Vite App Support](#vite-app-support)
   - [.NET MAUI Integration](#net-maui-integration)
-  - [Python Enhancements](#python-enhancements)
   - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
 - [Dashboard enhancements](#-dashboard-enhancements)
   - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
@@ -87,6 +118,277 @@ The easiest way to upgrade to Aspire 13.0 is using the `aspire update` command:
 
 > [!NOTE]
 > If you're upgrading from Aspire 8.x, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md) first to upgrade to 9.x, then upgrade to 13.0.
+
+## 🌐 Aspire as a Polyglot Platform
+
+Aspire 13 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot cloud-native application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
+
+### Python as a First-Class Citizen
+
+Aspire 13 introduces comprehensive Python support, making it effortless to build, debug, and deploy Python applications alongside your other services.
+
+#### Flexible Python Application Models
+
+Aspire provides three ways to run Python code, each suited to different use cases:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Run a Python script directly
+var script = builder.AddPythonScript("data-processor", "./scripts", "process.py")
+    .WithReference(database);
+
+// Run a Python module (python -m module_name)
+var worker = builder.AddPythonModule("worker", "./worker", "worker.main")
+    .WithReference(queue);
+
+// Run any Python executable (e.g., Flask, FastAPI, uvicorn)
+var api = builder.AddPythonExecutable("api", "./api", "uvicorn", ["main:app", "--reload"]);
+```
+
+#### Uvicorn Integration for ASGI Applications
+
+For Python web applications using ASGI frameworks like FastAPI, Starlette, or Quart, Aspire provides dedicated `AddUvicornApp` support:
+
+```csharp
+var api = builder.AddUvicornApp("api", "./api", "main:app")
+    .WithUvEnvironment()  // Use uv for fast, modern Python package management
+    .WithExternalHttpEndpoints()
+    .WithReference(database)
+    .WithHttpHealthCheck("/health");
+```
+
+The `AddUvicornApp` method automatically:
+- Configures HTTP/HTTPS endpoints
+- Sets up appropriate Uvicorn command-line arguments
+- Supports hot-reload during development
+- Integrates with Aspire's health check system
+
+#### Modern Python Tooling with uv
+
+Aspire 13 integrates with [uv](https://github.com/astral-sh/uv), the modern Python package and project manager:
+
+```csharp
+builder.AddUvicornApp("api", "./api", "main:app")
+    .WithUvEnvironment();  // Automatically uses uv for package management
+```
+
+When using `WithUvEnvironment()`, Aspire:
+- Uses uv for fast, reliable dependency resolution
+- Automatically syncs dependencies from `pyproject.toml`
+- Creates isolated virtual environments per project
+- Leverages uv's performance benefits (10-100x faster than pip)
+
+#### VS Code Debugging Support
+
+Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13 adds debugging support for:
+
+- **Python scripts**: Debug `AddPythonScript` resources
+- **Python modules**: Debug `AddPythonModule` with proper module resolution
+- **Flask applications**: Debug Flask apps with auto-reload
+- **Uvicorn/FastAPI**: Debug ASGI applications with hot-reload
+
+The Aspire IDE extensions automatically configure the Python debugger with the correct launch configuration, environment variables, and working directories.
+
+#### Automatic Dockerfile Generation
+
+Aspire can automatically generate production-ready Dockerfiles for Python applications using the Dockerfile Builder API:
+
+```csharp
+builder.AddUvicornApp("api", "./api", "main:app")
+    .WithUvEnvironment()
+    .PublishAsDockerFile();
+```
+
+The generated Dockerfile:
+- Uses appropriate Python base images
+- Installs dependencies using uv or pip
+- Configures the working directory
+- Sets up the ASGI server with production settings
+- Follows Python container best practices
+
+#### Certificate Trust for Python
+
+Python applications can trust development certificates for secure communication:
+
+```csharp
+var api = builder.AddUvicornApp("api", "./api", "main:app")
+    .WithCertificateTrustConfiguration();
+```
+
+Aspire automatically configures Python's `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE` environment variables to trust Aspire-managed certificates, enabling secure HTTPS communication during local development.
+
+#### Starter Template: Vite + FastAPI
+
+Aspire 13 includes a new `aspire-py-starter` template that demonstrates a full-stack Python application:
+
+```bash
+aspire new aspire-py-starter
+```
+
+This template includes:
+- **FastAPI backend**: Python ASGI application using Uvicorn
+- **Vite + React frontend**: Modern JavaScript frontend with TypeScript
+- **OpenTelemetry integration**: Distributed tracing across Python and JavaScript
+- **Redis caching** (optional): Shared cache between services
+- **Container files**: Frontend static files served by the Python backend
+
+The template demonstrates how to build polyglot applications with Python and JavaScript working together seamlessly.
+
+### JavaScript as a First-Class Citizen
+
+Aspire 13 refactors and expands JavaScript support, introducing `AddJavaScriptApp` as the foundational method for all JavaScript applications.
+
+#### Unified JavaScript Application Model
+
+The new `AddJavaScriptApp` method replaces the older `AddNpmApp` (now obsolete) and provides a consistent way to add JavaScript applications:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add a JavaScript application with npm
+var frontend = builder.AddJavaScriptApp("frontend", "./frontend")
+    .WithNpm()
+    .WithRunScript("dev");
+
+// Use a different package manager
+var admin = builder.AddJavaScriptApp("admin", "./admin")
+    .WithYarn()
+    .WithRunScript("start");
+```
+
+#### Package Manager Flexibility
+
+Aspire automatically detects and supports multiple JavaScript package managers:
+
+```csharp
+// npm with custom install command
+var app1 = builder.AddJavaScriptApp("app1", "./app1")
+    .WithNpm(installCommand: "ci")  // Use npm ci for faster, deterministic installs
+    .WithRunScript("dev");
+
+// yarn with frozen lockfile in production
+var app2 = builder.AddJavaScriptApp("app2", "./app2")
+    .WithYarn(installArgs: ["--immutable"])
+    .WithRunScript("start");
+
+// pnpm with specific flags
+var app3 = builder.AddJavaScriptApp("app3", "./app3")
+    .WithPnpm(installArgs: ["--frozen-lockfile"])
+    .WithRunScript("dev");
+```
+
+If a `package.json` exists in your app directory, Aspire automatically adds npm as the default package manager.
+
+#### Vite Support
+
+`AddViteApp` is now a specialization of `AddJavaScriptApp` with Vite-specific optimizations:
+
+```csharp
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithNpm()
+    .WithReference(api);
+```
+
+Vite applications get:
+- Automatic port binding configuration
+- Hot module replacement (HMR) support
+- Optimized build scripts for production
+- Automatic Dockerfile generation
+
+#### Dynamic Dockerfile Generation
+
+JavaScript applications automatically generate Dockerfiles when published, with intelligent defaults based on your package manager and build scripts:
+
+```csharp
+var app = builder.AddJavaScriptApp("app", "./app")
+    .WithNpm()
+    .WithBuildScript("build")  // Runs during Docker build
+    .WithRunScript("dev");     // Runs during local development
+```
+
+The generated Dockerfile:
+- Detects Node.js version from `.nvmrc`, `.node-version`, `package.json`, or `.tool-versions`
+- Uses multi-stage builds for smaller images
+- Installs dependencies in a separate layer for better caching
+- Runs your build script to create production assets
+- Defaults to `node:22-slim` if no version is specified
+
+#### Container Files as Build Artifacts
+
+JavaScript applications can specify that their build output should be used as container files for other services:
+
+```csharp
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithBuildScript("build");  // Builds to ./dist
+
+var api = builder.AddUvicornApp("api", "./api", "main:app")
+    .WithReference(frontend);
+
+// Publish frontend's dist folder as static files in the API container
+api.PublishWithContainerFiles(frontend, "./static");
+```
+
+This pattern:
+- Builds the frontend as a container
+- Extracts the `/app/dist` directory from the container
+- Copies it into the API's container at `./static`
+- Enables the Python API to serve the frontend static files
+
+This approach provides **reproducible builds** where the frontend is always built in an isolated container environment, not on the developer's machine.
+
+### Polyglot Infrastructure
+
+Beyond language-specific support, Aspire 13 introduces infrastructure features that work across all languages.
+
+#### Polyglot Connection Properties
+
+The `WithReference` method now supports multiple connection string formats for different languages and frameworks:
+
+```csharp
+var postgres = builder.AddPostgres("db").AddDatabase("mydb");
+
+// .NET app uses service discovery
+var dotnetApi = builder.AddProject<Projects.Api>()
+    .WithReference(postgres);
+
+// Python app can use URI format
+var pythonWorker = builder.AddPythonModule("worker", "./worker", "worker.main")
+    .WithEnvironment("DATABASE_URL", postgres.Resource.ConnectionStringExpression);
+
+// Java app can use JDBC format (if needed via custom expression)
+// Connection properties are now flexible and language-agnostic
+```
+
+Connection expressions support:
+- **URI format**: `postgresql://user:pass@host:port/db` (Python, Node.js, Go, Ruby)
+- **.NET format**: Individual properties via service discovery
+- **Individual properties**: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+
+#### Cross-Language Certificate Trust
+
+Certificate trust now works across all languages and environments:
+
+```csharp
+// Python trusts development certificates
+builder.AddUvicornApp("python-api", "./api", "main:app")
+    .WithCertificateTrustConfiguration();
+
+// JavaScript/Node.js trusts development certificates
+builder.AddJavaScriptApp("node-api", "./node-api")
+    .WithCertificateTrustConfiguration();
+
+// .NET trusts development certificates (existing behavior)
+builder.AddProject<Projects.Api>();
+```
+
+Aspire automatically:
+- Generates and manages development certificates
+- Configures language-specific environment variables (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, etc.)
+- Supports both appending to existing trust stores and replacing them
+- Works in both local development and containerized environments
+
+This enables secure HTTPS communication between services written in different languages without manual certificate management.
 
 ## 🛠️ CLI and tooling
 
@@ -261,6 +563,190 @@ When enabled, this preview feature can improve the onboarding experience for new
 - Automatic port forwarding configuration for VS Code SSH Remote
 - Consistent experience with Devcontainers and Codespaces
 - Environment variable detection (`SSH_CONNECTION`, `VSCODE_IPC_HOOK_CLI`)
+
+## 📦 Container Files as Build Artifacts
+
+Aspire 13 introduces a fundamental paradigm shift in how build artifacts are handled: **containers are now first-class build artifacts**, not just folders on a file system. This change enables reproducible, isolated, and portable builds that work consistently across development, CI/CD, and production environments.
+
+### The Traditional Approach: File System Dependencies
+
+Traditionally, build systems rely on the local file system for build artifacts:
+
+```csharp
+// Traditional approach: build on local machine, copy files
+var frontend = builder.AddNpmApp("frontend", "./frontend", "build");
+// Output goes to ./frontend/dist on your machine
+// Problems:
+// - Different results on different machines
+// - Build dependencies leak between projects
+// - Hard to reproduce CI builds locally
+```
+
+This approach has several limitations:
+- **Environment dependency**: Builds depend on your machine's installed tools, OS, and configuration
+- **Reproducibility issues**: "Works on my machine" problems
+- **Cache invalidation**: Hard to know when to rebuild
+- **Portability**: Moving artifacts between environments requires careful packaging
+
+### The New Approach: Containers as Build Artifacts
+
+Aspire 13 changes this by treating containers as the **primary build artifact**:
+
+```csharp
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithBuildScript("build");  // Builds INSIDE a container
+
+var api = builder.AddUvicornApp("api", "./api", "main:app");
+
+// Extract files FROM the frontend container and copy TO the api container
+api.PublishWithContainerFiles(frontend, "./static");
+```
+
+When you use this pattern:
+
+1. **Frontend builds in isolation**: The `frontend` app builds inside a Node.js container using the exact environment specified in the Dockerfile
+2. **Container as artifact**: The build output exists in the container at `/app/dist`
+3. **File extraction**: Aspire extracts files from the frontend container
+4. **Cross-container copy**: Files are copied into the `api` container at `./static`
+5. **Reproducible everywhere**: Same build on your machine, in CI, and in production
+
+### Key Benefits
+
+#### Reproducibility
+
+Every build happens in the same container environment:
+
+```csharp
+// This ALWAYS uses node:22-slim with the exact same tools
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithBuildScript("build");
+```
+
+No matter who runs the build or where it runs, you get identical results because the build environment is defined in the container image, not your local machine.
+
+#### Isolation
+
+Each project builds in its own container with its own dependencies:
+
+```csharp
+var app1 = builder.AddViteApp("app1", "./app1");  // Uses React 18
+var app2 = builder.AddViteApp("app2", "./app2");  // Uses React 19
+```
+
+These projects can have completely different dependency versions without conflicts because they build in separate containers.
+
+#### Parallelization
+
+Container builds can run in parallel because they're isolated:
+
+```csharp
+var frontend = builder.AddViteApp("frontend", "./frontend");
+var admin = builder.AddViteApp("admin", "./admin");
+var marketing = builder.AddViteApp("marketing", "./marketing");
+
+// All three build in parallel in separate containers
+```
+
+The build system can leverage multi-core processors and distributed build systems efficiently.
+
+#### Caching and Portability
+
+Container layers provide built-in caching:
+
+```dockerfile
+# Layer 1: Base image (cached)
+FROM node:22-slim
+WORKDIR /app
+
+# Layer 2: Dependencies (cached if package.json unchanged)
+COPY package*.json ./
+RUN npm ci
+
+# Layer 3: Source code and build (only rebuilds if code changed)
+COPY . .
+RUN npm run build
+```
+
+These cached layers are:
+- **Portable**: Can be pushed to registries and shared across teams
+- **Efficient**: Only changed layers rebuild
+- **Consistent**: Same layers produce same results
+
+### Real-World Example: Static Site with API
+
+A common pattern is building a frontend and serving it from a backend:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Build a Vite frontend in a container
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithNpm()
+    .WithBuildScript("build");  // Creates /app/dist in container
+
+// Python FastAPI backend
+var api = builder.AddUvicornApp("api", "./api", "main:app")
+    .WithUvEnvironment()
+    .WithExternalHttpEndpoints();
+
+// Extract frontend's /app/dist and copy to api's ./static
+api.PublishWithContainerFiles(frontend, "./static");
+
+builder.Build().Run();
+```
+
+When you deploy this:
+
+1. **Frontend container builds**: Vite builds the React/Vue/Svelte app inside a Node container
+2. **Files are extracted**: Aspire extracts `/app/dist` from the frontend container
+3. **Files are injected**: The dist files are copied into the API container at `./static`
+4. **Single deployment artifact**: The API container now contains both the Python app AND the frontend static files
+
+The FastAPI app can serve the static files:
+
+```python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()
+
+# Serve the frontend static files
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+# API endpoints
+@app.get("/api/data")
+def get_data():
+    return {"message": "Hello from API"}
+```
+
+### Advanced Usage: Multi-Stage Builds
+
+You can also use container files with projects that produce build artifacts:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// .NET Blazor WebAssembly app that builds to wwwroot
+var blazorWasm = builder.AddProject<Projects.BlazorWasm>("blazor-wasm");
+
+// Go API that serves static files
+var goApi = builder.AddExecutable("api", "go", "./api", ["run", "main.go"])
+    .PublishAsContainer();
+
+// Copy Blazor's published wwwroot into the Go API container
+goApi.PublishWithContainerFiles(blazorWasm, "./static");
+```
+
+### Container Files in the Build Pipeline
+
+Container files integrate seamlessly with the [Distributed Application Pipeline](#distributed-application-pipeline):
+
+- **Dependency tracking**: The pipeline knows that the API container depends on the frontend container
+- **Parallel execution**: Independent containers build in parallel
+- **Incremental builds**: Only changed containers rebuild
+- **Clear progress**: The dashboard shows which containers are building and extracting files
+
+This makes container files a natural fit for complex build workflows with multiple dependent services.
 
 ## Major new features
 
@@ -481,37 +967,7 @@ These features enable production-ready certificate handling in development, test
 
 ## 📦 Integration Packages and Resources
 
-Aspire 13.0 introduces several new integration packages and resource types that expand support beyond traditional .NET scenarios.
-
-### Vite App Support
-
-Aspire 13.0 adds first-class support for Vite-based frontend applications with automatic package manager detection and Dockerfile generation.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add a Vite app with automatic package manager detection
-var frontend = builder.AddViteApp("frontend", "../frontend")
-    .WithHttpEndpoint(env: "PORT")
-    .WithExternalHttpEndpoints();
-
-// Or specify the package manager explicitly
-var frontendWithNpm = builder.AddViteApp("frontend-npm", "../frontend")
-    .WithNpm() // or .WithYarn() or .WithPnpm()
-    .WithHttpEndpoint(env: "PORT");
-
-await builder.Build().RunAsync();
-```
-
-Vite app features include:
-
-- **Automatic package manager detection**: Detects npm, yarn, or pnpm from lock files
-- **Node.js version detection**: Automatically detects Node.js version from project configuration files
-- **Dockerfile generation**: Automatic multi-stage Dockerfile for production builds
-- **Package manager methods**: `WithNpm()`, `WithYarn()`, `WithPnpm()` for explicit package manager selection
-- **Auto-install packages**: Automatically runs package install commands during startup
-
-This feature was contributed from the Community Toolkit and is now part of core Aspire, making Vite (and similar modern JavaScript build tools) a first-class citizen alongside .NET projects.
+Aspire 13.0 introduces new integration packages that expand platform support.
 
 ### .NET MAUI Integration
 
@@ -541,52 +997,6 @@ MAUI integration features:
 - **Full orchestration**: MAUI apps participate in service discovery and can reference backend services
 
 This enables a complete mobile + cloud development experience where you can run and debug your mobile app alongside your backend services in a single Aspire project.
-
-### Python Enhancements
-
-#### Uvicorn App Resource
-
-Aspire 13.0 introduces a specialized `UvicornAppResource` for Python ASGI applications, following the same pattern as `ViteAppResource`.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add a Uvicorn app (FastAPI, Starlette, etc.)
-var api = builder.AddUvicornApp("api", "../api", "main:app")
-    .WithHttpEndpoint(port: 8000, env: "PORT")
-    .WithExternalHttpEndpoints();
-
-await builder.Build().RunAsync();
-```
-
-The `AddUvicornApp` method returns `IResourceBuilder<UvicornAppResource>` instead of the generic `PythonAppResource`, providing better type safety and enabling Uvicorn-specific extensions in the future.
-
-#### Python Module Debugging
-
-Aspire 13.0 adds comprehensive debugging support for Python modules (not just scripts), including popular frameworks.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Debug a Flask app
-var flaskApp = builder.AddPythonModule("flask-app", "../app", "flask")
-    .WithArgs("run", "--debug")
-    .WithDebugging(); // Enables module debugging
-
-// Debug a Uvicorn app
-var uvicornApp = builder.AddPythonModule("api", "../api", "uvicorn")
-    .WithArgs("main:app", "--reload")
-    .WithDebugging(); // Enables module debugging
-
-await builder.Build().RunAsync();
-```
-
-Python debugging enhancements:
-
-- **Module debugging**: Full debugging support for `python -m module` execution
-- **Framework support**: Pre-configured debugging for Flask, Uvicorn, and Gunicorn
-- **IDE integration**: Enhanced IDE spec with `interpreter_path` and `module` properties
-- **New method**: `AddGunicornApp()` for Gunicorn-based applications
 
 ### Simplified Service URL Environment Variables
 
