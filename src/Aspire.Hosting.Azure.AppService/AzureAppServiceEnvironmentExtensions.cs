@@ -234,13 +234,23 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
-    /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string? applicationInsightsLocation = null)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-
         builder.Resource.EnableApplicationInsights = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string applicationInsightsLocation)
+    {
+        builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsLocation = applicationInsightsLocation;
         return builder;
     }
@@ -253,8 +263,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> applicationInsightsLocation)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        builder.Resource.EnableApplicationInsights = true;
+        builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
         return builder;
     }
@@ -267,8 +276,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<AzureApplicationInsightsResource> applicationInsightsBuilder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        builder.Resource.EnableApplicationInsights = true;
+        builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
         return builder;
     }
