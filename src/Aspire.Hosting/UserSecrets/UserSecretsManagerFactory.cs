@@ -105,15 +105,12 @@ internal sealed class UserSecretsManagerFactory
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
         
-        // Static semaphore dictionary ensures thread safety across all instances for the same file
-        private static readonly ConcurrentDictionary<string, SemaphoreSlim> s_semaphores = new();
-        
-        private readonly SemaphoreSlim _semaphore;
+        // Static semaphore ensures thread safety across all user secrets operations
+        private static readonly SemaphoreSlim s_semaphore = new(1, 1);
 
         public UserSecretsManager(string filePath)
         {
             FilePath = filePath;
-            _semaphore = s_semaphores.GetOrAdd(filePath, _ => new SemaphoreSlim(1, 1));
         }
 
         public string FilePath { get; }
@@ -122,7 +119,7 @@ internal sealed class UserSecretsManagerFactory
         {
             try
             {
-                _semaphore.Wait();
+                s_semaphore.Wait();
                 try
                 {
                     SetSecretCore(name, value);
@@ -130,7 +127,7 @@ internal sealed class UserSecretsManagerFactory
                 }
                 finally
                 {
-                    _semaphore.Release();
+                    s_semaphore.Release();
                 }
             }
             catch (Exception)
@@ -164,7 +161,7 @@ internal sealed class UserSecretsManagerFactory
         /// </summary>
         public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
-            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await s_semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var flattenedState = JsonFlattener.FlattenJsonObject(state);
@@ -175,7 +172,7 @@ internal sealed class UserSecretsManagerFactory
             }
             finally
             {
-                _semaphore.Release();
+                s_semaphore.Release();
             }
         }
 
