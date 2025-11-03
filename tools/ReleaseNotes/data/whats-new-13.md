@@ -1509,6 +1509,9 @@ The following APIs have been removed in Aspire 13.0:
 - `ASPIRECOMPUTE001` diagnostics (removed - API graduated from experimental)
 - `ASPIREPUBLISHERS001` (renamed to `ASPIREPIPELINES001-003`)
 
+**CLI commands**:
+- `--watch` flag removed from `aspire run` (replaced by `features.defaultWatchEnabled` feature flag)
+
 ### Changed signatures
 
 **AllocatedEndpoint constructor**:
@@ -1551,6 +1554,23 @@ await resource.ProcessArgumentValuesAsync(
 ```
 
 The `containerHostName` parameter has been removed from these extension methods. Network context is now handled through the `NetworkIdentifier` type.
+
+**EndpointReference.GetValueAsync behavior change**:
+- `EndpointReference.GetValueAsync` now waits for endpoint allocation before resolving values
+- Previously, it would throw immediately if the endpoint wasn't allocated
+- Code that relied on immediate throwing will now hang unless `IsAllocated` is checked manually first
+
+```csharp
+// Before (9.x) - would throw immediately if not allocated
+var value = await endpointRef.GetValueAsync(cancellationToken);
+
+// After (13.0) - waits for allocation, check IsAllocated if you need immediate failure
+if (!endpointRef.IsAllocated)
+{
+    throw new InvalidOperationException("Endpoint not allocated");
+}
+var value = await endpointRef.GetValueAsync(cancellationToken);
+```
 
 ### Major architectural changes
 
