@@ -37,6 +37,9 @@
     <trans-unit id="aspire-vscode.strings.authorizationHeaderMustStartWithBearer">
       <source xml:lang="en">Authorization header must start with &apos;Bearer &apos;.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.buildFailedForProjectWithError">
+      <source xml:lang="en">Build failed for project {0} with error: {1}.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
       <source xml:lang="en">Build failed with exit code {0}.</source>
     </trans-unit>

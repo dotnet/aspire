@@ -135,7 +135,15 @@ export default class AspireDcpServer {
                     return;
                 }
 
-                const config = await createDebugSessionConfiguration(aspireDebugSession.configuration, launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId, isApphost: false }, foundDebuggerExtension);
+                const config = await createDebugSessionConfiguration(
+                    aspireDebugSession.configuration,
+                    launchConfig,
+                    payload.args ?? [],
+                    payload.env ?? [],
+                    { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId, isApphost: false, debugSession: aspireDebugSession },
+                    foundDebuggerExtension
+                );
+
                 const resourceDebugSession = await aspireDebugSession.startAndGetDebugSession(config);
 
                 if (!resourceDebugSession) {
