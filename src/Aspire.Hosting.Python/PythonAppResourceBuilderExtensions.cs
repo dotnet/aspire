@@ -23,6 +23,7 @@ namespace Aspire.Hosting;
 public static class PythonAppResourceBuilderExtensions
 {
     private const string DefaultVirtualEnvFolder = ".venv";
+    private const string DefaultPythonVersion = "3.13";
 
     /// <summary>
     /// Adds a python application to the application model.
@@ -449,11 +450,8 @@ public static class PythonAppResourceBuilderExtensions
                         pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
                     }
 
-                    if (pythonVersion is null)
-                    {
-                        // Could not detect Python version, skip Dockerfile generation
-                        return;
-                    }
+                    // if we could not detect Python version, use the default
+                    pythonVersion ??= DefaultPythonVersion;
 
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
