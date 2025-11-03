@@ -45,22 +45,14 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Certificate Trust Across Languages](#certificate-trust-across-languages)
 - [CLI and tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
-  - [aspire update command](#aspire-update-command)
+  - [aspire update improvements](#aspire-update-improvements)
   - [aspire do command](#aspire-do-command-pipeline-entry-point)
-  - [aspire cache command](#aspire-cache-command)
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation)
   - [Other CLI improvements](#other-cli-improvements)
-- [Container Files as Build Artifacts](#-container-files-as-build-artifacts)
-  - [The Traditional Approach: File System Dependencies](#the-traditional-approach-file-system-dependencies)
-  - [The New Approach: Containers as Build Artifacts](#the-new-approach-containers-as-build-artifacts)
-  - [Key Benefits](#key-benefits)
-  - [Real-World Example: Static Site with API](#real-world-example-static-site-with-api)
-  - [Advanced Usage: Multi-Stage Builds](#advanced-usage-multi-stage-builds)
-  - [Container Files in the Build Pipeline](#container-files-in-the-build-pipeline)
 - [Major new features](#major-new-features)
   - [Distributed Application Pipeline](#distributed-application-pipeline)
-  - [Dashboard AI Assistant](#dashboard-ai-assistant)
+    - [Container Files as Build Artifacts](#container-files-as-build-artifacts)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
 - [Integration Packages and Resources](#-integration-packages-and-resources)
@@ -473,24 +465,6 @@ aspire do deploy --log-level debug
 
 This command provides access to the new [Distributed Application Pipeline](#distributed-application-pipeline) system, enabling fine-grained control over deployment workflows. The step name is specified as an argument, and the command automatically executes all dependency steps.
 
-### aspire cache command
-
-The `aspire cache` command provides management capabilities for the Aspire CLI's disk cache, which stores NuGet package metadata to improve performance.
-
-```bash
-# Clear the Aspire CLI cache
-aspire cache clear
-```
-
-The cache system includes:
-
-- **Expiry management**: Automatic cleanup of expired cache entries
-- **Version-aware cleanup**: Removes outdated package metadata
-- **Selective caching control**: Configure what gets cached
-- **Testable interface**: IDiskCache interface for testing scenarios
-
-The disk cache significantly improves the performance of `aspire add` and `aspire new` commands by reducing repeated NuGet package queries.
-
 ### Single-file AppHost support
 
 Aspire 13.0 introduces comprehensive support for single-file app hosts, allowing you to define your entire distributed application in a single `.cs` file without a project file.
@@ -575,185 +549,6 @@ When enabled, this preview feature can improve the onboarding experience for new
 - Automatic port forwarding configuration for VS Code SSH Remote
 - Consistent experience with Devcontainers and Codespaces
 - Environment variable detection (`SSH_CONNECTION`, `VSCODE_IPC_HOOK_CLI`)
-
-## 📦 Container Files as Build Artifacts
-
-Aspire 13 introduces a fundamental paradigm shift in how build artifacts are handled: **containers are now first-class build artifacts**, not just folders on a file system. This change enables reproducible, isolated, and portable builds that work consistently across development, CI/CD, and production environments.
-
-### The Traditional Approach: File System Dependencies
-
-Traditionally, build systems rely on the local file system for build artifacts:
-
-```csharp
-// Traditional approach: build on local machine, copy files
-var frontend = builder.AddNpmApp("frontend", "./frontend", "build");
-// Output goes to ./frontend/dist on your machine
-// Problems:
-// - Different results on different machines
-// - Build dependencies leak between projects
-// - Hard to reproduce CI builds locally
-```
-
-This approach has several limitations:
-- **Environment dependency**: Builds depend on your machine's installed tools, OS, and configuration
-- **Reproducibility issues**: "Works on my machine" problems
-- **Cache invalidation**: Hard to know when to rebuild
-- **Portability**: Moving artifacts between environments requires careful packaging
-
-### The New Approach: Containers as Build Artifacts
-
-Aspire 13 changes this by treating containers as the **primary build artifact**:
-
-```csharp
-var frontend = builder.AddViteApp("frontend", "./frontend");
-
-var api = builder.AddUvicornApp("api", "./api", "main:app");
-
-// Extract files FROM the frontend container and copy TO the api container
-api.PublishWithContainerFiles(frontend, "./static");
-```
-
-When you use this pattern:
-
-1. **Frontend builds in isolation**: The `frontend` app builds inside a Node.js container using the exact environment specified in the Dockerfile
-2. **Container as artifact**: The build output exists in the container at `/app/dist`
-3. **File extraction**: Aspire extracts files from the frontend container
-4. **Cross-container copy**: Files are copied into the `api` container at `./static`
-5. **Reproducible everywhere**: Same build on your machine, in CI, and in production
-
-### Key Benefits
-
-#### Reproducibility
-
-Every build happens in the same container environment:
-
-```csharp
-// This ALWAYS uses node:22-slim with the exact same tools
-var frontend = builder.AddViteApp("frontend", "./frontend");
-```
-
-No matter who runs the build or where it runs, you get identical results because the build environment is defined in the container image, not your local machine.
-
-#### Isolation
-
-Each project builds in its own container with its own dependencies:
-
-```csharp
-var app1 = builder.AddViteApp("app1", "./app1");  // Uses React 18
-var app2 = builder.AddViteApp("app2", "./app2");  // Uses React 19
-```
-
-These projects can have completely different dependency versions without conflicts because they build in separate containers.
-
-#### Parallelization
-
-Container builds can run in parallel because they're isolated:
-
-```csharp
-var frontend = builder.AddViteApp("frontend", "./frontend");
-var admin = builder.AddViteApp("admin", "./admin");
-var marketing = builder.AddViteApp("marketing", "./marketing");
-
-// All three build in parallel in separate containers
-```
-
-The build system can leverage multi-core processors and distributed build systems efficiently.
-
-#### Caching and Portability
-
-Container layers provide built-in caching:
-
-```dockerfile
-# Layer 1: Base image (cached)
-FROM node:22-slim
-WORKDIR /app
-
-# Layer 2: Dependencies (cached if package.json unchanged)
-COPY package*.json ./
-RUN npm ci
-
-# Layer 3: Source code and build (only rebuilds if code changed)
-COPY . .
-RUN npm run build
-```
-
-These cached layers are:
-- **Portable**: Can be pushed to registries and shared across teams
-- **Efficient**: Only changed layers rebuild
-- **Consistent**: Same layers produce same results
-
-### Real-World Example: Static Site with API
-
-A common pattern is building a frontend and serving it from a backend:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Build a Vite frontend in a container
-var frontend = builder.AddViteApp("frontend", "./frontend");
-
-// Python FastAPI backend
-var api = builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUvEnvironment()
-    .WithExternalHttpEndpoints();
-
-// Extract frontend's /app/dist and copy to api's ./static
-api.PublishWithContainerFiles(frontend, "./static");
-
-builder.Build().Run();
-```
-
-When you deploy this:
-
-1. **Frontend container builds**: Vite builds the React/Vue/Svelte app inside a Node container
-2. **Files are extracted**: Aspire extracts `/app/dist` from the frontend container
-3. **Files are injected**: The dist files are copied into the API container at `./static`
-4. **Single deployment artifact**: The API container now contains both the Python app AND the frontend static files
-
-The FastAPI app can serve the static files:
-
-```python
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-
-app = FastAPI()
-
-# Serve the frontend static files
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-# API endpoints
-@app.get("/api/data")
-def get_data():
-    return {"message": "Hello from API"}
-```
-
-### Advanced Usage: Multi-Stage Builds
-
-You can also use container files with .NET projects that produce build artifacts:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// .NET Blazor WebAssembly app that builds to wwwroot
-var blazorWasm = builder.AddProject<Projects.BlazorWasm>("blazor-wasm");
-
-// .NET API that serves static files
-var api = builder.AddProject<Projects.Api>("api");
-
-// Copy Blazor's published wwwroot into the API container
-api.PublishWithContainerFiles(blazorWasm, "./static");
-```
-
-### Container Files in the Build Pipeline
-
-Container files integrate seamlessly with the [Distributed Application Pipeline](#distributed-application-pipeline):
-
-- **Dependency tracking**: The pipeline knows that the API container depends on the frontend container
-- **Parallel execution**: Independent containers build in parallel
-- **Incremental builds**: Only changed containers rebuild
-- **Clear progress**: The dashboard shows which containers are building and extracting files
-
-This makes container files a natural fit for complex build workflows with multiple dependent services.
 
 ## Major new features
 
@@ -844,19 +639,184 @@ The pipeline system includes:
 
 For more details on the pipeline architecture, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
 
-### Dashboard AI Assistant
+### Container Files as Build Artifacts
 
-The Dashboard now includes an integrated AI assistant that provides context-aware help, error explanations, and intelligent suggestions directly within the dashboard experience.
+Aspire 13 introduces a fundamental paradigm shift in how build artifacts are handled: **containers are now first-class build artifacts**, not just folders on a file system. This change enables reproducible, isolated, and portable builds that work consistently across development, CI/CD, and production environments.
 
-Key features include:
+#### The Traditional Approach: File System Dependencies
 
-- **Interactive chat interface**: Converse with the AI assistant about your application
-- **Context-aware assistance**: The assistant understands your resource configuration and telemetry
-- **Error explanations**: Click "Explain Errors" on traces and logs to get AI-powered insights
-- **Markdown support**: Rich formatting with code blocks and syntax highlighting
-- **GenAI telemetry visualization**: Enhanced visualization of AI operations in your application
+Traditionally, build systems rely on the local file system for build artifacts:
 
-The AI assistant integration makes debugging and understanding distributed applications more intuitive by providing intelligent insights based on your application's actual runtime behavior.
+```csharp
+// Traditional approach: build on local machine, copy files
+var frontend = builder.AddNpmApp("frontend", "./frontend", "build");
+// Output goes to ./frontend/dist on your machine
+// Problems:
+// - Different results on different machines
+// - Build dependencies leak between projects
+// - Hard to reproduce CI builds locally
+```
+
+This approach has several limitations:
+- **Environment dependency**: Builds depend on your machine's installed tools, OS, and configuration
+- **Reproducibility issues**: "Works on my machine" problems
+- **Cache invalidation**: Hard to know when to rebuild
+- **Portability**: Moving artifacts between environments requires careful packaging
+
+#### The New Approach: Containers as Build Artifacts
+
+Aspire 13 changes this by treating containers as the **primary build artifact**:
+
+```csharp
+var frontend = builder.AddViteApp("frontend", "./frontend");
+
+var api = builder.AddUvicornApp("api", "./api", "main:app");
+
+// Extract files FROM the frontend container and copy TO the api container
+api.PublishWithContainerFiles(frontend, "./static");
+```
+
+When you use this pattern:
+
+1. **Frontend builds in isolation**: The `frontend` app builds inside a Node.js container using the exact environment specified in the Dockerfile
+2. **Container as artifact**: The build output exists in the container at `/app/dist`
+3. **File extraction**: Aspire extracts files from the frontend container
+4. **Cross-container copy**: Files are copied into the `api` container at `./static`
+5. **Reproducible everywhere**: Same build on your machine, in CI, and in production
+
+#### Key Benefits
+
+**Reproducibility**
+
+Every build happens in the same container environment:
+
+```csharp
+// This ALWAYS uses node:22-slim with the exact same tools
+var frontend = builder.AddViteApp("frontend", "./frontend");
+```
+
+No matter who runs the build or where it runs, you get identical results because the build environment is defined in the container image, not your local machine.
+
+**Isolation**
+
+Each project builds in its own container with its own dependencies:
+
+```csharp
+var app1 = builder.AddViteApp("app1", "./app1");  // Uses React 18
+var app2 = builder.AddViteApp("app2", "./app2");  // Uses React 19
+```
+
+These projects can have completely different dependency versions without conflicts because they build in separate containers.
+
+**Parallelization**
+
+Container builds can run in parallel because they're isolated:
+
+```csharp
+var frontend = builder.AddViteApp("frontend", "./frontend");
+var admin = builder.AddViteApp("admin", "./admin");
+var marketing = builder.AddViteApp("marketing", "./marketing");
+
+// All three build in parallel in separate containers
+```
+
+The build system can leverage multi-core processors and distributed build systems efficiently.
+
+**Caching and Portability**
+
+Container layers provide built-in caching:
+
+```dockerfile
+# Layer 1: Base image (cached)
+FROM node:22-slim
+WORKDIR /app
+
+# Layer 2: Dependencies (cached if package.json unchanged)
+COPY package*.json ./
+RUN npm ci
+
+# Layer 3: Source code and build (only rebuilds if code changed)
+COPY . .
+RUN npm run build
+```
+
+These cached layers are:
+- **Portable**: Can be pushed to registries and shared across teams
+- **Efficient**: Only changed layers rebuild
+- **Consistent**: Same layers produce same results
+
+#### Real-World Example: Static Site with API
+
+A common pattern is building a frontend and serving it from a backend:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Build a Vite frontend in a container
+var frontend = builder.AddViteApp("frontend", "./frontend");
+
+// Python FastAPI backend
+var api = builder.AddUvicornApp("api", "./api", "main:app")
+    .WithUvEnvironment()
+    .WithExternalHttpEndpoints();
+
+// Extract frontend's /app/dist and copy to api's ./static
+api.PublishWithContainerFiles(frontend, "./static");
+
+builder.Build().Run();
+```
+
+When you deploy this:
+
+1. **Frontend container builds**: Vite builds the React/Vue/Svelte app inside a Node container
+2. **Files are extracted**: Aspire extracts `/app/dist` from the frontend container
+3. **Files are injected**: The dist files are copied into the API container at `./static`
+4. **Single deployment artifact**: The API container now contains both the Python app AND the frontend static files
+
+The FastAPI app can serve the static files:
+
+```python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()
+
+# Serve the frontend static files
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+# API endpoints
+@app.get("/api/data")
+def get_data():
+    return {"message": "Hello from API"}
+```
+
+#### Advanced Usage: Multi-Stage Builds
+
+You can also use container files with .NET projects that produce build artifacts:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// .NET Blazor WebAssembly app that builds to wwwroot
+var blazorWasm = builder.AddProject<Projects.BlazorWasm>("blazor-wasm");
+
+// .NET API that serves static files
+var api = builder.AddProject<Projects.Api>("api");
+
+// Copy Blazor's published wwwroot into the API container
+api.PublishWithContainerFiles(blazorWasm, "./static");
+```
+
+#### Container Files in the Pipeline
+
+Container files integrate seamlessly with the Distributed Application Pipeline:
+
+- **Dependency tracking**: The pipeline knows that the API container depends on the frontend container
+- **Parallel execution**: Independent containers build in parallel
+- **Incremental builds**: Only changed containers rebuild
+- **Clear progress**: The dashboard shows which containers are building and extracting files
+
+This makes container files a natural fit for complex build workflows with multiple dependent services.
 
 ### Dockerfile Builder API (Experimental)
 
@@ -939,8 +899,7 @@ var certs = builder.AddCertificateAuthorityCollection("custom-certs")
     .WithCertificatesFromFile("./certs/my-ca.pem")
     .WithCertificatesFromStore(
         StoreName.CertificateAuthority,
-        StoreLocation.LocalMachine,
-        allowInvalid: false);
+        StoreLocation.LocalMachine);
 
 // Use the certificate collection in your resources
 var api = builder.AddProject<Projects.Api>("api")
@@ -957,7 +916,7 @@ Automatically configure container trust for developer certificates on Mac and Li
 var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.Api>("api")
-    .WithDeveloperCertificateTrust(); // Automatically trust dev certs in container
+    .WithDeveloperCertificateTrust(trust: true); // Trust dev certs in container
 
 await builder.Build().RunAsync();
 ```
