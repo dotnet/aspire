@@ -347,7 +347,7 @@ var dotnetApi = builder.AddProject<Projects.Api>()
 
 // Python app can use URI format
 var pythonWorker = builder.AddPythonModule("worker", "./worker", "worker.main")
-    .WithEnvironment("DATABASE_URL", postgres.Resource.ConnectionStringExpression);
+    .WithEnvironment("DATABASE_URL", postgres.Resource.UriExpression);
 
 // Java app can use JDBC format
 var javaApp = builder.AddExecutable("java-app", "java", "./app", ["-jar", "app.jar"])
