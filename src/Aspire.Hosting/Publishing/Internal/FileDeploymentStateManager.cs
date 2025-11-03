@@ -64,7 +64,7 @@ public sealed class FileDeploymentStateManager(
                 return;
             }
 
-            var flattenedSecrets = FlattenJsonObject(state);
+            var flattenedSecrets = JsonFlattener.FlattenJsonObject(state);
             Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
             await File.WriteAllTextAsync(
                 deploymentStatePath,

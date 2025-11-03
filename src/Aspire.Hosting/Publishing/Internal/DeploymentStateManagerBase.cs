@@ -62,22 +62,6 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     protected abstract Task SaveStateToStorageAsync(JsonObject state, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Flattens a JsonObject using colon-separated keys for configuration compatibility.
-    /// Handles both nested objects and arrays with indexed keys.
-    /// </summary>
-    /// <param name="source">The source JsonObject to flatten.</param>
-    /// <returns>A flattened JsonObject.</returns>
-    public static JsonObject FlattenJsonObject(JsonObject source) => JsonFlattener.FlattenJsonObject(source);
-
-    /// <summary>
-    /// Unflattens a JsonObject that uses colon-separated keys back into a nested structure.
-    /// Handles both nested objects and arrays with indexed keys.
-    /// </summary>
-    /// <param name="source">The flattened JsonObject to unflatten.</param>
-    /// <returns>An unflattened JsonObject with nested structure.</returns>
-    public static JsonObject UnflattenJsonObject(JsonObject source) => JsonFlattener.UnflattenJsonObject(source);
-
-    /// <summary>
     /// Loads the deployment state from storage, using caching to avoid repeated loads.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -104,7 +88,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
             {
                 var fileContent = await File.ReadAllTextAsync(statePath, cancellationToken).ConfigureAwait(false);
                 var flattenedState = JsonNode.Parse(fileContent, documentOptions: jsonDocumentOptions)!.AsObject();
-                _state = UnflattenJsonObject(flattenedState);
+                _state = JsonFlattener.UnflattenJsonObject(flattenedState);
             }
             else
             {
