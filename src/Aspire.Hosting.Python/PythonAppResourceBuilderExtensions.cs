@@ -79,7 +79,6 @@ public static class PythonAppResourceBuilderExtensions
     /// This method executes a Python script directly using <c>python script.py</c>.
     /// By default, the virtual environment is resolved using the following priority:
     /// <list type="number">
-    /// <item>If the <c>VIRTUAL_ENV</c> environment variable is set and the directory exists, use it.</item>
     /// <item>If <c>.venv</c> exists in the app directory, use it.</item>
     /// <item>If <c>.venv</c> exists in the AppHost directory (and the app is nearby), use it.</item>
     /// <item>Otherwise, default to <c>.venv</c> in the app directory.</item>
@@ -730,21 +729,14 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>The resolved virtual environment path.</returns>
     private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appWorkingDirectory, string virtualEnvironmentPath)
     {
-        // Priority 1: Check if VIRTUAL_ENV is set in configuration (standard Python convention)
-        var virtualEnvFromConfig = builder.Configuration["VIRTUAL_ENV"];
-        if (!string.IsNullOrEmpty(virtualEnvFromConfig) && Directory.Exists(virtualEnvFromConfig))
-        {
-            return virtualEnvFromConfig;
-        }
-
-        // Priority 2: Check if the virtual environment exists in the app directory
+        // Priority 1: Check if the virtual environment exists in the app directory
         var appDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, appWorkingDirectory);
         if (Directory.Exists(appDirVenvPath))
         {
             return appDirVenvPath;
         }
 
-        // Priority 3: Check the AppHost directory if the Python app is a subdirectory or sibling of the AppHost
+        // Priority 2: Check the AppHost directory if the Python app is a subdirectory or sibling of the AppHost
         // This prevents picking up unrelated .venv directories from test fixtures or other sources
         var appHostDirVenvPath = Path.GetFullPath(virtualEnvironmentPath, builder.AppHostDirectory);
         
