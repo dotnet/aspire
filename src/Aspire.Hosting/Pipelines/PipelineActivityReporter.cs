@@ -99,10 +99,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
     {
         lock (step)
         {
-            // Prevent double completion if the step is already complete
+            // If the step is already in a terminal state, this is a noop (idempotent)
             if (step.CompletionState != CompletionState.InProgress)
             {
-                throw new InvalidOperationException($"Cannot complete step '{step.Id}' with state '{step.CompletionState}'. Only 'InProgress' steps can be completed.");
+                return;
             }
 
             step.CompletionState = completionState;
@@ -196,9 +196,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
             throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
         }
 
+        // If the task is already in a terminal state, this is a noop (idempotent)
         if (task.CompletionState != CompletionState.InProgress)
         {
-            throw new InvalidOperationException($"Cannot complete task '{task.Id}' with state '{task.CompletionState}'. Only 'InProgress' tasks can be completed.");
+            return;
         }
 
         lock (parentStep)

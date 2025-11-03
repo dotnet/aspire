@@ -376,7 +376,7 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task CompleteTaskAsync_ThrowsWhenTaskAlreadyCompleted()
+    public async Task CompleteTaskAsync_IdempotentWhenCompletedWithSameState()
     {
         // Arrange
         var reporter = CreatePublishingReporter();
@@ -387,16 +387,46 @@ public class PublishingActivityReporterTests
         // Complete the task first time
         await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
-        // Act & Assert - Try to complete the same task again
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
+        // Clear activities
+        ClearActivities(reporter);
 
+        // Act - Try to complete the same task again with the same state (should be idempotent, no exception)
+        await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
+
+        // Assert - No new activity should be emitted (noop)
+        AssertNoActivitiesEmitted(reporter);
+        
         var taskInternal = Assert.IsType<ReportingTask>(task);
-        Assert.Contains($"Cannot complete task '{taskInternal.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", exception.Message);
+        Assert.Equal(CompletionState.Completed, taskInternal.CompletionState);
     }
 
     [Fact]
-    public async Task CompleteStepAsync_ThrowsWhenStepAlreadyCompleted()
+    public async Task CompleteTaskAsync_IdempotentWhenCompletedWithDifferentState()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Complete the task first time successfully
+        await task.CompleteAsync(null, CompletionState.Completed, cancellationToken: CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete with a different state (should be idempotent, no exception)
+        await task.CompleteAsync("Error", CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
+
+        // Assert - No new activity should be emitted (noop)
+        AssertNoActivitiesEmitted(reporter);
+        
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        Assert.Equal(CompletionState.Completed, taskInternal.CompletionState); // Original state is retained
+    }
+
+    [Fact]
+    public async Task CompleteStepAsync_IdempotentWhenCompletedWithSameState()
     {
         // Arrange
         var reporter = CreatePublishingReporter();
@@ -406,12 +436,43 @@ public class PublishingActivityReporterTests
         // Complete the step first time
         await step.CompleteAsync("Complete", cancellationToken: CancellationToken.None);
 
-        // Act & Assert - Try to complete the same step again
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => step.CompleteAsync("Complete again", cancellationToken: CancellationToken.None));
+        // Clear activities
+        ClearActivities(reporter);
 
+        // Act - Try to complete the same step again with the same state (should be idempotent, no exception)
+        await step.CompleteAsync("Complete again", cancellationToken: CancellationToken.None);
+
+        // Assert - No new activity should be emitted (noop)
+        AssertNoActivitiesEmitted(reporter);
+        
         var stepInternal = Assert.IsType<ReportingStep>(step);
-        Assert.Contains($"Cannot complete step '{stepInternal.Id}' with state 'Completed'. Only 'InProgress' steps can be completed.", exception.Message);
+        Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
+        Assert.Equal("Complete", stepInternal.CompletionText); // Original completion text is retained
+    }
+
+    [Fact]
+    public async Task CompleteStepAsync_IdempotentWhenCompletedWithDifferentState()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step first time successfully
+        await step.CompleteAsync("Complete", CompletionState.Completed, cancellationToken: CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete with a different state (should be idempotent, no exception)
+        await step.CompleteAsync("Error", CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
+
+        // Assert - No new activity should be emitted (noop)
+        AssertNoActivitiesEmitted(reporter);
+        
+        var stepInternal = Assert.IsType<ReportingStep>(step);
+        Assert.Equal(CompletionState.Completed, stepInternal.CompletionState); // Original state is retained
+        Assert.Equal("Complete", stepInternal.CompletionText); // Original completion text is retained
     }
 
     [Fact]
@@ -436,10 +497,9 @@ public class PublishingActivityReporterTests
         var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Contains($"Cannot update task '{taskInternal.Id}' because its parent step", updateException.Message);
 
-        // For CompleteTaskAsync, it will first check if the task is already completed, so we expect that error instead
-        var completeException = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
-        Assert.Contains($"Cannot complete task '{taskInternal.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", completeException.Message);
+        // For CompleteTaskAsync, since task is already completed, attempting to complete with same or different state should be idempotent
+        await task.CompleteAsync(null, cancellationToken: CancellationToken.None); // Should not throw
+        await task.CompleteAsync("Error", CompletionState.CompletedWithError, cancellationToken: CancellationToken.None); // Should also not throw (noop)
 
         // Creating new tasks for the completed step should also fail because the step is complete
         var createException = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -630,7 +690,7 @@ public class PublishingActivityReporterTests
         await task2.SucceedAsync(null, CancellationToken.None);
 
         // Clear previous activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act
         await step.DisposeAsync();
@@ -661,13 +721,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Step completed manually", CompletionState.Completed, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Dispose should not cause another completion
         await step.DisposeAsync();
 
         // Assert - No new activities should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
         var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
         Assert.Equal("Step completed manually", stepInternal.CompletionText);
@@ -876,13 +936,13 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync("Completed", CompletionState.Completed, CancellationToken.None);
 
         // Clear activities
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+        ClearActivities(reporter);
 
         // Act - Step is completed, so logging should be a no-op
         step.Log(LogLevel.Information, "Test log", enableMarkdown: false);
 
         // Assert - No new activity should be emitted
-        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        AssertNoActivitiesEmitted(reporter);
     }
 
     [Fact]
@@ -911,6 +971,175 @@ public class PublishingActivityReporterTests
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Task, activity.Type);
         Assert.Equal(markdownCompletionMessage, activity.Data.CompletionMessage);
+    }
+
+    [Fact]
+    public async Task CompleteTaskAsync_IdempotentWithWarning()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Complete the task with warning
+        await task.CompleteAsync("Warning message", CompletionState.CompletedWithWarning, CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete again with same state (should be idempotent)
+        await task.CompleteAsync("Different warning message", CompletionState.CompletedWithWarning, CancellationToken.None);
+
+        // Assert - No new activity should be emitted
+        AssertNoActivitiesEmitted(reporter);
+        
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        Assert.Equal(CompletionState.CompletedWithWarning, taskInternal.CompletionState);
+    }
+
+    [Fact]
+    public async Task CompleteTaskAsync_IdempotentWithError()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Complete the task with error
+        await task.CompleteAsync("Error message", CompletionState.CompletedWithError, CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete again with same state (should be idempotent)
+        await task.CompleteAsync("Different error message", CompletionState.CompletedWithError, CancellationToken.None);
+
+        // Assert - No new activity should be emitted
+        AssertNoActivitiesEmitted(reporter);
+        
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        Assert.Equal(CompletionState.CompletedWithError, taskInternal.CompletionState);
+    }
+
+    [Fact]
+    public async Task CompleteStepAsync_IdempotentWithWarning()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step with warning
+        await step.CompleteAsync("Warning", CompletionState.CompletedWithWarning, CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete again with same state (should be idempotent)
+        await step.CompleteAsync("Different warning", CompletionState.CompletedWithWarning, CancellationToken.None);
+
+        // Assert - No new activity should be emitted
+        AssertNoActivitiesEmitted(reporter);
+        
+        var stepInternal = Assert.IsType<ReportingStep>(step);
+        Assert.Equal(CompletionState.CompletedWithWarning, stepInternal.CompletionState);
+    }
+
+    [Fact]
+    public async Task CompleteStepAsync_IdempotentWithError()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step with error
+        await step.CompleteAsync("Error", CompletionState.CompletedWithError, CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete again with same state (should be idempotent)
+        await step.CompleteAsync("Different error", CompletionState.CompletedWithError, CancellationToken.None);
+
+        // Assert - No new activity should be emitted
+        AssertNoActivitiesEmitted(reporter);
+        
+        var stepInternal = Assert.IsType<ReportingStep>(step);
+        Assert.Equal(CompletionState.CompletedWithError, stepInternal.CompletionState);
+    }
+
+    [Theory]
+    [InlineData(CompletionState.Completed, CompletionState.CompletedWithWarning)]
+    [InlineData(CompletionState.Completed, CompletionState.CompletedWithError)]
+    [InlineData(CompletionState.CompletedWithWarning, CompletionState.Completed)]
+    [InlineData(CompletionState.CompletedWithWarning, CompletionState.CompletedWithError)]
+    [InlineData(CompletionState.CompletedWithError, CompletionState.Completed)]
+    [InlineData(CompletionState.CompletedWithError, CompletionState.CompletedWithWarning)]
+    public async Task CompleteTaskAsync_IdempotentWhenTransitioningBetweenTerminalStates(CompletionState firstState, CompletionState secondState)
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Complete the task with first state
+        await task.CompleteAsync("First completion", firstState, CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete with different state (should be idempotent, no exception)
+        await task.CompleteAsync("Second completion", secondState, CancellationToken.None);
+
+        // Assert - No new activity should be emitted (noop)
+        AssertNoActivitiesEmitted(reporter);
+        
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        Assert.Equal(firstState, taskInternal.CompletionState); // Original state is retained
+    }
+
+    [Theory]
+    [InlineData(CompletionState.Completed, CompletionState.CompletedWithWarning)]
+    [InlineData(CompletionState.Completed, CompletionState.CompletedWithError)]
+    [InlineData(CompletionState.CompletedWithWarning, CompletionState.Completed)]
+    [InlineData(CompletionState.CompletedWithWarning, CompletionState.CompletedWithError)]
+    [InlineData(CompletionState.CompletedWithError, CompletionState.Completed)]
+    [InlineData(CompletionState.CompletedWithError, CompletionState.CompletedWithWarning)]
+    public async Task CompleteStepAsync_IdempotentWhenTransitioningBetweenTerminalStates(CompletionState firstState, CompletionState secondState)
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step with first state
+        await step.CompleteAsync("First completion", firstState, CancellationToken.None);
+
+        // Clear activities
+        ClearActivities(reporter);
+
+        // Act - Try to complete with different state (should be idempotent, no exception)
+        await step.CompleteAsync("Second completion", secondState, CancellationToken.None);
+
+        // Assert - No new activity should be emitted (noop)
+        AssertNoActivitiesEmitted(reporter);
+        
+        var stepInternal = Assert.IsType<ReportingStep>(step);
+        Assert.Equal(firstState, stepInternal.CompletionState); // Original state is retained
+    }
+
+    private static void ClearActivities(PipelineActivityReporter reporter)
+    {
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+    }
+
+    private static void AssertNoActivitiesEmitted(PipelineActivityReporter reporter)
+    {
+        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
     }
 
     private PipelineActivityReporter CreatePublishingReporter()
