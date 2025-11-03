@@ -745,7 +745,12 @@ public static class PythonAppResourceBuilderExtensions
             }
             
             // Stop if we've reached the AppHost's parent directory
-            if (string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase))
+            // Use case-insensitive comparison on Windows, case-sensitive on Unix
+            var reachedBoundary = OperatingSystem.IsWindows()
+                ? string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase)
+                : string.Equals(currentDirectory, appHostParentDirectory, StringComparison.Ordinal);
+            
+            if (reachedBoundary)
             {
                 break;
             }
