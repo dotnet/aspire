@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -15,15 +14,16 @@ namespace Aspire.Hosting.UserSecrets;
 
 /// <summary>
 /// Factory for creating and caching IUserSecretsManager instances.
-/// Uses ConcurrentDictionary to cache instances by normalized file path.
+/// Uses a lock to ensure thread-safe creation and a dictionary to cache instances by normalized file path.
 /// </summary>
 internal sealed class UserSecretsManagerFactory
 {
     // Singleton instance
     public static readonly UserSecretsManagerFactory Instance = new();
 
-    // Use ConcurrentDictionary to cache instances by file path
-    private readonly ConcurrentDictionary<string, IUserSecretsManager> _managerCache = new();
+    // Dictionary to cache instances by file path
+    private readonly Dictionary<string, IUserSecretsManager> _managerCache = new();
+    private readonly object _lock = new();
 
     private UserSecretsManagerFactory()
     {
@@ -38,7 +38,15 @@ internal sealed class UserSecretsManagerFactory
         
         var normalizedPath = Path.GetFullPath(filePath);
         
-        return _managerCache.GetOrAdd(normalizedPath, path => new UserSecretsManager(path));
+        lock (_lock)
+        {
+            if (!_managerCache.TryGetValue(normalizedPath, out var manager))
+            {
+                manager = new UserSecretsManager(normalizedPath);
+                _managerCache[normalizedPath] = manager;
+            }
+            return manager;
+        }
     }
 
     /// <summary>
@@ -105,12 +113,25 @@ internal sealed class UserSecretsManagerFactory
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
         
-        // Static semaphore ensures thread safety across all user secrets operations
-        private static readonly SemaphoreSlim s_semaphore = new(1, 1);
+        // Static dictionary of semaphores keyed by file path ensures thread safety across all instances for the same file
+        private static readonly Dictionary<string, SemaphoreSlim> s_semaphores = new();
+        private static readonly object s_semaphoreLock = new();
+        
+        private readonly SemaphoreSlim _semaphore;
 
         public UserSecretsManager(string filePath)
         {
             FilePath = filePath;
+            
+            // Get or create semaphore for this file path
+            lock (s_semaphoreLock)
+            {
+                if (!s_semaphores.TryGetValue(filePath, out _semaphore!))
+                {
+                    _semaphore = new SemaphoreSlim(1, 1);
+                    s_semaphores[filePath] = _semaphore;
+                }
+            }
         }
 
         public string FilePath { get; }
@@ -119,7 +140,7 @@ internal sealed class UserSecretsManagerFactory
         {
             try
             {
-                s_semaphore.Wait();
+                _semaphore.Wait();
                 try
                 {
                     SetSecretCore(name, value);
@@ -127,7 +148,7 @@ internal sealed class UserSecretsManagerFactory
                 }
                 finally
                 {
-                    s_semaphore.Release();
+                    _semaphore.Release();
                 }
             }
             catch (Exception)
@@ -161,7 +182,7 @@ internal sealed class UserSecretsManagerFactory
         /// </summary>
         public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
-            await s_semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var flattenedState = JsonFlattener.FlattenJsonObject(state);
@@ -172,7 +193,7 @@ internal sealed class UserSecretsManagerFactory
             }
             finally
             {
-                s_semaphore.Release();
+                _semaphore.Release();
             }
         }
 
