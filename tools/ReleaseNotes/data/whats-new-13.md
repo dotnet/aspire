@@ -421,34 +421,37 @@ When you run `aspire init`, the CLI will:
 
 The init command simplifies the initial project setup through an interactive workflow that ensures consistent configuration across team members.
 
-### aspire update command
+> [!NOTE]
+> The `aspire init` command sets up the Aspire project structure and configuration, but does not automatically add resources (databases, caches, message queues, etc.) to your AppHost. You'll need to manually add resource definitions to your AppHost code using methods like `AddPostgres`, `AddRedis`, `AddRabbitMQ`, etc.
 
-The `aspire update` command helps keep your Aspire projects current by automatically detecting and updating outdated packages, templates, and even the CLI itself.
+### aspire update improvements
+
+The `aspire update` command has received significant improvements in Aspire 13.0, including the new `--self` flag to update the CLI itself:
 
 ```bash
 # Update all Aspire packages in the current project
 aspire update
 
+# Update the Aspire CLI itself (new in 13.0)
+aspire update --self
+
 # Update a specific project
 aspire update --project ./src/MyApp.AppHost
-
-# Update with recursive directory search
-aspire update --project ./src --recursive
-
-# Update the Aspire CLI itself
-aspire update --self
 ```
 
-The update command includes:
+**New in Aspire 13.0:**
+- **CLI self-update**: The `--self` flag allows you to update the Aspire CLI without reinstalling
+- **Improved reliability**: Numerous bug fixes for edge cases in dependency resolution
+- **Better error handling**: Clearer error messages when updates fail
+- **Performance improvements**: Faster package detection and update operations
 
-- **Central package management (CPM) support**: Handles CPM-enabled solutions
-- **Diamond dependency resolution**: Intelligently manages complex dependency graphs without duplicates
-- **Single-file app host support**: Updates single-file app hosts
-- **XML fallback parsing**: Resilient parsing for unresolvable AppHost SDKs
-- **Enhanced visual presentation**: Colorized output with detailed summary of changes
-- **Channel awareness**: Respects configured Aspire channels (stable, preview, staging)
-
-The update command makes it easy to stay current with Aspire releases while maintaining compatibility across your project dependencies.
+The `aspire update` command continues to support:
+- Central package management (CPM) solutions
+- Diamond dependency resolution
+- Single-file app hosts
+- XML fallback parsing for unresolvable AppHost SDKs
+- Enhanced visual presentation with colorized output
+- Channel awareness (stable, preview, staging)
 
 ### aspire do command (Pipeline Entry Point)
 
