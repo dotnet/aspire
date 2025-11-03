@@ -24,9 +24,6 @@ internal sealed class UserSecretsManagerFactory
 
     // Use ConcurrentDictionary to cache instances by file path
     private readonly ConcurrentDictionary<string, IUserSecretsManager> _managerCache = new();
-    
-    // Semaphores are stored separately to ensure thread safety across all manager instances for the same file
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphores = new();
 
     private UserSecretsManagerFactory()
     {
@@ -41,11 +38,7 @@ internal sealed class UserSecretsManagerFactory
         
         var normalizedPath = Path.GetFullPath(filePath);
         
-        return _managerCache.GetOrAdd(normalizedPath, path =>
-        {
-            var semaphore = GetSemaphore(path);
-            return new UserSecretsManager(path, semaphore);
-        });
+        return _managerCache.GetOrAdd(normalizedPath, path => new UserSecretsManager(path));
     }
 
     /// <summary>
@@ -80,8 +73,7 @@ internal sealed class UserSecretsManagerFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         
         var normalizedPath = Path.GetFullPath(filePath);
-        var semaphore = GetSemaphore(normalizedPath);
-        return new UserSecretsManager(normalizedPath, semaphore);
+        return new UserSecretsManager(normalizedPath);
     }
 
     /// <summary>
@@ -109,20 +101,19 @@ internal sealed class UserSecretsManagerFactory
         return CreateFromId(userSecretsId);
     }
 
-    private SemaphoreSlim GetSemaphore(string filePath)
-    {
-        return _semaphores.GetOrAdd(filePath, _ => new SemaphoreSlim(1, 1));
-    }
-
     private sealed class UserSecretsManager : IUserSecretsManager
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
+        
+        // Static semaphore dictionary ensures thread safety across all instances for the same file
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> s_semaphores = new();
+        
         private readonly SemaphoreSlim _semaphore;
 
-        public UserSecretsManager(string filePath, SemaphoreSlim semaphore)
+        public UserSecretsManager(string filePath)
         {
             FilePath = filePath;
-            _semaphore = semaphore;
+            _semaphore = s_semaphores.GetOrAdd(filePath, _ => new SemaphoreSlim(1, 1));
         }
 
         public string FilePath { get; }
