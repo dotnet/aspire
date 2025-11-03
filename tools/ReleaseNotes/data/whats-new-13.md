@@ -46,12 +46,11 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
 - [CLI and tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update improvements](#aspire-update-improvements)
-  - [aspire do command](#aspire-do-command-pipeline-entry-point)
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation)
-  - [Other CLI improvements](#other-cli-improvements)
 - [Major new features](#major-new-features)
   - [Distributed Application Pipeline](#distributed-application-pipeline)
+    - [Executing pipelines with aspire do](#executing-pipelines-with-aspire-do)
     - [Container Files as Build Artifacts](#container-files-as-build-artifacts)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
@@ -445,26 +444,6 @@ The `aspire update` command continues to support:
 - Enhanced visual presentation with colorized output
 - Channel awareness (stable, preview, staging)
 
-### aspire do command (Pipeline Entry Point)
-
-The new `aspire do` command serves as a general-purpose pipeline entry point for executing deployment and build operations.
-
-```bash
-# Execute a specific pipeline step (e.g., deploy)
-aspire do deploy
-
-# Execute with custom output path
-aspire do publish --output-path ./artifacts
-
-# Execute with specific environment
-aspire do deploy --environment Production
-
-# Execute with verbose logging
-aspire do deploy --log-level debug
-```
-
-This command provides access to the new [Distributed Application Pipeline](#distributed-application-pipeline) system, enabling fine-grained control over deployment workflows. The step name is specified as an argument, and the command automatically executes all dependency steps.
-
 ### Single-file AppHost support
 
 Aspire 13.0 introduces comprehensive support for single-file app hosts, allowing you to define your entire distributed application in a single `.cs` file without a project file.
@@ -520,35 +499,6 @@ The automatic SDK installation feature provides:
 - **Fallback support**: Provides alternative installation options if automatic installation fails
 
 When enabled, this preview feature can improve the onboarding experience for new team members and CI/CD environments.
-
-### Other CLI improvements
-
-#### NuGet package management
-- Enhanced package source mapping with `NuGetConfigMerger`
-- Package channel service with quality filtering (stable, preview, staging)
-- User confirmation prompts for NuGet.config changes
-- Staging channel support for dogfooding builds
-
-#### Template enhancements
-- New Python starter template (`aspire-py-starter`) for Python and JavaScript applications
-- Improved template version selection display
-- Better template discovery and filtering
-
-#### Markdown support
-- Comprehensive markdown rendering with syntax support
-- MarkdownToSpectreConverter for CLI output
-- Code block support with syntax highlighting
-- Multi-line handling
-
-#### Non-interactive mode
-- `--non-interactive` flag for CI/CD environments
-- `ASPIRE_PLAYGROUND` environment variable for forcing interactive mode
-- Clean, structured output for automation scenarios
-
-#### SSH Remote support
-- Automatic port forwarding configuration for VS Code SSH Remote
-- Consistent experience with Devcontainers and Codespaces
-- Environment variable detection (`SSH_CONNECTION`, `VSCODE_IPC_HOOK_CLI`)
 
 ## Major new features
 
@@ -636,6 +586,32 @@ The pipeline system includes:
 - **Parallel execution**: Steps run concurrently when dependencies allow
 - **Built-in logging**: Use `context.Logger` to log step progress
 - **CLI execution**: Run specific steps with `aspire do <step-name>`
+
+#### Executing pipelines with aspire do
+
+Once you've defined your pipeline steps using the APIs above, you can execute them through the CLI using the new `aspire do` command. This command serves as the primary entry point for running pipeline steps, whether they're built-in steps like `build`, `publish`, and `deploy`, or custom steps you've defined in your AppHost.
+
+The `aspire do` command understands the entire pipeline graph, automatically resolving dependencies and executing steps in the correct order. For example, when you run `aspire do deploy`, it will automatically run any prerequisite steps (like `build` and `publish`) before executing the deployment itself.
+
+```bash
+# Execute a specific pipeline step (e.g., deploy)
+# This automatically runs all required steps: build → publish → deploy
+aspire do deploy
+
+# Execute with custom output path
+aspire do publish --output-path ./artifacts
+
+# Execute with specific environment
+aspire do deploy --environment Production
+
+# Execute with verbose logging
+aspire do deploy --log-level debug
+
+# Execute a custom step you defined (like the "validate" example above)
+aspire do validate
+```
+
+The `aspire do` command provides fine-grained control over deployment workflows, allowing you to execute any step in your pipeline independently while ensuring all dependencies are satisfied.
 
 For more details on the pipeline architecture, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
 
