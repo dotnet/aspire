@@ -657,31 +657,7 @@ For more details on the pipeline architecture, see [Deployment pipeline document
 
 ### Container Files as Build Artifacts
 
-Aspire 13 introduces a fundamental paradigm shift in how build artifacts are handled: **containers are now first-class build artifacts**, not just folders on a file system. This change enables reproducible, isolated, and portable builds that work consistently across development, CI/CD, and production environments.
-
-#### The Traditional Approach: File System Dependencies
-
-Traditionally, build systems rely on the local file system for build artifacts:
-
-```csharp
-// Traditional approach: build on local machine, copy files
-var frontend = builder.AddNpmApp("frontend", "./frontend", "build");
-// Output goes to ./frontend/dist on your machine
-// Problems:
-// - Different results on different machines
-// - Build dependencies leak between projects
-// - Hard to reproduce CI builds locally
-```
-
-This approach has several limitations:
-- **Environment dependency**: Builds depend on your machine's installed tools, OS, and configuration
-- **Reproducibility issues**: "Works on my machine" problems
-- **Cache invalidation**: Hard to know when to rebuild
-- **Portability**: Moving artifacts between environments requires careful packaging
-
-#### The New Approach: Containers as Build Artifacts
-
-Aspire 13 changes this by treating containers as the **primary build artifact**:
+Aspire 13 introduces the ability to **extract files from one resource's container and copy them into another resource's container** during the build process. This enables powerful patterns like building a frontend in one container and serving it from a backend in another container.
 
 ```csharp
 var frontend = builder.AddViteApp("frontend", "./frontend");
@@ -692,76 +668,14 @@ var api = builder.AddUvicornApp("api", "./api", "main:app");
 api.PublishWithContainerFiles(frontend, "./static");
 ```
 
-When you use this pattern:
+**How it works:**
 
-1. **Frontend builds in isolation**: The `frontend` app builds inside a Node.js container using the exact environment specified in the Dockerfile
-2. **Container as artifact**: The build output exists in the container at `/app/dist`
-3. **File extraction**: Aspire extracts files from the frontend container
-4. **Cross-container copy**: Files are copied into the `api` container at `./static`
-5. **Reproducible everywhere**: Same build on your machine, in CI, and in production
+1. The `frontend` resource builds inside its container, producing output files at `/app/dist`
+2. Aspire extracts those files from the frontend container
+3. The files are copied into the `api` container at `./static` during the build process
+4. The final `api` container contains both the API code and the frontend static files
 
-#### Key Benefits
-
-**Reproducibility**
-
-Every build happens in the same container environment:
-
-```csharp
-// This ALWAYS uses node:22-slim with the exact same tools
-var frontend = builder.AddViteApp("frontend", "./frontend");
-```
-
-No matter who runs the build or where it runs, you get identical results because the build environment is defined in the container image, not your local machine.
-
-**Isolation**
-
-Each project builds in its own container with its own dependencies:
-
-```csharp
-var app1 = builder.AddViteApp("app1", "./app1");  // Uses React 18
-var app2 = builder.AddViteApp("app2", "./app2");  // Uses React 19
-```
-
-These projects can have completely different dependency versions without conflicts because they build in separate containers.
-
-**Parallelization**
-
-Container builds can run in parallel because they're isolated:
-
-```csharp
-var frontend = builder.AddViteApp("frontend", "./frontend");
-var admin = builder.AddViteApp("admin", "./admin");
-var marketing = builder.AddViteApp("marketing", "./marketing");
-
-// All three build in parallel in separate containers
-```
-
-The build system can leverage multi-core processors and distributed build systems efficiently.
-
-**Caching and Portability**
-
-Container layers provide built-in caching:
-
-```dockerfile
-# Layer 1: Base image (cached)
-FROM node:22-slim
-WORKDIR /app
-
-# Layer 2: Dependencies (cached if package.json unchanged)
-COPY package*.json ./
-RUN npm ci
-
-# Layer 3: Source code and build (only rebuilds if code changed)
-COPY . .
-RUN npm run build
-```
-
-These cached layers are:
-- **Portable**: Can be pushed to registries and shared across teams
-- **Efficient**: Only changed layers rebuild
-- **Consistent**: Same layers produce same results
-
-#### Real-World Example: Static Site with API
+#### Example: Frontend with Backend API
 
 A common pattern is building a frontend and serving it from a backend:
 
@@ -806,7 +720,7 @@ def get_data():
     return {"message": "Hello from API"}
 ```
 
-#### Advanced Usage: Multi-Stage Builds
+#### Using with .NET Projects
 
 You can also use container files with .NET projects that produce build artifacts:
 
@@ -830,32 +744,10 @@ Container files integrate seamlessly with the Distributed Application Pipeline:
 - **Dependency tracking**: The pipeline knows that the API container depends on the frontend container
 - **Parallel execution**: Independent containers build in parallel
 - **Incremental builds**: Only changed containers rebuild
-- **Clear progress**: The dashboard shows which containers are building and extracting files
 
 This makes container files a natural fit for complex build workflows with multiple dependent services.
 
-#### Building Blocks: Container Files API
-
-The container files functionality is built on several key APIs that provide the building blocks for this paradigm:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithContainerFiles("./config", "/app/config", continueOnError: false)
-    .WithContainerFilesSource("./shared-configs");
-
-await builder.Build().RunAsync();
-```
-
-Key features:
-
-- **ContinueOnError**: Control failure behavior for file copy operations - set to `false` to fail fast if files are missing
-- **Source tracking**: `ContainerFilesSourceAnnotation` tracks file sources for debugging and tooling
-- **PublishWithContainerFiles**: Share files between resources during publishing (shown in examples above)
-- **IResourceWithContainerFiles**: Interface for resources that support container files
-
-These APIs provide fine-grained control over how files are copied between containers and enable the container-as-artifact pattern throughout Aspire 13.
+The `PublishWithContainerFiles` API is the key to this functionality, allowing you to specify which resource's container to extract files from and where to place them in the consuming container.
 
 ### Dockerfile Builder API (Experimental)
 
