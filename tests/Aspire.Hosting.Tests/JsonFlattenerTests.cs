@@ -4,9 +4,9 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Publishing.Internal;
 
-namespace Aspire.Hosting.Azure.Tests;
+namespace Aspire.Hosting.Tests;
 
-public class UserSecretsDeploymentStateManagerTests
+public class JsonFlattenerTests
 {
     [Fact]
     public void FlattenJsonObject_HandlesNestedStructures()
