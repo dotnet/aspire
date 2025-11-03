@@ -491,7 +491,7 @@ public static class NodeAppHostingExtension
 
         if (hasYarnBerry)
         {
-            // Yarn 2+ detected
+            // Yarn 2+ detected, --frozen-lockfile is deprecated in v2+, use --immutable instead
             return ["--immutable"];
         }
 
