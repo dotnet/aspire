@@ -442,10 +442,12 @@ public static class PythonAppResourceBuilderExtensions
                     context.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation);
 
                     // Detect Python version
-                    var pythonVersion = pythonEnvironmentAnnotation?.Version ?? 
-                                       (pythonEnvironmentAnnotation?.VirtualEnvironment != null 
-                                           ? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment)
-                                           : PythonVersionDetector.DetectVersion(appDirectory, null));
+                    var pythonVersion = pythonEnvironmentAnnotation?.Version;
+                    if (pythonVersion is null)
+                    {
+                        var virtualEnvironment = pythonEnvironmentAnnotation?.VirtualEnvironment;
+                        pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
+                    }
 
                     if (pythonVersion is null)
                     {
@@ -489,7 +491,6 @@ public static class PythonAppResourceBuilderExtensions
     private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource, 
         string pythonVersion, EntrypointType entrypointType, string entrypoint)
     {
-
         // Check if uv.lock exists in the working directory
         var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
         var hasUvLock = File.Exists(uvLockPath);
