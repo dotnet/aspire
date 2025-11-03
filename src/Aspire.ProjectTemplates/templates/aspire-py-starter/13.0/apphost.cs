@@ -11,7 +11,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 #endif
-var app = builder.AddUvicornApp("app", "./app", "app:app")
+var app = builder.AddUvicornApp("app", "./app", "main:app")
     .WithUvEnvironment()
     .WithExternalHttpEndpoints()
 #if UseRedisCache
