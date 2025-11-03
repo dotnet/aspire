@@ -34,7 +34,7 @@ internal sealed class UserSecretsParameterDefault(Assembly appHostAssembly, stri
         var configurationKey = $"Parameters:{parameterName}";
         
         var manager = factory.GetOrCreate(appHostAssembly);
-        if (manager == null || !manager.TrySetSecret(configurationKey, value))
+        if (!manager.TrySetSecret(configurationKey, value))
         {
             // This is a best-effort operation, so we don't throw if it fails. Common reason for failure is that the user secrets ID is not set
             // in the application's assembly. Note there's no ILogger available this early in the application lifecycle.

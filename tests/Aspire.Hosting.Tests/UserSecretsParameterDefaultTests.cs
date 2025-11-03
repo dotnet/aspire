@@ -202,10 +202,6 @@ public class UserSecretsParameterDefaultTests
     private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)
     {
         var manager = UserSecretsManagerFactory.Instance.GetOrCreateFromId(userSecretsId);
-        if (manager == null)
-        {
-            return new Dictionary<string, string?>();
-        }
         
         // Read the secrets file directly
         var secrets = new Dictionary<string, string?>();

@@ -17,21 +17,21 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// </summary>
 internal sealed class UserSecretsDeploymentStateManager : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>
 {
-    private readonly IUserSecretsManager? _userSecretsManager;
+    private readonly IUserSecretsManager _userSecretsManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UserSecretsDeploymentStateManager"/> class.
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="userSecretsManager">User secrets manager for managing secrets.</param>
-    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IUserSecretsManager? userSecretsManager = null) 
+    public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IUserSecretsManager userSecretsManager) 
         : base(logger)
     {
         _userSecretsManager = userSecretsManager;
     }
 
     /// <inheritdoc/>
-    public override string? StateFilePath => _userSecretsManager?.FilePath;
+    public override string? StateFilePath => _userSecretsManager.FilePath;
 
     /// <inheritdoc/>
     protected override string? GetStatePath()
@@ -46,12 +46,6 @@ internal sealed class UserSecretsDeploymentStateManager : DeploymentStateManager
     /// <inheritdoc/>
     protected override async Task SaveStateToStorageAsync(JsonObject state, CancellationToken cancellationToken)
     {
-        if (_userSecretsManager == null)
-        {
-            logger.LogWarning("User secrets manager is not available. Skipping saving state to user secrets.");
-            return;
-        }
-
         try
         {
             // Use the shared manager which handles locking

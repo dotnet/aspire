@@ -64,7 +64,7 @@ public class SecretsStoreTests
     private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)
     {
         var manager = UserSecretsManagerFactory.Instance.GetOrCreateFromId(userSecretsId);
-        if (manager == null || !File.Exists(manager.FilePath))
+        if (!File.Exists(manager.FilePath))
         {
             return new Dictionary<string, string?>();
         }

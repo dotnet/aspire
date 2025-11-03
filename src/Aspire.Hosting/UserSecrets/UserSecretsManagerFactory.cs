@@ -53,11 +53,11 @@ internal sealed class UserSecretsManagerFactory
     /// <summary>
     /// Gets or creates a user secrets manager for the specified user secrets ID.
     /// </summary>
-    public IUserSecretsManager? GetOrCreateFromId(string? userSecretsId)
+    public IUserSecretsManager GetOrCreateFromId(string? userSecretsId)
     {
         if (string.IsNullOrWhiteSpace(userSecretsId))
         {
-            return null;
+            return NoopUserSecretsManager.Instance;
         }
 
         var filePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
@@ -67,7 +67,7 @@ internal sealed class UserSecretsManagerFactory
     /// <summary>
     /// Gets or creates a user secrets manager for the assembly with UserSecretsIdAttribute.
     /// </summary>
-    public IUserSecretsManager? GetOrCreate(Assembly? assembly)
+    public IUserSecretsManager GetOrCreate(Assembly? assembly)
     {
         var userSecretsId = assembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
         return GetOrCreateFromId(userSecretsId);
@@ -90,11 +90,11 @@ internal sealed class UserSecretsManagerFactory
     /// Creates a new user secrets manager for the specified user secrets ID without caching.
     /// This method is intended for testing scenarios where isolation between tests is required.
     /// </summary>
-    public IUserSecretsManager? CreateFromId(string? userSecretsId)
+    public IUserSecretsManager CreateFromId(string? userSecretsId)
     {
         if (string.IsNullOrWhiteSpace(userSecretsId))
         {
-            return null;
+            return NoopUserSecretsManager.Instance;
         }
 
         var filePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
@@ -105,7 +105,7 @@ internal sealed class UserSecretsManagerFactory
     /// Creates a new user secrets manager for the assembly with UserSecretsIdAttribute without caching.
     /// This method is intended for testing scenarios where isolation between tests is required.
     /// </summary>
-    public IUserSecretsManager? Create(Assembly? assembly)
+    public IUserSecretsManager Create(Assembly? assembly)
     {
         var userSecretsId = assembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
         return CreateFromId(userSecretsId);
