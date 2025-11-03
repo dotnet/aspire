@@ -75,8 +75,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Deployment state management](#deployment-state-management)
 - [Azure](#-azure)
   - [Azure tenant selection](#azure-tenant-selection)
-  - [Azure Key Vault emulator support](#azure-key-vault-emulator-support)
-  - [Azure App Service automatic scaling](#azure-app-service-automatic-scaling)
+  - [Azure App Service enhancements](#azure-app-service-enhancements)
 - [Breaking changes](#-breaking-changes)
 
 ## Upgrade to Aspire 13.0
@@ -1534,38 +1533,62 @@ aspire deploy
 #     personal@outlook.com (Personal Account)
 ```
 
-### Azure Key Vault emulator support
+### Azure App Service enhancements
 
-Azure Key Vault hosting now supports local development with the Azure Key Vault emulator, eliminating the need for an Azure subscription during development.
+Aspire 13.0 brings significant improvements to Azure App Service deployment, making it easier to deploy and monitor your applications in production.
 
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
+#### Aspire Dashboard in App Service
 
-// Uses emulator in development, real Key Vault in production
-var keyVault = builder.AddAzureKeyVault("keyvault");
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(keyVault);
-
-await builder.Build().RunAsync();
-```
-
-The emulator integration uses connection string redirect for local development scenarios.
-
-### Azure App Service automatic scaling
-
-Enable automatic scaling for Azure App Service Plan to improve performance and avoid cold start issues in production.
+The Aspire Dashboard is now included by default when deploying to Azure App Service, giving you visibility into your deployed applications:
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-builder.AddAzureAppService("api")
-    .WithAutomaticScaling(); // Enables automatic scaling
-
-await builder.Build().RunAsync();
+builder.AddAzureAppServiceEnvironment("env");
+// Dashboard is included by default at https://[prefix]-aspire-dashboard.azurewebsites.net
 ```
 
-This is a best practice for production deployments to ensure your application scales appropriately with load.
+The deployed dashboard provides the same experience as local development: view logs, traces, metrics, and application topology for your production environment.
+
+To disable the dashboard:
+
+```csharp
+builder.AddAzureAppServiceEnvironment("env")
+    .WithDashboard(enable: false);
+```
+
+#### Application Insights integration
+
+Enable Azure Application Insights for comprehensive monitoring and telemetry:
+
+```csharp
+builder.AddAzureAppServiceEnvironment("env")
+    .WithAzureApplicationInsights();
+```
+
+When enabled, Aspire automatically:
+- Creates a Log Analytics workspace
+- Creates an Application Insights resource
+- Configures all App Service Web Apps with the connection string
+- Injects `APPLICATIONINSIGHTS_CONNECTION_STRING` into your applications
+
+You can also reference an existing Application Insights resource:
+
+```csharp
+var insights = builder.AddAzureApplicationInsights("insights");
+
+builder.AddAzureAppServiceEnvironment("env")
+    .WithAzureApplicationInsights(insights);
+```
+
+#### Automatic scaling
+
+Enable automatic scaling for the App Service Plan to improve performance and avoid cold start issues:
+
+```csharp
+builder.AddAzureAppServiceEnvironment("env")
+    .WithAutomaticScaling();
+```
+
+This enables elastic scale on the App Service Plan, capping at 10 workers following Azure best practices. Without automatic scaling, each app service scales independently with per-site scaling.
 
 ## ⚠️ Breaking changes
 
