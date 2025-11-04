@@ -112,12 +112,26 @@ internal sealed class UserSecretsManagerFactory
     private sealed class UserSecretsManager : IUserSecretsManager
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
+        private static readonly Dictionary<string, SemaphoreSlim> s_semaphores = new();
+        private static readonly object s_semaphoreLock = new();
 
-        private readonly SemaphoreSlim _semaphore = new(1, 1);
+        private readonly SemaphoreSlim _semaphore;
 
         public UserSecretsManager(string filePath)
         {
             FilePath = filePath;
+            
+            // Get or create a semaphore for this file path
+            // This ensures all instances writing to the same file share the same semaphore
+            lock (s_semaphoreLock)
+            {
+                if (!s_semaphores.TryGetValue(filePath, out var semaphore))
+                {
+                    semaphore = new SemaphoreSlim(1, 1);
+                    s_semaphores[filePath] = semaphore;
+                }
+                _semaphore = semaphore;
+            }
         }
 
         public string FilePath { get; }
