@@ -509,13 +509,6 @@ public static class PythonAppResourceBuilderExtensions
             {
                 resourceBuilder.WithPip();
             }
-            
-            // Subscribe to BeforeStartEvent to manage venv creator based on final configuration
-            builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
-            {
-                ManageVenvCreator(resourceBuilder);
-                return Task.CompletedTask;
-            });
         }
 
         return resourceBuilder;
@@ -887,6 +880,12 @@ public static class PythonAppResourceBuilderExtensions
             env.CreateVenvIfNotExists = createIfNotExists;
         });
 
+        // If createIfNotExists is false and a package manager is configured, remove venv creator
+        if (!createIfNotExists && builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out _))
+        {
+            RemoveVenvCreator(builder);
+        }
+
         return builder;
     }
 
@@ -1172,6 +1171,10 @@ public static class PythonAppResourceBuilderExtensions
             .WithAnnotation(new PythonInstallCommandAnnotation([.. baseInstallArgs, .. installArgs ?? []]), ResourceAnnotationMutationBehavior.Replace);
 
         AddInstaller(builder, install);
+        
+        // Create venv creator if needed (will check if venv exists)
+        CreateVenvCreatorIfNeeded(builder);
+        
         return builder;
     }
 
@@ -1235,6 +1238,9 @@ public static class PythonAppResourceBuilderExtensions
             .WithAnnotation(new PythonInstallCommandAnnotation(args), ResourceAnnotationMutationBehavior.Replace);
 
         AddInstaller(builder, install);
+        
+        // UV handles venv creation, so remove any existing venv creator
+        RemoveVenvCreator(builder);
         
         return builder;
     }
@@ -1332,9 +1338,14 @@ public static class PythonAppResourceBuilderExtensions
         }
     }
 
-    private static void ManageVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
+    private static void CreateVenvCreatorIfNeeded<T>(IResourceBuilder<T> builder) where T : PythonAppResource
     {
-        // Get the virtual environment path to use as the key
+        // Check if we should create a venv
+        if (!ShouldCreateVenv(builder))
+        {
+            return;
+        }
+
         if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
             pythonEnv.VirtualEnvironment == null)
         {
@@ -1345,127 +1356,17 @@ public static class PythonAppResourceBuilderExtensions
             ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
             : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
 
-        // Use the venv path as the unique key for the venv creator
-        // This ensures one venv creator per directory, avoiding conflicts when multiple resources share the same venv
-        var venvCreatorName = $"venv-creator-{GetVenvCreatorKey(venvPath)}";
+        // Create venv creator as a child resource
+        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
         
-        var existingVenvCreator = builder.ApplicationBuilder.Resources
-            .OfType<PythonVenvCreatorResource>()
-            .FirstOrDefault(r => r.Name == venvCreatorName);
-
-        // Check if we should have a venv creator based on current annotations
-        var shouldHaveVenvCreator = ShouldCreateVenv(builder);
-
-        if (!shouldHaveVenvCreator && existingVenvCreator != null)
+        // Use TryCreateResourceBuilder to check if it already exists
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var existingVenvCreator))
         {
-            // Check if any other resources are using this venv creator
-            var otherResourcesUsingVenv = builder.ApplicationBuilder.Resources
-                .OfType<PythonAppResource>()
-                .Where(r => r != builder.Resource)
-                .Any(r => r.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var env) &&
-                         env.VirtualEnvironment != null &&
-                         env.CreateVenvIfNotExists &&
-                         GetVenvPath(r, env) == venvPath);
-
-            if (!otherResourcesUsingVenv)
-            {
-                // No other resources need this venv creator, remove it
-                builder.ApplicationBuilder.Resources.Remove(existingVenvCreator);
-            }
-            
-            // Remove wait annotations from this resource
-            builder.Resource.Annotations.OfType<WaitAnnotation>()
-                .Where(w => w.Resource == existingVenvCreator)
-                .ToList()
-                .ForEach(w => builder.Resource.Annotations.Remove(w));
-                
-            // Remove wait annotations from installer if it exists
-            var installerName = $"{builder.Resource.Name}-installer";
-            var installer = builder.ApplicationBuilder.Resources
-                .OfType<PythonInstallerResource>()
-                .FirstOrDefault(r => r.Name == installerName);
-                
-            if (installer != null)
-            {
-                installer.Annotations.OfType<WaitAnnotation>()
-                    .Where(w => w.Resource == existingVenvCreator)
-                    .ToList()
-                    .ForEach(w => installer.Annotations.Remove(w));
-            }
-        }
-        else if (shouldHaveVenvCreator)
-        {
-            if (existingVenvCreator == null)
-            {
-                // Create new venv creator shared by all resources using this venv path
-                CreateAndWireVenvCreator(builder, venvCreatorName, venvPath);
-            }
-            else
-            {
-                // Venv creator already exists for this path, just wire up this resource to it
-                WireResourceToVenvCreator(builder, existingVenvCreator);
-            }
-        }
-    }
-
-    private static string GetVenvCreatorKey(string venvPath)
-    {
-        // Create a stable hash of the venv path to use as a unique key
-        // Use GetHashCode for simplicity, or could use a more robust hash
-        var normalizedPath = Path.GetFullPath(venvPath).ToLowerInvariant();
-        return Math.Abs(normalizedPath.GetHashCode()).ToString();
-    }
-
-    private static string GetVenvPath(PythonAppResource resource, PythonEnvironmentAnnotation env)
-    {
-        if (env.VirtualEnvironment == null)
-        {
-            return string.Empty;
+            // Venv creator already exists, no need to create again
+            return;
         }
 
-        return Path.IsPathRooted(env.VirtualEnvironment.VirtualEnvironmentPath)
-            ? env.VirtualEnvironment.VirtualEnvironmentPath
-            : Path.GetFullPath(env.VirtualEnvironment.VirtualEnvironmentPath, resource.WorkingDirectory);
-    }
-
-    private static void WireResourceToVenvCreator<T>(IResourceBuilder<T> builder, PythonVenvCreatorResource venvCreator) 
-        where T : PythonAppResource
-    {
-        var venvCreatorBuilder = builder.ApplicationBuilder.CreateResourceBuilder(venvCreator);
-        
-        // Remove existing wait annotations for any venv creator to avoid duplicates
-        builder.Resource.Annotations.OfType<WaitAnnotation>()
-            .Where(w => w.Resource is PythonVenvCreatorResource)
-            .ToList()
-            .ForEach(w => builder.Resource.Annotations.Remove(w));
-        
-        // Make the app wait for venv creation
-        builder.WaitForCompletion(venvCreatorBuilder);
-        
-        // Make the installer wait for venv creation (if installer exists)
-        var installerName = $"{builder.Resource.Name}-installer";
-        var installer = builder.ApplicationBuilder.Resources
-            .OfType<PythonInstallerResource>()
-            .FirstOrDefault(r => r.Name == installerName);
-            
-        if (installer != null)
-        {
-            var installerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(installer);
-            
-            // Remove old wait annotations for venv creator to avoid duplicates
-            installer.Annotations.OfType<WaitAnnotation>()
-                .Where(w => w.Resource is PythonVenvCreatorResource)
-                .ToList()
-                .ForEach(w => installer.Annotations.Remove(w));
-            
-            installerBuilder.WaitForCompletion(venvCreatorBuilder);
-        }
-    }
-
-    private static void CreateAndWireVenvCreator<T>(IResourceBuilder<T> builder, string venvCreatorName, string venvPath) 
-        where T : PythonAppResource
-    {
-        // Create venv creator resource
+        // Create new venv creator resource
         var venvCreator = new PythonVenvCreatorResource(venvCreatorName, builder.Resource, venvPath);
         
         // Determine which Python command to use
@@ -1488,8 +1389,41 @@ public static class PythonAppResourceBuilderExtensions
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest();
 
-        // Wire this resource to the venv creator
-        WireResourceToVenvCreator(builder, venvCreator);
+        // Make the installer wait for venv creator (if installer exists)
+        var installerName = $"{builder.Resource.Name}-installer";
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var installerBuilder))
+        {
+            installerBuilder.WaitForCompletion(venvCreatorBuilder);
+        }
+    }
+
+    private static void RemoveVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
+    {
+        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
+        
+        // Find and remove the venv creator resource if it exists
+        var venvCreator = builder.ApplicationBuilder.Resources
+            .OfType<PythonVenvCreatorResource>()
+            .FirstOrDefault(r => r.Name == venvCreatorName);
+
+        if (venvCreator != null)
+        {
+            builder.ApplicationBuilder.Resources.Remove(venvCreator);
+            
+            // Remove wait annotations from installer
+            var installerName = $"{builder.Resource.Name}-installer";
+            var installer = builder.ApplicationBuilder.Resources
+                .OfType<PythonInstallerResource>()
+                .FirstOrDefault(r => r.Name == installerName);
+                
+            if (installer != null)
+            {
+                installer.Annotations.OfType<WaitAnnotation>()
+                    .Where(w => w.Resource == venvCreator)
+                    .ToList()
+                    .ForEach(w => installer.Annotations.Remove(w));
+            }
+        }
     }
 
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
@@ -1521,8 +1455,8 @@ public static class PythonAppResourceBuilderExtensions
             ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
             : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
 
-        // Check if venv exists and is valid (contains pyvenv.cfg file)
-        if (Directory.Exists(venvPath) && File.Exists(Path.Combine(venvPath, "pyvenv.cfg")))
+        // Check if venv directory exists (simple check, don't verify validity)
+        if (Directory.Exists(venvPath))
         {
             return false;
         }
