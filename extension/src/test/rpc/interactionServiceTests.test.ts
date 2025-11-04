@@ -85,13 +85,13 @@ suite('InteractionService endpoints', () => {
 		const result = await testInfo.interactionService.confirm('Are you sure?', true);
 		assert.strictEqual(result, true);
 		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
-		
+
 		// Verify options passed to showQuickPick
 		const callArgs = showQuickPickStub.getCall(0).args;
 		assert.deepStrictEqual(callArgs[0], ['Yes', 'No'], 'should show Yes and No choices');
 		assert.strictEqual(callArgs[1]?.canPickMany, false, 'canPickMany should be false');
 		assert.strictEqual(callArgs[1]?.ignoreFocusOut, true, 'ignoreFocusOut should be true');
-		
+
 		showQuickPickStub.restore();
 	});
 
@@ -153,9 +153,12 @@ suite('InteractionService endpoints', () => {
 		stub.restore();
 	});
 
-	test("displayDashboardUrls writes URLs to output channel", async () => {
+	test("displayDashboardUrls writes URLs to output channel and shows info message when autoLaunch disabled", async () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
+		const getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns({
+			get: (key: string, defaultValue?: any) => key === 'enableAspireDashboardAutoLaunch' ? false : defaultValue
+		} as any);
 		const testInfo = await createTestRpcServer();
 
 		const baseUrl = 'http://localhost';
@@ -168,14 +171,42 @@ suite('InteractionService endpoints', () => {
 
 		const outputLines = stub.getCalls().map(call => call.args[0]);
 
-        // wait 2 seconds to ensure we waited for displayDashboardUrls to complete
-        await new Promise(resolve => setTimeout(resolve, 2000));
+		// wait 2 seconds to ensure we waited for displayDashboardUrls to complete
+		await new Promise(resolve => setTimeout(resolve, 2000));
 
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
-		assert.equal(showInformationMessageStub.callCount, 1);
+		assert.equal(showInformationMessageStub.callCount, 1, 'Should show info message when autoLaunch is disabled');
 		stub.restore();
 		showInformationMessageStub.restore();
+		getConfigurationStub.restore();
+	});
+
+	test("displayDashboardUrls writes URLs but does not show info message when autoLaunch enabled", async () => {
+		const stub = sinon.stub(extensionLogOutputChannel, 'info');
+		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
+		const getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns({
+			get: (key: string, defaultValue?: any) => key === 'enableAspireDashboardAutoLaunch' ? true : defaultValue
+		} as any);
+		const testInfo = await createTestRpcServer();
+
+		const baseUrl = 'http://localhost';
+		const codespacesUrl = 'http://codespaces';
+
+		await testInfo.interactionService.displayDashboardUrls({
+			BaseUrlWithLoginToken: baseUrl,
+			CodespacesUrlWithLoginToken: codespacesUrl
+		});
+
+		const outputLines = stub.getCalls().map(call => call.args[0]);
+
+		// No need to wait since no setTimeout should be called when autoLaunch is enabled
+		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
+		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
+		assert.equal(showInformationMessageStub.callCount, 0, 'Should not show info message when autoLaunch is enabled');
+		stub.restore();
+		showInformationMessageStub.restore();
+		getConfigurationStub.restore();
 	});
 
 	test("displayLines endpoint", async () => {

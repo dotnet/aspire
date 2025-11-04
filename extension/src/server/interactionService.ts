@@ -257,6 +257,13 @@ export class InteractionService implements IInteractionService {
             this.writeDebugSessionMessage(codespaces + ': ' + dashboardUrls.CodespacesUrlWithLoginToken, true, AnsiColors.Green);
         }
 
+        // If aspire.enableAspireDashboardAutoLaunch is false, the dashboard will be started automatically and we do not need
+        // to show an information message.
+        const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
+        if (enableDashboardAutoLaunch) {
+            return;
+        }
+
         const actions: vscode.MessageItem[] = [
             { title: directLink }
         ];
