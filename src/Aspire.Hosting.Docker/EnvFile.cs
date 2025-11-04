@@ -100,6 +100,17 @@ internal sealed class EnvFile
 
     private void SaveKeysOnly(string path)
     {
+        // Load existing values from disk to preserve user modifications
+        var existingEntries = new Dictionary<string, string?>();
+        if (File.Exists(path))
+        {
+            var existingFile = Load(path);
+            foreach (var entry in existingFile._entries.Values)
+            {
+                existingEntries[entry.Key] = entry.Value;
+            }
+        }
+
         var lines = new List<string>();
 
         foreach (var entry in _entries.Values)
@@ -108,7 +119,19 @@ internal sealed class EnvFile
             {
                 lines.Add($"# {entry.Comment}");
             }
-            lines.Add($"{entry.Key}=");
+
+            // If the key exists on disk with a non-empty value, preserve it
+            // This ensures user-modified values are not overwritten when we save keys only
+            if (existingEntries.TryGetValue(entry.Key, out var existingValue) && 
+                !string.IsNullOrEmpty(existingValue))
+            {
+                lines.Add($"{entry.Key}={existingValue}");
+            }
+            else
+            {
+                lines.Add($"{entry.Key}=");
+            }
+            
             lines.Add(string.Empty);
         }
 
