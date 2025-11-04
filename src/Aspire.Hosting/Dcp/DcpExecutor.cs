@@ -2480,7 +2480,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                 // used by common Linux distributions to make it easier to ensure applications pick it up.
                 // Group by common directory to avoid creating multiple file system entries for the same root directory.
-                foreach (var bundlePath in bundlePaths!.Select<String, (string dir, string filename)>(bp =>
+                foreach (var bundlePath in bundlePaths!.Select(bp =>
                 {
                     var filename = Path.GetFileName(bp);
                     var dir = bp.Substring(0, bp.Length - filename.Length);
