@@ -19,6 +19,11 @@ internal sealed class EnvFile
         _logger = logger;
     }
 
+    public static EnvFile Create(string path, ILogger? logger = null)
+    {
+        return new EnvFile(logger) { _path = path };
+    }
+
     public static EnvFile Load(string path, ILogger? logger = null)
     {
         var envFile = new EnvFile(logger) { _path = path };
