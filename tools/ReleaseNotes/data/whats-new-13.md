@@ -976,17 +976,37 @@ This enables a complete mobile + cloud development experience where you can run 
 
 ### Model Context Protocol (MCP) server
 
-The Dashboard now includes a Model Context Protocol (MCP) server implementation, enabling integration with external AI tools and development environments.
+The Dashboard now includes a Model Context Protocol (MCP) server that integrates Aspire into your AI development ecosystem. The MCP server enables AI assistants to query resources, access telemetry data, and execute commands directly from your development environment.
 
-The MCP server provides:
+**Capabilities:**
 
-- **Resource tools**: `AspireResourceMcpTools` for querying and managing resources
-- **Telemetry tools**: `AspireTelemetryMcpTools` for accessing traces, logs, and metrics
-- **VS Code integration**: Tab support in MCP dialog
-- **Improved results**: Resource links and shortened names for better readability
-- **Server configuration**: Flexible MCP server dialog settings
+- **Resource monitoring**: Query real-time resource states, endpoints, and health status
+- **Console logs**: Access console output for individual resources
+- **Telemetry access**: Retrieve structured logs and distributed traces
+- **Command execution**: Run resource commands through AI assistants
+- **Privacy control**: Exclude sensitive resources from MCP using `ExcludeFromMcp()` annotation
 
-This enables AI assistants like Claude and other MCP-compatible tools to directly interact with your Aspire applications, querying resources, analyzing telemetry, and providing intelligent insights.
+**Getting started:**
+
+1. Run your Aspire app and open the dashboard
+2. Click the MCP button in the top right corner
+3. Follow the instructions to configure your AI assistant (Claude Code, GitHub Copilot CLI, Cursor, VS Code, etc.)
+
+The MCP server uses streamable HTTP with API key authentication for secure access. Configuration requires:
+- `url`: The Aspire MCP endpoint address
+- `type`: Set to "http" for the streamable-HTTP MCP server
+- `x-mcp-api-key`: HTTP header for authentication
+
+**Available tools:**
+
+- `list_resources` - Retrieve all resources with state and metadata
+- `list_console_logs` - Access resource console output
+- `list_structured_logs` - Retrieve telemetry data, optionally filtered by resource
+- `list_traces` - Access distributed trace information
+- `list_trace_structured_logs` - View logs associated with specific traces
+- `execute_resource_command` - Execute commands on resources
+
+This enables AI assistants to directly interact with your Aspire applications, analyze telemetry in real-time, and provide intelligent insights during development.
 
 ### Trace and telemetry improvements
 
