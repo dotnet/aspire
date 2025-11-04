@@ -82,6 +82,9 @@ public class UserSecretsParameterDefaultTests
         var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
 
+        // Create an isolated factory instance for this test to avoid cross-contamination
+        var factory = new UserSecretsManagerFactory();
+
         // Simulate concurrent writes from multiple threads (like SQL Server and RabbitMQ generating passwords)
         var tasks = new List<Task<bool>>();
         var secretsToWrite = new Dictionary<string, string>
@@ -98,7 +101,7 @@ public class UserSecretsParameterDefaultTests
             var value = kvp.Value;
             tasks.Add(Task.Run(() =>
             {
-                var manager = UserSecretsManagerFactory.Create(testAssembly);
+                var manager = factory.GetOrCreate(testAssembly);
                 return manager?.TrySetSecret(key, value) ?? false;
             }));
         }
@@ -129,15 +132,18 @@ public class UserSecretsParameterDefaultTests
         var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
 
+        // Create an isolated factory instance for this test to avoid cross-contamination
+        var factory = new UserSecretsManagerFactory();
+
         // Simulate SQL Server and RabbitMQ generating passwords concurrently
         var sqlTask = Task.Run(() =>
         {
-            var manager = UserSecretsManagerFactory.Create(testAssembly);
+            var manager = factory.GetOrCreate(testAssembly);
             return manager?.TrySetSecret("Parameters:sql-password", "SqlPassword123!") ?? false;
         });
         var rabbitTask = Task.Run(() =>
         {
-            var manager = UserSecretsManagerFactory.Create(testAssembly);
+            var manager = factory.GetOrCreate(testAssembly);
             return manager?.TrySetSecret("Parameters:rabbit-password", "RabbitPassword456!") ?? false;
         });
 
@@ -165,6 +171,9 @@ public class UserSecretsParameterDefaultTests
         var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
 
+        // Create an isolated factory instance for this test to avoid cross-contamination
+        var factory = new UserSecretsManagerFactory();
+
         // Simulate concurrent writes to the same key
         var tasks = new List<Task<bool>>();
         for (int i = 0; i < 10; i++)
@@ -172,7 +181,7 @@ public class UserSecretsParameterDefaultTests
             var value = $"Value{i}";
             tasks.Add(Task.Run(() =>
             {
-                var manager = UserSecretsManagerFactory.Create(testAssembly);
+                var manager = factory.GetOrCreate(testAssembly);
                 return manager?.TrySetSecret("Parameters:test-key", value) ?? false;
             }));
         }

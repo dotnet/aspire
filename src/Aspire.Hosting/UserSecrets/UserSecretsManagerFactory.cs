@@ -25,7 +25,7 @@ internal sealed class UserSecretsManagerFactory
     private readonly Dictionary<string, IUserSecretsManager> _managerCache = new();
     private readonly object _lock = new();
 
-    private UserSecretsManagerFactory()
+    internal UserSecretsManagerFactory()
     {
     }
 
@@ -72,66 +72,15 @@ internal sealed class UserSecretsManagerFactory
         return GetOrCreateFromId(userSecretsId);
     }
 
-    /// <summary>
-    /// Creates a new user secrets manager for the specified file path without caching.
-    /// This method is intended for testing scenarios where isolation between tests is required.
-    /// </summary>
-    public static IUserSecretsManager Create(string filePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-
-        var normalizedPath = Path.GetFullPath(filePath);
-        return new UserSecretsManager(normalizedPath);
-    }
-
-    /// <summary>
-    /// Creates a new user secrets manager for the specified user secrets ID without caching.
-    /// This method is intended for testing scenarios where isolation between tests is required.
-    /// </summary>
-    public static IUserSecretsManager CreateFromId(string? userSecretsId)
-    {
-        if (string.IsNullOrWhiteSpace(userSecretsId))
-        {
-            return NoopUserSecretsManager.Instance;
-        }
-
-        var filePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
-        return Create(filePath);
-    }
-
-    /// <summary>
-    /// Creates a new user secrets manager for the assembly with UserSecretsIdAttribute without caching.
-    /// This method is intended for testing scenarios where isolation between tests is required.
-    /// </summary>
-    public static IUserSecretsManager Create(Assembly? assembly)
-    {
-        var userSecretsId = assembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
-        return CreateFromId(userSecretsId);
-    }
-
     private sealed class UserSecretsManager : IUserSecretsManager
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
-        private static readonly Dictionary<string, SemaphoreSlim> s_semaphores = new();
-        private static readonly object s_semaphoreLock = new();
 
-        private readonly SemaphoreSlim _semaphore;
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public UserSecretsManager(string filePath)
         {
             FilePath = filePath;
-            
-            // Get or create a semaphore for this file path
-            // This ensures all instances writing to the same file share the same semaphore
-            lock (s_semaphoreLock)
-            {
-                if (!s_semaphores.TryGetValue(filePath, out var semaphore))
-                {
-                    semaphore = new SemaphoreSlim(1, 1);
-                    s_semaphores[filePath] = semaphore;
-                }
-                _semaphore = semaphore;
-            }
         }
 
         public string FilePath { get; }
