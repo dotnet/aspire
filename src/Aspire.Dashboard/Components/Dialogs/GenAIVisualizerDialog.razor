@@ -89,7 +89,7 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    if (IsImagePart(itemPart, out var imageContent) && IsSupportedImageScheme(imageContent))
+                                    if (IsImagePart(itemPart, out var imageContent))
                                     {
                                         <img src="@imageContent" />
                                     }

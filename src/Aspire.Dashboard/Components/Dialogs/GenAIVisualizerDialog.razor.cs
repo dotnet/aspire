@@ -186,6 +186,27 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private static bool IsImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageContent)
     {
+        switch (itemPart.MessagePart?.Type)
+        {
+            case "blob":
+                {
+                    var mimeType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "mime_type")?.Value;
+                    if (mimeType is "image/png" or "image/jpeg" or "image/gif" or "image/svg+xml")
+                    {
+                        var content = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content")?.Value;
+
+                        var blobImagePart = itemPart as GenAIItemBlobImagePartViewModel;
+                        imageContent = blobImagePart?.BlobUrl;
+                        return !string.IsNullOrEmpty(imageContent);
+                    }
+                    imageContent = base64ImagePart.Content;
+                    return !string.IsNullOrEmpty(imageContent);
+                }
+            case "uri":
+                imageContent = urlImagePart.Url;
+                return !string.IsNullOrEmpty(imageContent);
+        }
+
         // Image part is a generic part with type "image" and content in additional properties.
         // An image part isn't in the GenAI semantic conventions. This code follows what MEAI does and will need to change to support a future standard.
         // See https://github.com/dotnet/extensions/pull/6809.
@@ -200,6 +221,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return false;
     }
 
+    /*
     private static bool IsSupportedImageScheme(string imageContent)
     {
         if (Uri.TryCreate(imageContent, UriKind.Absolute, out var result))
@@ -210,6 +232,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
         return false;
     }
+    */
 
     public void Dispose()
     {
