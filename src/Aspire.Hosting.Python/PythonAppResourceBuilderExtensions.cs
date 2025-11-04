@@ -290,7 +290,7 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var api = builder.AddUvicornApp("api", "../fastapi-app", "main:app")
-    ///     .WithUvEnvironment()
+    ///     .WithUv()
     ///     .WithExternalHttpEndpoints();
     ///
     /// builder.Build().Run();
@@ -469,8 +469,9 @@ public static class PythonAppResourceBuilderExtensions
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
                     
-                    // Check if using UV
-                    var isUsingUv = pythonEnvironmentAnnotation?.Uv ?? false;
+                    // Check if using UV by looking at the package manager annotation
+                    var isUsingUv = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) && 
+                                    pkgMgr.ExecutableName == "uv";
 
                     if (isUsingUv)
                     {
@@ -1213,27 +1214,108 @@ public static class PythonAppResourceBuilderExtensions
 
         AddInstaller(builder, install);
         
-        // Mark that we're using UV for the Python environment
-        builder.WithPythonEnvironment(env => env.Uv = true);
-        
         return builder;
     }
 
-    /// <summary>
-    /// Adds a UV environment setup task to ensure the virtual environment exists before running the Python application.
-    /// </summary>
-    /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// This method is obsolete. Use <see cref="WithUv{T}(IResourceBuilder{T}, bool, string[])"/> instead.
-    /// </remarks>
-    [Obsolete("Use WithUv instead.")]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public static IResourceBuilder<T> WithUvEnvironment<T>(this IResourceBuilder<T> builder)
-        where T : PythonAppResource
+    private static void AddVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
     {
-        return builder.WithUv(install: true, args: null);
+        // Only create venv if in run mode
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return;
+        }
+
+        // Check if we're using uv (which handles venv creation itself)
+        var isUsingUv = builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) && 
+                        pkgMgr.ExecutableName == "uv";
+
+        if (isUsingUv)
+        {
+            // UV handles venv creation, we don't need to create it
+            return;
+        }
+
+        // Get the virtual environment path
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment == null)
+        {
+            return;
+        }
+
+        var venvPath = Path.IsPathRooted(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath)
+            ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
+            : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+        // Check if venv exists and is valid (contains pyvenv.cfg file)
+        if (Directory.Exists(venvPath) && File.Exists(Path.Combine(venvPath, "pyvenv.cfg")))
+        {
+            return;
+        }
+
+        // Create venv creator resource
+        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
+        var existingVenvCreator = builder.ApplicationBuilder.Resources
+            .FirstOrDefault(r => r.Name == venvCreatorName);
+
+        if (existingVenvCreator != null)
+        {
+            return;
+        }
+
+        var venvCreator = new PythonVenvCreatorResource(venvCreatorName, builder.Resource, venvPath);
+        
+        // Determine which Python command to use (try python first, fallback to python3)
+        // We need to check at build time which command is available
+        string pythonCommand;
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, try py launcher first, then python
+            pythonCommand = IsPythonCommandAvailable("py") ? "py" : "python";
+        }
+        else
+        {
+            // On Unix-like systems, try python3 first (more explicit), then python
+            pythonCommand = IsPythonCommandAvailable("python3") ? "python3" : "python";
+        }
+
+        var venvCreatorBuilder = builder.ApplicationBuilder.AddResource(venvCreator)
+            .WithCommand(pythonCommand)
+            .WithArgs(["-m", "venv", venvPath])
+            .WithWorkingDirectory(builder.Resource.WorkingDirectory)
+            .WithParentRelationship(builder.Resource)
+            .ExcludeFromManifest();
+
+        // Make the app wait for venv creation
+        builder.WaitForCompletion(venvCreatorBuilder);
+    }
+
+    private static bool IsPythonCommandAvailable(string command)
+    {
+        try
+        {
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = command,
+                Arguments = "--version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = System.Diagnostics.Process.Start(startInfo);
+            if (process != null)
+            {
+                process.WaitForExit(1000); // Wait up to 1 second
+                return process.ExitCode == 0;
+            }
+        }
+        catch
+        {
+            // Command not found or other error
+        }
+
+        return false;
     }
 
     private static void AddInstaller<T>(IResourceBuilder<T> builder, bool install) where T : PythonAppResource
@@ -1241,6 +1323,9 @@ public static class PythonAppResourceBuilderExtensions
         // Only install packages if in run mode
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
+            // Always try to create venv if needed (independent of package manager)
+            AddVenvCreator(builder);
+
             // Check if the installer resource already exists
             var installerName = $"{builder.Resource.Name}-installer";
             builder.ApplicationBuilder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var existingResource);
@@ -1258,19 +1343,6 @@ public static class PythonAppResourceBuilderExtensions
                     builder.Resource.Annotations.OfType<PythonPackageInstallerAnnotation>()
                         .ToList()
                         .ForEach(a => builder.Resource.Annotations.Remove(a));
-                        
-                    // Also remove venv creator if it exists
-                    var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
-                    var venvCreatorResource = builder.ApplicationBuilder.Resources
-                        .FirstOrDefault(r => r.Name == venvCreatorName);
-                    if (venvCreatorResource != null)
-                    {
-                        builder.ApplicationBuilder.Resources.Remove(venvCreatorResource);
-                        builder.Resource.Annotations.OfType<WaitAnnotation>()
-                            .Where(w => w.Resource == venvCreatorResource)
-                            .ToList()
-                            .ForEach(w => builder.Resource.Annotations.Remove(w));
-                    }
                 }
                 return;
             }
@@ -1293,43 +1365,9 @@ public static class PythonAppResourceBuilderExtensions
                 if (!builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager) ||
                     !builder.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installCommand))
                 {
-                    throw new InvalidOperationException("PythonPackageManagerAnnotation and PythonInstallCommandAnnotation are required when installing packages.");
-                }
-
-                // Get the Python environment annotation to check if we're using uv
-                builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv);
-                var isUsingUv = pythonEnv?.Uv == true;
-
-                // If not using uv, we need to create the venv if it doesn't exist
-                if (!isUsingUv && pythonEnv?.VirtualEnvironment != null)
-                {
-                    var venvPath = Path.IsPathRooted(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath)
-                        ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
-                        : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
-
-                    // Check if venv exists
-                    if (!Directory.Exists(venvPath))
-                    {
-                        // Create venv creator resource if it doesn't exist
-                        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
-                        var existingVenvCreator = builder.ApplicationBuilder.Resources
-                            .OfType<PythonVenvCreatorResource>()
-                            .FirstOrDefault(r => r.Name == venvCreatorName);
-
-                        if (existingVenvCreator == null)
-                        {
-                            var venvCreator = new PythonVenvCreatorResource(venvCreatorName, builder.Resource, venvPath);
-                            var venvCreatorBuilder = builder.ApplicationBuilder.AddResource(venvCreator)
-                                .WithCommand("python")
-                                .WithArgs(["-m", "venv", venvPath])
-                                .WithWorkingDirectory(builder.Resource.WorkingDirectory)
-                                .WithParentRelationship(builder.Resource)
-                                .ExcludeFromManifest();
-
-                            // Make the installer wait for the venv creator to complete
-                            installerBuilder.WaitForCompletion(venvCreatorBuilder);
-                        }
-                    }
+                    // No package manager configured - don't fail, just don't run the installer
+                    // This allows venv to be created without requiring a package manager
+                    return Task.CompletedTask;
                 }
 
                 installerBuilder

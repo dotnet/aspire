@@ -23,7 +23,7 @@ This app is configured to run via the Python.AppHost project using `AddPythonMod
 var flaskApp = builder.AddPythonModule("flask-app", "../flask_app", "flask")
     .WithArgs("run", "--host=0.0.0.0", "--port=8000")
     .WithHttpEndpoint(targetPort: 8000)
-    .WithUvEnvironment();
+    .WithUv();
 ```
 
 ## Local Development
