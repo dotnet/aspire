@@ -10,9 +10,15 @@ namespace Aspire.Hosting.ApplicationModel;
 public enum CertificateTrustScope
 {
     /// <summary>
+    /// Disable all custom certificate authority configuration for a resource. This indicates that the resource
+    /// should use its default certificate authority trust behavior without modification.
+    /// </summary>
+    None,
+    /// <summary>
     /// Append the specified certificate authorities to the default set of trusted CAs for a resource. Not all
     /// resources support this mode, in which case custom certificate authorities may not be applied. In that case,
-    /// consider using <see cref="Override"/> or <see cref="System"/> instead.
+    /// consider using <see cref="Override"/> or <see cref="System"/> instead. This is the default mode unless
+    /// otherwise specified.
     /// </summary>
     Append,
     /// <summary>
@@ -27,11 +33,6 @@ public enum CertificateTrustScope
     /// of trusted certificates (e.g. Python, Rust, etc.).
     /// </summary>
     System,
-    /// <summary>
-    /// Disable all custom certificate authority configuration for a resource. This indicates that the resource
-    /// should use its default certificate authority trust behavior without modification.
-    /// </summary>
-    None,
 }
 
 /// <summary>
