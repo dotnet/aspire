@@ -1109,78 +1109,96 @@ Dynamic input features:
 
 #### Named references
 
-Reference resources with explicit names for better service discovery control:
+Reference resources with explicit names to control the environment variable prefix:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var database = builder.AddPostgres("postgres");
+var primaryDb = builder.AddPostgres("postgres-primary")
+    .AddDatabase("customers");
 
-// Add a named reference for service discovery
+var replicaDb = builder.AddPostgres("postgres-replica")
+    .AddDatabase("customers");
+
 var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(database, "primary-db");
-
-await builder.Build().RunAsync();
+    .WithReference(primaryDb, "primary")
+    .WithReference(replicaDb, "replica");
 ```
+
+**Environment variables injected into `api`:**
+```bash
+# From primaryDb with "primary" name
+ConnectionStrings__primary=Host=postgres-primary;...
+
+# From replicaDb with "replica" name
+ConnectionStrings__replica=Host=postgres-replica;...
+```
+
+This allows the application to distinguish between multiple database connections using the custom names.
 
 #### Connection properties
 
-Access individual connection string properties programmatically:
+Access individual connection string components to build custom connection strings or configuration:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres");
-var db = postgres.AddDatabase("appdb");
+var postgres = builder.AddPostgres("postgres").AddDatabase("mydb");
+var redis = builder.AddRedis("cache");
 
-// Get individual connection properties
-var host = postgres.GetConnectionProperty("Host");
-var port = postgres.GetConnectionProperty("Port");
-var username = postgres.GetConnectionProperty("Username");
-
-// Combine properties for custom connection strings
-var customConnectionString = postgres.CombineProperties(
-    ("Host", host),
-    ("Port", port),
-    ("Username", username),
-    ("Database", db.Resource.DatabaseName));
-
-await builder.Build().RunAsync();
+var worker = builder.AddProject<Projects.Worker>("worker")
+    .WithEnvironment("DB_HOST", postgres.Resource.GetConnectionProperty("Host"))
+    .WithEnvironment("DB_PORT", postgres.Resource.GetConnectionProperty("Port"))
+    .WithEnvironment("DB_NAME", postgres.Resource.DatabaseName)
+    .WithEnvironment("CACHE_HOST", redis.Resource.GetConnectionProperty("Host"))
+    .WithEnvironment("CACHE_PORT", redis.Resource.GetConnectionProperty("Port"));
 ```
+
+**Environment variables injected into `worker`:**
+```bash
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=mydb
+CACHE_HOST=cache
+CACHE_PORT=6379
+```
+
+This is useful when your application needs individual connection components rather than a full connection string, or when building connection strings in formats Aspire doesn't provide natively.
 
 #### Endpoint reference enhancements
 
-More flexible endpoint resolution with network context awareness:
+Control how service URLs are resolved and injected with network-aware endpoint references:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddProject<Projects.Api>("api");
+var api = builder.AddProject<Projects.Api>("api")
+    .WithExternalHttpEndpoints();
 
-// Get endpoint with network identifier context
-var endpoint = api.GetEndpoint("http", NetworkIdentifier.Host);
-
-// Remap host URL (address and port)
-var remappedEndpoint = api.GetEndpoint("http")
-    .WithHostUrlRemapping(newAddress: "custom-host", newPort: 8080);
-
-await builder.Build().RunAsync();
+var frontend = builder.AddNpmApp("frontend", "./frontend")
+    .WithEnvironment("API_URL", api.GetEndpoint("https"));
 ```
 
-#### Child relationships
+**Environment variables injected into `frontend`:**
+```bash
+# Default behavior - uses the external endpoint URL
+API_URL=https://localhost:7123
+```
 
-Model parent-child relationships between resources:
+For advanced scenarios, you can specify the network context:
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var parent = builder.AddContainer("parent", "parent-image");
-
-var child = builder.AddContainer("child", "child-image")
-    .WithChildRelationship(parent);
-
-await builder.Build().RunAsync();
+var worker = builder.AddProject<Projects.Worker>("worker")
+    .WithEnvironment("API_URL", api.GetEndpoint("http", KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
 ```
+
+**Environment variables injected into `worker`:**
+```bash
+# Container network context - uses internal container address
+API_URL=http://api:8080
+```
+
+This enables proper service-to-service communication whether the consumer is running on the host or in a container.
 
 ### Event system
 
