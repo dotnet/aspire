@@ -464,7 +464,9 @@ public class ResourceExtensionsTests
             a => Assert.Equal("src/path1", a.SourcePath),
             a => Assert.Equal("src/path2", a.SourcePath));
 
-        resource.WithContainerFilesSource("src/override", ResourceAnnotationMutationBehavior.Replace);
+        resource
+            .ClearContainerFilesSources()
+            .WithContainerFilesSource("src/override");
 
         var annotation = Assert.Single(resource.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>());
         Assert.Equal("src/override", annotation.SourcePath);
