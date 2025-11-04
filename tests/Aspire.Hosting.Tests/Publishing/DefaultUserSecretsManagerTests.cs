@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing.Internal;
+using Aspire.Hosting.Pipelines.Internal;
 
-namespace Aspire.Hosting.Tests.Publishing;
+namespace Aspire.Hosting.Tests.Pipelines;
 
 public class UserSecretsDeploymentStateManagerTests
 {
