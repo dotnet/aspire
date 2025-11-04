@@ -404,7 +404,9 @@ public static class ResourceExtensions
         NetworkIdentifier? networkContext = null,
         CancellationToken cancellationToken = default)
     {
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var trustDevCert = developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();

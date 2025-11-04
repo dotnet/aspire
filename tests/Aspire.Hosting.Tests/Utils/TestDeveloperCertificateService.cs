@@ -6,7 +6,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.Tests.Utils;
 
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 public sealed class TestDeveloperCertificateService(List<X509Certificate2> certificates, bool supportsContainerTrust, bool trustCertificate) : IDeveloperCertificateService
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <inheritdoc />
     public ImmutableList<X509Certificate2> Certificates { get; } = certificates.ToImmutableList();
