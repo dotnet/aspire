@@ -3,8 +3,10 @@
 
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Yarp.Tests;
 
@@ -37,6 +39,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             containerCertificateSupport,
             trustCertificate: true));
+        testProvider.AddService(Options.Create(new DcpOptions()));
 
         var yarp = builder.AddYarp("yarp");
 
@@ -86,6 +89,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
             trustCertificate: true));
+        testProvider.AddService(Options.Create(new DcpOptions()));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -130,6 +134,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
             trustCertificate: true));
+        testProvider.AddService(Options.Create(new DcpOptions()));
 
         using var tempDir = new TempDirectory();
 

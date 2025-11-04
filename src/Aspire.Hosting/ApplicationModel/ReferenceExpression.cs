@@ -98,7 +98,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
-        return this.GetValueAsync(new ValueProviderContext(), cancellationToken);
+        return this.GetValueAsync(new(), cancellationToken);
     }
 
     internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)
