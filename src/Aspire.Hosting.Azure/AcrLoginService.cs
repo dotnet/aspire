@@ -80,7 +80,9 @@ internal sealed class AcrLoginService : IAcrLoginService
         string aadAccessToken,
         CancellationToken cancellationToken)
     {
-        var httpClient = _httpClientFactory.CreateClient();
+        // Use named HTTP client "AcrLogin" which can be configured for debug-level logging
+        // via configuration: "Logging": { "LogLevel": { "System.Net.Http.HttpClient.AcrLogin": "Debug" } }
+        var httpClient = _httpClientFactory.CreateClient("AcrLogin");
         httpClient.Timeout = TimeSpan.FromSeconds(30);
 
         // ACR OAuth2 exchange endpoint
@@ -101,6 +103,7 @@ internal sealed class AcrLoginService : IAcrLoginService
         using var content = new FormUrlEncodedContent(formData);
         var response = await httpClient.PostAsync(exchangeUrl, content, cancellationToken).ConfigureAwait(false);
 
+        // Read response body as string once
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -112,12 +115,15 @@ internal sealed class AcrLoginService : IAcrLoginService
                 response.StatusCode);
         }
 
-        var tokenResponse = await response.Content.ReadFromJsonAsync<AcrRefreshTokenResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        // Deserialize from the string we already read
+        var tokenResponse = JsonSerializer.Deserialize<AcrRefreshTokenResponse>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
 
         if (string.IsNullOrEmpty(tokenResponse?.RefreshToken))
         {
-            var truncatedBody = responseBody.Length <= 1000 ? responseBody : responseBody[..1000] + "…";
-            throw new InvalidOperationException($"Response missing refresh_token. Body: {truncatedBody}");
+            throw new InvalidOperationException($"Response missing refresh_token.");
         }
 
         return tokenResponse.RefreshToken;

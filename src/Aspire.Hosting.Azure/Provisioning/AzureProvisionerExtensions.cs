@@ -39,7 +39,13 @@ public static class AzureProvisionerExtensions
 
         // Register ACR login service for container registry authentication
         builder.Services.TryAddSingleton<IAcrLoginService, AcrLoginService>();
-        builder.Services.AddHttpClient(); // Add IHttpClientFactory for ACR OAuth2 exchange
+        
+        // Add named HTTP client for ACR OAuth2 exchange
+        // HTTP request logging can be controlled via logging configuration:
+        // "Logging": { "LogLevel": { "System.Net.Http.HttpClient.AcrLogin": "Debug" } }
+        builder.Services.AddHttpClient("AcrLogin");
+        
+        builder.Services.AddHttpClient(); // Add default IHttpClientFactory
 
         // Register BicepProvisioner via interface
         builder.Services.TryAddSingleton<IBicepProvisioner, BicepProvisioner>();

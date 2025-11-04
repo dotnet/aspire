@@ -99,8 +99,6 @@ internal static partial class ProcessUtil
                 var writer = process.StandardInput;
                 writer.WriteLine(processSpec.StandardInputContent);
                 writer.Flush();
-                // Ensure the write completes before closing
-                writer.BaseStream.Flush();
                 writer.Close();
             }
             
