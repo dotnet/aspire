@@ -627,16 +627,61 @@ public class DistributedApplicationTests
     [Theory]
     [RequiresDocker]
     [RequiresDevCert]
-    [InlineData(null, null, true)]
-    [InlineData(null, false, false)]
-    [InlineData(null, true, true)]
-    [InlineData(false, null, false)]
-    [InlineData(false, false, false)]
-    [InlineData(false, true, true)]
-    [InlineData(true, null, true)]
-    [InlineData(true, false, false)]
-    [InlineData(true, true, true)]
-    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert)
+    [InlineData(null, null, true, false, CertificateTrustScope.Append)]
+    [InlineData(null, false, false, false, CertificateTrustScope.Append)]
+    [InlineData(null, true, true, false, CertificateTrustScope.Append)]
+    [InlineData(false, null, false, false, CertificateTrustScope.Append)]
+    [InlineData(false, false, false, false, CertificateTrustScope.Append)]
+    [InlineData(false, true, true, false, CertificateTrustScope.Append)]
+    [InlineData(true, null, true, false, CertificateTrustScope.Append)]
+    [InlineData(true, false, false, false, CertificateTrustScope.Append)]
+    [InlineData(true, true, true, false, CertificateTrustScope.Append)]
+    [InlineData(null, null, true, true, CertificateTrustScope.Append)]
+    [InlineData(null, false, false, true, CertificateTrustScope.Append)]
+    [InlineData(null, true, true, true, CertificateTrustScope.Append)]
+    [InlineData(false, null, false, true, CertificateTrustScope.Append)]
+    [InlineData(false, false, false, true, CertificateTrustScope.Append)]
+    [InlineData(false, true, true, true, CertificateTrustScope.Append)]
+    [InlineData(true, null, true, true, CertificateTrustScope.Append)]
+    [InlineData(true, false, false, true, CertificateTrustScope.Append)]
+    [InlineData(true, true, true, true, CertificateTrustScope.Append)]
+    [InlineData(null, null, true, false, CertificateTrustScope.Override)]
+    [InlineData(null, false, false, false, CertificateTrustScope.Override)]
+    [InlineData(null, true, true, false, CertificateTrustScope.Override)]
+    [InlineData(false, null, false, false, CertificateTrustScope.Override)]
+    [InlineData(false, false, false, false, CertificateTrustScope.Override)]
+    [InlineData(false, true, true, false, CertificateTrustScope.Override)]
+    [InlineData(true, null, true, false, CertificateTrustScope.Override)]
+    [InlineData(true, false, false, false, CertificateTrustScope.Override)]
+    [InlineData(true, true, true, false, CertificateTrustScope.Override)]
+    [InlineData(null, null, true, true, CertificateTrustScope.Override)]
+    [InlineData(null, false, false, true, CertificateTrustScope.Override)]
+    [InlineData(null, true, true, true, CertificateTrustScope.Override)]
+    [InlineData(false, null, false, true, CertificateTrustScope.Override)]
+    [InlineData(false, false, false, true, CertificateTrustScope.Override)]
+    [InlineData(false, true, true, true, CertificateTrustScope.Override)]
+    [InlineData(true, null, true, true, CertificateTrustScope.Override)]
+    [InlineData(true, false, false, true, CertificateTrustScope.Override)]
+    [InlineData(true, true, true, true, CertificateTrustScope.Override)]
+    [InlineData(null, null, false, false, CertificateTrustScope.None)]
+    [InlineData(null, false, false, false, CertificateTrustScope.None)]
+    [InlineData(null, true, false, false, CertificateTrustScope.None)]
+    [InlineData(false, null, false, false, CertificateTrustScope.None)]
+    [InlineData(false, false, false, false, CertificateTrustScope.None)]
+    [InlineData(false, true, false, false, CertificateTrustScope.None)]
+    [InlineData(true, null, false, false, CertificateTrustScope.None)]
+    [InlineData(true, false, false, false, CertificateTrustScope.None)]
+    [InlineData(true, true, false, false, CertificateTrustScope.None)]
+    [InlineData(null, null, false, true, CertificateTrustScope.None)]
+    [InlineData(null, false, false, true, CertificateTrustScope.None)]
+    [InlineData(null, true, false, true, CertificateTrustScope.None)]
+    [InlineData(false, null, false, true, CertificateTrustScope.None)]
+    [InlineData(false, false, false, true, CertificateTrustScope.None)]
+    [InlineData(false, true, false, true, CertificateTrustScope.None)]
+    [InlineData(true, null, false, true, CertificateTrustScope.None)]
+    [InlineData(true, false, false, true, CertificateTrustScope.None)]
+    [InlineData(true, true, false, true, CertificateTrustScope.None)]
+    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert, bool overridePaths, CertificateTrustScope trustScope)
     {
         using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
@@ -646,6 +691,27 @@ public class DistributedApplicationTests
         {
             container.WithDeveloperCertificateTrust(explicitTrust.Value);
         }
+
+        var expectedDestination = "/usr/lib/ssl/aspire";
+        var expectedDefaultCertificateDirs = new List<string>();
+        var expectedDefaultBundleFiles = new List<string>();
+        if (overridePaths)
+        {
+            expectedDestination = "/usr/lib/ssl/someotherpath";
+            expectedDefaultCertificateDirs.Add("/usr/lib/someothercertpath");
+            expectedDefaultCertificateDirs.Add("/usr/share/lib/anotherpath");
+            expectedDefaultBundleFiles.Add("/usr/lib/somessl/cert.pem");
+            expectedDefaultBundleFiles.Add("/usr/share/certfile.pem");
+
+            container.WithContainerCertificatePaths(customCertificatesDestination: expectedDestination, defaultCertificateBundlePaths: expectedDefaultBundleFiles, defaultCertificateDirectoryPaths: expectedDefaultCertificateDirs);
+        }
+        else
+        {
+            expectedDefaultCertificateDirs.AddRange(ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths);
+            expectedDefaultBundleFiles.AddRange(ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths);
+        }
+
+        container.WithCertificateTrustScope(trustScope);
 
         await using var app = testProgram.Build();
 
@@ -665,17 +731,40 @@ public class DistributedApplicationTests
                 if (expectDevCert)
                 {
                     Assert.NotNull(item.Spec.Env);
-                    Assert.Collection(item.Spec.Env.OrderBy(e => e.Name),
+                    if (trustScope == CertificateTrustScope.Append)
+                    {
+                        Assert.DoesNotContain(item.Spec.Env, e => e.Name == "SSL_CERT_FILE");
+                    }
+                    else if (trustScope == CertificateTrustScope.Override)
+                    {
+                        Assert.Collection(item.Spec.Env.Where(e => e.Name == "SSL_CERT_FILE"),
+                            certFile =>
+                            {
+                                Assert.Equal("SSL_CERT_FILE", certFile.Name);
+                                Assert.Equal($"{expectedDestination}/cert.pem", certFile.Value);
+                            });
+                    }
+
+                    Assert.Collection(item.Spec.Env.Where(e => e.Name == "SSL_CERT_DIR"),
                         certDir =>
                         {
                             Assert.Equal("SSL_CERT_DIR", certDir.Name);
-                            Assert.StartsWith("/usr/lib/ssl/aspire/certs:", certDir.Value);
+                            Assert.NotNull(certDir.Value);
+                            var certDirPaths = certDir.Value.Split(':');
+                            Assert.Contains($"{expectedDestination}/certs", certDirPaths);
+                            if (trustScope == CertificateTrustScope.Append)
+                            {
+                                foreach (var expectedPath in expectedDefaultCertificateDirs)
+                                {
+                                    Assert.Contains(expectedPath, certDirPaths);
+                                }
+                            }
                         });
+
                     Assert.NotNull(item.Spec.CreateFiles);
-                    Assert.Collection(item.Spec.CreateFiles,
+                    Assert.Collection(item.Spec.CreateFiles.Where(cf => cf.Destination == expectedDestination),
                         createCerts =>
                         {
-                            Assert.Equal("/usr/lib/ssl/aspire", createCerts.Destination);
                             Assert.NotNull(createCerts.Entries);
                             Assert.Collection(createCerts.Entries,
                                 bundle =>
@@ -702,6 +791,37 @@ public class DistributedApplicationTests
                                     }
                                 });
                         });
+
+                    if (trustScope == CertificateTrustScope.Override)
+                    {
+                        foreach (var bundlePath in expectedDefaultBundleFiles!.Select<String, (string dir, string filename)>(bp =>
+                        {
+                            var filename = Path.GetFileName(bp);
+                            var dir = bp.Substring(0, bp.Length - filename.Length);
+                            return (dir, filename);
+                        }).GroupBy(parts => parts.dir))
+                        {
+                            Assert.Collection(item.Spec.CreateFiles.Where(cf => cf.Destination == bundlePath.Key),
+                                createCerts =>
+                                {
+                                    Assert.NotNull(createCerts.Entries);
+                                    Assert.Equal(bundlePath.Count(), createCerts.Entries.Count);
+                                    foreach (var expectedFile in bundlePath)
+                                    {
+                                        Assert.Collection(createCerts.Entries.Where(file => file.Name == expectedFile.filename),
+                                            bundle =>
+                                            {
+                                                Assert.Equal(expectedFile.filename, bundle.Name);
+                                                Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
+                                                var certs = new X509Certificate2Collection();
+                                                certs.ImportFromPem(bundle.Contents);
+                                                Assert.Equal(dc.Certificates.Count, certs.Count);
+                                                Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
+                                            });
+                                    }
+                                });
+                        }
+                    }
                 }
                 else
                 {
