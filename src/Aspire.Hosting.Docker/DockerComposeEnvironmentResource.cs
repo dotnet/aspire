@@ -50,8 +50,6 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
-    internal EnvFile? SharedEnvFile { get; set; }
-
     internal PortAllocator PortAllocator { get; } = new();
 
     /// <param name="name">The name of the Docker Compose environment.</param>

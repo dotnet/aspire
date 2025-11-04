@@ -153,7 +153,7 @@ internal sealed class DockerComposePublishingContext(
             if (environment.CapturedEnvironmentVariables.Count > 0)
             {
                 var envFilePath = Path.Combine(OutputPath, ".env");
-                var envFile = environment.SharedEnvFile ?? EnvFile.Load(envFilePath, logger);
+                var envFile = EnvFile.Load(envFilePath, logger);
 
                 foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                 {
@@ -161,8 +161,6 @@ internal sealed class DockerComposePublishingContext(
 
                     envFile.Add(key, value: null, description, onlyIfMissing: true);
                 }
-
-                environment.SharedEnvFile = envFile;
 
                 envFile.Save(includeValues: false);
             }
