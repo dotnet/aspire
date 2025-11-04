@@ -665,13 +665,8 @@ public static class PythonAppResourceBuilderExtensions
             
             if (!isUnderAppHostParent)
             {
-                // App is not under AppHost's parent, only check the app directory
-                var appDirVenvPath = Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
-                if (Directory.Exists(appDirVenvPath))
-                {
-                    return appDirVenvPath;
-                }
-                return appDirVenvPath;
+                // App is not under AppHost's parent, only use the app directory
+                return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
             }
         }
         
