@@ -77,7 +77,12 @@ public static class PythonAppResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This method executes a Python script directly using <c>python script.py</c>.
-    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// By default, the virtual environment is resolved using the following priority:
+    /// <list type="number">
+    /// <item>If <c>.venv</c> exists in the app directory, use it.</item>
+    /// <item>If <c>.venv</c> exists in the AppHost directory, use it.</item>
+    /// <item>Otherwise, default to <c>.venv</c> in the app directory.</item>
+    /// </list>
     /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
@@ -351,6 +356,14 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
+        // When using the default virtual environment path, look for existing virtual environments
+        // in multiple locations: app directory first, then AppHost directory as fallback
+        var resolvedVenvPath = virtualEnvironmentPath;
+        if (virtualEnvironmentPath == DefaultVirtualEnvFolder)
+        {
+            resolvedVenvPath = ResolveDefaultVirtualEnvironmentPath(builder, appDirectory, virtualEnvironmentPath);
+        }
+
         // python will be replaced with the resolved entrypoint based on the virtualEnvironmentPath
         var resource = createResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
 
@@ -363,7 +376,7 @@ public static class PythonAppResourceBuilderExtensions
                 Entrypoint = entrypoint
             })
             // This will resolve the correct python executable based on the virtual environment
-            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithVirtualEnvironment(resolvedVenvPath)
             // This will set up the the entrypoint based on the PythonEntrypointAnnotation
             .WithEntrypoint(entrypointType, entrypoint);
 
@@ -708,6 +721,73 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Resolves the default virtual environment path by checking multiple candidate locations.
+    /// </summary>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="appDirectory">The Python app directory (relative to AppHost).</param>
+    /// <param name="virtualEnvironmentPath">The relative virtual environment path (e.g., ".venv").</param>
+    /// <returns>The resolved virtual environment path.</returns>
+    private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appDirectory, string virtualEnvironmentPath)
+    {
+        var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
+        
+        // Walk up from the Python app directory looking for the virtual environment
+        // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
+        var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
+        
+        // Check if the app directory is under the AppHost's parent directory
+        // If not, only look in the app directory itself
+        if (appHostParentDirectory != null)
+        {
+            var relativePath = Path.GetRelativePath(appHostParentDirectory, appDirectoryFullPath);
+            var isUnderAppHostParent = !relativePath.StartsWith("..", StringComparison.Ordinal) &&
+                                        !Path.IsPathRooted(relativePath);
+            
+            if (!isUnderAppHostParent)
+            {
+                // App is not under AppHost's parent, only use the app directory
+                return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
+            }
+        }
+        
+        var currentDirectory = appDirectoryFullPath;
+        
+        while (currentDirectory != null)
+        {
+            var venvPath = Path.Combine(currentDirectory, virtualEnvironmentPath);
+            if (Directory.Exists(venvPath))
+            {
+                return venvPath;
+            }
+            
+            // Stop if we've reached the AppHost's parent directory
+            // Use case-insensitive comparison on Windows, case-sensitive on Unix
+            var reachedBoundary = OperatingSystem.IsWindows()
+                ? string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase)
+                : string.Equals(currentDirectory, appHostParentDirectory, StringComparison.Ordinal);
+            
+            if (reachedBoundary)
+            {
+                break;
+            }
+            
+            // Move up to the parent directory
+            var parentDirectory = Path.GetDirectoryName(currentDirectory);
+            
+            // Stop if we can't go up anymore or if we've gone beyond the AppHost's parent
+            if (parentDirectory == null || parentDirectory == currentDirectory)
+            {
+                break;
+            }
+            
+            currentDirectory = parentDirectory;
+        }
+
+        // Default: Return app directory path (for cases where the venv will be created later)
+        return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
+    }
+
+    /// <summary>
     /// Configures a custom virtual environment path for the Python application.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -726,6 +806,11 @@ public static class PythonAppResourceBuilderExtensions
     /// Virtual environments allow Python applications to have isolated dependencies separate from
     /// the system Python installation. This is the recommended approach for Python applications.
     /// </para>
+    /// <para>
+    /// When you explicitly specify a virtual environment path using this method, the path is used verbatim.
+    /// The automatic multi-location lookup (checking both app and AppHost directories) only applies when
+    /// using the default ".venv" path during initial app creation via AddPythonScript, AddPythonModule, or AddPythonExecutable.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Configure a Python app to use a custom virtual environment:
@@ -740,9 +825,12 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
 
-        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
+        // Use the provided path verbatim - resolve relative paths against the app working directory
+        var resolvedPath = Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
-            : Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory));
+            : Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+        var virtualEnvironment = new VirtualEnvironment(resolvedPath);
 
         // Get the entrypoint annotation to determine how to update the command
         if (!builder.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))

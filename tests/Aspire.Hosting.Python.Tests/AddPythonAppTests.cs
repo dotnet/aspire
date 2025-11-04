@@ -358,6 +358,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         outputHelper.WriteLine($"{label}:\n\n{output}");
     }
 
+    private static void AssertPythonCommandPath(string expectedVenvPath, string actualCommand)
+    {
+        var expectedCommand = OperatingSystem.IsWindows()
+            ? Path.Join(expectedVenvPath, "Scripts", "python.exe")
+            : Path.Join(expectedVenvPath, "bin", "python");
+        
+        Assert.Equal(expectedCommand, actualCommand);
+    }
+
     private const string PythonApp = """"
         import logging
 
@@ -506,6 +515,193 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         Assert.Equal("test_value", environmentVariables["TEST_VAR"]);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_UsesAppDirectoryWhenVenvExistsThere()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+
+        // Create .venv in the app directory
+        var appVenvPath = Path.Combine(tempAppDir.Path, ".venv");
+        Directory.CreateDirectory(appVenvPath);
+
+        var scriptName = "main.py";
+        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        // Should use the app directory .venv since it exists there
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
+        var expectedVenvPath = Path.Combine(expectedProjectDirectory, ".venv");
+
+        AssertPythonCommandPath(expectedVenvPath, pythonProjectResource.Command);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_UsesAppHostDirectoryWhenVenvOnlyExistsThere()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+        
+        // Create app directory as a subdirectory of AppHost (realistic scenario)
+        var appDirName = "python-app";
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in the AppHost directory (not in app directory)
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName);
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should use the AppHost directory .venv since it only exists there
+            AssertPythonCommandPath(appHostVenvPath, pythonProjectResource.Command);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_PrefersAppDirectoryWhenVenvExistsInBoth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        
+        // Create app directory as a subdirectory of AppHost (realistic scenario)
+        var appDirName = "python-app";
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in both directories
+        var appVenvPath = Path.Combine(appDirPath, ".venv");
+        Directory.CreateDirectory(appVenvPath);
+
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName);
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should prefer the app directory .venv when it exists in both locations
+            AssertPythonCommandPath(appVenvPath, pythonProjectResource.Command);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_DefaultsToAppDirectoryWhenVenvExistsInNeither()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+
+        // Don't create .venv in either directory
+
+        var scriptName = "main.py";
+        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        // Should default to app directory when it doesn't exist in either location
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
+        var expectedVenvPath = Path.Combine(expectedProjectDirectory, ".venv");
+
+        AssertPythonCommandPath(expectedVenvPath, pythonProjectResource.Command);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_ExplicitPath_UsesVerbatim()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        
+        // Create app directory as a subdirectory of AppHost
+        var appDirName = "python-app";
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in the AppHost directory
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        // Create a custom venv in the app directory
+        var customVenvPath = Path.Combine(appDirPath, "custom-venv");
+        Directory.CreateDirectory(customVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            
+            // Explicitly specify a custom venv path - should use it verbatim, not fall back to AppHost .venv
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName)
+                .WithVirtualEnvironment("custom-venv");
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should use the explicitly specified path, NOT the AppHost .venv
+            AssertPythonCommandPath(customVenvPath, pythonProjectResource.Command);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
     }
 
     [Fact]
