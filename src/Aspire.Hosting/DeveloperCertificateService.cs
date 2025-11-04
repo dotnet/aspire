@@ -26,7 +26,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
                 using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadOnly);
-                var now = DateTime.UtcNow;
+                var now = DateTimeOffset.Now;
                 devCerts.AddRange(
                     // Order by version and expiration date descending to get the most recent, highest version first.
                     // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
