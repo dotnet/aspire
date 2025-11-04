@@ -164,7 +164,7 @@ internal sealed class DockerComposePublishingContext(
 
                 environment.SharedEnvFile = envFile;
 
-                envFile.Save(envFilePath, includeValues: false);
+                envFile.Save(includeValues: false);
             }
 
             await writeTask.SucceedAsync(
