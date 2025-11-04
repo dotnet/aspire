@@ -39,8 +39,8 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Package Manager Flexibility](#package-manager-flexibility)
     - [Customizing Scripts](#customizing-scripts)
     - [Vite Support](#vite-support)
-    - [Dynamic Dockerfile Generation](#dynamic-dockerfile-generation-1)
-    - [Container Files as Build Artifacts](#container-files-as-build-artifacts-1)
+    - [Dynamic Dockerfile Generation](#dynamic-dockerfile-generation)
+    - [Container Files as Build Artifacts](#container-files-as-build-artifacts)
   - [Polyglot Infrastructure](#polyglot-infrastructure)
     - [Polyglot Connection Properties](#polyglot-connection-properties)
     - [Certificate Trust Across Languages](#certificate-trust-across-languages)
@@ -49,11 +49,11 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [aspire init command](#aspire-init-command)
   - [aspire update improvements](#aspire-update-improvements)
   - [Single-file AppHost support](#single-file-apphost-support)
-  - [Automatic .NET SDK installation](#automatic-net-sdk-installation)
+  - [Automatic .NET SDK installation](#automatic-net-sdk-installation-preview)
 - [Major new features](#major-new-features)
-  - [Distributed Application Pipeline](#distributed-application-pipeline)
-    - [Executing pipelines with aspire do](#executing-pipelines-with-aspire-do)
-    - [Container Files as Build Artifacts](#container-files-as-build-artifacts)
+  - [aspire do](#aspire-do)
+    - [Running pipeline steps](#running-pipeline-steps)
+    - [Container Files as Build Artifacts](#container-files-as-build-artifacts-1)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
 - [Integrations](#-integrations)
@@ -65,7 +65,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
 - [App model enhancements](#-app-model-enhancements)
   - [C# app support](#c-app-support)
   - [Network identifiers](#network-identifiers)
-  - [Dynamic input system](#dynamic-input-system)
+  - [Dynamic input system](#dynamic-input-system-experimental)
   - [Reference and connection improvements](#reference-and-connection-improvements)
   - [Event system](#event-system)
   - [Other app model improvements](#other-app-model-improvements)
@@ -541,11 +541,11 @@ When enabled, this preview feature can improve the onboarding experience for new
 
 ## Major new features
 
-### Distributed Application Pipeline
+### aspire do
 
-Aspire 13.0 introduces a comprehensive pipeline system for coordinating build, deployment, and publishing operations. This new architecture provides a foundation for orchestrating complex deployment workflows with built-in support for step dependencies, parallel execution, and detailed progress reporting.
+Aspire 13.0 introduces `aspire do` - a comprehensive system for coordinating build, deployment, and publishing operations. This new architecture provides a foundation for orchestrating complex deployment workflows with built-in support for step dependencies, parallel execution, and detailed progress reporting.
 
-The pipeline system replaces the previous publishing infrastructure with a more flexible, extensible model that allows resource-specific deployment logic to be decentralized and composed into larger workflows.
+The `aspire do` system replaces the previous publishing infrastructure with a more flexible, extensible model that allows resource-specific deployment logic to be decentralized and composed into larger workflows.
 
 > [!IMPORTANT]
 > 🧪 **Early Preview**: The pipeline APIs are in early preview and marked as experimental. While these APIs may evolve based on feedback, we're confident this is the right direction as it enables much more flexible modeling of arbitrary build, publish, and deployment steps. The pipeline system provides the foundation for advanced deployment scenarios that weren't possible with the previous publishing model.
@@ -626,9 +626,9 @@ The pipeline system includes:
 - **Built-in logging**: Use `context.Logger` to log step progress
 - **CLI execution**: Run specific steps with `aspire do <step-name>`
 
-#### Executing pipelines with aspire do
+#### Running pipeline steps
 
-Once you've defined your pipeline steps using the APIs above, you can execute them through the CLI using the new `aspire do` command. This command serves as the primary entry point for running pipeline steps, whether they're built-in steps like `build`, `publish`, and `deploy`, or custom steps you've defined in your AppHost.
+Once you've defined your pipeline steps using the APIs above, you can execute them through the CLI using `aspire do`. This command serves as the primary entry point for running pipeline steps, whether they're built-in steps like `build`, `publish`, and `deploy`, or custom steps you've defined in your AppHost.
 
 The `aspire do` command understands the entire pipeline graph, automatically resolving dependencies and executing steps in the correct order. For example, when you run `aspire do deploy`, it will automatically run any prerequisite steps (like `build` and `publish`) before executing the deployment itself.
 
@@ -738,7 +738,7 @@ api.PublishWithContainerFiles(blazorWasm, "./static");
 
 #### Container Files in the Pipeline
 
-Container files integrate seamlessly with the Distributed Application Pipeline:
+Container files integrate seamlessly with `aspire do`:
 
 - **Dependency tracking**: The pipeline knows that the API container depends on the frontend container
 - **Parallel execution**: Independent containers build in parallel
@@ -1211,7 +1211,7 @@ Event system features:
 
 ### Deployment pipeline reimplementation
 
-Aspire 13.0 completely reimplements the deployment workflow on top of the new [Distributed Application Pipeline](#distributed-application-pipeline) system. This architectural change transforms deployment from a monolithic operation into a composable set of discrete, parallelizable steps.
+Aspire 13.0 completely reimplements the deployment workflow on top of [aspire do](#aspire-do). This architectural change transforms deployment from a monolithic operation into a composable set of discrete, parallelizable steps.
 
 #### Maximum Parallelization
 
@@ -1353,7 +1353,7 @@ The pipeline-based deployment provides:
 - **Extensibility**: Add custom deployment steps via pipeline API
 - **Built-in diagnostics**: `aspire do diagnostics` for pipeline visualization and troubleshooting
 
-For more details on the underlying pipeline system, see [Distributed Application Pipeline](#distributed-application-pipeline).
+For more details on the underlying pipeline system, see [aspire do](#aspire-do).
 
 ### Deployment state management
 
@@ -1481,7 +1481,7 @@ This enables elastic scale on the App Service Plan, capping at 10 workers follow
 
 The following APIs have been removed in Aspire 13.0:
 
-**Publishing infrastructure** (replaced by pipeline system):
+**Publishing infrastructure** (replaced by `aspire do`):
 - `PublishingContext` and `PublishingCallbackAnnotation`
 - `DeployingContext` and `DeployingCallbackAnnotation`
 - `WithPublishingCallback` extension method
@@ -1516,7 +1516,7 @@ The following APIs are marked as obsolete in Aspire 13.0 and will be removed in 
 - `TryAddLifecycleHook<T>()` - Use `TryAddEventingSubscriber<T>()` instead
 - `TryAddLifecycleHook<T>(Func<IServiceProvider, T>)` - Use `TryAddEventingSubscriber<T>(Func<IServiceProvider, T>)` instead
 
-**Publishing interfaces** (use pipeline system instead):
+**Publishing interfaces** (use `aspire do` instead):
 - `IDistributedApplicationPublisher` - Use `PipelineStep` instead
 - `PublishingOptions` - Use `PipelineOptions` instead
 
