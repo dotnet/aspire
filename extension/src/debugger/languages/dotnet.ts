@@ -60,21 +60,11 @@ class DotNetService implements IDotNetService {
         if (isDevKitEnabled) {
             this.writeToDebugConsole(lookingForDevkitBuildTask, 'stdout', true);
 
-            // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
-            // We also do not want to appear like we are hanging indefinitely, so we set a max retry time
-            // of 500ms
-            const maxRetryTime = 500;
-            const stopBefore = Date.now() + maxRetryTime;
-            let buildTask: vscode.Task | undefined;
+            const tasks = await vscode.tasks.fetchTasks();
+            const buildTask = tasks.find(t => t.source === "dotnet" && t.name?.includes('build'));
 
-            while (Date.now() < stopBefore) {
-                const tasks = await vscode.tasks.fetchTasks();
-                buildTask = tasks.find(t => t.source === "dotnet" && t.name?.includes('build'));
-                if (buildTask) {
-                    break;
-                }
-            }
-
+            // The build task may not be registered if there are is no solution in the workspace or if there are no C# projects
+            // with .csproj files.
             if (buildTask) {
                 // Modify the task to target the specific project
                 const projectName = path.basename(projectFile, '.csproj');
