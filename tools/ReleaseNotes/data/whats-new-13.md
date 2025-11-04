@@ -6,7 +6,7 @@ ms.date: 11/03/2025
 
 # What's new in Aspire 13.0
 
-📢 **Aspire 13 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot cloud-native application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
+📢 **Aspire 13.0 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot cloud-native application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
 
 This release introduces:
 - **First-class Python support**: Debug Python modules in VS Code, deploy with uvicorn, use modern tooling like uv, and generate production Dockerfiles automatically
@@ -118,11 +118,11 @@ The easiest way to upgrade to Aspire 13.0 is using the `aspire update` command:
 
 ## 🌐 Aspire as a Polyglot Platform
 
-Aspire 13 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot cloud-native application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
+Aspire 13.0 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot cloud-native application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
 
 ### Python as a First-Class Citizen
 
-Aspire 13 introduces comprehensive Python support, making it effortless to build, debug, and deploy Python applications alongside your other services.
+Aspire 13.0 introduces comprehensive Python support, making it effortless to build, debug, and deploy Python applications alongside your other services.
 
 #### Flexible Python Application Models
 
@@ -163,7 +163,7 @@ The `AddUvicornApp` method automatically:
 
 #### Modern Python Tooling with uv
 
-Aspire 13 integrates with [uv](https://github.com/astral-sh/uv), the modern Python package and project manager:
+Aspire 13.0 integrates with [uv](https://github.com/astral-sh/uv), the modern Python package and project manager:
 
 ```csharp
 builder.AddUvicornApp("api", "./api", "main:app")
@@ -178,7 +178,7 @@ When using `WithUvEnvironment()`, Aspire:
 
 #### VS Code Debugging Support
 
-Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13 automatically enables debugging infrastructure for all Python resources.
+Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13.0 automatically enables debugging infrastructure for all Python resources.
 
 **Automatic debugging configuration:**
 
@@ -255,7 +255,7 @@ The detected version is used to select the appropriate Python base image for Doc
 
 #### Starter Template: Vite + FastAPI
 
-Aspire 13 includes a new `aspire-py-starter` template that demonstrates a full-stack Python application:
+Aspire 13.0 includes a new `aspire-py-starter` template that demonstrates a full-stack Python application:
 
 ```bash
 aspire new aspire-py-starter
@@ -272,7 +272,7 @@ The template demonstrates how to build polyglot applications with Python and Jav
 
 ### JavaScript as a First-Class Citizen
 
-Aspire 13 refactors and expands JavaScript support, introducing `AddJavaScriptApp` as the foundational method for all JavaScript applications.
+Aspire 13.0 refactors and expands JavaScript support, introducing `AddJavaScriptApp` as the foundational method for all JavaScript applications.
 
 #### Unified JavaScript Application Model
 
@@ -377,7 +377,7 @@ For information about using JavaScript build artifacts in other containers, see 
 
 ### Polyglot Infrastructure
 
-Beyond language-specific support, Aspire 13 introduces infrastructure features that work across all languages.
+Beyond language-specific support, Aspire 13.0 introduces infrastructure features that work across all languages.
 
 #### Polyglot Connection Properties
 
@@ -423,7 +423,7 @@ This works automatically for all supported databases including PostgreSQL, SQL S
 
 #### Certificate Trust Across Languages
 
-Aspire 13 automatically configures certificate trust for Python, Node.js, and containerized applications without any additional configuration:
+Aspire 13.0 automatically configures certificate trust for Python, Node.js, and containerized applications without any additional configuration:
 
 ```csharp
 // Python applications automatically trust development certificates
@@ -734,7 +734,7 @@ For more details on the pipeline architecture, see [Deployment pipeline document
 
 ### Container Files as Build Artifacts
 
-Aspire 13 introduces the ability to **extract files from one resource's container and copy them into another resource's container** during the build process. This enables powerful patterns like building a frontend in one container and serving it from a backend in another container.
+Aspire 13.0 introduces the ability to **extract files from one resource's container and copy them into another resource's container** during the build process. This enables powerful patterns like building a frontend in one container and serving it from a backend in another container.
 
 ```csharp
 var frontend = builder.AddViteApp("frontend", "./frontend");
@@ -977,14 +977,6 @@ This enables a complete mobile + cloud development experience where you can run 
 ### Aspire MCP server
 
 The Dashboard now includes an MCP server that integrates Aspire into your AI development ecosystem. The MCP server enables AI assistants to query resources, access telemetry data, and execute commands directly from your development environment.
-
-**Capabilities:**
-
-- **Resource monitoring**: Query real-time resource states, endpoints, and health status
-- **Console logs**: Access console output for individual resources
-- **Telemetry access**: Retrieve structured logs and distributed traces
-- **Command execution**: Run resource commands through AI assistants
-- **Privacy control**: Exclude sensitive resources from MCP using `ExcludeFromMcp()` annotation
 
 **Getting started:**
 
