@@ -26,7 +26,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
 ## Table of contents
 
 - [Upgrade to Aspire 13.0](#upgrade-to-aspire-130)
-- [Aspire as a Polyglot Platform](#-aspire-as-a-polyglot-platform)
+- [Aspire as a Polyglot Platform](#🌐-aspire-as-a-polyglot-platform)
   - [Python as a First-Class Citizen](#python-as-a-first-class-citizen)
     - [Flexible Python Application Models](#flexible-python-application-models)
     - [Uvicorn Integration for ASGI Applications](#uvicorn-integration-for-asgi-applications)
@@ -45,38 +45,38 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Polyglot Connection Properties](#polyglot-connection-properties)
     - [Certificate Trust Across Languages](#certificate-trust-across-languages)
     - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
-- [CLI and Tooling](#-cli-and-tooling)
+- [CLI and Tooling](#🛠️-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update improvements](#aspire-update-improvements)
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation-preview)
   - [Non-interactive mode for CI/CD](#non-interactive-mode-for-cicd)
-- [Major New Features](#-major-new-features)
+- [Major New Features](#⭐-major-new-features)
   - [aspire do](#aspire-do)
     - [Running pipeline steps](#running-pipeline-steps)
     - [Container Files as Build Artifacts](#container-files-as-build-artifacts-1)
   - [Dockerfile Builder API](#dockerfile-builder-api-experimental)
   - [Certificate Management](#certificate-management)
-- [Integrations](#-integrations)
+- [Integrations](#📦-integrations)
   - [.NET MAUI Integration](#net-maui-integration)
-- [Dashboard Enhancements](#-dashboard-enhancements)
-  - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
+- [Dashboard Enhancements](#📊-dashboard-enhancements)
+  - [Aspire MCP server](#aspire-mcp-server)
   - [Trace and telemetry improvements](#trace-and-telemetry-improvements)
   - [UI and accessibility improvements](#ui-and-accessibility-improvements)
-- [App Model Enhancements](#-app-model-enhancements)
+- [App Model Enhancements](#🖥️-app-model-enhancements)
   - [C# app support](#c-app-support)
   - [Network identifiers](#network-identifiers)
   - [Dynamic input system](#dynamic-input-system-experimental)
   - [Reference and connection improvements](#reference-and-connection-improvements)
   - [Event system](#event-system)
   - [Other app model improvements](#other-app-model-improvements)
-- [Deployment Improvements](#-deployment-improvements)
+- [Deployment Improvements](#🚀-deployment-improvements)
   - [Deployment pipeline reimplementation](#deployment-pipeline-reimplementation)
   - [Deployment state management](#deployment-state-management)
-- [Azure](#-azure)
+- [Azure](#☁️-azure)
   - [Azure tenant selection](#azure-tenant-selection)
   - [Azure App Service enhancements](#azure-app-service-enhancements)
-- [Breaking Changes](#-breaking-changes)
+- [Breaking Changes](#⚠️-breaking-changes)
 
 ## Upgrade to Aspire 13.0
 
@@ -974,9 +974,9 @@ This enables a complete mobile + cloud development experience where you can run 
 
 ## 📊 Dashboard Enhancements
 
-### Model Context Protocol (MCP) server
+### Aspire MCP server
 
-The Dashboard now includes a Model Context Protocol (MCP) server that integrates Aspire into your AI development ecosystem. The MCP server enables AI assistants to query resources, access telemetry data, and execute commands directly from your development environment.
+The Dashboard now includes an MCP server that integrates Aspire into your AI development ecosystem. The MCP server enables AI assistants to query resources, access telemetry data, and execute commands directly from your development environment.
 
 **Capabilities:**
 
