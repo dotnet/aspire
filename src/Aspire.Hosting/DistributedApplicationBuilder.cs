@@ -406,7 +406,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.AddSingleton<UnsecuredTransportWarning>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
-                _innerBuilder.Services.AddHostedService<UnsecuredTransportHandler>();
+                _innerBuilder.Services.AddSingleton<UnsecuredTransportHandler>();
+                _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<UnsecuredTransportHandler>());
+#pragma warning disable CS0618 // Hooks are obsolete, but still need to be supported until fully removed.
+                _innerBuilder.Services.AddSingleton<IDistributedApplicationLifecycleHook>(sp => sp.GetRequiredService<UnsecuredTransportHandler>());
+#pragma warning restore CS0618 // Hooks are obsolete, but still need to be supported until fully removed.
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
                 _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
                 _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();

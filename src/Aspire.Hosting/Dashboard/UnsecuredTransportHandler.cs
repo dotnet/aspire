@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -11,12 +13,13 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Hosted service that handles unsecured transport warnings by showing an interactive modal to the user.
 /// </summary>
-internal sealed class UnsecuredTransportHandler : IHostedService
+internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedApplicationLifecycleHook
 {
     private readonly UnsecuredTransportWarning _unsecuredTransportWarning;
     private readonly IInteractionService _interactionService;
     private readonly ILogger<UnsecuredTransportHandler> _logger;
     private readonly DistributedApplicationExecutionContext _executionContext;
+    private Task? _interactionTask;
 
     public UnsecuredTransportHandler(
         UnsecuredTransportWarning unsecuredTransportWarning,
@@ -30,7 +33,23 @@ internal sealed class UnsecuredTransportHandler : IHostedService
         _executionContext = executionContext;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Start the interaction task asynchronously - don't block app startup
+        _interactionTask = HandleUnsecuredTransportAsync(cancellationToken);
+        return Task.CompletedTask;
+    }
+
+    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        // Block resource startup until the user has responded to the modal
+        if (_interactionTask is not null)
+        {
+            await _interactionTask.ConfigureAwait(false);
+        }
+    }
+
+    private async Task HandleUnsecuredTransportAsync(CancellationToken cancellationToken)
     {
         // Only check in run mode, not in publish mode
         if (_executionContext.IsPublishMode)
