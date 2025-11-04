@@ -441,7 +441,7 @@ public class ManifestGenerationTests
                   "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                    "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                    "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
                     "POSTGRES_USER": "postgres",
                     "POSTGRES_PASSWORD": "{postgres-password.value}",
                     "POSTGRES_DB": "postgresdb"

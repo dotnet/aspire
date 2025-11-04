@@ -40,7 +40,7 @@ public enum CertificateTrustScope
 public sealed class CertificateAuthorityCollectionAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the <see cref="global::CertificateAuthorityCollection"/> that is being referenced.
+    /// Gets the <see cref="CertificateAuthorityCollection"/> that is being referenced.
     /// </summary>
     public List<CertificateAuthorityCollection> CertificateAuthorityCollections { get; internal set; } = new List<CertificateAuthorityCollection>();
 
