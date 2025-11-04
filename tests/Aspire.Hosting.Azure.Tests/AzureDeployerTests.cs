@@ -14,7 +14,6 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
@@ -1161,7 +1160,6 @@ public class AzureDeployerTests
         builder.Services.AddSingleton(logger);
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        builder.Services.AddSingleton<IDeploymentStateManager, FileDeploymentStateManager>();
 
         if (bicepProvisioner is not null)
         {

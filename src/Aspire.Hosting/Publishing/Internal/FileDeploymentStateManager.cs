@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// <summary>
 /// File-based deployment state manager for deployment scenarios.
 /// </summary>
-public sealed class FileDeploymentStateManager(
+internal sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
     IConfiguration configuration,
     IHostEnvironment hostEnvironment,

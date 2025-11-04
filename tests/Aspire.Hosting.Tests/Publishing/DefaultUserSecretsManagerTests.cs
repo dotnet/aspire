@@ -4,7 +4,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Publishing.Internal;
 
-namespace Aspire.Hosting.Azure.Tests;
+namespace Aspire.Hosting.Tests.Publishing;
 
 public class UserSecretsDeploymentStateManagerTests
 {
