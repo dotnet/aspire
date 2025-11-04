@@ -2059,6 +2059,7 @@ public class DcpExecutorTests
                 BackoffType = DelayBackoffType.Exponential,
                 Delay = TimeSpan.FromMilliseconds(200),
                 MaxDelay = TimeSpan.FromSeconds(2),
+                MaxRetryAttempts = int.MaxValue,
                 ShouldHandle = args => ValueTask.FromResult(!args.Outcome.Result)
             })
             .AddTimeout(TimeSpan.FromMilliseconds(timeoutMilliseconds))
