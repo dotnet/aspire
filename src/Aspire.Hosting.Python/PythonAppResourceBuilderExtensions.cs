@@ -1079,7 +1079,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only marks the resource as using pip without creating an installer resource.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <param name="installArgs">The command-line arguments passed to "pip install -r requirements.txt".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
@@ -1089,8 +1089,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </para>
     /// <para>
     /// By default, if a requirements.txt file exists in the application directory, pip will install the dependencies.
-    /// This method is idempotent - calling it multiple times on the same resource will not create duplicate pip installer resources.
-    /// If a pip installer resource already exists for the Python application, it will be reused.
+    /// Calling this method will replace any previously configured package manager (such as uv).
     /// </para>
     /// </remarks>
     /// <example>
@@ -1106,84 +1105,25 @@ public static class PythonAppResourceBuilderExtensions
     /// </code>
     /// </example>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
-    /// <exception cref="DistributedApplicationException">
-    /// Thrown when a resource with the pip installer name already exists but is not a <see cref="PythonPipInstallerResource"/>.
-    /// </exception>
     public static IResourceBuilder<T> WithPip<T>(this IResourceBuilder<T> builder, bool install = true, string[]? installArgs = null)
         where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Only install packages if in run mode
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        // Get or create the virtual environment from the annotation
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment is null)
         {
-            var installerName = $"{builder.Resource.Name}-pip-installer";
-
-            // Check if the pip installer resource already exists
-            var existingResource = builder.ApplicationBuilder.Resources
-                .FirstOrDefault(r => string.Equals(r.Name, installerName, StringComparison.OrdinalIgnoreCase));
-
-            if (!install)
-            {
-                if (existingResource != null)
-                {
-                    // Remove existing installer resource if install is false
-                    if (existingResource is PythonPipInstallerResource)
-                    {
-                        builder.ApplicationBuilder.Resources.Remove(existingResource);
-                        builder.Resource.Annotations.OfType<WaitAnnotation>()
-                            .Where(w => w.Resource == existingResource)
-                            .ToList()
-                            .ForEach(w => builder.Resource.Annotations.Remove(w));
-                    }
-                }
-                return builder;
-            }
-
-            if (existingResource is not null)
-            {
-                // Resource already exists
-                if (existingResource is not PythonPipInstallerResource)
-                {
-                    throw new DistributedApplicationException($"Cannot add pip installer resource with name '{installerName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
-                }
-                return builder;
-            }
-
-            // Get or create the virtual environment from the annotation
-            if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
-                pythonEnv.VirtualEnvironment is null)
-            {
-                throw new InvalidOperationException("Cannot add pip installer: Python environment annotation with virtual environment not found.");
-            }
-
-            var virtualEnvironment = pythonEnv.VirtualEnvironment;
-
-            // Resource doesn't exist, create it
-            var pipInstallerResource = new PythonPipInstallerResource(installerName, builder.Resource);
-
-            var pipBuilder = builder.ApplicationBuilder.AddResource(pipInstallerResource)
-                .WithCommand(virtualEnvironment.GetExecutable("pip"))
-                .WithArgs(context =>
-                {
-                    context.Args.Add("install");
-                    context.Args.Add("-r");
-                    context.Args.Add("requirements.txt");
-
-                    if (installArgs != null)
-                    {
-                        foreach (var arg in installArgs)
-                        {
-                            context.Args.Add(arg);
-                        }
-                    }
-                })
-                .WithParentRelationship(builder)
-                .ExcludeFromManifest();
-
-            builder.WaitForCompletion(pipBuilder);
+            throw new InvalidOperationException("Cannot add pip installer: Python environment annotation with virtual environment not found.");
         }
 
+        var virtualEnvironment = pythonEnv.VirtualEnvironment;
+
+        builder
+            .WithAnnotation(new PythonPackageManagerAnnotation(virtualEnvironment.GetExecutable("pip")), ResourceAnnotationMutationBehavior.Replace)
+            .WithAnnotation(new PythonInstallCommandAnnotation(["install", "-r", "requirements.txt", .. installArgs ?? []]), ResourceAnnotationMutationBehavior.Replace);
+
+        AddInstaller(builder, install);
         return builder;
     }
 
@@ -1192,6 +1132,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="install">When true (default), automatically runs uv sync before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <param name="args">Optional custom arguments to pass to the uv sync command. If not provided, defaults to ["sync", "--python"].</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
@@ -1205,8 +1146,7 @@ public static class PythonAppResourceBuilderExtensions
     /// environment exists, Python is installed if needed, and all dependencies specified in pyproject.toml are installed and synchronized.
     /// </para>
     /// <para>
-    /// This method is idempotent - calling it multiple times on the same resource will not create duplicate UV environment resources.
-    /// If a UV environment resource already exists for the Python application, it will be reused.
+    /// Calling this method will replace any previously configured package manager (such as pip).
     /// </para>
     /// </remarks>
     /// <example>
@@ -1227,17 +1167,14 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
-    ///     .WithUv(["sync", "--python", "3.12", "--no-dev"])  // Custom uv sync args
+    ///     .WithUv(args: ["sync", "--python", "3.12", "--no-dev"])  // Custom uv sync args
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
-    /// <exception cref="DistributedApplicationException">
-    /// Thrown when a resource with the UV environment name already exists but is not a <see cref="PythonUvEnvironmentResource"/>.
-    /// </exception>
-    public static IResourceBuilder<T> WithUv<T>(this IResourceBuilder<T> builder, string[]? args = null)
+    public static IResourceBuilder<T> WithUv<T>(this IResourceBuilder<T> builder, bool install = true, string[]? args = null)
         where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1245,38 +1182,15 @@ public static class PythonAppResourceBuilderExtensions
         // Default args include --python flag to bootstrap Python if needed
         args ??= ["sync", "--python"];
 
-        var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
+        builder
+            .WithAnnotation(new PythonPackageManagerAnnotation("uv"), ResourceAnnotationMutationBehavior.Replace)
+            .WithAnnotation(new PythonInstallCommandAnnotation(args), ResourceAnnotationMutationBehavior.Replace);
 
-        // Check if the UV environment resource already exists
-        var existingResource = builder.ApplicationBuilder.Resources
-            .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
-
-        IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
-
-        if (existingResource is not null)
-        {
-            // Resource already exists, return a builder for it
-            if (existingResource is not PythonUvEnvironmentResource uvEnvironmentResource)
-            {
-                throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
-            }
-
-            uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
-        }
-        else
-        {
-            // Resource doesn't exist, create it
-            var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
-
-            uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
-                .WithArgs(args)
-                .WithParentRelationship(builder)
-                .ExcludeFromManifest();
-
-            builder.WaitForCompletion(uvBuilder)
-                   .WithPythonEnvironment(env => env.Uv = true);
-        }
-
+        AddInstaller(builder, install);
+        
+        // Mark that we're using UV for the Python environment
+        builder.WithPythonEnvironment(env => env.Uv = true);
+        
         return builder;
     }
 
@@ -1287,14 +1201,76 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
-    /// This method is obsolete. Use <see cref="WithUv{T}(IResourceBuilder{T}, string[])"/> instead.
+    /// This method is obsolete. Use <see cref="WithUv{T}(IResourceBuilder{T}, bool, string[])"/> instead.
     /// </remarks>
     [Obsolete("Use WithUv instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<T> WithUvEnvironment<T>(this IResourceBuilder<T> builder)
         where T : PythonAppResource
     {
-        return builder.WithUv(args: null);
+        return builder.WithUv(install: true, args: null);
+    }
+
+    private static void AddInstaller<T>(IResourceBuilder<T> builder, bool install) where T : PythonAppResource
+    {
+        // Only install packages if in run mode
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Check if the installer resource already exists
+            var installerName = $"{builder.Resource.Name}-installer";
+            builder.ApplicationBuilder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var existingResource);
+
+            if (!install)
+            {
+                if (existingResource != null)
+                {
+                    // Remove existing installer resource if install is false
+                    builder.ApplicationBuilder.Resources.Remove(existingResource.Resource);
+                    builder.Resource.Annotations.OfType<WaitAnnotation>()
+                        .Where(w => w.Resource == existingResource.Resource)
+                        .ToList()
+                        .ForEach(w => builder.Resource.Annotations.Remove(w));
+                    builder.Resource.Annotations.OfType<PythonPackageInstallerAnnotation>()
+                        .ToList()
+                        .ForEach(a => builder.Resource.Annotations.Remove(a));
+                }
+                return;
+            }
+
+            if (existingResource is not null)
+            {
+                // Installer already exists, it will be reconfigured via BeforeStartEvent
+                return;
+            }
+
+            var installer = new PythonInstallerResource(installerName, builder.Resource);
+            var installerBuilder = builder.ApplicationBuilder.AddResource(installer)
+                .WithParentRelationship(builder.Resource)
+                .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            {
+                // Set the installer's working directory to match the resource's working directory
+                // and set the install command and args based on the resource's annotations
+                if (!builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager) ||
+                    !builder.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installCommand))
+                {
+                    throw new InvalidOperationException("PythonPackageManagerAnnotation and PythonInstallCommandAnnotation are required when installing packages.");
+                }
+
+                installerBuilder
+                    .WithCommand(packageManager.ExecutableName)
+                    .WithWorkingDirectory(builder.Resource.WorkingDirectory)
+                    .WithArgs(installCommand.Args);
+
+                return Task.CompletedTask;
+            });
+
+            // Make the parent resource wait for the installer to complete
+            builder.WaitForCompletion(installerBuilder);
+
+            builder.WithAnnotation(new PythonPackageInstallerAnnotation(installer));
+        }
     }
 
     internal static IResourceBuilder<PythonAppResource> WithPythonEnvironment(this IResourceBuilder<PythonAppResource> builder, Action<PythonEnvironmentAnnotation> configure)

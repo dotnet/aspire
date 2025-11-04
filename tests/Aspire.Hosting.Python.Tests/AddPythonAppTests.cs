@@ -715,18 +715,26 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
             .WithUv();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
-        Assert.Equal("pythonProject-uv-environment", uvEnvironmentResource.Name);
-        Assert.Equal("uv", uvEnvironmentResource.Command);
+        // Verify the installer resource exists
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
 
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
-        Assert.Equal(expectedProjectDirectory, uvEnvironmentResource.WorkingDirectory);
+        Assert.Equal(expectedProjectDirectory, installerResource.WorkingDirectory);
+
+        // Verify the package manager annotation
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("uv", packageManager.ExecutableName);
+
+        // Verify the install command annotation
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal(["sync", "--python"], installAnnotation.Args);
     }
 
     [Fact]
@@ -737,18 +745,17 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
             .WithUv();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(uvEnvironmentResource, TestServiceProvider.Instance);
-
-        Assert.Equal(2, commandArguments.Count);
-        Assert.Equal("sync", commandArguments[0]);
-        Assert.Equal("--python", commandArguments[1]);
+        // Verify the install command annotation has the correct args
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal(2, installAnnotation.Args.Length);
+        Assert.Equal("sync", installAnnotation.Args[0]);
+        Assert.Equal("--python", installAnnotation.Args[1]);
     }
 
     [Fact]
@@ -766,7 +773,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
-        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
 
         var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>();
         var waitForCompletionAnnotation = Assert.Single(waitAnnotations);
@@ -802,8 +809,69 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Verify that only one UV environment resource was created
-        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
-        Assert.Equal("pythonProject-uv-environment", uvEnvironmentResource.Name);
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", uvEnvironmentResource.Name);
+    }
+
+    [Fact]
+    public void WithPip_AfterWithUv_ReplacesPackageManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        // Call WithUv then WithPip - WithPip should replace WithUv
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+            .WithUv()
+            .WithPip();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify that only one installer resource was created
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify that pip is the active package manager (not uv)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Contains("pip", packageManager.ExecutableName);
+
+        // Verify the install command is for pip (not uv sync)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal("-r", installAnnotation.Args[1]);
+        Assert.Equal("requirements.txt", installAnnotation.Args[2]);
+    }
+
+    [Fact]
+    public void WithUv_AfterWithPip_ReplacesPackageManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        // Call WithPip then WithUv - WithUv should replace WithPip
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+            .WithPip()
+            .WithUv();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify that only one installer resource was created
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify that uv is the active package manager (not pip)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("uv", packageManager.ExecutableName);
+
+        // Verify the install command is for uv (not pip install)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("sync", installAnnotation.Args[0]);
+        Assert.Equal("--python", installAnnotation.Args[1]);
     }
 
     [Fact]
