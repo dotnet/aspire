@@ -324,7 +324,7 @@ public static class AzureFunctionsProjectResourceExtensions
             if (Directory.Exists(path))
             {
                 // Path is a directory, assume it's a project directory
-                var projectFiles = Directory.GetFiles(path, "*.csproj", new EnumerationOptions
+                var projectFiles = Directory.GetFiles(path, "*.*proj", new EnumerationOptions
                 {
                     MatchCasing = MatchCasing.CaseInsensitive,
                     RecurseSubdirectories = false,
@@ -333,7 +333,8 @@ public static class AzureFunctionsProjectResourceExtensions
 
                 if (projectFiles.Length != 1)
                 {
-                    // No project files found, just let it pass through and be handled later during resource start
+                    // Either no project files found or multiple project files found,
+                    // just let it pass through and be handled later during resource start
                     return path;
                 }
                 return Path.GetFullPath(projectFiles[0]);
