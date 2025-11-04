@@ -1794,7 +1794,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void AutoDetection_PyprojectToml_AddsUv()
+    public void AutoDetection_PyprojectToml_AddsPip()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -1811,11 +1811,16 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var app = builder.Build();
 
-        // Verify that WithUv was automatically called
+        // Verify that WithPip was automatically called (pip supports pyproject.toml)
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
-        Assert.Equal("uv", packageManager.ExecutableName);
+        Assert.Contains("pip", packageManager.ExecutableName);
 
-        // Verify that WithUv created the installer resource
+        // Verify that the install command uses pyproject.toml
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal(".", installAnnotation.Args[1]);
+
+        // Verify that WithPip created the installer resource
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
         Assert.NotNull(installerResource);
@@ -1844,6 +1849,12 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
         Assert.Contains("pip", packageManager.ExecutableName);
 
+        // Verify that the install command uses requirements.txt
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal("-r", installAnnotation.Args[1]);
+        Assert.Equal("requirements.txt", installAnnotation.Args[2]);
+
         // Verify that WithPip created the installer resource
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
@@ -1871,13 +1882,14 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var app = builder.Build();
 
-        // Verify that WithUv was automatically called (pyproject.toml takes precedence)
+        // Verify that WithPip was automatically called
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
-        Assert.Equal("uv", packageManager.ExecutableName);
+        Assert.Contains("pip", packageManager.ExecutableName);
 
-        // Verify the install command is for uv (not pip)
+        // Verify the install command uses pyproject.toml (takes precedence)
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
-        Assert.Equal("sync", installAnnotation.Args[0]);
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal(".", installAnnotation.Args[1]);
     }
 
     [Fact]

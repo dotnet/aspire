@@ -496,19 +496,15 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Automatically add package manager based on detected configuration files
+        // Automatically add pip as the package manager if pyproject.toml or requirements.txt exists
         // Only do this in run mode since the installer resource only runs in run mode
+        // Note: pip supports both pyproject.toml and requirements.txt
         if (builder.ExecutionContext.IsRunMode)
         {
             var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
             
-            // Check for pyproject.toml first (uv is the modern approach)
-            if (File.Exists(Path.Combine(appDirectoryFullPath, "pyproject.toml")))
-            {
-                resourceBuilder.WithUv();
-            }
-            // Fallback to requirements.txt for pip
-            else if (File.Exists(Path.Combine(appDirectoryFullPath, "requirements.txt")))
+            if (File.Exists(Path.Combine(appDirectoryFullPath, "pyproject.toml")) ||
+                File.Exists(Path.Combine(appDirectoryFullPath, "requirements.txt")))
             {
                 resourceBuilder.WithPip();
             }
@@ -1087,15 +1083,16 @@ public static class PythonAppResourceBuilderExtensions
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="installArgs">The command-line arguments passed to "pip install -r requirements.txt".</param>
+    /// <param name="installArgs">The command-line arguments passed to pip install command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// This method creates a child resource that runs <c>pip install -r requirements.txt</c> in the working directory of the Python application.
+    /// This method creates a child resource that runs <c>pip install</c> in the working directory of the Python application.
     /// The Python application will wait for this resource to complete successfully before starting.
     /// </para>
     /// <para>
-    /// By default, if a requirements.txt file exists in the application directory, pip will install the dependencies.
+    /// Pip will automatically detect and use either pyproject.toml or requirements.txt based on which file exists in the application directory.
+    /// If pyproject.toml exists, pip will use it. Otherwise, if requirements.txt exists, pip will use that.
     /// Calling this method will replace any previously configured package manager (such as uv).
     /// </para>
     /// </remarks>
@@ -1105,7 +1102,7 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
-    ///     .WithPip()  // Automatically runs 'pip install -r requirements.txt' before starting the app
+    ///     .WithPip()  // Automatically installs from pyproject.toml or requirements.txt
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
@@ -1126,9 +1123,30 @@ public static class PythonAppResourceBuilderExtensions
 
         var virtualEnvironment = pythonEnv.VirtualEnvironment;
 
+        // Determine install command based on which file exists
+        // Pip supports both pyproject.toml and requirements.txt
+        var workingDirectory = builder.Resource.WorkingDirectory;
+        string[] baseInstallArgs;
+        
+        if (File.Exists(Path.Combine(workingDirectory, "pyproject.toml")))
+        {
+            // Use pip install with pyproject.toml (pip will read from pyproject.toml automatically)
+            baseInstallArgs = ["install", "."];
+        }
+        else if (File.Exists(Path.Combine(workingDirectory, "requirements.txt")))
+        {
+            // Use pip install with requirements.txt
+            baseInstallArgs = ["install", "-r", "requirements.txt"];
+        }
+        else
+        {
+            // Default to requirements.txt even if it doesn't exist (will fail at runtime if no file is present)
+            baseInstallArgs = ["install", "-r", "requirements.txt"];
+        }
+
         builder
             .WithAnnotation(new PythonPackageManagerAnnotation(virtualEnvironment.GetExecutable("pip")), ResourceAnnotationMutationBehavior.Replace)
-            .WithAnnotation(new PythonInstallCommandAnnotation(["install", "-r", "requirements.txt", .. installArgs ?? []]), ResourceAnnotationMutationBehavior.Replace);
+            .WithAnnotation(new PythonInstallCommandAnnotation([.. baseInstallArgs, .. installArgs ?? []]), ResourceAnnotationMutationBehavior.Replace);
 
         AddInstaller(builder, install);
         return builder;
