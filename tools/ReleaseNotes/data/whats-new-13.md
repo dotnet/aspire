@@ -60,9 +60,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [.NET MAUI Integration](#net-maui-integration)
 - [Dashboard enhancements](#-dashboard-enhancements)
   - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
-  - [Console logs refactoring](#console-logs-refactoring)
   - [Trace and telemetry improvements](#trace-and-telemetry-improvements)
-  - [Markdown rendering](#markdown-rendering)
   - [UI and accessibility improvements](#ui-and-accessibility-improvements)
 - [App model enhancements](#-app-model-enhancements)
   - [C# app support](#c-app-support)
@@ -912,27 +910,6 @@ The MCP server provides:
 
 This enables AI assistants like Claude and other MCP-compatible tools to directly interact with your Aspire applications, querying resources, analyzing telemetry, and providing intelligent insights.
 
-### Console logs refactoring
-
-The console logs page has been refactored using an item provider pattern with enhanced multi-resource viewing capabilities.
-
-**Features:**
-
-- **"All" resources view**: See logs from all resources in chronological order with colored prefixes
-- **Shared logging channel**: Efficient log collection across resources
-- **Smart timestamps**: Configurable timestamp display to reduce noise
-- **Wrap log lines**: Optional line wrapping for long log entries
-- **Race condition fixes**: Improved reliability when viewing logs from multiple resources
-
-```text
-[api      ] Application starting up
-[postgres ] Database system is ready to accept connections
-[redis    ] Server initialized
-[api      ] Connected to database successfully
-```
-
-The refactored logs page makes it easier to understand the interaction between services in your distributed application.
-
 ### Trace and telemetry improvements
 
 #### Trace details enhancements
@@ -952,20 +929,6 @@ The refactored logs page makes it easier to understand the interaction between s
 - **Enhanced display**: Improved structured log entry visualization
 - **Log level filtering**: Quick filter by log level (Error, Warning, Info, etc.)
 - **Filter deduplication**: Cleaner filter lists
-
-### Markdown rendering
-
-The Dashboard now includes comprehensive markdown rendering capabilities with code block support and syntax highlighting.
-
-**Features:**
-
-- **MarkdownRenderer component**: Rich markdown display throughout the dashboard
-- **Code block highlighting**: `HighlightedCodeBlockRenderer` with syntax highlighting
-- **Custom extensions**: `AspireEnrichmentParser` for Aspire-specific markdown
-- **Multi-language support**: Syntax highlighting for C#, JavaScript, Python, and more
-- **Responsive styling**: Markdown CSS optimized for dashboard layouts
-
-This enables richer documentation, better error messages, and improved AI assistant responses with properly formatted code examples.
 
 ### UI and accessibility improvements
 
