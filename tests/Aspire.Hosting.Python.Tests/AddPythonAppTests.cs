@@ -154,7 +154,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        // Filter to get only the PythonAppResource (pip installer may also be present if requirements.txt exists)
+        var pythonProjectResource = executableResources.OfType<PythonAppResource>().Single();
 
         Assert.Equal("pythonProject", pythonProjectResource.Name);
         Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
@@ -192,7 +193,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        // Filter to get only the PythonAppResource (pip installer may also be present if requirements.txt exists)
+        var pythonProjectResource = executableResources.OfType<PythonAppResource>().Single();
 
         Assert.Equal("pythonProject", pythonProjectResource.Name);
         Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
@@ -234,7 +236,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        // Filter to get only the PythonAppResource (pip installer may also be present if requirements.txt exists)
+        var pythonProjectResource = executableResources.OfType<PythonAppResource>().Single();
 
         Assert.Equal("pythonProject", pythonProjectResource.Name);
         Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
@@ -705,7 +708,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithUvEnvironment_CreatesUvEnvironmentResource()
+    public void WithUv_CreatesUvEnvironmentResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -713,7 +716,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
-            .WithUvEnvironment();
+            .WithUv();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -727,7 +730,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithUvEnvironment_AddsUvSyncArgument()
+    public async Task WithUv_AddsUvSyncArgument()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -735,7 +738,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
-            .WithUvEnvironment();
+            .WithUv();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -748,7 +751,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithUvEnvironment_AddsWaitForCompletionRelationship()
+    public void WithUv_AddsWaitForCompletionRelationship()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -756,7 +759,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
-            .WithUvEnvironment();
+            .WithUv();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -771,28 +774,28 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithUvEnvironment_ThrowsOnNullBuilder()
+    public void WithUv_ThrowsOnNullBuilder()
     {
         IResourceBuilder<PythonAppResource> builder = null!;
 
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            builder.WithUvEnvironment());
+            builder.WithUv());
 
         Assert.Equal("builder", exception.ParamName);
     }
 
     [Fact]
-    public void WithUvEnvironment_IsIdempotent()
+    public void WithUv_IsIdempotent()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
         var scriptName = "main.py";
 
-        // Call WithUvEnvironment twice
+        // Call WithUv twice
         var pythonBuilder = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
-            .WithUvEnvironment()
-            .WithUvEnvironment();
+            .WithUv()
+            .WithUv();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -1129,7 +1132,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithUvEnvironment_GeneratesDockerfileInPublishMode()
+    public async Task WithUv_GeneratesDockerfileInPublishMode()
     {
         using var sourceDir = new TempDirectory();
         using var outputDir = new TempDirectory();
@@ -1167,13 +1170,13 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Add Python resources with different entrypoint types
         builder.AddPythonScript("script-app", projectDirectory, "main.py")
-            .WithUvEnvironment();
+            .WithUv();
 
         builder.AddPythonModule("module-app", projectDirectory, "mymodule")
-            .WithUvEnvironment();
+            .WithUv();
 
         builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
-            .WithUvEnvironment();
+            .WithUv();
 
         var app = builder.Build();
 
@@ -1199,7 +1202,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithUvEnvironment_GeneratesDockerfileInPublishMode_WithoutUvLock()
+    public async Task WithUv_GeneratesDockerfileInPublishMode_WithoutUvLock()
     {
         using var sourceDir = new TempDirectory();
         using var outputDir = new TempDirectory();
@@ -1232,13 +1235,13 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Add Python resources with different entrypoint types
         builder.AddPythonScript("script-app", projectDirectory, "main.py")
-            .WithUvEnvironment();
+            .WithUv();
 
         builder.AddPythonModule("module-app", projectDirectory, "mymodule")
-            .WithUvEnvironment();
+            .WithUv();
 
         builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
-            .WithUvEnvironment();
+            .WithUv();
 
         var app = builder.Build();
 
@@ -1512,7 +1515,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithUvEnvironment_CustomBaseImages_GeneratesDockerfileWithCustomImages()
+    public async Task WithUv_CustomBaseImages_GeneratesDockerfileWithCustomImages()
     {
         using var sourceDir = new TempDirectory();
         using var outputDir = new TempDirectory();
@@ -1548,7 +1551,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Add Python resource with custom base images
         builder.AddPythonScript("custom-images-app", projectDirectory, "main.py")
-            .WithUvEnvironment()
+            .WithUv()
             .WithDockerfileBaseImage(
                 buildImage: "ghcr.io/astral-sh/uv:python3.13-bookworm",
                 runtimeImage: "python:3.13-slim");
