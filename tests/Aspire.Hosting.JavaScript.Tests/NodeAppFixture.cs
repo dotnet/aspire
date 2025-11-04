@@ -7,7 +7,7 @@ using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Xunit.Sdk;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 /// <summary>
 /// TestProgram with node and npm apps.
@@ -21,7 +21,7 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
     public DistributedApplication App => _app ?? throw new InvalidOperationException("DistributedApplication is not initialized.");
 
     public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
+    public IResourceBuilder<JavaScriptAppResource>? NpmAppBuilder { get; private set; }
 
     public async ValueTask InitializeAsync()
     {
@@ -29,15 +29,12 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
             .WithTestAndResourceLogging(new TestOutputWrapper(diagnosticMessageSink));
 
         _nodeAppPath = CreateNodeApp();
-        var scriptPath = Path.Combine(_nodeAppPath, "app.js");
 
-        NodeAppBuilder = _builder.AddNodeApp("nodeapp", _nodeAppPath, scriptPath)
+        NodeAppBuilder = _builder.AddNodeApp("nodeapp", _nodeAppPath, "app.js")
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
-#pragma warning disable CS0618 // Type or member is obsolete
-        NpmAppBuilder = _builder.AddNpmApp("npmapp", _nodeAppPath)
+        NpmAppBuilder = _builder.AddJavaScriptApp("npmapp", _nodeAppPath, "start")
             .WithHttpEndpoint(port: 5032, env: "PORT");
-#pragma warning restore CS0618 // Type or member is obsolete
 
         _app = _builder.Build();
 

@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.NodeJs;
+namespace Aspire.Hosting.JavaScript;
 
 /// <summary>
 /// Represents an annotation for a JavaScript installer resource.

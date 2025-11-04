@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.NodeJs;
+namespace Aspire.Hosting.JavaScript;
 
 /// <summary>
 /// Represents the annotation for the JavaScript package manager's build script.

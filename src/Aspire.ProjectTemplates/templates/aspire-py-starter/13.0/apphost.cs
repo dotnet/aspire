@@ -1,5 +1,5 @@
 #:sdk Aspire.AppHost.Sdk@!!REPLACE_WITH_LATEST_VERSION!!
-#:package Aspire.Hosting.NodeJs@!!REPLACE_WITH_LATEST_VERSION!!
+#:package Aspire.Hosting.JavaScript@!!REPLACE_WITH_LATEST_VERSION!!
 #:package Aspire.Hosting.Python@!!REPLACE_WITH_LATEST_VERSION!!
 #if UseRedisCache
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!

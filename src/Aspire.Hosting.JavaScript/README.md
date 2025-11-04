@@ -1,15 +1,15 @@
-# Aspire.Hosting.Node.js library
+# Aspire.Hosting.JavaScript library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure a Node.js project.
+Provides extension methods and resource definitions for an Aspire AppHost to configure JavaScript projects.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the Aspire Node.js library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire JavaScript library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.NodeJs
+dotnet add package Aspire.Hosting.JavaScript
 ```
 
 ## Usage example
@@ -19,7 +19,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Or resource and consume the c
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var frontend = builder.AddNpmApp("frontend", "../NodeFrontend")
+builder.AddJavaScriptApp("frontend", "../frontend", "app.js");
 
 builder.Build().Run();
 ```

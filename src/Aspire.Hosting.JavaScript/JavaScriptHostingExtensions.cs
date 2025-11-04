@@ -3,12 +3,10 @@
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.NodeJs;
+using Aspire.Hosting.JavaScript;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,41 +16,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding Node applications to an <see cref="IDistributedApplicationBuilder"/>.
+/// Provides extension methods for adding JavaScript applications to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
-public static class NodeAppHostingExtension
+public static class JavaScriptHostingExtensions
 {
     private const string DefaultNodeVersion = "22";
-
-    /// <summary>
-    /// Adds a node application to the application model. Node should be available on the PATH.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="scriptPath">The path to the script that Node will execute.</param>
-    /// <param name="workingDirectory">The working directory to use for the command. If null, the directory of the <paramref name="scriptPath"/> is used.</param>
-    /// <param name="args">The arguments to pass to the command.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use AddNodeApp that takes an appDirectory and relative scriptPath instead.")]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
-
-        args ??= [];
-        string[] effectiveArgs = [scriptPath, .. args];
-        workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
-        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-
-        var resource = new NodeAppResource(name, "node", workingDirectory);
-
-        return builder.AddResource(resource)
-                      .WithNodeDefaults()
-                      .WithArgs(effectiveArgs)
-                      .WithIconName("CodeJsRectangle");
-    }
 
     /// <summary>
     /// Adds a node application to the application model. Node should be available on the PATH.
@@ -80,7 +48,6 @@ public static class NodeAppHostingExtension
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    [OverloadResolutionPriority(1)]
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -198,36 +165,6 @@ public static class NodeAppHostingExtension
         }
 
         return resourceBuilder;
-    }
-
-    /// <summary>
-    /// Adds a node application to the application model. Executes the npm command with the specified script name.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="workingDirectory">The working directory to use for the command.</param>
-    /// <param name="scriptName">The npm script to execute. Defaults to "start".</param>
-    /// <param name="args">The arguments to pass to the command.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use AddJavaScriptApp instead.")]
-    public static IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string workingDirectory, string scriptName = "start", string[]? args = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(workingDirectory);
-        ArgumentException.ThrowIfNullOrEmpty(scriptName);
-
-        string[] allArgs = args is { Length: > 0 }
-            ? ["run", scriptName, "--", .. args]
-            : ["run", scriptName];
-
-        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-        var resource = new NodeAppResource(name, "npm", workingDirectory);
-
-        return builder.AddResource(resource)
-                      .WithNodeDefaults()
-                      .WithArgs(allArgs)
-                      .WithIconName("CodeJsRectangle");
     }
 
     private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : JavaScriptAppResource =>

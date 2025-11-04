@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.NodeJs;
+namespace Aspire.Hosting.JavaScript;
 
 /// <summary>
 /// Represents a Vite application resource that can be managed and executed within a Node.js environment.

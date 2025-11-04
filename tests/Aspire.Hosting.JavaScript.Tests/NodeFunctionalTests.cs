@@ -5,7 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.Testing;
 using Microsoft.AspNetCore.InternalTesting;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 public class NodeFunctionalTests : IClassFixture<NodeAppFixture>
 {

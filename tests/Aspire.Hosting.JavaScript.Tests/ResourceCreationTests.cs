@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 public class ResourceCreationTests
 {
