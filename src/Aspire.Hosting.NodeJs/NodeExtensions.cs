@@ -126,11 +126,14 @@ public static class NodeAppHostingExtension
 
                 c.WithDockerfileBuilder(resource.WorkingDirectory, dockerfileContext =>
                 {
-                    var logger = dockerfileContext.Services.GetService<ILogger<NodeAppResource>>() ?? NullLogger<NodeAppResource>.Instance;
-                    var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+                    var defaultBaseImage = new Lazy<string>(() => GetDefaultBaseImage(appDirectory, "alpine", dockerfileContext.Services));
 
+                    // Get custom base image from annotation, if present
+                    dockerfileContext.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+
+                    var baseBuildImage = baseImageAnnotation?.BuildImage ?? defaultBaseImage.Value;
                     var builderStage = dockerfileContext.Builder
-                        .From($"node:{nodeVersion}-alpine", "build")
+                        .From(baseBuildImage, "build")
                         .EmptyLine()
                         .WorkDir("/app")
                         .Copy(".", ".")
@@ -157,8 +160,9 @@ public static class NodeAppHostingExtension
                         }
                     }
 
+                    var baseRuntimeImage = baseImageAnnotation?.RuntimeImage ?? defaultBaseImage.Value;
                     var runtimeBuilder = dockerfileContext.Builder
-                        .From($"node:{nodeVersion}-alpine", "runtime")
+                        .From(baseRuntimeImage, "runtime")
                             .EmptyLine()
                             .WorkDir("/app")
                             .CopyFrom("build", "/app", "/app")
@@ -313,10 +317,12 @@ public static class NodeAppHostingExtension
                 {
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
-                        var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>() ?? NullLogger<JavaScriptAppResource>.Instance;
-                        var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+                        // Get custom base image from annotation, if present
+                        dockerfileContext.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+                        var baseImage = baseImageAnnotation?.BuildImage ?? GetDefaultBaseImage(appDirectory, "slim", dockerfileContext.Services);
+
                         var dockerBuilder = dockerfileContext.Builder
-                            .From($"node:{nodeVersion}-slim")
+                            .From(baseImage)
                             .WorkDir("/app")
                             .Copy(".", ".");
 
@@ -469,11 +475,29 @@ public static class NodeAppHostingExtension
         return resource;
     }
 
-    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
-        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
-            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "yarn.lock"))
-            ? ["--immutable"]
-            : [];
+    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
+    {
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
+            !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
+        {
+            // Not publish mode or no yarn.lock, use default install args
+            return [];
+        }
+
+        var yarnRcYml = Path.Combine(workingDirectory, ".yarnrc.yml");
+        var yarnBerryReleaseDir = Path.Combine(workingDirectory, ".yarn", "releases");
+        var hasYarnBerry = File.Exists(yarnRcYml) || Directory.Exists(yarnBerryReleaseDir);
+
+        if (hasYarnBerry)
+        {
+            // Yarn 2+ detected, --frozen-lockfile is deprecated in v2+, use --immutable instead
+            return ["--immutable"];
+        }
+
+        // Fallback: default to Yarn v1.x behavior
+        return ["--frozen-lockfile"];
+    }
 
     /// <summary>
     /// Configures the Node.js resource to use pnmp as the package manager and optionally installs packages before the application starts.
@@ -601,6 +625,13 @@ public static class NodeAppHostingExtension
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }
+    }
+
+    private static string GetDefaultBaseImage(string appDirectory, string defaultSuffix, IServiceProvider serviceProvider)
+    {
+        var logger = serviceProvider.GetService<ILogger<JavaScriptAppResource>>() ?? NullLogger<JavaScriptAppResource>.Instance;
+        var nodeVersion = DetectNodeVersion(appDirectory, logger) ?? DefaultNodeVersion;
+        return $"node:{nodeVersion}-{defaultSuffix}";
     }
 
     /// <summary>

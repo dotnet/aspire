@@ -243,10 +243,16 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         _ansiConsole.WriteLine();
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        
+        if (!string.IsNullOrEmpty(updateCommand))
+        {
+            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+        }
+        
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

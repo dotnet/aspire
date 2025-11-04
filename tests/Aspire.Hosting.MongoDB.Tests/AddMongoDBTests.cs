@@ -286,4 +286,30 @@ public class AddMongoDBTests
         Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("mongodb://admin:{mongo2-password.value}@{mongo2.bindings.tcp.host}:{mongo2.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
+
+    [Fact]
+    public async Task MongoExpressEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var mongo = appBuilder.AddMongoDB("mongo")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithMongoExpress();
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var mongoExpressResource = Assert.Single(appModel.Resources.OfType<MongoExpressContainerResource>());
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await mongoExpressResource.GetEnvironmentVariableValuesAsync();
+        var config2 = await mongoExpressResource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "ME_CONFIG_MONGODB_SERVER");
+        Assert.Contains(config2, kvp => kvp.Key == "ME_CONFIG_MONGODB_SERVER");
+        Assert.Equal(
+            config1.First(kvp => kvp.Key == "ME_CONFIG_MONGODB_SERVER").Value,
+            config2.First(kvp => kvp.Key == "ME_CONFIG_MONGODB_SERVER").Value);
+    }
 }

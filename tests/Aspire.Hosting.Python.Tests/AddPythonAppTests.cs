@@ -3,6 +3,7 @@
 
 #pragma warning disable CS0612
 #pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
 
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
@@ -357,6 +358,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         outputHelper.WriteLine($"{label}:\n\n{output}");
     }
 
+    private static void AssertPythonCommandPath(string expectedVenvPath, string actualCommand)
+    {
+        var expectedCommand = OperatingSystem.IsWindows()
+            ? Path.Join(expectedVenvPath, "Scripts", "python.exe")
+            : Path.Join(expectedVenvPath, "bin", "python");
+        
+        Assert.Equal(expectedCommand, actualCommand);
+    }
+
     private const string PythonApp = """"
         import logging
 
@@ -505,6 +515,193 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         Assert.Equal("test_value", environmentVariables["TEST_VAR"]);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_UsesAppDirectoryWhenVenvExistsThere()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+
+        // Create .venv in the app directory
+        var appVenvPath = Path.Combine(tempAppDir.Path, ".venv");
+        Directory.CreateDirectory(appVenvPath);
+
+        var scriptName = "main.py";
+        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        // Should use the app directory .venv since it exists there
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
+        var expectedVenvPath = Path.Combine(expectedProjectDirectory, ".venv");
+
+        AssertPythonCommandPath(expectedVenvPath, pythonProjectResource.Command);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_UsesAppHostDirectoryWhenVenvOnlyExistsThere()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+        
+        // Create app directory as a subdirectory of AppHost (realistic scenario)
+        var appDirName = "python-app";
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in the AppHost directory (not in app directory)
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName);
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should use the AppHost directory .venv since it only exists there
+            AssertPythonCommandPath(appHostVenvPath, pythonProjectResource.Command);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_PrefersAppDirectoryWhenVenvExistsInBoth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        
+        // Create app directory as a subdirectory of AppHost (realistic scenario)
+        var appDirName = "python-app";
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in both directories
+        var appVenvPath = Path.Combine(appDirPath, ".venv");
+        Directory.CreateDirectory(appVenvPath);
+
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName);
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should prefer the app directory .venv when it exists in both locations
+            AssertPythonCommandPath(appVenvPath, pythonProjectResource.Command);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_DefaultsToAppDirectoryWhenVenvExistsInNeither()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempAppDir = new TempDirectory();
+
+        // Don't create .venv in either directory
+
+        var scriptName = "main.py";
+        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        // Should default to app directory when it doesn't exist in either location
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
+        var expectedVenvPath = Path.Combine(expectedProjectDirectory, ".venv");
+
+        AssertPythonCommandPath(expectedVenvPath, pythonProjectResource.Command);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_ExplicitPath_UsesVerbatim()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        
+        // Create app directory as a subdirectory of AppHost
+        var appDirName = "python-app";
+        var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
+        Directory.CreateDirectory(appDirPath);
+
+        // Create .venv in the AppHost directory
+        var appHostVenvPath = Path.Combine(builder.AppHostDirectory, ".venv");
+        Directory.CreateDirectory(appHostVenvPath);
+
+        // Create a custom venv in the app directory
+        var customVenvPath = Path.Combine(appDirPath, "custom-venv");
+        Directory.CreateDirectory(customVenvPath);
+
+        try
+        {
+            var scriptName = "main.py";
+            
+            // Explicitly specify a custom venv path - should use it verbatim, not fall back to AppHost .venv
+            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName)
+                .WithVirtualEnvironment("custom-venv");
+
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var executableResources = appModel.GetExecutableResources();
+
+            var pythonProjectResource = Assert.Single(executableResources);
+
+            // Should use the explicitly specified path, NOT the AppHost .venv
+            AssertPythonCommandPath(customVenvPath, pythonProjectResource.Command);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(appDirPath))
+            {
+                Directory.Delete(appDirPath, true);
+            }
+            if (Directory.Exists(appHostVenvPath))
+            {
+                Directory.Delete(appHostVenvPath, true);
+            }
+        }
     }
 
     [Fact]
@@ -1312,6 +1509,216 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // PYTHONUTF8 should not be set in Publish mode, even on Windows
         Assert.False(environmentVariables.ContainsKey("PYTHONUTF8"));
+    }
+
+    [Fact]
+    public async Task WithUvEnvironment_CustomBaseImages_GeneratesDockerfileWithCustomImages()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a UV-based Python project with pyproject.toml and uv.lock
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.12"
+            dependencies = []
+
+            [build-system]
+            requires = ["hatchling"]
+            build-backend = "hatchling.build"
+            """;
+
+        var uvLockContent = """
+            version = 1
+            requires-python = ">=3.12"
+            """;
+
+        var scriptContent = """
+            print("Hello from UV project with custom images!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "uv.lock"), uvLockContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resource with custom base images
+        builder.AddPythonScript("custom-images-app", projectDirectory, "main.py")
+            .WithUvEnvironment()
+            .WithDockerfileBaseImage(
+                buildImage: "ghcr.io/astral-sh/uv:python3.13-bookworm",
+                runtimeImage: "python:3.13-slim");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "custom-images-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify the custom build image is used
+        Assert.Contains("FROM ghcr.io/astral-sh/uv:python3.13-bookworm AS builder", dockerfileContent);
+
+        // Verify the custom runtime image is used
+        Assert.Contains("FROM python:3.13-slim AS app", dockerfileContent);
+    }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileWithoutUv_WithRequirementsTxt()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project without UV but with requirements.txt
+        var requirementsContent = """
+            flask==3.0.0
+            requests==2.31.0
+            """;
+
+        var scriptContent = """
+            print("Hello from non-UV project!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "requirements.txt"), requirementsContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources without UV environment
+        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for non-UV Python app");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify it's a fallback Dockerfile (single stage, no UV)
+        Assert.DoesNotContain("uv sync", dockerfileContent);
+        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
+
+        // Verify it uses pip install for requirements.txt
+        Assert.Contains("pip install --no-cache-dir -r requirements.txt", dockerfileContent);
+
+        // Verify it uses the same runtime image as UV workflow
+        Assert.Contains("FROM python:3.13-slim-bookworm", dockerfileContent);
+
+        await Verify(dockerfileContent);
+    }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileWithoutUv_WithoutRequirementsTxt()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project without UV and without requirements.txt
+        var scriptContent = """
+            print("Hello from non-UV project with no dependencies!")
+            """;
+
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.11"
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources without UV environment
+        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for non-UV Python app");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify it's a fallback Dockerfile (single stage, no UV)
+        Assert.DoesNotContain("uv sync", dockerfileContent);
+        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
+
+        // Verify it doesn't have pip install since there's no requirements.txt
+        Assert.DoesNotContain("pip install", dockerfileContent);
+
+        // Verify it uses the same runtime image as UV workflow
+        Assert.Contains("FROM python:3.11-slim-bookworm", dockerfileContent);
+
+        await Verify(dockerfileContent);
+    }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileForAllEntrypointTypes()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project without UV
+        var scriptContent = """
+            print("Hello!")
+            """;
+
+        var pythonVersionContent = "3.12";
+
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+        File.WriteAllText(Path.Combine(projectDirectory, ".python-version"), pythonVersionContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources with different entrypoint types, none using UV
+        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+        builder.AddPythonModule("module-app", projectDirectory, "mymodule");
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfiles were generated for each entrypoint type
+        var scriptDockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(scriptDockerfilePath), "Dockerfile should be generated for script entrypoint");
+
+        var moduleDockerfilePath = Path.Combine(outputDir.Path, "module-app.Dockerfile");
+        Assert.True(File.Exists(moduleDockerfilePath), "Dockerfile should be generated for module entrypoint");
+
+        var executableDockerfilePath = Path.Combine(outputDir.Path, "executable-app.Dockerfile");
+        Assert.True(File.Exists(executableDockerfilePath), "Dockerfile should be generated for executable entrypoint");
+
+        var scriptDockerfileContent = File.ReadAllText(scriptDockerfilePath);
+        var moduleDockerfileContent = File.ReadAllText(moduleDockerfilePath);
+        var executableDockerfileContent = File.ReadAllText(executableDockerfilePath);
+
+        // Verify none use UV
+        Assert.DoesNotContain("uv sync", scriptDockerfileContent);
+        Assert.DoesNotContain("uv sync", moduleDockerfileContent);
+        Assert.DoesNotContain("uv sync", executableDockerfileContent);
+
+        // Verify correct entrypoints
+        Assert.Contains("ENTRYPOINT [\"python\",\"main.py\"]", scriptDockerfileContent);
+        Assert.Contains("ENTRYPOINT [\"python\",\"-m\",\"mymodule\"]", moduleDockerfileContent);
+        Assert.Contains("ENTRYPOINT [\"pytest\"]", executableDockerfileContent);
+
+        await Verify(scriptDockerfileContent)
+            .AppendContentAsFile(moduleDockerfileContent)
+            .AppendContentAsFile(executableDockerfileContent);
     }
 }
 

@@ -43,7 +43,9 @@ public static class YarpResourceExtensions
         {
             yarpBuilder.WithEnvironment(ctx =>
             {
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 if (!developerCertificateService.SupportsContainerTrust)
                 {
                     // On systems without the ASP.NET DevCert updates introduced in .NET 10, YARP will not trust the cert used

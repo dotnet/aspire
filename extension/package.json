@@ -3,7 +3,7 @@
   "displayName": "Aspire",
   "description": "%extension.description%",
   "publisher": "microsoft-aspire",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "aiKey": "0c6ae279ed8443289764825290e4f9e2-1a736e7c-1324-4338-be46-fc2a58ae4d14-7255",
   "icon": "dotnet-aspire-logo-128.png",
   "license": "SEE LICENSE IN LICENSE.TXT",
@@ -169,12 +169,12 @@
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "aspire.workspaceHasAppHost && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "aspire.workspaceHasAppHost && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-3"
         }
       ],
@@ -325,7 +325,6 @@
     "@vscode/extension-telemetry": "^1.0.0",
     "express": "^5.1.0",
     "node-forge": "^1.3.1",
-    "p-retry": "^7.0.0",
     "vscode-jsonrpc": "^8.2.1",
     "ws": "^8.18.3"
   },

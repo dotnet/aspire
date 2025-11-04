@@ -23,8 +23,24 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(kafka);
 ```
 
+## Connection Properties
+
+When you reference a Kafka resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Kafka server
+
+The Kafka server resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The host-facing Kafka listener hostname or IP address |
+| `Port` | The host-facing Kafka listener port |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+
 ## Additional documentation
-https://learn.microsoft.com/dotnet/aspire/messaging/kafka-component
+
+* https://learn.microsoft.com/dotnet/aspire/messaging/kafka-component
 
 ## Feedback & contributing
 

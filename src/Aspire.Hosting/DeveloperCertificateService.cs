@@ -9,7 +9,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
 
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 internal class DeveloperCertificateService : IDeveloperCertificateService
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;

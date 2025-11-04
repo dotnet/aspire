@@ -3,6 +3,7 @@
 
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES004
 
 using System.Text.Json;
 using Aspire.Hosting.Publishing;
@@ -78,7 +79,8 @@ internal static class JsonDocumentManifestPublishingExtensions
                 using var stream = new MemoryStream();
                 using var writer = new Utf8JsonWriter(stream, new() { Indented = true });
 
-                var manifestPath = context.OutputPath ?? "aspire-manifest.json";
+                var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
+                var manifestPath = outputService.GetOutputDirectory();
                 var publishingContext = new ManifestPublishingContext(executionContext, manifestPath, writer, context.CancellationToken);
 
                 await publishingContext.WriteModel(context.Model, context.CancellationToken).ConfigureAwait(false);

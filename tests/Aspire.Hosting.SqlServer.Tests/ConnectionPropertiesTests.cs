@@ -39,6 +39,11 @@ public class ConnectionPropertiesTests
             },
             property =>
             {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("mssql://{sql.bindings.tcp.host}:{sql.bindings.tcp.port}", property.Value.ValueExpression);
+            },
+            property =>
+            {
                 Assert.Equal("JdbcConnectionString", property.Key);
                 Assert.Equal("jdbc:sqlserver://{sql.bindings.tcp.host}:{sql.bindings.tcp.port};user=sa;password={password.value};trustServerCertificate=true", property.Value.ValueExpression);
             });

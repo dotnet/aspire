@@ -55,7 +55,22 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     public async processDocument(document: vscode.TextDocument): Promise<void> {
         const fileExtension = path.extname(document.uri.fsPath).toLowerCase();
         const isSupportedFile = getResourceDebuggerExtensions().some(extension => extension.getSupportedFileTypes().includes(fileExtension));
+
         vscode.commands.executeCommand('setContext', 'aspire.editorSupportsRunDebug', isSupportedFile);
+
+        if (await this.isAppHostCsFile(document.uri.fsPath)) {
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', true);
+        }
+        else {
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', false);
+        }
+    }
+
+    private async isAppHostCsFile(filePath: string): Promise<boolean> {
+        const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
+        const lines = fileText.split(/\r?\n/);
+
+        return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'));
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -99,16 +114,23 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     }
 
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
-        if (!this._workspaceAppHostPath) {
+        let appHostToRun: string;
+        if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
+            appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
+        }
+        else if (this._workspaceAppHostPath) {
+            appHostToRun = this._workspaceAppHostPath;
+        }
+        else {
             vscode.window.showErrorMessage(noAppHostInWorkspace);
             return;
         }
 
         await vscode.debug.startDebugging(undefined, {
             type: 'aspire',
-            name: `Aspire: ${vscode.workspace.asRelativePath(this._workspaceAppHostPath)}`,
+            name: `Aspire: ${vscode.workspace.asRelativePath(appHostToRun)}`,
             request: 'launch',
-            program: this._workspaceAppHostPath,
+            program: appHostToRun,
             noDebug: noDebug
         });
     }

@@ -251,9 +251,9 @@ public static class MySqlBuilderExtensions
                 {
                     // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
                     // This will need to be refactored once updated service discovery APIs are available
-                    context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
-                    context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter);
+                    context.EnvironmentVariables["PMA_HOST"] = $"{endpoint.Resource.Name}:{endpoint.TargetPort}";
+                    context.EnvironmentVariables["PMA_USER"] = "root";
+                    context.EnvironmentVariables["PMA_PASSWORD"] = singleInstance.PasswordParameter;
                 });
             }
             else

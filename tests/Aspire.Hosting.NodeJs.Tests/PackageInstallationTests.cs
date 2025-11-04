@@ -476,13 +476,45 @@ public class PackageInstallationTests
             .WithYarn();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
-        Assert.Equal(["install", "--immutable"], installCommand.Args);
+        Assert.Equal(["install", "--frozen-lockfile"], installCommand.Args);
 
         var app2 = builder.AddViteApp("test-app2", tempDir.Path)
             .WithYarn(installArgs: ["--immutable-cache"]);
 
         Assert.True(app2.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out installCommand));
         Assert.Equal(["install", "--immutable-cache"], installCommand.Args);
+    }
+
+    [Fact]
+    public void WithYarn_ReturnsImmutable_WhenYarnRcYmlExists()
+    {
+        using var tempDir = new TempDirectory();
+        File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
+        File.WriteAllText(Path.Combine(tempDir.Path, ".yarnrc.yml"), "empty");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var app = builder.AddViteApp("test-app", tempDir.Path)
+            .WithYarn();
+
+        Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
+        Assert.Equal(["install", "--immutable"], installCommand.Args);
+    }
+
+    [Fact]
+    public void WithYarn_ReturnsImmutable_WhenYarnReleasesDirExists()
+    {
+        using var tempDir = new TempDirectory();
+        File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
+        Directory.CreateDirectory(Path.Combine(tempDir.Path, ".yarn", "releases"));
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var app = builder.AddViteApp("test-app", tempDir.Path)
+            .WithYarn();
+
+        Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
+        Assert.Equal(["install", "--immutable"], installCommand.Args);
     }
 
     [Fact]
