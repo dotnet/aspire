@@ -196,6 +196,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
         }
 
+        WriteContainerFilesDestination(project);
+
         await WriteCommandLineArgumentsAsync(project).ConfigureAwait(false);
 
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
@@ -214,6 +216,39 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
+    private void WriteContainerFilesDestination(IResource resource)
+    {
+        if (!resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+        {
+            return;
+        }
+
+        Writer.WriteStartObject("containerFiles");
+
+        foreach (var containerFileDestination in containerFilesAnnotations)
+        {
+            var source = containerFileDestination.Source;
+            
+            Writer.WriteStartObject(source.Name);
+            Writer.WriteString("destination", containerFileDestination.DestinationPath);
+            
+            // Get source paths from the source resource
+            if (source.TryGetAnnotationsOfType<ContainerFilesSourceAnnotation>(out var sourceAnnotations))
+            {
+                Writer.WriteStartArray("sources");
+                foreach (var sourceAnnotation in sourceAnnotations)
+                {
+                    Writer.WriteStringValue(sourceAnnotation.SourcePath);
+                }
+                Writer.WriteEndArray();
+            }
+            
+            Writer.WriteEndObject();
+        }
+
+        Writer.WriteEndObject();
+    }
+
     private async Task WriteExecutableAsync(ExecutableResource executable)
     {
         Writer.WriteString("type", "executable.v0");
@@ -226,6 +261,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         Writer.WriteString("workingDirectory", relativePathToProjectFile);
 
         Writer.WriteString("command", executable.Command);
+
+        WriteContainerFilesDestination(executable);
 
         await WriteCommandLineArgumentsAsync(executable).ConfigureAwait(false);
 
@@ -316,6 +353,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         // Write args if they are present
         await WriteCommandLineArgumentsAsync(container).ConfigureAwait(false);
 
+        // Write container files destination if present
+        WriteContainerFilesDestination(container);
+
         // Write volume & bind mount details
         WriteContainerMounts(container);
 
@@ -351,6 +391,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             if (annotation.Stage is { } stage)
             {
                 Writer.WriteString("stage", stage);
+            }
+
+            if (!annotation.HasEntrypoint)
+            {
+                Writer.WriteBoolean("buildOnly", true);
             }
 
             if (annotation.BuildArguments.Count > 0)
