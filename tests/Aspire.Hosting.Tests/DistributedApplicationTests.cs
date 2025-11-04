@@ -794,7 +794,7 @@ public class DistributedApplicationTests
 
                     if (trustScope == CertificateTrustScope.Override)
                     {
-                        foreach (var bundlePath in expectedDefaultBundleFiles!.Select<String, (string dir, string filename)>(bp =>
+                        foreach (var bundlePath in expectedDefaultBundleFiles!.Select(bp =>
                         {
                             var filename = Path.GetFileName(bp);
                             var dir = bp.Substring(0, bp.Length - filename.Length);
