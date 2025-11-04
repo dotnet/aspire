@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.DevTunnels;
+namespace Aspire.Hosting.Utils;
 
 /// <summary>
 /// Base class that extends <see cref="CoalescingAsyncOperation"/> with validation logic
@@ -130,7 +130,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// </summary>
     /// <param name="command">The command string.</param>
     /// <returns>Full path if resolved; otherwise null.</returns>
-    protected static string? ResolveCommand(string command)
+    protected internal static string? ResolveCommand(string command)
     {
         // If the command includes any directory separator, treat it as a path (relative or absolute)
         if (command.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)

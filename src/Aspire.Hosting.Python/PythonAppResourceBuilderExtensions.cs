@@ -5,9 +5,11 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -355,6 +357,10 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
+
+        // Register Python environment validation services (once per builder)
+        builder.Services.TryAddSingleton<PythonEnvironmentValidator>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationEventingSubscriber, PythonEnvironmentEventingSubscriber>());
 
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
