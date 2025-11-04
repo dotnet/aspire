@@ -62,8 +62,8 @@ class DotNetService implements IDotNetService {
 
             // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
             // We also do not want to appear like we are hanging indefinitely, so we set a max retry time
-            // of 2 seconds, with 200ms intervals
-            const maxRetryTime = 2000;
+            // of 500ms
+            const maxRetryTime = 500;
             const stopBefore = Date.now() + maxRetryTime;
             let buildTask: vscode.Task | undefined;
 
@@ -73,8 +73,6 @@ class DotNetService implements IDotNetService {
                 if (buildTask) {
                     break;
                 }
-                // Wait 200ms before next retry to avoid excessive CPU usage and API calls
-                await new Promise(resolve => setTimeout(resolve, 200));
             }
 
             if (buildTask) {
