@@ -9,7 +9,7 @@ builder.AddPythonScript("instrumented-script", "../instrumented_script", "main.p
 builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8000")
     .WithHttpEndpoint(targetPort: 8000)
-    .WithUvEnvironment();
+    .WithUv();
 
 // Run the same app on another port using uvicorn directly
 builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn")
@@ -27,11 +27,11 @@ builder.AddPythonModule("flask-app", "../flask_app", "flask")
         c.Args.Add("--port=8002");
     })
     .WithHttpEndpoint(targetPort: 8002)
-    .WithUvEnvironment();
+    .WithUv();
 
 // Uvicorn app using the AddUvicornApp method
 builder.AddUvicornApp("uvicorn-app", "../uvicorn_app", "app:app")
-    .WithUvEnvironment()
+    .WithUv()
     .WithExternalHttpEndpoints();
 
 #if !SKIP_DASHBOARD_REFERENCE
