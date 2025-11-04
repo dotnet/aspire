@@ -746,8 +746,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
         var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(uvEnvironmentResource, TestServiceProvider.Instance);
 
-        Assert.Single(commandArguments);
+        Assert.Equal(2, commandArguments.Count);
         Assert.Equal("sync", commandArguments[0]);
+        Assert.Equal("--python", commandArguments[1]);
     }
 
     [Fact]
