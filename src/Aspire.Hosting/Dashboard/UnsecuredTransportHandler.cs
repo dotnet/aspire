@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -13,12 +14,13 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Hosted service that handles unsecured transport warnings by showing an interactive modal to the user.
 /// </summary>
-internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedApplicationLifecycleHook
+internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedApplicationEventingSubscriber
 {
     private readonly UnsecuredTransportWarning _unsecuredTransportWarning;
     private readonly IInteractionService _interactionService;
     private readonly ILogger<UnsecuredTransportHandler> _logger;
     private readonly DistributedApplicationExecutionContext _executionContext;
+    private readonly TaskCompletionSource<bool> _dashboardReadyTcs = new();
     private Task? _interactionTask;
 
     public UnsecuredTransportHandler(
@@ -40,9 +42,42 @@ internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedAp
         return Task.CompletedTask;
     }
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        // Block resource startup until the user has responded to the modal
+        // Only subscribe in run mode
+        if (executionContext.IsRunMode)
+        {
+            // Subscribe to ResourceReadyEvent for the dashboard
+            eventing.Subscribe<ResourceReadyEvent>(OnResourceReadyAsync);
+            
+            // Subscribe to BeforeResourceStartedEvent to block non-dashboard resources until modal is handled
+            eventing.Subscribe<BeforeResourceStartedEvent>(OnBeforeResourceStartedAsync);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnResourceReadyAsync(ResourceReadyEvent @event, CancellationToken cancellationToken)
+    {
+        // Check if this is the dashboard resource
+        if (StringComparers.ResourceName.Equals(@event.Resource.Name, KnownResourceNames.AspireDashboard))
+        {
+            // Signal that the dashboard is ready
+            _dashboardReadyTcs.TrySetResult(true);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnBeforeResourceStartedAsync(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
+    {
+        // Don't block the dashboard itself from starting
+        if (StringComparers.ResourceName.Equals(@event.Resource.Name, KnownResourceNames.AspireDashboard))
+        {
+            return;
+        }
+
+        // Block all other resources until the interaction is complete
         if (_interactionTask is not null)
         {
             await _interactionTask.ConfigureAwait(false);
@@ -78,6 +113,9 @@ internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedAp
             Environment.Exit(1);
             return;
         }
+
+        // Wait for the dashboard to be ready before showing the modal
+        await _dashboardReadyTcs.Task.ConfigureAwait(false);
 
         // Show a blocking modal dialog to the user
         var title = "Unsecured Transport Detected";
