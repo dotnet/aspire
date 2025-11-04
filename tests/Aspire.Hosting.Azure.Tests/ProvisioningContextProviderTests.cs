@@ -316,7 +316,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
@@ -376,7 +376,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
@@ -385,7 +385,7 @@ public class ProvisioningContextProviderTests
         var context = new InputsDialogValidationContext
         {
             CancellationToken = CancellationToken.None,
-            ServiceProvider = new ServiceCollection().BuildServiceProvider(),
+            Services = new ServiceCollection().BuildServiceProvider(),
             Inputs = inputsInteraction.Inputs
         };
 
@@ -467,7 +467,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;

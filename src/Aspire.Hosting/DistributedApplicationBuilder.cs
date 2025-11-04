@@ -23,6 +23,7 @@ using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
@@ -498,11 +499,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
         {
-            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.FileDeploymentStateManager>();
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, FileDeploymentStateManager>();
         }
         else
         {
-            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.UserSecretsDeploymentStateManager>();
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, UserSecretsDeploymentStateManager>();
         }
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);

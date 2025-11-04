@@ -9,12 +9,12 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Publishing.Internal;
+namespace Aspire.Hosting.Pipelines.Internal;
 
 /// <summary>
 /// User secrets implementation of <see cref="IDeploymentStateManager"/>.
 /// </summary>
-public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>(logger)
+internal sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : DeploymentStateManagerBase<UserSecretsDeploymentStateManager>(logger)
 {
     /// <inheritdoc/>
     public override string? StateFilePath => GetStatePath();

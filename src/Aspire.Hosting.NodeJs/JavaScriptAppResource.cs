@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.NodeJs;
 
 /// <summary>
 /// A resource that represents a JavaScript application.
