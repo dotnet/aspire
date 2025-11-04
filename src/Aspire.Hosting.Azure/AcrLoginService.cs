@@ -3,7 +3,7 @@
 
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 
-using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.Publishing;
 using Azure.Core;
@@ -19,6 +19,11 @@ internal sealed class AcrLoginService : IAcrLoginService
 {
     private const string AcrUsername = "00000000-0000-0000-0000-000000000000";
     private const string AcrScope = "https://containerregistry.azure.net/.default";
+
+    private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IContainerRuntime _containerRuntime;
@@ -116,10 +121,7 @@ internal sealed class AcrLoginService : IAcrLoginService
         }
 
         // Deserialize from the string we already read
-        var tokenResponse = JsonSerializer.Deserialize<AcrRefreshTokenResponse>(responseBody, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
+        var tokenResponse = JsonSerializer.Deserialize<AcrRefreshTokenResponse>(responseBody, s_jsonOptions);
 
         if (string.IsNullOrEmpty(tokenResponse?.RefreshToken))
         {
