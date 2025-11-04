@@ -601,7 +601,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.Api>("api");
 
-var frontend = builder.AddNpmApp("frontend", "../frontend")
+var frontend = builder.AddJavaScriptApp("frontend", "../frontend")
     .WithPipelineConfiguration(context =>
     {
         // Get the build steps for this resource
@@ -1138,7 +1138,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var api = builder.AddProject<Projects.Api>("api")
     .WithExternalHttpEndpoints();
 
-var frontend = builder.AddNpmApp("frontend", "./frontend")
+var frontend = builder.AddJavaScriptApp("frontend", "./frontend")
     .WithEnvironment("API_URL", api.GetEndpoint("https"));
 ```
 
@@ -1490,6 +1490,7 @@ The following APIs have been removed in Aspire 13.0:
 - `NullPublishingActivityReporter` class
 - `PublishingExtensions` class (all extension methods)
 - `PublishingOptions` class
+- `CompletionState` enum
 
 **Lifecycle hooks** (replaced by eventing system):
 - `IDistributedApplicationLifecycleHook` interface
@@ -1504,6 +1505,25 @@ The following APIs have been removed in Aspire 13.0:
 
 **CLI commands**:
 - `--watch` flag removed from `aspire run` (replaced by `features.defaultWatchEnabled` feature flag)
+
+### Obsolete APIs
+
+The following APIs are marked as obsolete in Aspire 13.0 and will be removed in a future release:
+
+**Lifecycle hook extension methods** (use eventing subscriber extensions instead):
+- `AddLifecycleHook<T>()` - Use `AddEventingSubscriber<T>()` instead
+- `AddLifecycleHook<T>(Func<IServiceProvider, T>)` - Use `AddEventingSubscriber<T>(Func<IServiceProvider, T>)` instead
+- `TryAddLifecycleHook<T>()` - Use `TryAddEventingSubscriber<T>()` instead
+- `TryAddLifecycleHook<T>(Func<IServiceProvider, T>)` - Use `TryAddEventingSubscriber<T>(Func<IServiceProvider, T>)` instead
+
+**Publishing interfaces** (use pipeline system instead):
+- `IDistributedApplicationPublisher` - Use `PipelineStep` instead
+- `PublishingOptions` - Use `PipelineOptions` instead
+
+**Node.js/JavaScript APIs** (use new JavaScript hosting instead):
+- `AddNpmApp()` - Use `AddJavaScriptApp()` instead for general npm-based apps, or `AddViteApp()` for Vite projects
+
+While these APIs still work in 13.0, they will be removed in the next major version. Update your code to use the recommended replacements.
 
 ### Changed signatures
 
