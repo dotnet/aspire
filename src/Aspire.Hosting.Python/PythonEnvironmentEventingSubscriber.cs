@@ -44,6 +44,10 @@ internal sealed class PythonEnvironmentEventingSubscriber : IDistributedApplicat
             return;
         }
 
+        // Get the resource logger
+        var resourceLoggerService = @event.Services.GetRequiredService<ResourceLoggerService>();
+        var logger = resourceLoggerService.GetLogger(resource);
+
         try
         {
             // Validate the resource environment
@@ -53,9 +57,6 @@ internal sealed class PythonEnvironmentEventingSubscriber : IDistributedApplicat
 
             if (!isValid)
             {
-                var logger = @event.Services.GetRequiredService<ILoggerFactory>()
-                    .CreateLogger<PythonEnvironmentEventingSubscriber>();
-                
                 logger.LogWarning(
                     "Python resource '{ResourceName}' validation failed: {ValidationMessage}",
                     resource.Name,
@@ -65,9 +66,6 @@ internal sealed class PythonEnvironmentEventingSubscriber : IDistributedApplicat
         catch (Exception ex)
         {
             // Don't fail the resource startup if validation fails
-            var logger = @event.Services.GetRequiredService<ILoggerFactory>()
-                .CreateLogger<PythonEnvironmentEventingSubscriber>();
-            
             logger.LogDebug(
                 ex,
                 "Failed to validate Python resource '{ResourceName}'",
