@@ -32,7 +32,7 @@ internal sealed class AspireResourceMcpTools
     }
 
     [McpServerTool(Name = "list_resources")]
-    [Description("List the application resources. Includes information about their type (.NET project, container, executable), running state, source, HTTP endpoints, health status, commands, and relationships.")]
+    [Description("List the application resources. Includes information about their type (.NET project, container, executable), running state, source, HTTP endpoints, health status, commands, configured environment variables, and relationships.")]
     public string ListResources()
     {
         _logger.LogDebug("MCP tool list_resources called");
@@ -46,6 +46,7 @@ internal sealed class AspireResourceMcpTools
                 filteredResources,
                 _dashboardOptions.CurrentValue,
                 includeDashboardUrl: true,
+                includeEnvironmentVariables: true,
                 getResourceName: r => ResourceViewModel.GetResourceName(r, resources));
 
             var response = $"""
