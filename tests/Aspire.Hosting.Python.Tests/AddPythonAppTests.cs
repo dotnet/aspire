@@ -1993,5 +1993,267 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.NotNull(venvCreatorResource);
         Assert.Equal("pythonProject-venv-creator", venvCreatorResource.Name);
     }
+
+    // ===== Method Ordering Tests =====
+    // These tests verify that WithPip, WithUv, and WithVirtualEnvironment work correctly in any order
+
+    [Fact]
+    public void WithUv_DisablesVenvCreation_And_SetsPackageManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithUv();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify uv is the package manager
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("uv", packageManager.ExecutableName);
+
+        // Verify NO venv creator was created (uv handles venv itself)
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.Null(venvCreatorResource);
+
+        // Verify installer exists
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.NotNull(installerResource);
+    }
+
+    [Fact]
+    public void WithPip_CreatesDefaultVenv_And_WaitsForVenvCreation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        // Create requirements.txt
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithPip();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify pip is the package manager
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Contains("pip", packageManager.ExecutableName);
+
+        // Verify default .venv was created
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var envAnnotation));
+        Assert.NotNull(envAnnotation.VirtualEnvironment);
+        Assert.Contains(".venv", envAnnotation.VirtualEnvironment.VirtualEnvironmentPath);
+
+        // Verify venv creator was created
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.NotNull(venvCreatorResource);
+
+        // Verify installer exists and waits for venv creator
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        var installerWaits = installerResource.Annotations.OfType<WaitAnnotation>()
+            .Any(w => w.Resource == venvCreatorResource);
+        Assert.True(installerWaits);
+    }
+
+    [Fact]
+    public void WithPip_ThenWithVirtualEnvironment_CreateIfNotExistsTrue_CreatesVenv()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+        using var tempVenvDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithPip()
+            .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: true);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify venv annotation
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var envAnnotation));
+        Assert.NotNull(envAnnotation.VirtualEnvironment);
+        Assert.True(envAnnotation.CreateVenvIfNotExists);
+
+        // Verify venv creator was created
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.NotNull(venvCreatorResource);
+    }
+
+    [Fact]
+    public void WithPip_ThenWithVirtualEnvironment_CreateIfNotExistsFalse_DoesNotCreateVenv()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+        using var tempVenvDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithPip()
+            .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: false);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify venv annotation with createIfNotExists: false
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var envAnnotation));
+        Assert.NotNull(envAnnotation.VirtualEnvironment);
+        Assert.False(envAnnotation.CreateVenvIfNotExists);
+
+        // Verify NO venv creator was created
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.Null(venvCreatorResource);
+
+        // Verify installer still exists
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.NotNull(installerResource);
+    }
+
+    [Fact]
+    public void MethodOrdering_WithPip_WithVirtualEnvironment_CreateTrue_WithPip_CreatesVenv()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+        using var tempVenvDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        // WithPip → WithVirtualEnvironment(createIfNotExists: true) → WithPip again
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithPip()
+            .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: true)
+            .WithPip();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify venv creator was created (createIfNotExists: true persists)
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.NotNull(venvCreatorResource);
+
+        // Verify installer waits for venv creator
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        var installerWaits = installerResource.Annotations.OfType<WaitAnnotation>()
+            .Any(w => w.Resource == venvCreatorResource);
+        Assert.True(installerWaits);
+    }
+
+    [Fact]
+    public void MethodOrdering_WithPip_WithVirtualEnvironment_CreateFalse_WithPip_DoesNotCreateVenv()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+        using var tempVenvDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        // WithPip → WithVirtualEnvironment(createIfNotExists: false) → WithPip again
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithPip()
+            .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: false)
+            .WithPip();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify NO venv creator was created (createIfNotExists: false persists)
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.Null(venvCreatorResource);
+
+        // Verify installer still exists
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.NotNull(installerResource);
+    }
+
+    [Fact]
+    public void MethodOrdering_WithPip_ThenWithUv_ReplacesPackageManager_And_DisablesVenvCreation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        // WithPip → WithUv (uv should replace pip and disable venv creation)
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithPip()
+            .WithUv();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify uv is the package manager (replaced pip)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("uv", packageManager.ExecutableName);
+
+        // Verify NO venv creator (uv disables venv creation)
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.Null(venvCreatorResource);
+
+        // Verify only one installer exists
+        Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+    }
+
+    [Fact]
+    public void MethodOrdering_WithUv_ThenWithPip_ReplacesPackageManager_And_EnablesVenvCreation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        // WithUv → WithPip (pip should replace uv and enable venv creation)
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithUv()
+            .WithPip();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify pip is the package manager (replaced uv)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Contains("pip", packageManager.ExecutableName);
+
+        // Verify venv creator was created (pip enables venv creation)
+        var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
+        Assert.NotNull(venvCreatorResource);
+
+        // Verify only one installer exists
+        Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+    }
 }
 
