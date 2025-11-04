@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Polly;
+using Polly.Retry;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -1575,10 +1576,15 @@ public class DcpExecutorTests
         // Act
         await appExecutor.RunApplicationAsync();
 
-        await Task.Delay(2000);
         // Assert
-        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-        Assert.Equal(2, dcpExes.Count);
+        List<Executable> dcpExes = [];
+        var haveExes = RetryTillTrueOrTimeout(() =>
+        {
+            dcpExes.Clear();
+            dcpExes.AddRange(kubernetesService.CreatedResources.OfType<Executable>());
+            return dcpExes.Count == 2;
+        }, TestConstants.DefaultOrchestratorTestTimeout);
+        Assert.True(haveExes, $"Expected two running but instead got {dcpExes.Count}");
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
         Assert.Equal(ExecutionType.IDE, debuggableExe.Spec.ExecutionType);
@@ -2043,6 +2049,21 @@ public class DcpExecutorTests
             events ?? new DcpExecutorEvents(),
             new Locations(),
             developerCertificateService);
+    }
+
+    private static bool RetryTillTrueOrTimeout(Func<bool> check, int timeoutMilliseconds)
+    {
+        var retry = new ResiliencePipelineBuilder<bool>()
+            .AddRetry(new RetryStrategyOptions<bool>
+            {
+                BackoffType = DelayBackoffType.Exponential,
+                Delay = TimeSpan.FromMilliseconds(200),
+                MaxDelay = TimeSpan.FromSeconds(2),
+                ShouldHandle = args => ValueTask.FromResult(!args.Outcome.Result)
+            })
+            .AddTimeout(TimeSpan.FromMilliseconds(timeoutMilliseconds))
+            .Build();
+        return retry.Execute(check);
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
