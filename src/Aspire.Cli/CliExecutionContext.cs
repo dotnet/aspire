@@ -35,4 +35,25 @@ internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, Direct
     /// TaskCompletionSource that is completed when a command is selected and set on this context.
     /// </summary>
     public TaskCompletionSource<BaseCommand> CommandSelected { get; } = new();
+
+    /// <summary>
+    /// Determines whether the CLI is running as a dotnet tool.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if the CLI is running as a dotnet tool; otherwise, <c>false</c> if running as a native binary.
+    /// </returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Needs to be instance method to allow mocking in tests")]
+    public bool IsRunningAsDotNetTool()
+    {
+        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
+        // When running as a native binary, it points to "aspire" or "aspire.exe"
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(processPath))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(processPath);
+        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
+    }
 }

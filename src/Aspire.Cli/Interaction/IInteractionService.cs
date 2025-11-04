@@ -25,6 +25,6 @@ internal interface IInteractionService
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 
-    void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null);
+    void DisplayVersionUpdateNotification(string newerVersion);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
 }

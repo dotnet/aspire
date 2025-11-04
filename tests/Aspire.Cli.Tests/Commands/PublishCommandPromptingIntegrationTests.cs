@@ -994,7 +994,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayPlainText(string text) { }
     public void DisplayMarkdown(string markdown) { }
 
-    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
+    public void DisplayVersionUpdateNotification(string newerVersion) { }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
