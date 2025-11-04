@@ -287,7 +287,18 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
             debugConfiguration.args = determineArguments(baseProfile?.commandLineArgs, args);
             debugConfiguration.executablePath = baseProfile?.executablePath;
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
-            debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
+
+            if (launchOptions.isApphost) {
+                // The Aspire dashboard URL will be set as the apphost's application URL. Check if the user has disabled this behavior
+                const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
+
+                if (enableDashboardAutoLaunch) {
+                    debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
+                }
+            }
+            else {
+                debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
+            }
 
             if (!isSingleFileApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
