@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
@@ -9,6 +10,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Service that provides information about developer certificate trust capabilities.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IDeveloperCertificateService
 {
     /// <summary>

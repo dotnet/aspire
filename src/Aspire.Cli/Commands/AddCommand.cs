@@ -300,14 +300,20 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             return selection.Result;
         }
 
-        // Group the incoming package versions by channel
+        // Group the incoming package versions by channel and filter to highest version per channel
         var byChannel = packages
             .GroupBy(p => p.Channel)
+            .Select(g => new
+            {
+                Channel = g.Key,
+                // Keep only the highest version in each channel
+                HighestVersion = g.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer).First()
+            })
             .ToArray();
 
-        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Channel.Type is Packaging.PackageChannelType.Implicit);
         var explicitGroups = byChannel
-            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .Where(g => g.Channel.Type is Packaging.PackageChannelType.Explicit)
             .ToArray();
 
         // Build the root menu: implicit channel packages directly, explicit channels as submenus
@@ -315,24 +321,22 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
 
         if (implicitGroup is not null)
         {
-            foreach (var item in implicitGroup)
-            {
-                var captured = item;
-                rootChoices.Add((
-                    Label: FormatVersionLabel(captured),
-                    Action: ct => Task.FromResult(captured)
-                ));
-            }
+            var captured = implicitGroup.HighestVersion;
+            rootChoices.Add((
+                Label: FormatVersionLabel(captured),
+                Action: ct => Task.FromResult(captured)
+            ));
         }
 
         foreach (var channelGroup in explicitGroups)
         {
-            var channel = channelGroup.Key;
-            var items = channelGroup.ToArray();
+            var channel = channelGroup.Channel;
+            var item = channelGroup.HighestVersion;
 
             rootChoices.Add((
                 Label: channel.Name,
-                Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
+                // For explicit channels, we still show submenu but with only the highest version
+                Action: ct => PromptForChannelPackagesAsync(channel, new[] { item }, ct)
             ));
         }
 
@@ -353,9 +357,15 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
 
     public virtual async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
     {
+        // Filter to show only the highest version for each package ID
+        var filteredPackages = packages
+            .GroupBy(p => p.Package.Id)
+            .Select(g => g.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer).First())
+            .ToArray();
+
         var selectedIntegration = await interactionService.PromptForSelectionAsync(
             AddCommandStrings.SelectAnIntegrationToAdd,
-            packages,
+            filteredPackages,
             PackageNameWithFriendlyNameIfAvailable,
             cancellationToken);
         return selectedIntegration;

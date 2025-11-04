@@ -23,7 +23,7 @@ export const fieldRequired = vscode.l10n.t('This field is required.');
 export const runProject = (projectName: string) => vscode.l10n.t('Run {0}', projectName);
 export const debugProject = (projectName: string) => vscode.l10n.t('Debug {0}', projectName);
 export const watchProject = (projectName: string, projectType: string) => vscode.l10n.t('Watch {0} ({1})', projectName, projectType);
-export const noCsharpBuildTask = vscode.l10n.t('No C# Dev Kit build task found.');
+export const noCsharpBuildTask = vscode.l10n.t('No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn\'t finished loading?');
 export const noWatchTask = vscode.l10n.t('No watch task found. Please ensure a watch task is defined in your workspace.');
 export const buildFailedWithExitCode = (exitCode: number | string) => vscode.l10n.t('Build failed with exit code {0}.', exitCode);
 export const noOutputFromMsbuild = vscode.l10n.t('No output from msbuild.');
@@ -62,3 +62,6 @@ export const invalidOrMissingToken = vscode.l10n.t('Invalid or missing token in 
 export const invalidTokenLength = vscode.l10n.t('Invalid token length in Authorization header.');
 export const authorizationHeaderMustStartWithBearer = vscode.l10n.t('Authorization header must start with \'Bearer \'.');
 export const authorizationAndDcpHeadersRequired = vscode.l10n.t('Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.');
+export const buildFailedForProjectWithError = (project: string, error: string) => vscode.l10n.t('Build failed for project {0} with error: {1}.', project, error);
+export const lookingForDevkitBuildTask = vscode.l10n.t('C# Dev Kit is installed, looking for C# Dev Kit build task...');
+export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not installed, building using dotnet CLI...');

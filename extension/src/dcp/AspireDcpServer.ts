@@ -135,7 +135,15 @@ export default class AspireDcpServer {
                     return;
                 }
 
-                const config = await createDebugSessionConfiguration(aspireDebugSession.configuration, launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId, isApphost: false }, foundDebuggerExtension);
+                const config = await createDebugSessionConfiguration(
+                    aspireDebugSession.configuration,
+                    launchConfig,
+                    payload.args ?? [],
+                    payload.env ?? [],
+                    { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId, isApphost: false, debugSession: aspireDebugSession },
+                    foundDebuggerExtension
+                );
+
                 const resourceDebugSession = await aspireDebugSession.startAndGetDebugSession(config);
 
                 if (!resourceDebugSession) {
@@ -237,7 +245,7 @@ export default class AspireDcpServer {
         // If no WebSocket is available for the session, log a warning
         const ws = this.wsBySession.get(notification.dcp_id);
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            extensionLogOutputChannel.warn(`No WebSocket found for DCP ID: ${notification.dcp_id} or WebSocket is not open (state: ${ws?.readyState})`);
+            extensionLogOutputChannel.trace(`No WebSocket found for DCP ID: ${notification.dcp_id} or WebSocket is not open (state: ${ws?.readyState})`);
             this.pendingNotificationQueueByDcpId.set(notification.dcp_id, [...(this.pendingNotificationQueueByDcpId.get(notification.dcp_id) || []), notification]);
             return;
         }

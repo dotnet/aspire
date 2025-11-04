@@ -338,5 +338,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("WaitingForDebuggerToAttachToAppHost", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [dim]To update, run: {0}[/].
+        /// </summary>
+        public static string ToUpdateRunCommand {
+            get {
+                return ResourceManager.GetString("ToUpdateRunCommand", resourceCulture);
+            }
+        }
     }
 }

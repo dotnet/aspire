@@ -46,7 +46,7 @@ public static class ContainerResourceBuilderExtensions
                         builder.Resource,
                         new ContainerBuildOptions
                         {
-                            TargetPlatform = ContainerTargetPlatform.AllLinux
+                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
                         },
                         ctx.CancellationToken).ConfigureAwait(false);
                 },

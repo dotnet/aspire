@@ -2,6 +2,9 @@
 // $ dotnet apphost.cs --no-cache
 
 // These directives are not required in regular apps, only here in the aspire repo itself
+/*
+#:sdk Aspire.AppHost.Sdk
+*/
 #:property IsAspireHost=true
 #:property PublishAot=false
 
