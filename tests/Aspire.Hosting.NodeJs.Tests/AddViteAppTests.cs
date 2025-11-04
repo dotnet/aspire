@@ -33,7 +33,8 @@ public class AddViteAppTests
               "type": "container.v1",
               "build": {
                 "context": "vite",
-                "dockerfile": "vite.Dockerfile"
+                "dockerfile": "vite.Dockerfile",
+                "buildOnly": true
               },
               "env": {
                 "NODE_ENV": "production",

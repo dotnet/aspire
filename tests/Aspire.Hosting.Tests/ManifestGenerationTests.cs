@@ -553,6 +553,11 @@ public class ManifestGenerationTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    private sealed class TestResourceWithContainerFiles(string name) 
+        : ExecutableResource(name, "test", "."), IResourceWithContainerFiles
+    {
+    }
+
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
     {
         var program = TestProgram.Create<ManifestGenerationTests>(GetJsonManifestArgs(), includeIntegrationServices, includeNodeApp);
