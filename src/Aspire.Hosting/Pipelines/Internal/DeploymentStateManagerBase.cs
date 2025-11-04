@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Publishing.Internal;
+namespace Aspire.Hosting.Pipelines.Internal;
 
 /// <summary>
 /// Base class for deployment state managers that provides common functionality for state management,

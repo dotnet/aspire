@@ -9,7 +9,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Publishing.Internal;
+namespace Aspire.Hosting.Pipelines.Internal;
 
 /// <summary>
 /// User secrets implementation of <see cref="IDeploymentStateManager"/>.
