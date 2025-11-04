@@ -44,7 +44,7 @@
   "aspire-vscode.strings.runProject": "Run {0}",
 	"aspire-vscode.strings.debugProject": "Debug {0}",
 	"aspire-vscode.strings.watchProject": "Watch {0} ({1})",
-	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found.",
+	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn't finished loading?",
 	"aspire-vscode.strings.noWatchTask": "No watch task found. Please ensure a watch task is defined in your workspace.",
 	"aspire-vscode.strings.buildFailedWithExitCode": "Build failed with exit code {0}.",
 	"aspire-vscode.strings.noOutputFromMsbuild": "No output from msbuild.",
@@ -83,5 +83,7 @@
   "aspire-vscode.strings.invalidTokenLength": "Invalid token length in Authorization header.",
   "aspire-vscode.strings.authorizationHeaderMustStartWithBearer": "Authorization header must start with 'Bearer '.",
   "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.",
-  "aspire-vscode.strings.buildFailedForProjectWithError": "Build failed for project {0} with error: {1}."
+  "aspire-vscode.strings.buildFailedForProjectWithError": "Build failed for project {0} with error: {1}.",
+  "aspire-vscode.strings.lookingForDevkitBuildTask": "C# Dev Kit is installed, looking for C# Dev Kit build task...",
+  "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI..."
 }

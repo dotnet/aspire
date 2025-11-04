@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError, processExitedWithCode } from '../../loc/strings';
+import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError, processExitedWithCode, lookingForDevkitBuildTask, csharpDevKitNotInstalled } from '../../loc/strings';
 import { ChildProcessWithoutNullStreams, execFile, spawn } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
@@ -18,7 +18,6 @@ import {
     determineServerReadyAction
 } from '../launchProfiles';
 import { AspireDebugSession } from '../AspireDebugSession';
-import { isCsDevKitInstalled } from '../../capabilities';
 
 interface IDotNetService {
     getAndActivateDevKit(): Promise<boolean>
@@ -36,8 +35,8 @@ class DotNetService implements IDotNetService {
 
     execFileAsync = util.promisify(execFile);
 
-    writeToDebugConsole(message: string, category: 'stdout' | 'stderr') {
-        this._debugSession.sendMessage(message, false, category);
+    writeToDebugConsole(message: string, category: 'stdout' | 'stderr', addNewLine: boolean = false): void {
+        this._debugSession.sendMessage(message, addNewLine, category);
     }
 
     async getAndActivateDevKit(): Promise<boolean> {
@@ -58,98 +57,110 @@ class DotNetService implements IDotNetService {
 
     async buildDotNetProject(projectFile: string): Promise<void> {
         const isDevKitEnabled = await this.getAndActivateDevKit();
+        if (isDevKitEnabled) {
+            this.writeToDebugConsole(lookingForDevkitBuildTask, 'stdout', true);
 
-        if (!isDevKitEnabled) {
-            this.writeToDebugConsole('C# Dev Kit not available, building project using dotnet CLI...', 'stdout');
-            const args = ['build', projectFile];
+            // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
+            // We also do not want to appear like we are hanging indefinitely, so we set a max retry time
+            // of 2 seconds, with 200ms intervals
+            const maxRetryTime = 2000;
+            const stopBefore = Date.now() + maxRetryTime;
+            let buildTask: vscode.Task | undefined;
 
-            return new Promise<void>((resolve, reject) => {
-                const buildProcess = spawn('dotnet', args);
-
-                let stdoutOutput = '';
-                let stderrOutput = '';
-
-                // Stream stdout in real-time
-                buildProcess.stdout?.on('data', (data: Buffer) => {
-                    const output = data.toString();
-                    stdoutOutput += output;
-                    this.writeToDebugConsole(output, 'stdout');
-                });
-
-                // Stream stderr in real-time
-                buildProcess.stderr?.on('data', (data: Buffer) => {
-                    const output = data.toString();
-                    stderrOutput += output;
-                    this.writeToDebugConsole(output, 'stderr');
-                });
-
-                buildProcess.on('error', (err) => {
-                    extensionLogOutputChannel.error(`dotnet build process error: ${err}`);
-                    reject(new Error(buildFailedForProjectWithError(projectFile, err.message)));
-                });
-
-                buildProcess.on('close', (code) => {
-                    if (code === 0) {
-                        // if build succeeds, simply return. otherwise throw to trigger error handling
-                        if (stderrOutput) {
-                            reject(new Error(stderrOutput));
-                        } else {
-                            resolve();
-                        }
-                    } else {
-                        reject(new Error(buildFailedForProjectWithError(projectFile, stdoutOutput || stderrOutput || `Exit code ${code}`)));
-                    }
-                });
-            });
-        }
-
-        // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
-        const pRetry = (await import('p-retry')).default;
-        const buildTask = await pRetry(async () => {
-            const tasks = await vscode.tasks.fetchTasks();
-            const buildTask = tasks.find(t => t.source === "dotnet" && t.name?.includes('build'));
-            if (!buildTask) {
-                throw new Error(noCsharpBuildTask);
+            while (Date.now() < stopBefore) {
+                const tasks = await vscode.tasks.fetchTasks();
+                buildTask = tasks.find(t => t.source === "dotnet" && t.name?.includes('build'));
+                if (buildTask) {
+                    break;
+                }
             }
 
-            return buildTask;
-        }, { retries: 10 });
+            if (buildTask) {
+                // Modify the task to target the specific project
+                const projectName = path.basename(projectFile, '.csproj');
 
-        // Modify the task to target the specific project
-        const projectName = path.basename(projectFile, '.csproj');
+                // Create a modified task definition with just the project file
+                const modifiedDefinition = {
+                    ...buildTask.definition,
+                    file: projectFile  // This will make it build the specific project directly
+                };
 
-        // Create a modified task definition with just the project file
-        const modifiedDefinition = {
-            ...buildTask.definition,
-            file: projectFile  // This will make it build the specific project directly
-        };
+                // Create a new task with the modified definition
+                const modifiedTask = new vscode.Task(
+                    modifiedDefinition,
+                    buildTask.scope || vscode.TaskScope.Workspace,
+                    `build ${projectName}`,
+                    buildTask.source,
+                    buildTask.execution,
+                    buildTask.problemMatchers
+                );
 
-        // Create a new task with the modified definition
-        const modifiedTask = new vscode.Task(
-            modifiedDefinition,
-            buildTask.scope || vscode.TaskScope.Workspace,
-            `build ${projectName}`,
-            buildTask.source,
-            buildTask.execution,
-            buildTask.problemMatchers
-        );
+                extensionLogOutputChannel.info(`Executing build task: ${modifiedTask.name} for project: ${projectFile}`);
+                await vscode.tasks.executeTask(modifiedTask);
 
-        extensionLogOutputChannel.info(`Executing build task: ${modifiedTask.name} for project: ${projectFile}`);
-        await vscode.tasks.executeTask(modifiedTask);
+                let disposable: vscode.Disposable;
+                return new Promise<void>((resolve, reject) => {
+                    disposable = vscode.tasks.onDidEndTaskProcess(async e => {
+                        if (e.execution.task === modifiedTask) {
+                            if (e.exitCode !== 0) {
+                                reject(new Error(buildFailedWithExitCode(e.exitCode ?? 'unknown')));
+                            }
+                            else {
+                                return resolve();
+                            }
+                        }
+                    });
+                }).finally(() => disposable.dispose());
+            }
+            else {
+                this.writeToDebugConsole(noCsharpBuildTask, 'stdout', true);
+            }
+        }
+        else {
+            this.writeToDebugConsole(csharpDevKitNotInstalled, 'stdout', true);
+        }
 
-        let disposable: vscode.Disposable;
         return new Promise<void>((resolve, reject) => {
-            disposable = vscode.tasks.onDidEndTaskProcess(async e => {
-                if (e.execution.task === modifiedTask) {
-                    if (e.exitCode !== 0) {
-                        reject(new Error(buildFailedWithExitCode(e.exitCode ?? 'unknown')));
+            extensionLogOutputChannel.info(`Building .NET project: ${projectFile} using dotnet CLI`);
+
+            const args = ['build', projectFile];
+            const buildProcess = spawn('dotnet', args);
+
+            let stdoutOutput = '';
+            let stderrOutput = '';
+
+            // Stream stdout in real-time
+            buildProcess.stdout?.on('data', (data: Buffer) => {
+                const output = data.toString();
+                stdoutOutput += output;
+                this.writeToDebugConsole(output, 'stdout');
+            });
+
+            // Stream stderr in real-time
+            buildProcess.stderr?.on('data', (data: Buffer) => {
+                const output = data.toString();
+                stderrOutput += output;
+                this.writeToDebugConsole(output, 'stderr');
+            });
+
+            buildProcess.on('error', (err) => {
+                extensionLogOutputChannel.error(`dotnet build process error: ${err}`);
+                reject(new Error(buildFailedForProjectWithError(projectFile, err.message)));
+            });
+
+            buildProcess.on('close', (code) => {
+                if (code === 0) {
+                    // if build succeeds, simply return. otherwise throw to trigger error handling
+                    if (stderrOutput) {
+                        reject(new Error(stderrOutput));
+                    } else {
+                        resolve();
                     }
-                    else {
-                        return resolve();
-                    }
+                } else {
+                    reject(new Error(buildFailedForProjectWithError(projectFile, stdoutOutput || stderrOutput || `Exit code ${code}`)));
                 }
             });
-        }).finally(() => disposable.dispose());
+        });
     }
 
     async getDotNetTargetPath(projectFile: string): Promise<string> {
