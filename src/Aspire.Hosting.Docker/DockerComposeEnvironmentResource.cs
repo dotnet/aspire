@@ -333,7 +333,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         }
 
         // Initialize a new EnvFile for this environment
-        var envFile = EnvFile.Load(envFilePath);
+        var envFile = EnvFile.Load(envFilePath, context.Logger);
 
         foreach (var entry in CapturedEnvironmentVariables)
         {
