@@ -98,7 +98,7 @@ class DotNetService implements IDotNetService {
                 extensionLogOutputChannel.info(`Executing build task: ${modifiedTask.name} for project: ${projectFile}`);
                 await vscode.tasks.executeTask(modifiedTask);
 
-                let disposable: vscode.Disposable;
+                let disposable: vscode.Disposable = { dispose: () => {} };
                 return new Promise<void>((resolve, reject) => {
                     disposable = vscode.tasks.onDidEndTaskProcess(async e => {
                         if (e.execution.task === modifiedTask) {
