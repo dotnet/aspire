@@ -73,6 +73,8 @@ class DotNetService implements IDotNetService {
                 if (buildTask) {
                     break;
                 }
+                // Wait 200ms before next retry to avoid excessive CPU usage and API calls
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
 
             if (buildTask) {
