@@ -605,4 +605,114 @@ public class AzureFunctionsTests
         Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
         Assert.Equal("AppHostProfile", annotation.LaunchProfileName);
     }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_Works()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var projectPath = "some-path.csproj";
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath);
+
+        // Assert that default storage resource is configured
+        Assert.Contains(builder.Resources, resource =>
+            resource is AzureStorageResource && resource.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        // Assert that custom project resource type is configured
+        Assert.Contains(builder.Resources, resource =>
+            resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
+
+        // Verify that the project metadata annotation is added
+        Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
+        Assert.NotNull(projectMetadata);
+        Assert.Contains("some-path.csproj", projectMetadata.ProjectPath);
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var relativePath = "../Functions/MyFunctions.csproj";
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", relativePath);
+
+        // Verify that the project metadata annotation is added with normalized path
+        Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
+        Assert.NotNull(projectMetadata);
+        
+        // The path should be normalized to an absolute path
+        Assert.True(Path.IsPathRooted(projectMetadata.ProjectPath));
+    }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var projectPath = "test-functions.csproj";
+        builder.AddAzureFunctionsProject("funcapp", projectPath);
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        Assert.True(functionsResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
+
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext);
+        foreach (var envAnnotation in envAnnotations)
+        {
+            await envAnnotation.Callback(context);
+        }
+
+        // Verify common environment variables are set
+        Assert.True(context.EnvironmentVariables.ContainsKey("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"));
+        Assert.True(context.EnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"));
+        Assert.True(context.EnvironmentVariables.ContainsKey("AzureFunctionsJobHost__telemetryMode"));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddAzureFunctionsProject("funcapp1", "path1.csproj");
+        builder.AddAzureFunctionsProject("funcapp2", "path2.csproj");
+
+        // Assert that only one default storage resource exists and is shared
+        var storageResources = builder.Resources.OfType<AzureStorageResource>()
+            .Where(r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName))
+            .ToList();
+        Assert.Single(storageResources);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var customStorage = builder.AddAzureStorage("my-custom-storage").RunAsEmulator();
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", "functions.csproj")
+            .WithHostStorage(customStorage);
+
+        using var host = builder.Build();
+        await host.StartAsync();
+
+        // Assert that the custom storage is used and default storage is not present
+        var model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.DoesNotContain(model.Resources.OfType<AzureStorageResource>(),
+            r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
+        Assert.Equal("my-custom-storage", storageResource.Name);
+
+        Assert.True(funcApp.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relAnnotations));
+        var rel = Assert.Single(relAnnotations);
+        Assert.Equal("Reference", rel.Type);
+        Assert.Equal(customStorage.Resource, rel.Resource);
+
+        await host.StopAsync();
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddAzureFunctionsProject("funcapp", "functions.csproj");
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        
+        // Verify that AzureFunctionsAnnotation is added
+        Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
+    }
 }
