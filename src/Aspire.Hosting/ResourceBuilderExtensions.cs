@@ -1311,6 +1311,44 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a container files source annotation to the resource being built, specifying the path to the container files
+    /// source.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
+    /// <param name="builder">The resource builder to which the container files source annotation will be added. Cannot be null.</param>
+    /// <param name="sourcePath">The path to the container files source to associate with the resource. Cannot be null.</param>
+    /// <param name="behavior">Specifies how to handle existing container files source annotations. Use Replace to remove existing annotations
+    /// before adding the new one; otherwise, the new annotation is appended. The default is Append.</param>
+    /// <returns>The resource builder instance with the container files source annotation applied.</returns>
+    /// <remarks>
+    /// If the behavior is set to Replace, any existing container files source annotations are
+    /// removed before the new annotation is added.
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerFilesSource<T>(
+         this IResourceBuilder<T> builder,
+         string sourcePath,
+         ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where T : IResourceWithContainerFiles
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        // Remove any existing annotations if behavior is Replace because
+        // WithAnnotation will throw if there are multiple existing annotations of the same type.
+        if (behavior == ResourceAnnotationMutationBehavior.Replace)
+        {
+            builder.Resource.Annotations
+                .OfType<ContainerFilesSourceAnnotation>()
+                .ToList()
+                .ForEach(w => builder.Resource.Annotations.Remove(w));
+        }
+
+        return builder.WithAnnotation(new ContainerFilesSourceAnnotation()
+        {
+            SourcePath = sourcePath
+        }, behavior);
+    }
+
+    /// <summary>
     /// Excludes a resource from being published to the manifest.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -2875,5 +2913,18 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(probeAnnotation);
+    }
+
+    /// <summary>
+    /// Exclude the resource from MCP operations using the Aspire MCP server. The resource is excluded from results that return resources, console logs and telemetry.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> ExcludeFromMcp<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
 }

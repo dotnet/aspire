@@ -224,11 +224,16 @@ internal abstract class PipelineCommandBase : BaseCommand
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
             var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+            
+            // Check if debug or trace logging is enabled
+            var logLevel = parseResult.GetValue(_logLevelOption);
+            var isDebugOrTraceLoggingEnabled = logLevel?.Equals("debug", StringComparison.OrdinalIgnoreCase) == true ||
+                                                 logLevel?.Equals("trace", StringComparison.OrdinalIgnoreCase) == true;
 
             var noFailuresReported = debugMode switch
             {
                 true => await ProcessPublishingActivitiesDebugAsync(publishingActivities, backchannel, cancellationToken),
-                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
+                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, isDebugOrTraceLoggingEnabled, cancellationToken),
             };
 
             // Send terminal progress bar stop sequence
@@ -406,11 +411,11 @@ internal abstract class PipelineCommandBase : BaseCommand
         return !hasErrors;
     }
 
-    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, bool isDebugOrTraceLoggingEnabled, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger(_hostEnvironment);
+        var logger = new ConsoleActivityLogger(_hostEnvironment, isDebugOrTraceLoggingEnabled);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 

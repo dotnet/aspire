@@ -61,7 +61,7 @@ public class NodeJsPublicApiTests
         const string name = "NodeApp";
         const string scriptPath = ".\\app.js";
 
-        var action = () => builder.AddNodeApp(name, scriptPath);
+        var action = () => builder.AddNodeApp(name, ".", scriptPath);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -76,7 +76,7 @@ public class NodeJsPublicApiTests
         var name = isNull ? null! : string.Empty;
         const string scriptPath = ".\\app.js";
 
-        var action = () => builder.AddNodeApp(name, scriptPath);
+        var action = () => builder.AddNodeApp(name, ".", scriptPath);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -93,7 +93,7 @@ public class NodeJsPublicApiTests
         const string name = "NodeApp";
         var scriptPath = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddNodeApp(name, scriptPath);
+        var action = () => builder.AddNodeApp(name, ".", scriptPath);
 
         var exception = isNull
              ? Assert.Throws<ArgumentNullException>(action)
@@ -102,6 +102,7 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
@@ -117,6 +118,7 @@ public class NodeJsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
@@ -132,6 +134,7 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenWorkingDirectoryIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
@@ -147,6 +150,7 @@ public class NodeJsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    [Obsolete]
     public void AddNpmAppShouldThrowWhenScriptNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();

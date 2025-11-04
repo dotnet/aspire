@@ -652,7 +652,9 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
@@ -843,7 +845,7 @@ public class DistributedApplicationTests
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
-        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
+        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath", "fake.js")
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();

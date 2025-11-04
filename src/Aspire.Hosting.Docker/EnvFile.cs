@@ -3,10 +3,11 @@
 
 namespace Aspire.Hosting.Docker;
 
+internal sealed record EnvEntry(string Key, string? Value, string? Comment);
+
 internal sealed class EnvFile
 {
-    private readonly List<string> _lines = [];
-    private readonly HashSet<string> _keys = [];
+    private readonly SortedDictionary<string, EnvEntry> _entries = [];
 
     public static EnvFile Load(string path)
     {
@@ -16,18 +17,25 @@ internal sealed class EnvFile
             return envFile;
         }
 
+        string? currentComment = null;
+
         foreach (var line in File.ReadAllLines(path))
         {
-            envFile._lines.Add(line);
             var trimmed = line.TrimStart();
-            if (!trimmed.StartsWith('#') && trimmed.Contains('='))
+            if (trimmed.StartsWith('#'))
             {
-                var eqIndex = trimmed.IndexOf('=');
-                if (eqIndex > 0)
-                {
-                    var key = trimmed[..eqIndex].Trim();
-                    envFile._keys.Add(key);
-                }
+                // Extract comment text (remove # and trim)
+                currentComment = trimmed.Length > 1 ? trimmed[1..].Trim() : string.Empty;
+            }
+            else if (TryParseKeyValue(line, out var key, out var value))
+            {
+                envFile._entries[key] = new EnvEntry(key, value, currentComment);
+                currentComment = null; // Reset comment after associating it with a key
+            }
+            else
+            {
+                // Reset comment if we encounter a non-comment, non-key line
+                currentComment = null;
             }
         }
         return envFile;
@@ -35,21 +43,75 @@ internal sealed class EnvFile
 
     public void Add(string key, string? value, string? comment, bool onlyIfMissing = true)
     {
-        if (onlyIfMissing && _keys.Contains(key))
+        if (_entries.ContainsKey(key) && onlyIfMissing)
         {
             return;
         }
-        if (!string.IsNullOrWhiteSpace(comment))
+
+        _entries[key] = new EnvEntry(key, value, comment);
+    }
+
+    private static bool TryParseKeyValue(string line, out string key, out string? value)
+    {
+        key = string.Empty;
+        value = null;
+        var trimmed = line.TrimStart();
+        if (!trimmed.StartsWith('#') && trimmed.Contains('='))
         {
-            _lines.Add($"# {comment}");
+            var eqIndex = trimmed.IndexOf('=');
+            if (eqIndex > 0)
+            {
+                key = trimmed[..eqIndex].Trim();
+                value = eqIndex < trimmed.Length - 1 ? trimmed[(eqIndex + 1)..] : string.Empty;
+                return true;
+            }
         }
-        _lines.Add(value is not null ? $"{key}={value}" : $"{key}=");
-        _lines.Add(string.Empty);
-        _keys.Add(key);
+        return false;
     }
 
     public void Save(string path)
     {
-        File.WriteAllLines(path, _lines);
+        var lines = new List<string>();
+
+        foreach (var entry in _entries.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Comment))
+            {
+                lines.Add($"# {entry.Comment}");
+            }
+            lines.Add(entry.Value is not null ? $"{entry.Key}={entry.Value}" : $"{entry.Key}=");
+            lines.Add(string.Empty);
+        }
+
+        File.WriteAllLines(path, lines);
+    }
+
+    public void Save(string path, bool includeValues)
+    {
+        if (includeValues)
+        {
+            Save(path);
+        }
+        else
+        {
+            SaveKeysOnly(path);
+        }
+    }
+
+    private void SaveKeysOnly(string path)
+    {
+        var lines = new List<string>();
+
+        foreach (var entry in _entries.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Comment))
+            {
+                lines.Add($"# {entry.Comment}");
+            }
+            lines.Add($"{entry.Key}=");
+            lines.Add(string.Empty);
+        }
+
+        File.WriteAllLines(path, lines);
     }
 }

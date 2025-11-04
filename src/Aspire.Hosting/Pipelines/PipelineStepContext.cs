@@ -54,9 +54,4 @@ public sealed class PipelineStepContext
     /// Gets the cancellation token for the pipeline operation.
     /// </summary>
     public CancellationToken CancellationToken => PipelineContext.CancellationToken;
-
-    /// <summary>
-    /// Gets the output path for deployment artifacts.
-    /// </summary>
-    public string? OutputPath => PipelineContext.OutputPath;
 }
