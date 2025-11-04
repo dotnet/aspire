@@ -43,6 +43,12 @@
     <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
       <source xml:lang="en">Build failed with exit code {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.lookingForDevkitBuildTask">
+      <source xml:lang="en">C# Dev Kit is installed, looking for C# Dev Kit build task...</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.csharpDevKitNotInstalled">
+      <source xml:lang="en">C# Dev Kit is not installed, building using dotnet CLI...</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
       <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
     </trans-unit>
@@ -176,7 +182,7 @@
       <source xml:lang="en">No</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noCsharpBuildTask">
-      <source xml:lang="en">No C# Dev Kit build task found.</source>
+      <source xml:lang="en">No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn&apos;t finished loading?</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
       <source xml:lang="en">No apphost found in the Aspire settings file.</source>
