@@ -3,22 +3,33 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var aca = builder.AddAzureContainerAppEnvironment("aca-env");
+
+// To run on Azure comment out RunAsContainer()
+// To use your local account for DefaultCredentials, set the username property
+
 var db1 = builder.AddAzurePostgresFlexibleServer("pg")
                  .RunAsContainer()
-                 .AddDatabase("db1");
+                 .AddDatabase("db1")
+                 //.WithConnectionProperty("username", "me@domain.com")
+                 ;
 
-builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
+builder.AddProject<Projects.PostgresEndToEnd_ApiService>("dotnet")
        .WithExternalHttpEndpoints()
        .WithReference(db1).WaitFor(db1);
 
 // Python (Flask)
 builder.AddPythonModule("pythonservice", "../PostgresEndToEnd.PythonService", "flask")
        .WithEnvironment("FLASK_APP", "app:app")
-       .WithArgs("run", "--host=0.0.0.0")
-       .WithHttpEndpoint(targetPort: 5000, env: "FLASK_RUN_PORT")
-       .WithReference(db1)
-       .WaitFor(db1)
-       .WithExternalHttpEndpoints();
+       .WithUvEnvironment()
+       .WithArgs(c =>
+       {
+           c.Args.Add("run");
+           c.Args.Add("--host=0.0.0.0");
+           c.Args.Add("--port=8002");
+       })
+       .WithHttpEndpoint(targetPort: 8002)
+       .WithReference(db1).WaitFor(db1);
 
 // NodeJS (TypeScript)
 builder.AddNodeApp("nodeservice", "../PostgresEndToEnd.NodeService", "app.ts")
@@ -27,11 +38,13 @@ builder.AddNodeApp("nodeservice", "../PostgresEndToEnd.NodeService", "app.ts")
        .WaitFor(db1)
        .WithExternalHttpEndpoints();
 
-// Java - Using AddExecutable for Java Spark application
-builder.AddExecutable("javaservice", "java", "../PostgresEndToEnd.JavaService", "-jar", "target/javaservice.jar")
+// Java (Spark Framework)
+var mvn = builder.AddExecutable("mvn-clean", OperatingSystem.IsWindows() ? "cmd" : "bash", "../PostgresEndToEnd.JavaService", "mvn clean package -DskipTests");
+
+builder.AddExecutable("javaservice", "java", "../PostgresEndToEnd.JavaService", ["-jar", "target/javaservice-1.0.0.jar"])
        .WithHttpEndpoint(env: "PORT")
-       .WithReference(db1)
-       .WaitFor(db1)
+       .WaitFor(mvn)
+       .WithReference(db1).WaitFor(db1)
        .WithExternalHttpEndpoints();
 
 #if !SKIP_DASHBOARD_REFERENCE

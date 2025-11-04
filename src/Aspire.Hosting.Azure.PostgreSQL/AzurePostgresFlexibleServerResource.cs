@@ -156,25 +156,8 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
             builder.Append($"{databaseNameExpression:uri}");
         }
 
-        if (UsePasswordAuthentication && PasswordParameter is not null)
-        {
-            if (UserNameParameter is not null)
-            {
-                builder.Append($"?user={UserNameParameter:uri}");
-                builder.Append($"&password={PasswordParameter:uri}");
-            }
-            else
-            {
-                builder.Append($"?password={PasswordParameter:uri}");
-            }
-        }
-        else
-        {
-            if (UserNameParameter is not null)
-            {
-                builder.Append($"?user={UserNameParameter:uri}");
-            }
-        }
+        // Using TLS is mandatory with Azure Database for PostgreSQL flexible server instances
+        builder.AppendLiteral("?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin");
 
         return builder.Build();
     }
@@ -183,7 +166,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// Gets the JDBC connection string for the server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}?user={user}&amp;password={password}</c>.
+    /// Format: <c>jdbc:postgresql://{host}:{port}?sslmode=require</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString =>
         IsContainer ?

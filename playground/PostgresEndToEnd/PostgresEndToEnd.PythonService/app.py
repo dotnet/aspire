@@ -9,7 +9,7 @@ app = Flask(__name__)
 def get_connection():
     uri = os.environ['DB1_URI']
     if os.environ.get('DB1_AZURE', "false").lower() == "true":
-        user = "azure_user"  # Or use os.environ['DB1_USERNAME'] if required
+        user = os.environ.get("DB1_USERNAME", "azure_user") # Default user for Entra ID Managed Indentity
         credential = DefaultAzureCredential()
         password = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
     else:

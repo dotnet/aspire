@@ -274,6 +274,43 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a connection property annotation to the resource being built. Any resource referencing this resource will
+    /// get this connection property included in its environment variables.
+    /// </summary>
+    /// <remarks>Use this method to associate a named connection property with a resource during its
+    /// construction. This is typically used to provide connection-related metadata for resources that require
+    /// environment-specific configuration.</remarks>
+    /// <typeparam name="T">The type of the resource, which must implement IResourceWithEnvironment.</typeparam>
+    /// <param name="builder">The resource builder to which the connection property annotation will be added. Cannot be null.</param>
+    /// <param name="name">The name of the connection property to annotate. Cannot be null.</param>
+    /// <param name="value">The value of the connection property, specified as a reference expression.</param>
+    /// <returns>The same resource builder instance with the connection property annotation applied.</returns>
+    public static IResourceBuilder<T> WithConnectionProperty<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value) where T : IResourceWithConnectionString
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return builder.WithAnnotation(new ConnectionPropertyAnnotation(name, value));
+    }
+
+    /// <summary>
+    /// Adds a connection property annotation to the resource being built. Any resource referencing this resource will
+    /// get this connection property included in its environment variables.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that implements the IResourceWithEnvironment interface.</typeparam>
+    /// <param name="builder">The resource builder to which the connection property will be added. Cannot be null.</param>
+    /// <param name="name">The name of the connection property to add. Cannot be null.</param>
+    /// <param name="value">The value to assign to the connection property.</param>
+    /// <returns>The same resource builder instance with the specified connection property annotation applied.</returns>
+    public static IResourceBuilder<T> WithConnectionProperty<T>(this IResourceBuilder<T> builder, string name, string value) where T : IResourceWithConnectionString
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return builder.WithAnnotation(new ConnectionPropertyAnnotation(name, ReferenceExpression.Create($"{value}")));
+    }
+
+    /// <summary>
     /// Adds arguments to be passed to a resource that supports arguments when it is launched.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -495,29 +532,16 @@ public static class ResourceBuilderExtensions
                 };
 
                 SplatConnectionProperties(resource, prefix, context);
+
+                if (resource.TryGetAnnotationsOfType<ConnectionPropertyAnnotation>(out var connectionPropertyAnnotations))
+                {
+                    foreach (var annotation in connectionPropertyAnnotations)
+                    {
+                        context.EnvironmentVariables[$"{prefix}{annotation.Name.ToUpperInvariant()}"] = annotation.ReferenceExpression;
+                    }
+                }
             }
         });
-    }
-
-    /// <summary>
-    /// Retrieves the value of a specified connection property from the resource's connection properties.
-    /// </summary>
-    /// <remarks>Throws a KeyNotFoundException if the specified key does not exist in the resource's
-    /// connection properties.</remarks>
-    /// <param name="resource">The resource that provides the connection properties. Cannot be null.</param>
-    /// <param name="key">The key of the connection property to retrieve. Cannot be null.</param>
-    /// <returns>The value associated with the specified connection property key.</returns>
-    public static ReferenceExpression GetConnectionProperty(this IResourceWithConnectionString resource, string key)
-    {
-        foreach (var connectionProperty in resource.GetConnectionProperties())
-        {
-            if (string.Equals(connectionProperty.Key, key, StringComparison.OrdinalIgnoreCase))
-            {
-                return connectionProperty.Value;
-            }
-        }
-
-        return ReferenceExpression.Empty;
     }
 
     private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)

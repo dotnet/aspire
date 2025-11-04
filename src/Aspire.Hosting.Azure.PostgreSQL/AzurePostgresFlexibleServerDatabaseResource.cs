@@ -59,7 +59,7 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// Gets the JDBC connection string for the Azure Postgres Flexible Server database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?sslmode=require</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString =>
         IsContainer ?

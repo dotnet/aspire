@@ -125,9 +125,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         var builder = new ReferenceExpressionBuilder();
         builder.AppendLiteral("jdbc:postgresql://");
-        builder.Append($"{Host}");
-        builder.AppendLiteral(":");
-        builder.Append($"{Port}");
+        builder.Append($"{Host}:{Port}");
 
         if (databaseName is not null)
         {
@@ -135,9 +133,6 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
             builder.Append($"{databaseNameExpression:uri}");
         }
-
-        builder.Append($"?user={UserNameReference:uri}");
-        builder.Append($"&password={PasswordParameter:uri}");
 
         return builder.Build();
     }

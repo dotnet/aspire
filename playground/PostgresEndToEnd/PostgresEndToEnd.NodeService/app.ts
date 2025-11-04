@@ -6,23 +6,25 @@ import { v4 as uuidv4 } from 'uuid';
 const app = express();
 
 async function getPool() {
-    const uri = process.env.DB1_URI!;
     let user: string, password: string;
 
     if (process.env.DB1_AZURE === "true") {
-        user = "azure_user"; // Or use process.env.DB1_USERNAME if required
+        user = process.env.DB1_USERNAME || "azure_user"; // Default user for Entra ID Managed Identity
         const credential = new DefaultAzureCredential();
         const tokenResponse = await credential.getToken("https://ossrdbms-aad.database.windows.net/.default");
-        password = tokenResponse.token;
+        password = String(tokenResponse.token);
     } else {
         user = process.env.DB1_USERNAME!;
         password = process.env.DB1_PASSWORD!;
     }
 
     return new Pool({
-        connectionString: uri,
+        host: process.env.DB1_HOST,
+        port: parseInt(process.env.DB1_PORT || '5432'),
+        database: process.env.DB1_DATABASE,
         user,
         password,
+        ssl: process.env.DB1_AZURE === "true" ? { rejectUnauthorized: true } : false,
     });
 }
 
