@@ -1192,16 +1192,17 @@ public static class PythonAppResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="args">Optional custom arguments to pass to the uv sync command. If not provided, defaults to ["sync", "--python"].</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// This method creates a child resource that runs <c>uv sync</c> in the working directory of the Python application.
+    /// This method creates a child resource that runs <c>uv sync --python</c> in the working directory of the Python application.
     /// The Python application will wait for this resource to complete successfully before starting.
     /// </para>
     /// <para>
     /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
-    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual
-    /// environment exists and all dependencies specified in pyproject.toml are installed and synchronized.
+    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync --python</c> command ensures that the virtual
+    /// environment exists, Python is installed if needed, and all dependencies specified in pyproject.toml are installed and synchronized.
     /// </para>
     /// <para>
     /// This method is idempotent - calling it multiple times on the same resource will not create duplicate UV environment resources.
@@ -1214,7 +1215,19 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
-    ///     .WithUv()  // Automatically runs 'uv sync' before starting the app
+    ///     .WithUv()  // Automatically runs 'uv sync --python' before starting the app
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Add a Python app with custom UV arguments:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
+    ///     .WithUv(["sync", "--python", "3.12", "--no-dev"])  // Custom uv sync args
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
@@ -1224,10 +1237,13 @@ public static class PythonAppResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">
     /// Thrown when a resource with the UV environment name already exists but is not a <see cref="PythonUvEnvironmentResource"/>.
     /// </exception>
-    public static IResourceBuilder<T> WithUv<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithUv<T>(this IResourceBuilder<T> builder, string[]? args = null)
         where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        // Default args include --python flag to bootstrap Python if needed
+        args ??= ["sync", "--python"];
 
         var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
 
@@ -1253,7 +1269,7 @@ public static class PythonAppResourceBuilderExtensions
             var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
 
             uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
-                .WithArgs("sync")
+                .WithArgs(args)
                 .WithParentRelationship(builder)
                 .ExcludeFromManifest();
 
@@ -1271,14 +1287,14 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
-    /// This method is obsolete. Use <see cref="WithUv{T}(IResourceBuilder{T})"/> instead.
+    /// This method is obsolete. Use <see cref="WithUv{T}(IResourceBuilder{T}, string[])"/> instead.
     /// </remarks>
     [Obsolete("Use WithUv instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<T> WithUvEnvironment<T>(this IResourceBuilder<T> builder)
         where T : PythonAppResource
     {
-        return builder.WithUv();
+        return builder.WithUv(args: null);
     }
 
     internal static IResourceBuilder<PythonAppResource> WithPythonEnvironment(this IResourceBuilder<PythonAppResource> builder, Action<PythonEnvironmentAnnotation> configure)
