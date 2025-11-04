@@ -496,12 +496,19 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Automatically add pip as the package manager if a requirements.txt file exists
+        // Automatically add package manager based on detected configuration files
         // Only do this in run mode since the installer resource only runs in run mode
         if (builder.ExecutionContext.IsRunMode)
         {
             var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
-            if (File.Exists(Path.Combine(appDirectoryFullPath, "requirements.txt")))
+            
+            // Check for pyproject.toml first (uv is the modern approach)
+            if (File.Exists(Path.Combine(appDirectoryFullPath, "pyproject.toml")))
+            {
+                resourceBuilder.WithUv();
+            }
+            // Fallback to requirements.txt for pip
+            else if (File.Exists(Path.Combine(appDirectoryFullPath, "requirements.txt")))
             {
                 resourceBuilder.WithPip();
             }
