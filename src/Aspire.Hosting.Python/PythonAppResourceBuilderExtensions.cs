@@ -1258,6 +1258,19 @@ public static class PythonAppResourceBuilderExtensions
                     builder.Resource.Annotations.OfType<PythonPackageInstallerAnnotation>()
                         .ToList()
                         .ForEach(a => builder.Resource.Annotations.Remove(a));
+                        
+                    // Also remove venv creator if it exists
+                    var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
+                    var venvCreatorResource = builder.ApplicationBuilder.Resources
+                        .FirstOrDefault(r => r.Name == venvCreatorName);
+                    if (venvCreatorResource != null)
+                    {
+                        builder.ApplicationBuilder.Resources.Remove(venvCreatorResource);
+                        builder.Resource.Annotations.OfType<WaitAnnotation>()
+                            .Where(w => w.Resource == venvCreatorResource)
+                            .ToList()
+                            .ForEach(w => builder.Resource.Annotations.Remove(w));
+                    }
                 }
                 return;
             }
@@ -1281,6 +1294,42 @@ public static class PythonAppResourceBuilderExtensions
                     !builder.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installCommand))
                 {
                     throw new InvalidOperationException("PythonPackageManagerAnnotation and PythonInstallCommandAnnotation are required when installing packages.");
+                }
+
+                // Get the Python environment annotation to check if we're using uv
+                builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv);
+                var isUsingUv = pythonEnv?.Uv == true;
+
+                // If not using uv, we need to create the venv if it doesn't exist
+                if (!isUsingUv && pythonEnv?.VirtualEnvironment != null)
+                {
+                    var venvPath = Path.IsPathRooted(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath)
+                        ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
+                        : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+                    // Check if venv exists
+                    if (!Directory.Exists(venvPath))
+                    {
+                        // Create venv creator resource if it doesn't exist
+                        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
+                        var existingVenvCreator = builder.ApplicationBuilder.Resources
+                            .OfType<PythonVenvCreatorResource>()
+                            .FirstOrDefault(r => r.Name == venvCreatorName);
+
+                        if (existingVenvCreator == null)
+                        {
+                            var venvCreator = new PythonVenvCreatorResource(venvCreatorName, builder.Resource, venvPath);
+                            var venvCreatorBuilder = builder.ApplicationBuilder.AddResource(venvCreator)
+                                .WithCommand("python")
+                                .WithArgs(["-m", "venv", venvPath])
+                                .WithWorkingDirectory(builder.Resource.WorkingDirectory)
+                                .WithParentRelationship(builder.Resource)
+                                .ExcludeFromManifest();
+
+                            // Make the installer wait for the venv creator to complete
+                            installerBuilder.WaitForCompletion(venvCreatorBuilder);
+                        }
+                    }
                 }
 
                 installerBuilder
