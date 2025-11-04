@@ -596,7 +596,7 @@ When enabled, this preview feature can improve the onboarding experience for new
 
 ### Non-interactive mode for CI/CD
 
-Aspire 13.0 introduces the `--non-interactive` flag and `ICliHostEnvironment` service to support clean, automation-friendly output in CI/CD pipelines.
+Aspire 13.0 introduces the `--non-interactive` flag for automation-friendly output in CI/CD pipelines.
 
 ```bash
 # Run commands without prompts or interactive elements
@@ -605,46 +605,15 @@ aspire init --non-interactive
 aspire update --non-interactive
 ```
 
-**What changes in non-interactive mode:**
-
-- **No prompts**: All user input prompts are disabled (commands fail if required values aren't provided)
-- **No spinners**: Progress spinners and interactive progress bars are disabled
-- **Clean output**: Output is optimized for log files and automation parsing
-- **ANSI support**: Colors and formatting are preserved unless `NO_COLOR=1` is set
-
-**Automatic CI environment detection:**
-
-The CLI automatically enables non-interactive mode when it detects common CI environments:
-
-- GitHub Actions (`GITHUB_ACTIONS`)
-- Azure Pipelines (`AZURE_PIPELINES`, `TF_BUILD`)
-- Jenkins (`JENKINS_URL`)
-- GitLab CI (`GITLAB_CI`)
-- CircleCI (`CIRCLECI`)
-- Travis CI (`TRAVIS`)
-- Buildkite (`BUILDKITE`)
-- AppVeyor (`APPVEYOR`)
-- TeamCity (`TEAMCITY_VERSION`)
-- Bitbucket Pipelines (`BITBUCKET_BUILD_NUMBER`)
-- AWS CodeBuild (`CODEBUILD_BUILD_ID`)
+When enabled, non-interactive mode disables user prompts and interactive progress indicators, providing clean output suitable for CI/CD logs. The CLI automatically detects common CI environments (GitHub Actions, Azure Pipelines, etc.) and enables this mode automatically.
 
 **Environment variables:**
 
 - `ASPIRE_NON_INTERACTIVE=true` - Enable non-interactive mode
 - `NO_COLOR=1` - Disable ANSI colors in output
-- `ASPIRE_PLAYGROUND=true` - Force interactive mode (overrides all detection)
 
-**Example CI workflow:**
-
-```yaml
-# GitHub Actions
-- name: Deploy Aspire app
-  run: aspire deploy --non-interactive
-  env:
-    ASPIRE_NON_INTERACTIVE: true
-```
-
-The `ICliHostEnvironment` service allows CLI commands and extensions to adapt their behavior based on the execution environment, ensuring consistent, automation-friendly output in CI/CD scenarios.
+> [!NOTE]
+> Not all commands support non-interactive mode. Commands that require user input will fail if the `--non-interactive` flag is set and required values are not provided through other means.
 
 ---
 
