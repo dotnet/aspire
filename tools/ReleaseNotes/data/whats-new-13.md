@@ -64,7 +64,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Trace and telemetry improvements](#trace-and-telemetry-improvements)
   - [UI and accessibility improvements](#ui-and-accessibility-improvements)
 - [App Model Enhancements](#🖥️-app-model-enhancements)
-  - [C# app support](#c-app-support)
+  - [C# file-based app support](#c-file-based-app-support)
   - [Network identifiers](#network-identifiers)
   - [Dynamic input system](#dynamic-input-system-experimental)
   - [Reference and connection improvements](#reference-and-connection-improvements)
@@ -1044,7 +1044,7 @@ This enables AI assistants to directly interact with your Aspire applications, a
 
 ## 🖥️ App Model Enhancements
 
-### C# app support
+### C# file-based app support
 
 Aspire 13.0 adds first-class support for C# file-based applications, enabling you to add C# apps without full project files to your distributed application.
 
@@ -1828,7 +1828,7 @@ builder.Services.AddSingleton<IDistributedApplicationEventingSubscriber, MyEvent
 The following features are marked as `[Experimental]` and may change in future releases:
 
 - **Dockerfile builder API**: `WithDockerfileBuilder`, `AddDockerfileBuilder`, `WithDockerfileBaseImage`
-- **C# app support**: `AddCSharpApp`
+- **C# file-based app support**: `AddCSharpApp`
 - **Dynamic inputs**: `InputLoadOptions`, dynamic input loading
 - **Pipeline features**: `IDistributedApplicationPipeline` and related APIs
 
