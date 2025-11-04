@@ -83,7 +83,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <item>If <c>.venv</c> exists in the AppHost directory, use it.</item>
     /// <item>Otherwise, default to <c>.venv</c> in the app directory.</item>
     /// </list>
-    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
@@ -118,7 +118,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs a Python module using <c>python -m &lt;module&gt;</c>.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the module.
     /// </para>
     /// <para>
@@ -153,7 +153,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs an executable from the virtual environment's bin directory.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the executable.
     /// </para>
     /// <para>
@@ -811,11 +811,19 @@ public static class PythonAppResourceBuilderExtensions
     /// When relative, it is resolved from the working directory of the Python application.
     /// Common values include ".venv", "venv", or "myenv".
     /// </param>
+    /// <param name="createIfNotExists">
+    /// Whether to automatically create the virtual environment if it doesn't exist. Defaults to <c>true</c>.
+    /// Set to <c>false</c> to disable automatic venv creation (the venv must already exist).
+    /// </param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
     /// This method updates the Python executable path to use the specified virtual environment.
-    /// The virtual environment must already exist and be properly initialized before the application runs.
+    /// </para>
+    /// <para>
+    /// By default (<paramref name="createIfNotExists"/> = <c>true</c>), if the virtual environment doesn't exist,
+    /// it will be automatically created before running the application (when using pip package manager, not uv).
+    /// Set <paramref name="createIfNotExists"/> to <c>false</c> to disable this behavior and require the venv to already exist.
     /// </para>
     /// <para>
     /// Virtual environments allow Python applications to have isolated dependencies separate from
@@ -832,10 +840,14 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithVirtualEnvironment("myenv");
+    /// 
+    /// // Disable automatic venv creation (require venv to exist)
+    /// var python2 = builder.AddPythonApp("api2", "../python-api2", "main.py")
+    ///     .WithVirtualEnvironment("myenv", createIfNotExists: false);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithVirtualEnvironment<T>(
-        this IResourceBuilder<T> builder, string virtualEnvironmentPath) where T : PythonAppResource
+        this IResourceBuilder<T> builder, string virtualEnvironmentPath, bool createIfNotExists = true) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
@@ -865,6 +877,7 @@ public static class PythonAppResourceBuilderExtensions
         builder.WithPythonEnvironment(env =>
         {
             env.VirtualEnvironment = virtualEnvironment;
+            env.CreateVenvIfNotExists = createIfNotExists;
         });
 
         return builder;
@@ -1238,6 +1251,12 @@ public static class PythonAppResourceBuilderExtensions
         // Get the virtual environment path
         if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
             pythonEnv.VirtualEnvironment == null)
+        {
+            return;
+        }
+
+        // Check if automatic venv creation is disabled
+        if (!pythonEnv.CreateVenvIfNotExists)
         {
             return;
         }

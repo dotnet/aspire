@@ -11,4 +11,10 @@ internal class PythonEnvironmentAnnotation : IResourceAnnotation
     public string? Version { get; set; }
 
     public VirtualEnvironment? VirtualEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to automatically create the virtual environment if it doesn't exist.
+    /// Defaults to true.
+    /// </summary>
+    public bool CreateVenvIfNotExists { get; set; } = true;
 }
