@@ -289,7 +289,7 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
 
             if (launchOptions.isApphost) {
-                // The Aspire dashboard URL will be set as the apphost's application URL. Check if the user has disabled this behavior
+                // The Aspire dashboard URL will be set as the apphost's application URL. Check if auto-launch is enabled
                 const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
 
                 if (enableDashboardAutoLaunch) {
