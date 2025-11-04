@@ -33,6 +33,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Modern Python Tooling with uv](#modern-python-tooling-with-uv)
     - [VS Code Debugging Support](#vs-code-debugging-support)
     - [Automatic Dockerfile Generation](#automatic-dockerfile-generation)
+    - [Python Version Detection](#python-version-detection)
     - [Starter Template: Vite + FastAPI](#starter-template-vite--fastapi)
   - [JavaScript as a First-Class Citizen](#javascript-as-a-first-class-citizen)
     - [Unified JavaScript Application Model](#unified-javascript-application-model)
@@ -40,17 +41,17 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Customizing Scripts](#customizing-scripts)
     - [Vite Support](#vite-support)
     - [Dynamic Dockerfile Generation](#dynamic-dockerfile-generation)
-    - [Container Files as Build Artifacts](#container-files-as-build-artifacts)
   - [Polyglot Infrastructure](#polyglot-infrastructure)
     - [Polyglot Connection Properties](#polyglot-connection-properties)
     - [Certificate Trust Across Languages](#certificate-trust-across-languages)
     - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
-- [CLI and tooling](#-cli-and-tooling)
+- [CLI and Tooling](#-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
   - [aspire update improvements](#aspire-update-improvements)
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation-preview)
-- [Major new features](#major-new-features)
+  - [Non-interactive mode for CI/CD](#non-interactive-mode-for-cicd)
+- [Major New Features](#-major-new-features)
   - [aspire do](#aspire-do)
     - [Running pipeline steps](#running-pipeline-steps)
     - [Container Files as Build Artifacts](#container-files-as-build-artifacts-1)
@@ -58,24 +59,28 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Certificate Management](#certificate-management)
 - [Integrations](#-integrations)
   - [.NET MAUI Integration](#net-maui-integration)
-- [Dashboard enhancements](#-dashboard-enhancements)
+- [Dashboard Enhancements](#-dashboard-enhancements)
   - [Model Context Protocol (MCP) server](#model-context-protocol-mcp-server)
   - [Trace and telemetry improvements](#trace-and-telemetry-improvements)
   - [UI and accessibility improvements](#ui-and-accessibility-improvements)
-- [App model enhancements](#-app-model-enhancements)
+- [App Model Enhancements](#-app-model-enhancements)
   - [C# app support](#c-app-support)
   - [Network identifiers](#network-identifiers)
   - [Dynamic input system](#dynamic-input-system-experimental)
   - [Reference and connection improvements](#reference-and-connection-improvements)
   - [Event system](#event-system)
   - [Other app model improvements](#other-app-model-improvements)
-- [Deployment improvements](#-deployment-improvements)
+- [Deployment Improvements](#-deployment-improvements)
   - [Deployment pipeline reimplementation](#deployment-pipeline-reimplementation)
   - [Deployment state management](#deployment-state-management)
 - [Azure](#-azure)
   - [Azure tenant selection](#azure-tenant-selection)
   - [Azure App Service enhancements](#azure-app-service-enhancements)
-- [Breaking changes](#-breaking-changes)
+- [Troubleshooting](#-troubleshooting)
+  - [Python debugging issues](#python-debugging-issues)
+  - [Container files extraction failures](#container-files-extraction-failures)
+  - [Pipeline step failures](#pipeline-step-failures)
+- [Breaking Changes](#-breaking-changes)
 
 ## Upgrade to Aspire 13.0
 
@@ -177,14 +182,45 @@ When using `WithUvEnvironment()`, Aspire:
 
 #### VS Code Debugging Support
 
-Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13 adds debugging support for:
+Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13 automatically enables debugging infrastructure for all Python resources.
 
-- **Python scripts**: Debug `AddPythonScript` resources
-- **Python modules**: Debug `AddPythonModule` with proper module resolution
-- **Flask applications**: Debug Flask apps with auto-reload
-- **Uvicorn/FastAPI**: Debug ASGI applications with hot-reload
+**Automatic debugging configuration:**
 
-The Aspire IDE extensions automatically configure the Python debugger with the correct launch configuration, environment variables, and working directories.
+Debugging support is automatically enabled for Python resources created with `AddPythonScript`, `AddPythonModule`, and `AddPythonExecutable`. No additional configuration is required:
+
+```csharp
+// Debugging is automatically enabled
+var worker = builder.AddPythonModule("worker", "./worker", "worker.main");
+// Internally calls .WithDebugging() automatically
+```
+
+**Supported debugging scenarios:**
+
+- **Python scripts**: Debug `AddPythonScript` resources with breakpoints and variable inspection
+- **Python modules**: Debug `AddPythonModule` with proper module resolution and import handling
+- **Flask applications**: Debug Flask apps with auto-reload and request debugging
+- **Uvicorn/FastAPI**: Debug ASGI applications with hot-reload and async/await support
+
+**How it works:**
+
+1. Aspire automatically configures Python debugging annotations for each Python resource
+2. The Aspire IDE extension (VS Code) reads these annotations and generates launch configurations
+3. Launch configurations are written to `.vscode/launch.json` with correct:
+   - Python interpreter paths
+   - Environment variables
+   - Working directories
+   - Module paths and entry points
+4. The debugger attaches using `debugpy` (automatically installed in your virtual environment)
+
+**IDE execution specifications:**
+
+Aspire writes IDE execution specifications to `.aspire/ide-execution-spec.json` that include:
+- Interpreter paths (`interpreterPath`)
+- Module names for `-m` execution
+- Environment variables for debugging
+- Working directory paths
+
+This enables seamless debugging across Python scripts, modules, Flask apps, and ASGI frameworks without manual configuration.
 
 #### Automatic Dockerfile Generation
 
@@ -201,6 +237,25 @@ When you publish this app, Aspire automatically generates a Dockerfile that:
 - Configures the working directory
 - Sets up the ASGI server with production settings
 - Follows Python container best practices
+
+#### Python Version Detection
+
+Aspire automatically detects the Python version for Dockerfile generation using multiple sources:
+
+1. **`.python-version` file** (highest priority)
+   ```
+   3.13
+   ```
+
+2. **`pyproject.toml`** - `requires-python` field
+   ```toml
+   [project]
+   requires-python = ">=3.13"
+   ```
+
+3. **Virtual environment** - Executes `python --version` as fallback
+
+The detected version is used to select the appropriate Python base image for Docker publishing. Aspire does not enforce a minimum Python version requirement - any Python version detected through these methods will be supported.
 
 #### Starter Template: Vite + FastAPI
 
@@ -245,20 +300,40 @@ By default, `AddJavaScriptApp`:
 
 #### Package Manager Flexibility
 
-Aspire automatically detects and supports multiple JavaScript package managers. You can explicitly specify a package manager or customize installation:
+Aspire automatically detects and supports multiple JavaScript package managers with intelligent defaults for both development and production scenarios.
+
+**Auto-install by default:**
+
+Starting in Aspire 13.0, package managers automatically install dependencies by default (`install = true`). This ensures dependencies are always up-to-date during development and publishing.
+
+**Smart defaults for deterministic builds:**
+
+When publishing (production mode), Aspire automatically uses deterministic install commands based on the presence of lockfiles:
+
+- **npm**: Uses `npm ci` if `package-lock.json` exists, otherwise `npm install`
+- **yarn**: Uses `yarn install --immutable` if `yarn.lock` exists, otherwise `yarn install`
+- **pnpm**: Uses `pnpm install --frozen-lockfile` if `pnpm-lock.yaml` exists, otherwise `pnpm install`
+
+This ensures reproducible builds in CI/CD and production environments while remaining flexible during development.
+
+**Customizing package managers:**
 
 ```csharp
-// Explicitly use npm with custom install command
+// Disable auto-install (not recommended)
 var app1 = builder.AddJavaScriptApp("app1", "./app1")
-    .WithNpm(installCommand: "ci");  // Use npm ci for faster, deterministic installs
+    .WithNpm(install: false);
 
-// Use yarn with frozen lockfile in production
+// Customize install command for npm
 var app2 = builder.AddJavaScriptApp("app2", "./app2")
-    .WithYarn(installArgs: ["--immutable"]);
+    .WithNpm(installCommand: "ci", installArgs: ["--legacy-peer-deps"]);
+
+// Use yarn with custom arguments
+var app3 = builder.AddJavaScriptApp("app3", "./app3")
+    .WithYarn(installArgs: ["--immutable", "--check-cache"]);
 
 // Use pnpm with specific flags
-var app3 = builder.AddJavaScriptApp("app3", "./app3")
-    .WithPnpm(installArgs: ["--frozen-lockfile"]);
+var app4 = builder.AddJavaScriptApp("app4", "./app4")
+    .WithPnpm(installArgs: ["--frozen-lockfile", "--prefer-offline"]);
 ```
 
 #### Customizing Scripts
@@ -302,27 +377,7 @@ The generated Dockerfile:
 - Runs your build script to create production assets
 - Defaults to `node:22-slim` if no version is specified
 
-#### Container Files as Build Artifacts
-
-JavaScript applications can specify that their build output should be used as container files for other services:
-
-```csharp
-var frontend = builder.AddViteApp("frontend", "./frontend");
-
-var api = builder.AddUvicornApp("api", "./api", "main:app")
-    .WithReference(frontend);
-
-// Publish frontend's dist folder as static files in the API container
-api.PublishWithContainerFiles(frontend, "./static");
-```
-
-This pattern:
-- Builds the frontend as a container
-- Extracts the `/app/dist` directory from the container
-- Copies it into the API's container at `./static`
-- Enables the Python API to serve the frontend static files
-
-This approach provides **reproducible builds** where the frontend is always built in an isolated container environment, not on the developer's machine.
+For information about using JavaScript build artifacts in other containers, see [Container Files as Build Artifacts](#container-files-as-build-artifacts).
 
 ### Polyglot Infrastructure
 
@@ -429,7 +484,7 @@ var nodeApp = builder.AddJavaScriptApp("frontend", "./frontend")
 
 This feature makes Aspire's service discovery mechanism accessible to any programming language, not just .NET applications with service discovery libraries.
 
-## 🛠️ CLI and tooling
+## 🛠️ CLI and Tooling
 
 ### aspire init command
 
@@ -539,7 +594,63 @@ The automatic SDK installation feature provides:
 
 When enabled, this preview feature can improve the onboarding experience for new team members and CI/CD environments.
 
-## Major new features
+### Non-interactive mode for CI/CD
+
+Aspire 13.0 introduces the `--non-interactive` flag and `ICliHostEnvironment` service to support clean, automation-friendly output in CI/CD pipelines.
+
+```bash
+# Run commands without prompts or interactive elements
+aspire deploy --non-interactive
+aspire init --non-interactive
+aspire update --non-interactive
+```
+
+**What changes in non-interactive mode:**
+
+- **No prompts**: All user input prompts are disabled (commands fail if required values aren't provided)
+- **No spinners**: Progress spinners and interactive progress bars are disabled
+- **Clean output**: Output is optimized for log files and automation parsing
+- **ANSI support**: Colors and formatting are preserved unless `NO_COLOR=1` is set
+
+**Automatic CI environment detection:**
+
+The CLI automatically enables non-interactive mode when it detects common CI environments:
+
+- GitHub Actions (`GITHUB_ACTIONS`)
+- Azure Pipelines (`AZURE_PIPELINES`, `TF_BUILD`)
+- Jenkins (`JENKINS_URL`)
+- GitLab CI (`GITLAB_CI`)
+- CircleCI (`CIRCLECI`)
+- Travis CI (`TRAVIS`)
+- Buildkite (`BUILDKITE`)
+- AppVeyor (`APPVEYOR`)
+- TeamCity (`TEAMCITY_VERSION`)
+- Bitbucket Pipelines (`BITBUCKET_BUILD_NUMBER`)
+- AWS CodeBuild (`CODEBUILD_BUILD_ID`)
+
+**Environment variables:**
+
+- `ASPIRE_NON_INTERACTIVE=true` - Enable non-interactive mode
+- `NO_COLOR=1` - Disable ANSI colors in output
+- `ASPIRE_PLAYGROUND=true` - Force interactive mode (overrides all detection)
+
+**Example CI workflow:**
+
+```yaml
+# GitHub Actions
+- name: Deploy Aspire app
+  run: aspire deploy --non-interactive
+  env:
+    ASPIRE_NON_INTERACTIVE: true
+```
+
+The `ICliHostEnvironment` service allows CLI commands and extensions to adapt their behavior based on the execution environment, ensuring consistent, automation-friendly output in CI/CD scenarios.
+
+---
+
+**For advanced deployment workflows**, see [aspire do](#aspire-do), which introduces a comprehensive pipeline system for coordinating build, deployment, and publishing operations.
+
+## ⭐ Major New Features
 
 ### aspire do
 
@@ -549,6 +660,8 @@ The `aspire do` system replaces the previous publishing infrastructure with a mo
 
 > [!IMPORTANT]
 > 🧪 **Early Preview**: The pipeline APIs are in early preview and marked as experimental. While these APIs may evolve based on feedback, we're confident this is the right direction as it enables much more flexible modeling of arbitrary build, publish, and deployment steps. The pipeline system provides the foundation for advanced deployment scenarios that weren't possible with the previous publishing model.
+
+For basic CLI commands and tooling, see [CLI and tooling](#cli-and-tooling), which covers [aspire init](#aspire-init-command), [aspire update](#aspire-update-improvements), and [non-interactive mode](#non-interactive-mode-for-cicd).
 
 **Global pipeline steps:**
 
@@ -619,7 +732,7 @@ await builder.Build().RunAsync();
 
 The pipeline system includes:
 
-- **Global steps**: Define custom deployment steps with `builder.Pipeline.AddStep`
+- **Global steps**: Define custom pipeline steps with `builder.Pipeline.AddStep`
 - **Resource steps**: Resources contribute steps via `WithPipelineStepFactory`
 - **Dependency configuration**: Control step ordering with `WithPipelineConfiguration`
 - **Parallel execution**: Steps run concurrently when dependencies allow
@@ -894,7 +1007,7 @@ MAUI integration features:
 
 This enables a complete mobile + cloud development experience where you can run and debug your mobile app alongside your backend services in a single Aspire project.
 
-## 📊 Dashboard enhancements
+## 📊 Dashboard Enhancements
 
 ### Model Context Protocol (MCP) server
 
@@ -952,7 +1065,7 @@ This enables AI assistants like Claude and other MCP-compatible tools to directl
 - **Tooltip details**: Last run time in tooltips
 - **Unhealthy state display**: Clear visualization of unhealthy resources
 
-## 🖥️ App model enhancements
+## 🖥️ App Model Enhancements
 
 ### C# app support
 
@@ -1207,7 +1320,7 @@ Event system features:
 - `TryCreateResourceBuilder` for safely attempting resource builder creation with failure handling
 - Returns false instead of throwing when resource builder creation fails
 
-## 🚀 Deployment improvements
+## 🚀 Deployment Improvements
 
 ### Deployment pipeline reimplementation
 
@@ -1350,7 +1463,7 @@ The pipeline-based deployment provides:
 - **Progress reporting**: Real-time status for each step
 - **Failure isolation**: Identify exactly which step failed
 - **Selective execution**: Run only the steps you need
-- **Extensibility**: Add custom deployment steps via pipeline API
+- **Extensibility**: Add custom pipeline steps via pipeline API
 - **Built-in diagnostics**: `aspire do diagnostics` for pipeline visualization and troubleshooting
 
 For more details on the underlying pipeline system, see [aspire do](#aspire-do).
@@ -1388,7 +1501,16 @@ This eliminates repetitive prompts and makes iterative deployments faster. Your 
 4. Run `aspire deploy` again - automatically uses "My Subscription", "my-rg", "eastus"
 5. No need to re-enter configuration
 
-The state is stored in your local user profile, making it seamless to work across multiple Aspire projects with different Azure configurations.
+**Storage location:**
+
+The state is stored in your local user profile at:
+
+- **Windows**: `C:\Users\<username>\.aspire\deployments\<project-hash>\<environment>.json`
+- **macOS/Linux**: `/Users/<username>/.aspire/deployments/<project-hash>/<environment>.json`
+
+The `<project-hash>` is a SHA256 hash of your AppHost project path, allowing different projects to maintain separate state. The `<environment>` corresponds to the deployment environment (e.g., `production`, `development`).
+
+This location is excluded from source control by design, so each developer can have their own Azure configuration without conflicts.
 
 **Resetting deployment state:**
 
@@ -1475,7 +1597,99 @@ builder.AddAzureAppServiceEnvironment("env")
 
 This enables elastic scale on the App Service Plan, capping at 10 workers following Azure best practices. Without automatic scaling, each app service scales independently with per-site scaling.
 
-## ⚠️ Breaking changes
+## 🔧 Troubleshooting
+
+### Python debugging issues
+
+If Python debugging isn't working in VS Code:
+
+1. **Verify Python extension is installed**: Ensure the Microsoft Python extension is installed in VS Code
+2. **Check virtual environment**: Ensure your Python virtual environment is activated and contains the debugpy package
+3. **Inspect launch configuration**: The Aspire IDE extension should automatically generate launch configurations in `.vscode/launch.json`
+4. **Check IDE execution spec**: Look for `ide-execution-spec.json` in your AppHost output directory to verify Python debugging is configured
+5. **Verify Python version**: Ensure your Python version is compatible with the debugpy package (Python 3.8+ recommended)
+
+**Common solutions:**
+
+```bash
+# Manually install debugpy in your virtual environment
+pip install debugpy
+
+# Or with uv
+uv add debugpy
+```
+
+**Check IDE execution spec:**
+
+```bash
+# Find the IDE execution spec file
+ls .aspire/ide-execution-spec.json
+
+# Verify Python debugging configuration is present
+cat .aspire/ide-execution-spec.json | grep -A 10 "python"
+```
+
+### Container files extraction failures
+
+If container files aren't being extracted during build:
+
+1. **Verify source container builds successfully**: Ensure the source container (e.g., Vite app) builds without errors
+2. **Check file paths**: Verify the source path in the container exists (e.g., `/app/dist` for Vite builds)
+3. **Inspect build output**: Look for container file extraction logs during `aspire deploy` or `aspire publish`
+4. **Verify destination resource**: Ensure the destination resource (e.g., Python app) is configured to receive files
+
+**Example debugging:**
+
+```csharp
+// Add logging to verify container files configuration
+var vite = builder.AddViteApp("frontend", "./frontend")
+    .PublishAsDockerFile();
+
+var api = builder.AddUvicornApp("api", "./api", "main:app")
+    .WithReference(vite.GetContainerFiles());
+
+// Check build logs for:
+// - "Extracting files from container 'frontend'"
+// - "Copying files to 'api' at /app/static"
+```
+
+### Pipeline step failures
+
+If pipeline steps fail or don't execute as expected:
+
+1. **Use `aspire do diagnostics`**: Get detailed execution graph and step dependencies
+   ```bash
+   aspire do diagnostics
+   ```
+
+2. **Check step logs**: Pipeline steps output detailed logs during execution - review them for error messages
+
+3. **Verify step dependencies**: Ensure dependent steps are configured correctly
+   ```csharp
+   // Example: Ensure build completes before deploy
+   step.DependsOn(buildStep);
+   ```
+
+4. **Check for parallel execution conflicts**: If steps modify the same resources, they may need explicit ordering
+
+5. **Inspect pipeline configuration**: Use `WithPipelineConfiguration` to verify step relationships
+   ```csharp
+   builder.AddProject<Projects.Api>("api")
+       .WithPipelineConfiguration(ctx => {
+           // Debug: Print all steps for this resource
+           foreach (var step in ctx.Steps) {
+               Console.WriteLine($"Step: {step.Name}, Tags: {string.Join(", ", step.Tags)}");
+           }
+       });
+   ```
+
+**Common issues:**
+
+- **Step timeout**: Increase timeout for long-running operations
+- **Missing dependencies**: Steps may skip if dependencies aren't satisfied
+- **Resource locking**: Parallel steps accessing the same resource may conflict
+
+## ⚠️ Breaking Changes
 
 ### Removed APIs
 
@@ -1617,16 +1831,47 @@ This change fixes long-standing issues with container-to-host communication (iss
 
 #### Refactored AddNodeApp API
 
-The `AddNodeApp` API has been refactored in Aspire 13.0, introducing breaking changes to how Node.js applications are added.
+The `AddNodeApp` API has been refactored in Aspire 13.0 with breaking changes to how Node.js applications are configured.
 
-**What changed:**
-- Updated method signatures and behavior
-- Package manager integration changes (npm/yarn/pnpm now auto-install by default)
+**Signature changes:**
 
-**Impact:**
-If you're using `AddNodeApp` directly, review your code for compatibility with the new API. The new Vite app support (`AddViteApp`) follows similar patterns.
+```csharp
+// Before (9.x) - absolute scriptPath with optional workingDirectory
+builder.AddNodeApp(
+    name: "frontend",
+    scriptPath: "/absolute/path/to/app.js",    // Absolute path to script
+    workingDirectory: "/absolute/path/to",     // Optional working directory
+    args: ["--port", "3000"]);
 
-For most users, the changes are improvements that reduce boilerplate, but may require minor code updates if you have custom Node.js integrations.
+// After (13.0) - appDirectory with relative scriptPath
+builder.AddNodeApp(
+    name: "frontend",
+    appDirectory: "../frontend",    // Directory containing the app
+    scriptPath: "app.js");          // Relative path from appDirectory
+```
+
+**Behavioral changes:**
+
+1. **Automatic npm integration**: If `package.json` exists in `appDirectory`, npm is automatically configured as the package manager with auto-install enabled
+2. **Automatic Dockerfile generation**: The new API includes Docker publishing support with multi-stage builds by default
+3. **Package manager flexibility**: Use `WithNpm()`, `WithYarn()`, or `WithPnpm()` combined with `WithRunScript()` to execute package.json scripts instead of direct node execution
+
+**Migration example:**
+
+```csharp
+// Before (9.x)
+var app = builder.AddNodeApp("frontend", "../frontend/server.js", "../frontend");
+
+// After (13.0) - basic migration
+var app = builder.AddNodeApp("frontend", "../frontend", "server.js");
+
+// After (13.0) - with package.json script
+var app = builder.AddNodeApp("frontend", "../frontend", "server.js")
+    .WithNpm()
+    .WithRunScript("dev");  // Runs "npm run dev" instead
+```
+
+**Impact:** If you're using `AddNodeApp` directly, update your method calls to use the new parameter structure. The old method signature is marked obsolete and will be removed in a future release.
 
 ### Migration guide
 
