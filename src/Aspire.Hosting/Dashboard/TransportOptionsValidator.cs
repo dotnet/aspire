@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, DistributedApplicationOptions distributedApplicationOptions) : IValidateOptions<TransportOptions>
+internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, DistributedApplicationOptions distributedApplicationOptions, UnsecuredTransportWarning unsecuredTransportWarning) : IValidateOptions<TransportOptions>
 {
     public ValidateOptionsResult Validate(string? name, TransportOptions transportOptions)
     {
@@ -35,7 +35,9 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
 
         if (parsedFirstApplicationUrl.Scheme == "http")
         {
-            return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            var warningMessage = $"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.";
+            unsecuredTransportWarning.AddWarning(warningMessage);
+            // Don't fail validation - let the app start and show a modal to the user
         }
 
         // Validate ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL
@@ -46,18 +48,18 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
         }
 
-        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc, unsecuredTransportWarning))
         {
             return resultGrpc;
         }
-        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp, unsecuredTransportWarning))
         {
             return resultHttp;
         }
 
         // Validate ASPIRE_DASHBOARD_MCP_ENDPOINT_URL
         var dashboardMcpEndpointUrl = configuration[KnownConfigNames.DashboardMcpEndpointUrl];
-        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardMcpEndpointUrl, dashboardMcpEndpointUrl, out var resultMcp))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardMcpEndpointUrl, dashboardMcpEndpointUrl, out var resultMcp, unsecuredTransportWarning))
         {
             return resultMcp;
         }
@@ -76,7 +78,9 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
 
         if (parsedResourceServiceEndpointUrl.Scheme == "http")
         {
-            return ValidateOptionsResult.Fail($"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            var warningMessage = $"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.";
+            unsecuredTransportWarning.AddWarning(warningMessage);
+            // Don't fail validation - let the app start and show a modal to the user
         }
 
         return ValidateOptionsResult.Success;
@@ -95,7 +99,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             }
         }
 
-        static bool TryValidateEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
+        static bool TryValidateEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result, UnsecuredTransportWarning unsecuredTransportWarning)
         {
             if (!string.IsNullOrEmpty(value))
             {
@@ -107,8 +111,9 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
 
                 if (parsedBindingAddress.Scheme == "http")
                 {
-                    result = ValidateOptionsResult.Fail($"The '{configName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
-                    return false;
+                    var warningMessage = $"The '{configName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.";
+                    unsecuredTransportWarning.AddWarning(warningMessage);
+                    // Don't fail validation - let the app start and show a modal to the user
                 }
             }
 

@@ -9,23 +9,26 @@ namespace Aspire.Hosting.Tests.Dashboard;
 public class TransportOptionsValidatorTests
 {
     [Fact]
-    public void ValidationFailsWhenHttpUrlSpecifiedWithAllowUnsecureTransportSetToFalse()
+    public void ValidationSucceedsButAddsWarningWhenHttpUrlSpecifiedWithAllowUnsecureTransportSetToFalse()
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
+        var unsecuredTransportWarning = new UnsecuredTransportWarning();
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
         var result = validator.Validate(null, options);
-        Assert.True(result.Failed);
-        Assert.Equal(
-            $"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.",
-            result.FailureMessage
-            );
+        
+        // Validation should succeed (not fail) to allow the app to start
+        Assert.True(result.Succeeded, result.FailureMessage);
+        
+        // But a warning should be recorded
+        Assert.True(unsecuredTransportWarning.HasWarnings);
+        Assert.Contains(unsecuredTransportWarning.Warnings, w => w.Contains("'applicationUrl' setting must be an https address"));
     }
 
     [Fact]
@@ -39,7 +42,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -57,7 +60,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -75,7 +78,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -92,7 +95,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = invalidUrl;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -111,7 +114,7 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -131,7 +134,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = string.Empty;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -155,7 +158,7 @@ public class TransportOptionsValidatorTests
         config[resourceServiceEndpointUrlKey] = string.Empty;
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -179,7 +182,7 @@ public class TransportOptionsValidatorTests
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[dashboardOtlpGrpcEndpointUrlKey] = string.Empty;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -204,7 +207,7 @@ public class TransportOptionsValidatorTests
         config[resourceServiceEndpointUrlKey] = invalidUrl;
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -231,7 +234,7 @@ public class TransportOptionsValidatorTests
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[otlpEndpointConfigName] = invalidUrl;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -243,49 +246,55 @@ public class TransportOptionsValidatorTests
     [Theory]
     [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
     [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
-    public void ValidationFailsWhenDashboardOtlpUrlIsHttp(string otlpEndpointConfigName)
+    public void ValidationSucceedsButAddsWarningWhenDashboardOtlpUrlIsHttp(string otlpEndpointConfigName)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
+        var unsecuredTransportWarning = new UnsecuredTransportWarning();
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[otlpEndpointConfigName] = "http://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
         var result = validator.Validate(null, options);
-        Assert.True(result.Failed);
-        Assert.Equal(
-            $"The '{otlpEndpointConfigName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.",
-            result.FailureMessage
-            );
+        
+        // Validation should succeed (not fail) to allow the app to start
+        Assert.True(result.Succeeded, result.FailureMessage);
+        
+        // But a warning should be recorded
+        Assert.True(unsecuredTransportWarning.HasWarnings);
+        Assert.Contains(unsecuredTransportWarning.Warnings, w => w.Contains($"'{otlpEndpointConfigName}' setting must be an https address"));
     }
 
     [Theory]
     [InlineData(KnownConfigNames.ResourceServiceEndpointUrl)]
     [InlineData(KnownConfigNames.Legacy.ResourceServiceEndpointUrl)]
-    public void ValidationFailsWhenResourceServiceUrlIsHttp(string resourceServiceEndpointUrlKey)
+    public void ValidationSucceedsButAddsWarningWhenResourceServiceUrlIsHttp(string resourceServiceEndpointUrlKey)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
+        var unsecuredTransportWarning = new UnsecuredTransportWarning();
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[resourceServiceEndpointUrlKey] = "http://localhost:1235";
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
         var result = validator.Validate(null, options);
-        Assert.True(result.Failed);
-        Assert.Equal(
-            $"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.",
-            result.FailureMessage
-            );
+        
+        // Validation should succeed (not fail) to allow the app to start
+        Assert.True(result.Succeeded, result.FailureMessage);
+        
+        // But a warning should be recorded
+        Assert.True(unsecuredTransportWarning.HasWarnings);
+        Assert.Contains(unsecuredTransportWarning.Warnings, w => w.Contains($"'{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address"));
     }
 
     [Fact]
@@ -299,7 +308,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -315,7 +324,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -337,7 +346,7 @@ public class TransportOptionsValidatorTests
         config[dashboardOtlpHttpEndpointUrlKey] = "https://localhost:1235";
         config[resourceServiceEndpointUrlKey] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -357,7 +366,7 @@ public class TransportOptionsValidatorTests
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1237";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         
         // This should succeed after the fix
@@ -381,7 +390,7 @@ public class TransportOptionsValidatorTests
         config[otlpEndpointConfigName] = grpcBindingAddress;
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1237";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
         var result = validator.Validate(null, options);
         
         // This should succeed after the fix
