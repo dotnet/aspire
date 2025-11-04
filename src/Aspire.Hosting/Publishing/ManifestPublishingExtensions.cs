@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREPIPELINES001
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +14,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Provides extension methods for adding manifest publishing to the pipeline.
 /// </summary>
-[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class ManifestPublishingExtensions
+internal static class ManifestPublishingExtensions
 {
     /// <summary>
     /// Adds a step to the pipeline that publishes an Aspire manifest file.
