@@ -1792,5 +1792,115 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             .AppendContentAsFile(moduleDockerfileContent)
             .AppendContentAsFile(executableDockerfileContent);
     }
+
+    [Fact]
+    public void AutoDetection_PyprojectToml_AddsUv()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+        var scriptPath = Path.Combine(tempDir.Path, scriptName);
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        // Create a pyproject.toml file
+        var pyprojectPath = Path.Combine(tempDir.Path, "pyproject.toml");
+        File.WriteAllText(pyprojectPath, "[project]\nname = \"test\"");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+
+        var app = builder.Build();
+
+        // Verify that WithUv was automatically called
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("uv", packageManager.ExecutableName);
+
+        // Verify that WithUv created the installer resource
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.NotNull(installerResource);
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void AutoDetection_RequirementsTxt_AddsPip()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+        var scriptPath = Path.Combine(tempDir.Path, scriptName);
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        // Create a requirements.txt file
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests==2.31.0");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+
+        var app = builder.Build();
+
+        // Verify that WithPip was automatically called
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Contains("pip", packageManager.ExecutableName);
+
+        // Verify that WithPip created the installer resource
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.NotNull(installerResource);
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+    }
+
+    [Fact]
+    public void AutoDetection_PyprojectToml_TakesPrecedenceOverRequirementsTxt()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+        var scriptPath = Path.Combine(tempDir.Path, scriptName);
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        // Create both pyproject.toml and requirements.txt
+        var pyprojectPath = Path.Combine(tempDir.Path, "pyproject.toml");
+        File.WriteAllText(pyprojectPath, "[project]\nname = \"test\"");
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests==2.31.0");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+
+        var app = builder.Build();
+
+        // Verify that WithUv was automatically called (pyproject.toml takes precedence)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("uv", packageManager.ExecutableName);
+
+        // Verify the install command is for uv (not pip)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("sync", installAnnotation.Args[0]);
+    }
+
+    [Fact]
+    public void AutoDetection_NoConfigFile_DoesNotAddPackageManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+        var scriptPath = Path.Combine(tempDir.Path, scriptName);
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+
+        var app = builder.Build();
+
+        // Verify that no package manager was automatically added
+        Assert.False(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out _));
+
+        // Verify that no installer resource was created
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.Null(installerResource);
+    }
 }
 
