@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Utils;
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Provides helper methods for validating localhost addresses.
