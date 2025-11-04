@@ -327,10 +327,13 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     {
         var envFilePath = GetEnvFilePath(context);
 
-        if (CapturedEnvironmentVariables.Count == 0 || SharedEnvFile is null)
+        if (CapturedEnvironmentVariables.Count == 0)
         {
             return;
         }
+
+        // Initialize a new EnvFile for this environment
+        var envFile = EnvFile.Load(envFilePath);
 
         foreach (var entry in CapturedEnvironmentVariables)
         {
@@ -346,10 +349,10 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 defaultValue = imageName;
             }
 
-            SharedEnvFile.Add(key, defaultValue, description, onlyIfMissing: false);
+            envFile.Add(key, defaultValue, description, onlyIfMissing: false);
         }
 
-        SharedEnvFile.Save(envFilePath, includeValues: true);
+        envFile.Save(includeValues: true);
     }
 
     internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)
