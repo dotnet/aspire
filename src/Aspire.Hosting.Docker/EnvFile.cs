@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.Docker;
 
 internal sealed record EnvEntry(string Key, string? Value, string? Comment);
@@ -8,12 +10,18 @@ internal sealed record EnvEntry(string Key, string? Value, string? Comment);
 internal sealed class EnvFile
 {
     private string? _path;
+    private readonly ILogger? _logger;
 
     internal SortedDictionary<string, EnvEntry> Entries { get; } = [];
 
-    public static EnvFile Load(string path)
+    private EnvFile(ILogger? logger = null)
     {
-        var envFile = new EnvFile { _path = path };
+        _logger = logger;
+    }
+
+    public static EnvFile Load(string path, ILogger? logger = null)
+    {
+        var envFile = new EnvFile(logger) { _path = path };
         if (!File.Exists(path))
         {
             return envFile;
@@ -78,6 +86,12 @@ internal sealed class EnvFile
             throw new InvalidOperationException("Cannot save EnvFile without a path. Use Load() to create an EnvFile with a path.");
         }
 
+        // Log if we're about to overwrite an existing file
+        if (File.Exists(_path))
+        {
+            _logger?.LogInformation("Environment file '{EnvFilePath}' already exists and will be overwritten", _path);
+        }
+
         var lines = new List<string>();
 
         foreach (var entry in Entries.Values)
@@ -131,7 +145,7 @@ internal sealed class EnvFile
             {
                 lines.Add($"{entry.Key}=");
             }
-            
+
             lines.Add(string.Empty);
         }
 

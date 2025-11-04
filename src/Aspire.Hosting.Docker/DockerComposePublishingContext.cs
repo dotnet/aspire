@@ -153,7 +153,7 @@ internal sealed class DockerComposePublishingContext(
             if (environment.CapturedEnvironmentVariables.Count > 0)
             {
                 var envFilePath = Path.Combine(OutputPath, ".env");
-                var envFile = environment.SharedEnvFile ?? EnvFile.Load(envFilePath);
+                var envFile = environment.SharedEnvFile ?? EnvFile.Load(envFilePath, logger);
 
                 foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                 {
