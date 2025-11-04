@@ -509,6 +509,12 @@ public static class PythonAppResourceBuilderExtensions
             {
                 resourceBuilder.WithPip();
             }
+            else
+            {
+                // No package files found, but we should still create venv if it doesn't exist
+                // and createIfNotExists is true (which is the default)
+                CreateVenvCreatorIfNeeded(resourceBuilder);
+            }
         }
 
         return resourceBuilder;
@@ -880,8 +886,8 @@ public static class PythonAppResourceBuilderExtensions
             env.CreateVenvIfNotExists = createIfNotExists;
         });
 
-        // If createIfNotExists is false and a package manager is configured, remove venv creator
-        if (!createIfNotExists && builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out _))
+        // If createIfNotExists is false, remove venv creator
+        if (!createIfNotExists)
         {
             RemoveVenvCreator(builder);
         }
@@ -1360,7 +1366,7 @@ public static class PythonAppResourceBuilderExtensions
         var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
         
         // Use TryCreateResourceBuilder to check if it already exists
-        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var existingVenvCreator))
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out _))
         {
             // Venv creator already exists, no need to create again
             return;
@@ -1406,24 +1412,23 @@ public static class PythonAppResourceBuilderExtensions
             .OfType<PythonVenvCreatorResource>()
             .FirstOrDefault(r => r.Name == venvCreatorName);
 
-        if (venvCreator != null)
+        if (venvCreator is null)
         {
-            builder.ApplicationBuilder.Resources.Remove(venvCreator);
-            
-            // Remove wait annotations from installer
-            var installerName = $"{builder.Resource.Name}-installer";
-            var installer = builder.ApplicationBuilder.Resources
-                .OfType<PythonInstallerResource>()
-                .FirstOrDefault(r => r.Name == installerName);
-                
-            if (installer != null)
-            {
-                installer.Annotations.OfType<WaitAnnotation>()
-                    .Where(w => w.Resource == venvCreator)
-                    .ToList()
-                    .ForEach(w => installer.Annotations.Remove(w));
-            }
+            return;
         }
+
+        builder.ApplicationBuilder.Resources.Remove(venvCreator);
+        
+        // Remove wait annotations from installer
+        var installerName = $"{builder.Resource.Name}-installer";
+        var installer = builder.ApplicationBuilder.Resources
+            .OfType<PythonInstallerResource>()
+            .FirstOrDefault(r => r.Name == installerName);
+            
+        installer?.Annotations.OfType<WaitAnnotation>()
+            .Where(w => w.Resource == venvCreator)
+            .ToList()
+            .ForEach(w => installer.Annotations.Remove(w));
     }
 
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
