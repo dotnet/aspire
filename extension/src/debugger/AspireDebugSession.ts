@@ -35,8 +35,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   public readonly debugSessionId: string;
   public configuration: AspireExtendedDebugConfiguration;
 
-  public launchDashboard?: boolean;
-
   constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider, removeAspireDebugSession: (session: AspireDebugSession) => void) {
     this._session = session;
     this._rpcServer = rpcServer;
