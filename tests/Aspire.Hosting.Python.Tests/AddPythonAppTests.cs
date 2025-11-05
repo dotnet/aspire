@@ -735,7 +735,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify the install command annotation
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
-        Assert.Equal(["sync", "--python"], installAnnotation.Args);
+        var arg = Assert.Single(installAnnotation.Args);
+        Assert.Equal("sync", arg);
     }
 
     [Fact]
@@ -754,9 +755,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify the install command annotation has the correct args
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
-        Assert.Equal(2, installAnnotation.Args.Length);
-        Assert.Equal("sync", installAnnotation.Args[0]);
-        Assert.Equal("--python", installAnnotation.Args[1]);
+        var arg = Assert.Single(installAnnotation.Args);
+        Assert.Equal("sync", arg);
     }
 
     [Fact]
@@ -874,8 +874,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify the install command is for uv (not pip install)
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
-        Assert.Equal("sync", installAnnotation.Args[0]);
-        Assert.Equal("--python", installAnnotation.Args[1]);
+        var arg = Assert.Single(installAnnotation.Args);
+        Assert.Equal("sync", arg);
     }
 
     [Fact]
