@@ -428,9 +428,9 @@ public static class PythonAppResourceBuilderExtensions
 
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
-                    
+
                     // Check if using UV by looking at the package manager annotation
-                    var isUsingUv = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) && 
+                    var isUsingUv = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
                                     pkgMgr.ExecutableName == "uv";
 
                     if (isUsingUv)
@@ -457,12 +457,12 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Subscribe to BeforeStartEvent for this specific resource to wire up dependencies dynamically
-        // This allows methods like WithPip, WithUv, and WithVirtualEnvironment to add/remove resources
-        // and the dependencies will be established based on which resources actually exist
-        // Only do this in run mode since the installer and venv creator only run in run mode
         if (builder.ExecutionContext.IsRunMode)
         {
+            // Subscribe to BeforeStartEvent for this specific resource to wire up dependencies dynamically
+            // This allows methods like WithPip, WithUv, and WithVirtualEnvironment to add/remove resources
+            // and the dependencies will be established based on which resources actually exist
+            // Only do this in run mode since the installer and venv creator only run in run mode
             var resourceToSetup = resourceBuilder.Resource;
             builder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
             {
@@ -470,15 +470,12 @@ public static class PythonAppResourceBuilderExtensions
                 SetupDependencies(builder, resourceToSetup);
                 return Task.CompletedTask;
             });
-        }
 
-        // Automatically add pip as the package manager if pyproject.toml or requirements.txt exists
-        // Only do this in run mode since the installer resource only runs in run mode
-        // Note: pip supports both pyproject.toml and requirements.txt
-        if (builder.ExecutionContext.IsRunMode)
-        {
+            // Automatically add pip as the package manager if pyproject.toml or requirements.txt exists
+            // Only do this in run mode since the installer resource only runs in run mode
+            // Note: pip supports both pyproject.toml and requirements.txt
             var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
-            
+
             if (File.Exists(Path.Combine(appDirectoryFullPath, "pyproject.toml")) ||
                 File.Exists(Path.Combine(appDirectoryFullPath, "requirements.txt")))
             {
@@ -495,7 +492,7 @@ public static class PythonAppResourceBuilderExtensions
         return resourceBuilder;
     }
 
-    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource, 
+    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
         string pythonVersion, EntrypointType entrypointType, string entrypoint)
     {
         // Check if uv.lock exists in the working directory
@@ -726,11 +723,11 @@ public static class PythonAppResourceBuilderExtensions
     private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appDirectory, string virtualEnvironmentPath)
     {
         var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
-        
+
         // Walk up from the Python app directory looking for the virtual environment
         // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
         var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
-        
+
         // Check if the app directory is under the AppHost's parent directory
         // If not, only look in the app directory itself
         if (appHostParentDirectory != null)
@@ -738,16 +735,16 @@ public static class PythonAppResourceBuilderExtensions
             var relativePath = Path.GetRelativePath(appHostParentDirectory, appDirectoryFullPath);
             var isUnderAppHostParent = !relativePath.StartsWith("..", StringComparison.Ordinal) &&
                                         !Path.IsPathRooted(relativePath);
-            
+
             if (!isUnderAppHostParent)
             {
                 // App is not under AppHost's parent, only use the app directory
                 return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
             }
         }
-        
+
         var currentDirectory = appDirectoryFullPath;
-        
+
         while (currentDirectory != null)
         {
             var venvPath = Path.Combine(currentDirectory, virtualEnvironmentPath);
@@ -755,27 +752,27 @@ public static class PythonAppResourceBuilderExtensions
             {
                 return venvPath;
             }
-            
+
             // Stop if we've reached the AppHost's parent directory
             // Use case-insensitive comparison on Windows, case-sensitive on Unix
             var reachedBoundary = OperatingSystem.IsWindows()
                 ? string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase)
                 : string.Equals(currentDirectory, appHostParentDirectory, StringComparison.Ordinal);
-            
+
             if (reachedBoundary)
             {
                 break;
             }
-            
+
             // Move up to the parent directory
             var parentDirectory = Path.GetDirectoryName(currentDirectory);
-            
+
             // Stop if we can't go up anymore or if we've gone beyond the AppHost's parent
             if (parentDirectory == null || parentDirectory == currentDirectory)
             {
                 break;
             }
-            
+
             currentDirectory = parentDirectory;
         }
 
@@ -1130,7 +1127,7 @@ public static class PythonAppResourceBuilderExtensions
         // Pip supports both pyproject.toml and requirements.txt
         var workingDirectory = builder.Resource.WorkingDirectory;
         string[] baseInstallArgs;
-        
+
         if (File.Exists(Path.Combine(workingDirectory, "pyproject.toml")))
         {
             // Use pip install with pyproject.toml (pip will read from pyproject.toml automatically)
@@ -1152,10 +1149,10 @@ public static class PythonAppResourceBuilderExtensions
             .WithAnnotation(new PythonInstallCommandAnnotation([.. baseInstallArgs, .. installArgs ?? []]), ResourceAnnotationMutationBehavior.Replace);
 
         AddInstaller(builder, install);
-        
+
         // Create venv creator if needed (will check if venv exists)
         CreateVenvCreatorIfNeeded(builder);
-        
+
         return builder;
     }
 
@@ -1219,10 +1216,10 @@ public static class PythonAppResourceBuilderExtensions
             .WithAnnotation(new PythonInstallCommandAnnotation(args), ResourceAnnotationMutationBehavior.Replace);
 
         AddInstaller(builder, install);
-        
+
         // UV handles venv creation, so remove any existing venv creator
         RemoveVenvCreator(builder);
-        
+
         return builder;
     }
 
@@ -1343,7 +1340,7 @@ public static class PythonAppResourceBuilderExtensions
 
         // Create venv creator as a child resource
         var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
-        
+
         // Use TryCreateResourceBuilder to check if it already exists
         if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out _))
         {
@@ -1353,7 +1350,7 @@ public static class PythonAppResourceBuilderExtensions
 
         // Create new venv creator resource
         var venvCreator = new PythonVenvCreatorResource(venvCreatorName, builder.Resource, venvPath);
-        
+
         // Determine which Python command to use
         string pythonCommand;
         if (OperatingSystem.IsWindows())
@@ -1380,7 +1377,7 @@ public static class PythonAppResourceBuilderExtensions
     private static void RemoveVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
     {
         var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
-        
+
         // Use TryCreateResourceBuilder to check if venv creator exists
         if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var venvCreatorBuilder))
         {
@@ -1393,28 +1390,28 @@ public static class PythonAppResourceBuilderExtensions
     {
         // This method is called in BeforeStartEvent to dynamically set up dependencies
         // based on which child resources actually exist after all method calls have been made
-        
+
         var venvCreatorName = $"{resource.Name}-venv-creator";
         var installerName = $"{resource.Name}-installer";
-        
+
         // Try to get the venv creator and installer resources
         builder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var venvCreatorBuilder);
         builder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var installerBuilder);
-        
+
         // Get the Python app resource builder
         builder.TryCreateResourceBuilder<PythonAppResource>(resource.Name, out var appBuilder);
-        
+
         if (appBuilder == null)
         {
             return; // Resource doesn't exist, nothing to set up
         }
-        
+
         // Set up wait dependencies based on what exists:
         // 1. If both venv creator and installer exist: installer waits for venv creator, app waits for installer
         // 2. If only installer exists: app waits for installer
         // 3. If only venv creator exists: app waits for venv creator (no installer needed)
         // 4. If neither exists: app runs directly (no waits needed)
-        
+
         if (venvCreatorBuilder != null && installerBuilder != null)
         {
             // Both exist: installer waits for venv, app waits for installer
@@ -1437,7 +1434,7 @@ public static class PythonAppResourceBuilderExtensions
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
     {
         // Check if we're using uv (which handles venv creation itself)
-        var isUsingUv = builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) && 
+        var isUsingUv = builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
                         pkgMgr.ExecutableName == "uv";
 
         if (isUsingUv)
