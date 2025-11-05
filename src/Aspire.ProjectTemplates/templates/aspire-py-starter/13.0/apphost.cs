@@ -12,7 +12,7 @@ var cache = builder.AddRedis("cache");
 
 #endif
 var app = builder.AddUvicornApp("app", "./app", "main:app")
-    .WithUvEnvironment()
+    .WithUv()
     .WithExternalHttpEndpoints()
 #if UseRedisCache
     .WithReference(cache)
