@@ -51,6 +51,7 @@ internal sealed class AspireResourceMcpTools
 
             var response = $"""
             resource_name is the identifier of resources. Use the dashboard_link when displaying resource_name. For example: [`frontend-abcxyz`](https://localhost:1234/resource?name=frontend-abcxyz)
+            environment_variables is a list of environment variables configured for the resource. Environment variable values aren't provided because they could contain sensitive information.
             Console logs for a resource can provide more information about why a resource is not in a running state.
 
             # RESOURCE DATA
