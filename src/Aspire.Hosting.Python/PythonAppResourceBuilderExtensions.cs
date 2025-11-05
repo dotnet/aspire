@@ -1455,13 +1455,6 @@ public static class PythonAppResourceBuilderExtensions
             return; // Resource doesn't exist, nothing to set up
         }
         
-        // Clear any existing wait annotations on all resources to avoid duplicates
-        // This is important because BeforeStartEvent might fire multiple times or
-        // previous Wait annotations might exist from earlier method calls
-        resource.Annotations.OfType<WaitAnnotation>().ToList().ForEach(w => resource.Annotations.Remove(w));
-        venvCreatorBuilder?.Resource.Annotations.OfType<WaitAnnotation>().ToList().ForEach(w => venvCreatorBuilder.Resource.Annotations.Remove(w));
-        installerBuilder?.Resource.Annotations.OfType<WaitAnnotation>().ToList().ForEach(w => installerBuilder.Resource.Annotations.Remove(w));
-        
         // Set up wait dependencies based on what exists:
         // 1. If both venv creator and installer exist: installer waits for venv creator, app waits for installer
         // 2. If only installer exists: app waits for installer
