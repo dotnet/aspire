@@ -172,10 +172,14 @@ public static class YarpResourceExtensions
 
         return builder.WithDockerfileBuilder(".", ctx =>
         {
+            var logger = ctx.Services.GetService<ILogger<YarpResource>>();
             var imageName = GetYarpImageName(ctx.Resource);
+
+            ctx.Builder.AddContainerFilesStages(ctx.Resource, logger);
+
             ctx.Builder.From(imageName)
                 .WorkDir("/app")
-                .AddContainerFiles(ctx.Resource, "/app/wwwroot", ctx.Services.GetService<ILogger<YarpResource>>());
+                .AddContainerFiles(ctx.Resource, "/app/wwwroot", logger);
         });
     }
 

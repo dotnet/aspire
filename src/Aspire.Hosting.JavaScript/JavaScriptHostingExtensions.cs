@@ -130,13 +130,16 @@ public static class JavaScriptHostingExtensions
                         }
                     }
 
+                    var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>();
+                    dockerfileContext.Builder.AddContainerFilesStages(dockerfileContext.Resource, logger);
+
                     var baseRuntimeImage = baseImageAnnotation?.RuntimeImage ?? defaultBaseImage.Value;
                     var runtimeBuilder = dockerfileContext.Builder
                         .From(baseRuntimeImage, "runtime")
                             .EmptyLine()
                             .WorkDir("/app")
                             .CopyFrom("build", "/app", "/app")
-                            .AddContainerFiles(dockerfileContext.Resource, "/app", dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>())
+                            .AddContainerFiles(dockerfileContext.Resource, "/app", logger)
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
                             .Expose(3000)
