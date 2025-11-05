@@ -62,7 +62,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
     private string? _customRuntimeConfigPath;
-    private readonly TaskCompletionSource<bool> _dashboardReadyTcs = new();
+    private readonly TaskCompletionSource _dashboardReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _unsecuredTransportInteractionTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
@@ -381,7 +381,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
         {
             // Signal that the dashboard is ready for unsecured transport interaction
-            _dashboardReadyTcs.TrySetResult(true);
+            _dashboardReadyTcs.TrySetResult();
             
             var browserToken = options.DashboardToken;
 
