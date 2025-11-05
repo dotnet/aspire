@@ -2,8 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-
-#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel.Docker;
 
@@ -18,6 +17,7 @@ public static class DockerfileStageExtensions
     /// <param name="stage">The Dockerfile stage to add container file copy statements to.</param>
     /// <param name="resource">The resource that may have <see cref="ContainerFilesDestinationAnnotation"/> annotations specifying files to copy.</param>
     /// <param name="rootDestinationPath">The root destination path in the container. Relative paths in annotations will be appended to this path.</param>
+    /// <param name="logger">The logger used for logging information or errors.</param>
     /// <returns>The <see cref="DockerfileStage"/> to allow for fluent chaining.</returns>
     /// <remarks>
     /// <para>
@@ -39,18 +39,8 @@ public static class DockerfileStageExtensions
     /// such as copying static assets from a frontend build container into a backend API container.
     /// </para>
     /// </remarks>
-    /// <example>
-    /// <code lang="csharp">
-    /// var runtimeStage = dockerfileBuilder
-    ///     .From("mcr.microsoft.com/dotnet/aspnet:8.0", "runtime")
-    ///     .WorkDir("/app")
-    ///     .CopyFrom("build", "/app", "/app")
-    ///     .AddContainerFiles(resource, "/app")  // Adds files from referenced containers
-    ///     .Entrypoint(["dotnet", "MyApp.dll"]);
-    /// </code>
-    /// </example>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
+    public static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath, ILogger? logger)
     {
         ArgumentNullException.ThrowIfNull(stage);
         ArgumentNullException.ThrowIfNull(resource);
@@ -60,9 +50,12 @@ public static class DockerfileStageExtensions
         {
             foreach (var containerFileDestination in containerFilesDestinationAnnotations)
             {
+                var source = containerFileDestination.Source;
+
                 // get image name - skip this source if it doesn't have an image name
-                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
+                if (!source.TryGetContainerImageName(out var sourceImageName))
                 {
+                    logger?.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
                     continue;
                 }
 
@@ -72,9 +65,11 @@ public static class DockerfileStageExtensions
                     destinationPath = $"{rootDestinationPath}/{destinationPath}";
                 }
 
-                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
                 {
-                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
+                    logger?.LogDebug("Adding COPY --from={SourceImage} {SourcePath} {DestinationPath}",
+                        sourceImageName, containerFilesSource.SourcePath, destinationPath);
+                    stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, destinationPath);
                 }
             }
 

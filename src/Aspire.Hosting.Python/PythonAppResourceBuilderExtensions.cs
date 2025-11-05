@@ -562,7 +562,7 @@ public static class PythonAppResourceBuilderExtensions
         var runtimeBuilder = context.Builder
             .From(runtimeImage, "app")
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app")
+            .AddContainerFiles(context.Resource, "/app", context.Services.GetService<ILogger<PythonAppResource>>())
             .Comment("------------------------------")
             .Comment("🚀 Runtime stage")
             .Comment("------------------------------")
@@ -615,7 +615,7 @@ public static class PythonAppResourceBuilderExtensions
         var stage = context.Builder
             .From(runtimeImage)
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app")
+            .AddContainerFiles(context.Resource, "/app", context.Services.GetService<ILogger<PythonAppResource>>())
             .Comment("------------------------------")
             .Comment("🚀 Python Application")
             .Comment("------------------------------")

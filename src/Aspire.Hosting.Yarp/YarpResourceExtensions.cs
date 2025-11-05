@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -174,7 +175,7 @@ public static class YarpResourceExtensions
             var imageName = GetYarpImageName(ctx.Resource);
             ctx.Builder.From(imageName)
                 .WorkDir("/app")
-                .AddContainerFiles(ctx.Resource, "/app/wwwroot");
+                .AddContainerFiles(ctx.Resource, "/app/wwwroot", ctx.Services.GetService<ILogger<YarpResource>>());
         });
     }
 
