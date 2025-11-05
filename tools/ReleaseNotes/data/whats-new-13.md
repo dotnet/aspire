@@ -531,21 +531,7 @@ When enabled, this preview feature can improve the onboarding experience for new
 
 ### Non-interactive mode for CI/CD
 
-Aspire 13.0 introduces the `--non-interactive` flag for automation-friendly output in CI/CD pipelines.
-
-```bash
-# Run commands without prompts or interactive elements
-aspire deploy --non-interactive
-aspire init --non-interactive
-aspire update --non-interactive
-```
-
-When enabled, non-interactive mode disables user prompts and interactive progress indicators, providing clean output suitable for CI/CD logs. The CLI automatically detects common CI environments (GitHub Actions, Azure Pipelines, etc.) and enables this mode automatically.
-
-**Environment variables:**
-
-- `ASPIRE_NON_INTERACTIVE=true` - Enable non-interactive mode
-- `NO_COLOR=1` - Disable ANSI colors in output
+The `--non-interactive` flag disables prompts and interactive progress indicators for CI/CD scenarios. The CLI automatically detects common CI environments and enables this mode. You can also set `ASPIRE_NON_INTERACTIVE=true` or use `--non-interactive` explicitly.
 
 > [!NOTE]
 > Not all commands support non-interactive mode. Commands that require user input will fail if the `--non-interactive` flag is set and required values are not provided through other means.
