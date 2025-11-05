@@ -198,11 +198,60 @@ jobs:
           name: aspire-extension
           path: extension/out/aspire-extension.vsix
 
+  check_templatestrings:
+    name: Check templatestrings files not modified
+    runs-on: ubuntu-latest
+    needs: build_packages
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check for modified templatestrings files
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          # Pattern for templatestrings files
+          pattern="src/Aspire.ProjectTemplates/templates/*templatestrings.*.json"
+          
+          # Check for any modified files (staged or unstaged)
+          modifiedFiles=$(git diff --name-only -- "$pattern" 2>/dev/null || true)
+          
+          if [ -z "$modifiedFiles" ]; then
+            echo "✓ No modified templatestrings files found - check passed"
+            exit 0
+          fi
+          
+          # Check failed - there are modified files
+          echo ""
+          echo "================================================================================"
+          echo "CHECK FAILED: Templatestrings files have been modified"
+          echo "================================================================================"
+          echo ""
+          echo "The following templatestrings JSON files were modified during the build:"
+          echo ""
+          echo "$modifiedFiles" | while IFS= read -r file; do
+            echo "  - $file"
+          done
+          echo ""
+          echo "These files are localization files and should not be modified by the build."
+          echo "The modifications need to be committed to source control before proceeding."
+          echo ""
+          echo "To fix this issue:"
+          echo "  1. Review the changes: git diff $pattern"
+          echo "  2. If the changes are correct, commit them: git add $pattern && git commit"
+          echo "  3. If the changes are incorrect, revert them: git checkout -- $pattern"
+          echo ""
+          echo "================================================================================"
+          echo ""
+          exit 1
+
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
+      check_templatestrings,
       endtoend_tests,
       extension_tests_win,
       integrations_test_lin,
