@@ -497,6 +497,17 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
+        // Subscribe to BeforeStartEvent for this specific resource to wire up wait relationships dynamically
+        // This allows methods like WithPip, WithUv, and WithVirtualEnvironment to add/remove resources
+        // and the wait relationships will be established based on which resources actually exist
+        var resourceToSetup = resourceBuilder.Resource;
+        builder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+        {
+            // Wire up wait dependencies for this resource based on which child resources exist
+            SetupWaitDependencies(builder, resourceToSetup);
+            return Task.CompletedTask;
+        });
+
         // Automatically add pip as the package manager if pyproject.toml or requirements.txt exists
         // Only do this in run mode since the installer resource only runs in run mode
         // Note: pip supports both pyproject.toml and requirements.txt
@@ -1295,10 +1306,6 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     // Remove existing installer resource if install is false
                     builder.ApplicationBuilder.Resources.Remove(existingResource.Resource);
-                    builder.Resource.Annotations.OfType<WaitAnnotation>()
-                        .Where(w => w.Resource == existingResource.Resource)
-                        .ToList()
-                        .ForEach(w => builder.Resource.Annotations.Remove(w));
                     builder.Resource.Annotations.OfType<PythonPackageInstallerAnnotation>()
                         .ToList()
                         .ForEach(a => builder.Resource.Annotations.Remove(a));
@@ -1336,9 +1343,6 @@ public static class PythonAppResourceBuilderExtensions
 
                 return Task.CompletedTask;
             });
-
-            // Make the parent resource wait for the installer to complete
-            builder.WaitForCompletion(installerBuilder);
 
             builder.WithAnnotation(new PythonPackageInstallerAnnotation(installer));
         }
@@ -1395,12 +1399,7 @@ public static class PythonAppResourceBuilderExtensions
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest();
 
-        // Make the installer wait for venv creator (if installer exists)
-        var installerName = $"{builder.Resource.Name}-installer";
-        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var installerBuilder))
-        {
-            installerBuilder.WaitForCompletion(venvCreatorBuilder);
-        }
+        // Wait relationships will be set up dynamically in SetupWaitDependencies
     }
 
     private static void RemoveVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
@@ -1418,17 +1417,59 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         builder.ApplicationBuilder.Resources.Remove(venvCreator);
+        // Wait relationships are managed dynamically in SetupWaitDependencies, so no need to clean them up here
+    }
+
+    private static void SetupWaitDependencies(IDistributedApplicationBuilder builder, PythonAppResource resource)
+    {
+        // This method is called in BeforeStartEvent to dynamically set up wait relationships
+        // based on which resources actually exist after all method calls have been made
         
-        // Remove wait annotations from installer
-        var installerName = $"{builder.Resource.Name}-installer";
-        var installer = builder.ApplicationBuilder.Resources
-            .OfType<PythonInstallerResource>()
-            .FirstOrDefault(r => r.Name == installerName);
-            
-        installer?.Annotations.OfType<WaitAnnotation>()
-            .Where(w => w.Resource == venvCreator)
-            .ToList()
-            .ForEach(w => installer.Annotations.Remove(w));
+        var venvCreatorName = $"{resource.Name}-venv-creator";
+        var installerName = $"{resource.Name}-installer";
+        
+        // Try to get the venv creator and installer resources
+        builder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var venvCreatorBuilder);
+        builder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var installerBuilder);
+        
+        // Get the Python app resource builder
+        builder.TryCreateResourceBuilder<PythonAppResource>(resource.Name, out var appBuilder);
+        
+        if (appBuilder == null)
+        {
+            return; // Resource doesn't exist, nothing to set up
+        }
+        
+        // Clear any existing wait annotations on all resources to avoid duplicates
+        // This is important because BeforeStartEvent might fire multiple times or
+        // previous Wait annotations might exist from earlier method calls
+        resource.Annotations.OfType<WaitAnnotation>().ToList().ForEach(w => resource.Annotations.Remove(w));
+        venvCreatorBuilder?.Resource.Annotations.OfType<WaitAnnotation>().ToList().ForEach(w => venvCreatorBuilder.Resource.Annotations.Remove(w));
+        installerBuilder?.Resource.Annotations.OfType<WaitAnnotation>().ToList().ForEach(w => installerBuilder.Resource.Annotations.Remove(w));
+        
+        // Set up wait dependencies based on what exists:
+        // 1. If both venv creator and installer exist: installer waits for venv creator, app waits for installer
+        // 2. If only installer exists: app waits for installer
+        // 3. If only venv creator exists: app waits for venv creator (no installer needed)
+        // 4. If neither exists: app runs directly (no waits needed)
+        
+        if (venvCreatorBuilder != null && installerBuilder != null)
+        {
+            // Both exist: installer waits for venv, app waits for installer
+            installerBuilder.WaitForCompletion(venvCreatorBuilder);
+            appBuilder.WaitForCompletion(installerBuilder);
+        }
+        else if (installerBuilder != null)
+        {
+            // Only installer exists: app waits for installer
+            appBuilder.WaitForCompletion(installerBuilder);
+        }
+        else if (venvCreatorBuilder != null)
+        {
+            // Only venv creator exists: app waits for venv creator
+            appBuilder.WaitForCompletion(venvCreatorBuilder);
+        }
+        // If neither exists, no wait relationships needed
     }
 
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
