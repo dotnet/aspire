@@ -19,7 +19,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a specified .NET project.
 /// </summary>
 public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport, IResourceWithProbes,
-    IComputeResource, IResourceWithCanCopyContainerFiles
+    IComputeResource, IContainerFilesDestinationResource
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectResource"/> class.

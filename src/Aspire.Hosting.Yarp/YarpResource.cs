@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// A resource that represents a YARP resource independent of the hosting model.
 /// </summary>
-public class YarpResource : ContainerResource, IResourceWithServiceDiscovery, IResourceWithCanCopyContainerFiles
+public class YarpResource : ContainerResource, IResourceWithServiceDiscovery, IContainerFilesDestinationResource
 {
     internal List<YarpRoute> Routes { get; } = [];
 
