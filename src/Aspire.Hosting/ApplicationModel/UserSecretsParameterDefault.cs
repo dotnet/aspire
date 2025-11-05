@@ -19,13 +19,11 @@ namespace Aspire.Hosting.ApplicationModel;
 internal sealed class UserSecretsParameterDefault(Assembly appHostAssembly, string applicationName, string parameterName, ParameterDefault parameterDefault, UserSecretsManagerFactory factory)
     : ParameterDefault
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UserSecretsParameterDefault"/> class using the default factory.
-    /// </summary>
     public UserSecretsParameterDefault(Assembly appHostAssembly, string applicationName, string parameterName, ParameterDefault parameterDefault)
         : this(appHostAssembly, applicationName, parameterName, parameterDefault, UserSecretsManagerFactory.Instance)
     {
     }
+
     /// <inheritdoc/>
     public override string GetDefaultValue()
     {

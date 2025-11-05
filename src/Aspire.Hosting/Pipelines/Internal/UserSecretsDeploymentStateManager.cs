@@ -17,11 +17,6 @@ internal sealed class UserSecretsDeploymentStateManager : DeploymentStateManager
 {
     private readonly IUserSecretsManager _userSecretsManager;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UserSecretsDeploymentStateManager"/> class.
-    /// </summary>
-    /// <param name="logger">The logger.</param>
-    /// <param name="userSecretsManager">User secrets manager for managing secrets.</param>
     public UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger, IUserSecretsManager userSecretsManager)
         : base(logger)
     {

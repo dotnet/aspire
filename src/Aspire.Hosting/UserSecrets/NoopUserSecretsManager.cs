@@ -8,8 +8,7 @@ using Microsoft.Extensions.Configuration;
 namespace Aspire.Hosting.UserSecrets;
 
 /// <summary>
-/// A no-op implementation of <see cref="IUserSecretsManager"/> used when
-/// user secrets are not configured for a project.
+/// A no-op implementation of <see cref="IUserSecretsManager"/> used when user secrets are not configured for a project.
 /// </summary>
 internal sealed class NoopUserSecretsManager : IUserSecretsManager
 {

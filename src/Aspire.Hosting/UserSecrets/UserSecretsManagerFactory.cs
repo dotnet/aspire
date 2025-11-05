@@ -13,9 +13,11 @@ using Microsoft.Extensions.Configuration.UserSecrets;
 namespace Aspire.Hosting.UserSecrets;
 
 /// <summary>
-/// Factory for creating and caching IUserSecretsManager instances.
-/// Uses a lock to ensure thread-safe creation and a dictionary to cache instances by normalized file path.
+/// Factory for creating and caching <see cref="IUserSecretsManager"/> instances.
 /// </summary>
+/// <remarks>
+/// Uses a lock to ensure thread-safe creation and a dictionary to cache instances by normalized file path.
+/// </remarks>
 internal sealed class UserSecretsManagerFactory
 {
     // Singleton instance

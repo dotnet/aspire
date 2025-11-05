@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 namespace Aspire.Hosting.UserSecrets;
 
 /// <summary>
-/// Manages user secrets for an application, providing thread-safe read and write operations.
+/// Defines an interface for managing user secrets with support for read and write operations.
 /// </summary>
 internal interface IUserSecretsManager
 {
