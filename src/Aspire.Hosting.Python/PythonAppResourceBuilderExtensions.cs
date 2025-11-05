@@ -1165,16 +1165,16 @@ public static class PythonAppResourceBuilderExtensions
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="install">When true (default), automatically runs uv sync before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="args">Optional custom arguments to pass to the uv sync command. If not provided, defaults to ["sync", "--python"].</param>
+    /// <param name="args">Optional custom arguments to pass to the uv command. If not provided, defaults to ["sync"].</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// This method creates a child resource that runs <c>uv sync --python</c> in the working directory of the Python application.
+    /// This method creates a child resource that runs <c>uv sync</c> in the working directory of the Python application.
     /// The Python application will wait for this resource to complete successfully before starting.
     /// </para>
     /// <para>
     /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
-    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync --python</c> command ensures that the virtual
+    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual
     /// environment exists, Python is installed if needed, and all dependencies specified in pyproject.toml are installed and synchronized.
     /// </para>
     /// <para>
@@ -1187,7 +1187,7 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
-    ///     .WithUv()  // Automatically runs 'uv sync --python' before starting the app
+    ///     .WithUv()  // Automatically runs 'uv sync' before starting the app
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
@@ -1211,8 +1211,8 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Default args include --python flag to bootstrap Python if needed
-        args ??= ["sync", "--python"];
+        // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
+        args ??= ["sync"];
 
         builder
             .WithAnnotation(new PythonPackageManagerAnnotation("uv"), ResourceAnnotationMutationBehavior.Replace)
