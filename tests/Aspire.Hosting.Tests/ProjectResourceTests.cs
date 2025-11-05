@@ -4,6 +4,7 @@
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using System.Text;
 using Aspire.Hosting.Pipelines;
