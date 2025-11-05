@@ -404,18 +404,16 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Configure required environment variables for custom certificate trust when running as an executable
-        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
-        // way to simply append additional certificates to default Python trust stores such as certifi.
+        // Configure required environment variables for custom certificate trust when running as an executable.
+        // TODO: Make CertificateTrustScope.System the default once we're able to validate that certificates are valid for OpenSSL. Otherwise we potentially add invalid certificates to the bundle which causes OpenSSL to error.
         resourceBuilder
-            .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {
                     var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
                     var logger = resourceLogger.GetLogger(ctx.Resource);
-                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
+                    logger.LogInformation("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied.");
                 }
                 else
                 {
@@ -468,7 +466,7 @@ public static class PythonAppResourceBuilderExtensions
 
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
-                    
+
                     // Check if using UV
                     var isUsingUv = pythonEnvironmentAnnotation?.Uv ?? false;
 
@@ -499,7 +497,7 @@ public static class PythonAppResourceBuilderExtensions
         return resourceBuilder;
     }
 
-    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource, 
+    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
         string pythonVersion, EntrypointType entrypointType, string entrypoint)
     {
         // Check if uv.lock exists in the working directory
@@ -730,11 +728,11 @@ public static class PythonAppResourceBuilderExtensions
     private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appDirectory, string virtualEnvironmentPath)
     {
         var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
-        
+
         // Walk up from the Python app directory looking for the virtual environment
         // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
         var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
-        
+
         // Check if the app directory is under the AppHost's parent directory
         // If not, only look in the app directory itself
         if (appHostParentDirectory != null)
@@ -742,16 +740,16 @@ public static class PythonAppResourceBuilderExtensions
             var relativePath = Path.GetRelativePath(appHostParentDirectory, appDirectoryFullPath);
             var isUnderAppHostParent = !relativePath.StartsWith("..", StringComparison.Ordinal) &&
                                         !Path.IsPathRooted(relativePath);
-            
+
             if (!isUnderAppHostParent)
             {
                 // App is not under AppHost's parent, only use the app directory
                 return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
             }
         }
-        
+
         var currentDirectory = appDirectoryFullPath;
-        
+
         while (currentDirectory != null)
         {
             var venvPath = Path.Combine(currentDirectory, virtualEnvironmentPath);
@@ -759,27 +757,27 @@ public static class PythonAppResourceBuilderExtensions
             {
                 return venvPath;
             }
-            
+
             // Stop if we've reached the AppHost's parent directory
             // Use case-insensitive comparison on Windows, case-sensitive on Unix
             var reachedBoundary = OperatingSystem.IsWindows()
                 ? string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase)
                 : string.Equals(currentDirectory, appHostParentDirectory, StringComparison.Ordinal);
-            
+
             if (reachedBoundary)
             {
                 break;
             }
-            
+
             // Move up to the parent directory
             var parentDirectory = Path.GetDirectoryName(currentDirectory);
-            
+
             // Stop if we can't go up anymore or if we've gone beyond the AppHost's parent
             if (parentDirectory == null || parentDirectory == currentDirectory)
             {
                 break;
             }
-            
+
             currentDirectory = parentDirectory;
         }
 
