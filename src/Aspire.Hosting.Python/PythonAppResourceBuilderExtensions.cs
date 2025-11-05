@@ -1421,18 +1421,12 @@ public static class PythonAppResourceBuilderExtensions
     {
         var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
         
-        // Find and remove the venv creator resource if it exists
-        var venvCreator = builder.ApplicationBuilder.Resources
-            .OfType<PythonVenvCreatorResource>()
-            .FirstOrDefault(r => r.Name == venvCreatorName);
-
-        if (venvCreator is null)
+        // Use TryCreateResourceBuilder to check if venv creator exists
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var venvCreatorBuilder))
         {
-            return;
+            builder.ApplicationBuilder.Resources.Remove(venvCreatorBuilder.Resource);
+            // Wait relationships are managed dynamically in SetupDependencies, so no need to clean them up here
         }
-
-        builder.ApplicationBuilder.Resources.Remove(venvCreator);
-        // Wait relationships are managed dynamically in SetupDependencies, so no need to clean them up here
     }
 
     private static void SetupDependencies(IDistributedApplicationBuilder builder, PythonAppResource resource)
