@@ -555,6 +555,27 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Retrieves the value of a specified connection property from the resource's connection properties.
+    /// </summary>
+    /// <remarks>Throws a KeyNotFoundException if the specified key does not exist in the resource's
+    /// connection properties.</remarks>
+    /// <param name="resource">The resource that provides the connection properties. Cannot be null.</param>
+    /// <param name="key">The key of the connection property to retrieve. Cannot be null.</param>
+    /// <returns>The value associated with the specified connection property key.</returns>
+    public static ReferenceExpression GetConnectionProperty(this IResourceWithConnectionString resource, string key)
+    {
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            if (string.Equals(connectionProperty.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return connectionProperty.Value;
+            }
+        }
+
+        return ReferenceExpression.Empty;
+    }
+
+    /// <summary>
     /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
     /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
     /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
