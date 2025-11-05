@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing.Internal;
+using Aspire.Hosting.Pipelines.Internal;
 
-namespace Aspire.Hosting.Azure.Tests;
+namespace Aspire.Hosting.Tests;
 
-public class UserSecretsDeploymentStateManagerTests
+public class JsonFlattenerTests
 {
     [Fact]
     public void FlattenJsonObject_HandlesNestedStructures()
@@ -30,7 +30,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("existing-flat-value", result["Azure:SubscriptionId"]!.ToString());
@@ -54,7 +54,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal(3, result.Count);
@@ -70,7 +70,7 @@ public class UserSecretsDeploymentStateManagerTests
         var userSecrets = new JsonObject();
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Empty(result);
@@ -95,7 +95,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Single(result);
@@ -120,7 +120,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("text", result["StringValue"]!.ToString());
@@ -143,7 +143,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("value1", result["SimpleArray:0"]!.ToString());
@@ -183,7 +183,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("Item1", result["ObjectArray:0:Name"]!.ToString());
@@ -206,7 +206,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = JsonFlattener.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Single(result);
