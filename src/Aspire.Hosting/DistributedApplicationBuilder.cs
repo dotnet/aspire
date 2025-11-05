@@ -406,7 +406,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.AddSingleton<UnsecuredTransportWarning>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
-                _innerBuilder.Services.AddEventingSubscriber<UnsecuredTransportHandler>();
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
                 _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
                 _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
