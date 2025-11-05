@@ -11,7 +11,6 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Publishing.Internal;
+namespace Aspire.Hosting.Pipelines.Internal;
 
 /// <summary>
 /// Base class for deployment state managers that provides common functionality for state management,
@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// Initializes a new instance of the <see cref="DeploymentStateManagerBase{T}"/> class.
 /// </remarks>
 /// <param name="logger">The logger instance.</param>
-public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploymentStateManager where T : class
+internal abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploymentStateManager where T : class
 {
     /// <summary>
     /// Holds section metadata including version information.

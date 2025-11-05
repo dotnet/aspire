@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources.Models;

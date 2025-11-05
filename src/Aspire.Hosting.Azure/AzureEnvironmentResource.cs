@@ -32,7 +32,7 @@ public sealed class AzureEnvironmentResource : Resource
     /// <summary>
     /// The name of the step that provisions Azure infrastructure resources.
     /// </summary>
-    public static readonly string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
+    public const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
 
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.

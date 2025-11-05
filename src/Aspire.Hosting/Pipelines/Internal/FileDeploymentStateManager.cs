@@ -5,18 +5,17 @@
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Hosting.Publishing.Internal;
+namespace Aspire.Hosting.Pipelines.Internal;
 
 /// <summary>
 /// File-based deployment state manager for deployment scenarios.
 /// </summary>
-public sealed class FileDeploymentStateManager(
+internal sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
     IConfiguration configuration,
     IHostEnvironment hostEnvironment,
