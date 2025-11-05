@@ -74,7 +74,7 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
 
-    if (debuggerExtension.createDebugSessionConfigurationCallback) {
+    if (debuggerExtension?.createDebugSessionConfigurationCallback) {
         await debuggerExtension.createDebugSessionConfigurationCallback(launchConfig, args, env, launchOptions, configuration);
     }
 
