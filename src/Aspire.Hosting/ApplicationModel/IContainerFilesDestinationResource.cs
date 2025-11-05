@@ -12,6 +12,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// to include static assets, build artifacts, or other files from one resource into another resource's
 /// container image during publishing.
 /// </remarks>
-public interface IResourceWithCanCopyContainerFiles : IResource
+public interface IContainerFilesDestinationResource : IResource
 {
 }

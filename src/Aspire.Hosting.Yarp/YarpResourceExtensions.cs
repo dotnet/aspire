@@ -174,7 +174,7 @@ public static class YarpResourceExtensions
             var imageName = GetYarpImageName(ctx.Resource);
             ctx.Builder.From(imageName)
                 .WorkDir("/app")
-                .AddContainerFiles(ctx.Resource, "/app");
+                .AddContainerFiles(ctx.Resource, "/app/wwwroot");
         });
     }
 
