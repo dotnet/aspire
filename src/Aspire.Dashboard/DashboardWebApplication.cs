@@ -31,6 +31,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
@@ -467,6 +468,22 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.UseResponseCompression();
 
         _app.UseStatusCodePagesWithReExecute("/error/{0}");
+
+        _app.Use((context, next) =>
+        {
+            // Don't run status code middleware for non-GET methods. This is to avoid interfering with API requests.
+            // There are some GET APIs so this isn't a perfect fix. Consider excluding all known API paths in the future if this causes issues.
+            if (context.Request.Method != HttpMethods.Get)
+            {
+                // Must happen after UseStatusCodePagesWithReExecute so the feature is set.
+                if (context.Features.Get<IStatusCodePagesFeature>() is { } statusCodeFeature)
+                {
+                    statusCodeFeature.Enabled = false;
+                }
+            }
+
+            return next(context);
+        });
 
         if (isAllHttps)
         {

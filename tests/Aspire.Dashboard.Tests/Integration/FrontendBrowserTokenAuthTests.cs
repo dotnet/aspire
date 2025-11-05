@@ -126,7 +126,7 @@ public class FrontendBrowserTokenAuthTests
     [Theory]
     [InlineData(FrontendAuthMode.BrowserToken, "TestKey123!", HttpStatusCode.OK, true)]
     [InlineData(FrontendAuthMode.BrowserToken, "Wrong!", HttpStatusCode.OK, false)]
-    [InlineData(FrontendAuthMode.Unsecured, "Wrong!", HttpStatusCode.BadRequest, null)]
+    [InlineData(FrontendAuthMode.Unsecured, "Wrong!", HttpStatusCode.NotFound, null)]
     public async Task Post_ValidateTokenApi_AvailableBasedOnOptions(FrontendAuthMode authMode, string requestToken, HttpStatusCode statusCode, bool? result)
     {
         // Arrange
