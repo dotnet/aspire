@@ -26,7 +26,7 @@ public class AddUvicornAppTests
     }
 
     [Fact]
-    public async Task WithUvEnvironment_GeneratesDockerfileInPublishMode()
+    public async Task WithUv_GeneratesDockerfileInPublishMode()
     {
         using var sourceDir = new TempDirectory();
         using var outputDir = new TempDirectory();
@@ -63,7 +63,7 @@ public class AddUvicornAppTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         var main = builder.AddUvicornApp("main", projectDirectory, "main.py")
-            .WithUvEnvironment();
+            .WithUv();
 
         var sourceFiles = builder.AddResource(new MyFilesContainer("exe", "exe", "."))
             .PublishAsDockerFile(c =>
