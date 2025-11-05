@@ -12,6 +12,7 @@ using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -516,7 +517,13 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
-            rewriter
+            rewriter,
+            new UnsecuredTransportWarning(),
+            new InteractionService(
+                NullLogger<InteractionService>.Instance,
+                new DistributedApplicationOptions(),
+                new ServiceCollection().BuildServiceProvider(),
+                configuration)
             );
     }
 
