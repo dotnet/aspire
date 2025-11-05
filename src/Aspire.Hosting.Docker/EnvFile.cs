@@ -1,17 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.Docker;
 
 internal sealed record EnvEntry(string Key, string? Value, string? Comment);
 
 internal sealed class EnvFile
 {
-    private readonly SortedDictionary<string, EnvEntry> _entries = [];
+    private string? _path;
+    private readonly ILogger? _logger;
 
-    public static EnvFile Load(string path)
+    internal SortedDictionary<string, EnvEntry> Entries { get; } = [];
+
+    private EnvFile(ILogger? logger = null)
     {
-        var envFile = new EnvFile();
+        _logger = logger;
+    }
+
+    public static EnvFile Create(string path, ILogger? logger = null)
+    {
+        return new EnvFile(logger) { _path = path };
+    }
+
+    public static EnvFile Load(string path, ILogger? logger = null)
+    {
+        var envFile = new EnvFile(logger) { _path = path };
         if (!File.Exists(path))
         {
             return envFile;
@@ -29,7 +44,7 @@ internal sealed class EnvFile
             }
             else if (TryParseKeyValue(line, out var key, out var value))
             {
-                envFile._entries[key] = new EnvEntry(key, value, currentComment);
+                envFile.Entries[key] = new EnvEntry(key, value, currentComment);
                 currentComment = null; // Reset comment after associating it with a key
             }
             else
@@ -43,12 +58,12 @@ internal sealed class EnvFile
 
     public void Add(string key, string? value, string? comment, bool onlyIfMissing = true)
     {
-        if (_entries.ContainsKey(key) && onlyIfMissing)
+        if (Entries.ContainsKey(key) && onlyIfMissing)
         {
             return;
         }
 
-        _entries[key] = new EnvEntry(key, value, comment);
+        Entries[key] = new EnvEntry(key, value, comment);
     }
 
     private static bool TryParseKeyValue(string line, out string key, out string? value)
@@ -69,11 +84,22 @@ internal sealed class EnvFile
         return false;
     }
 
-    public void Save(string path)
+    public void Save()
     {
+        if (_path is null)
+        {
+            throw new InvalidOperationException("Cannot save EnvFile without a path. Use Load() to create an EnvFile with a path.");
+        }
+
+        // Log if we're about to overwrite an existing file
+        if (File.Exists(_path))
+        {
+            _logger?.LogInformation("Environment file '{EnvFilePath}' already exists and will be overwritten", _path);
+        }
+
         var lines = new List<string>();
 
-        foreach (var entry in _entries.Values)
+        foreach (var entry in Entries.Values)
         {
             if (!string.IsNullOrWhiteSpace(entry.Comment))
             {
@@ -83,35 +109,51 @@ internal sealed class EnvFile
             lines.Add(string.Empty);
         }
 
-        File.WriteAllLines(path, lines);
+        File.WriteAllLines(_path, lines);
     }
 
-    public void Save(string path, bool includeValues)
+    public void Save(bool includeValues)
     {
         if (includeValues)
         {
-            Save(path);
+            Save();
         }
         else
         {
-            SaveKeysOnly(path);
+            SaveKeysOnly();
         }
     }
 
-    private void SaveKeysOnly(string path)
+    private void SaveKeysOnly()
     {
+        if (_path is null)
+        {
+            throw new InvalidOperationException("Cannot save EnvFile without a path. Use Load() to create an EnvFile with a path.");
+        }
+
         var lines = new List<string>();
 
-        foreach (var entry in _entries.Values)
+        foreach (var entry in Entries.Values)
         {
             if (!string.IsNullOrWhiteSpace(entry.Comment))
             {
                 lines.Add($"# {entry.Comment}");
             }
-            lines.Add($"{entry.Key}=");
+
+            // If the entry already has a non-empty value (loaded from disk), preserve it
+            // This ensures user-modified values are not overwritten when we save keys only
+            if (!string.IsNullOrEmpty(entry.Value))
+            {
+                lines.Add($"{entry.Key}={entry.Value}");
+            }
+            else
+            {
+                lines.Add($"{entry.Key}=");
+            }
+
             lines.Add(string.Empty);
         }
 
-        File.WriteAllLines(path, lines);
+        File.WriteAllLines(_path, lines);
     }
 }

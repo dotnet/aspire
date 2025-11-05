@@ -7,11 +7,11 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.Resources;
+using Aspire.Hosting.UserSecrets;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 using Semver;
 
 namespace Aspire.Hosting.VersionChecking;
@@ -32,10 +32,12 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly TimeProvider _timeProvider;
     private readonly SemVersion? _appHostVersion;
+    private readonly IUserSecretsManager _userSecretsManager;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
         IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
-        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider)
+        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider,
+        IUserSecretsManager userSecretsManager)
     {
         _interactionService = interactionService;
         _logger = logger;
@@ -44,6 +46,7 @@ internal sealed class VersionCheckService : BackgroundService
         _packageFetcher = packageFetcher;
         _executionContext = executionContext;
         _timeProvider = timeProvider;
+        _userSecretsManager = userSecretsManager;
 
         _appHostVersion = packageVersionProvider.GetPackageVersion();
     }
@@ -99,7 +102,7 @@ internal sealed class VersionCheckService : BackgroundService
         {
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
-            SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
+            _userSecretsManager.TrySetSecret(LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
         else
@@ -130,7 +133,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (IsVersionGreater(latestVersion, storedKnownLatestVersion) || storedKnownLatestVersion == null)
         {
             // Latest version is greater than the stored known latest version, so update it.
-            SecretsStore.TrySetUserSecret(_options.Assembly, KnownLatestVersionKey, latestVersion.ToString());
+            _userSecretsManager.TrySetSecret(KnownLatestVersionKey, latestVersion.ToString());
         }
 
         var result = await _interactionService.PromptNotificationAsync(
@@ -148,7 +151,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (result.Data)
         {
             _logger.LogDebug("User chose to ignore version {Version}.", latestVersion);
-            SecretsStore.TrySetUserSecret(_options.Assembly, IgnoreVersionKey, latestVersion.ToString());
+            _userSecretsManager.TrySetSecret(IgnoreVersionKey, latestVersion.ToString());
         }
     }
 

@@ -37,9 +37,9 @@
     <MicrosoftDeveloperControlPlanewindowsamd64Version>0.18.12</MicrosoftDeveloperControlPlanewindowsamd64Version>
     <MicrosoftDeveloperControlPlanewindowsarm64Version>0.18.12</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>11.0.0-beta.25531.1</MicrosoftDotNetRemoteExecutorVersion>
-    <MicrosoftDotNetXUnitV3ExtensionsVersion>11.0.0-beta.25531.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
-    <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25531.1</MicrosoftDotNetBuildTasksArchivesVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>11.0.0-beta.25509.1</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetXUnitV3ExtensionsVersion>11.0.0-beta.25509.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
+    <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25509.1</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.10.1</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionsAIPreviewVersion>9.10.0-preview.1.25513.3</MicrosoftExtensionsAIPreviewVersion>

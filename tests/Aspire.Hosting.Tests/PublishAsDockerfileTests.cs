@@ -56,7 +56,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_STRING", "Test"),
                 new DockerBuildArg("SOME_BOOL", true),
@@ -109,7 +109,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_ARG")
             ]);
