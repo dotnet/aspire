@@ -4,12 +4,13 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting Node Nodejs javascript framework runtime</PackageTags>
-    <Description>Node.js support for Aspire.</Description>
+    <Description>JavaScript support for Aspire.</Description>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
-    <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
   </ItemGroup>
 
   <ItemGroup>
