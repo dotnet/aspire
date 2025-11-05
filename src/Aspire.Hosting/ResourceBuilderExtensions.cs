@@ -1341,35 +1341,37 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
     /// <param name="builder">The resource builder to which the container files source annotation will be added. Cannot be null.</param>
     /// <param name="sourcePath">The path to the container files source to associate with the resource. Cannot be null.</param>
-    /// <param name="behavior">Specifies how to handle existing container files source annotations. Use Replace to remove existing annotations
-    /// before adding the new one; otherwise, the new annotation is appended. The default is Append.</param>
     /// <returns>The resource builder instance with the container files source annotation applied.</returns>
-    /// <remarks>
-    /// If the behavior is set to Replace, any existing container files source annotations are
-    /// removed before the new annotation is added.
-    /// </remarks>
     public static IResourceBuilder<T> WithContainerFilesSource<T>(
          this IResourceBuilder<T> builder,
-         string sourcePath,
-         ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where T : IResourceWithContainerFiles
+         string sourcePath) where T : IResourceWithContainerFiles
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);
 
-        // Remove any existing annotations if behavior is Replace because
-        // WithAnnotation will throw if there are multiple existing annotations of the same type.
-        if (behavior == ResourceAnnotationMutationBehavior.Replace)
-        {
-            builder.Resource.Annotations
-                .OfType<ContainerFilesSourceAnnotation>()
-                .ToList()
-                .ForEach(w => builder.Resource.Annotations.Remove(w));
-        }
-
         return builder.WithAnnotation(new ContainerFilesSourceAnnotation()
         {
             SourcePath = sourcePath
-        }, behavior);
+        });
+    }
+
+    /// <summary>
+    /// Removes any container files source annotation from the resource being built.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
+    /// <param name="builder">The resource builder to which the container files source annotations should be removed. Cannot be null.</param>
+    /// <returns>The resource builder instance with the container files source annotation applied.</returns>
+    public static IResourceBuilder<T> ClearContainerFilesSources<T>(
+         this IResourceBuilder<T> builder) where T : IResourceWithContainerFiles
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Annotations
+                .OfType<ContainerFilesSourceAnnotation>()
+                .ToList()
+                .ForEach(w => builder.Resource.Annotations.Remove(w));
+
+        return builder;
     }
 
     /// <summary>

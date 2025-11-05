@@ -12,7 +12,6 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Orchestrator;
