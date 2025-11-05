@@ -45,7 +45,7 @@ public class ConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                Assert.Equal("jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}?user=root&password={password.value}", property.Value.ValueExpression);
+                Assert.Equal("jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}", property.Value.ValueExpression);
             });
     }
 
@@ -70,6 +70,6 @@ public class ConnectionPropertiesTests
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&
-                        property.Value.ValueExpression == "jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/Orders?user=root&password={password.value}");
+                        property.Value.ValueExpression == "jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/Orders");
     }
 }

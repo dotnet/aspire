@@ -50,7 +50,8 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// Gets the JDBC connection string for the SQL Server database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true;databaseName={database}</c>.
+    /// <para>Format: <c>jdbc:sqlserver://{host}:{port};trustServerCertificate=true;databaseName={database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 

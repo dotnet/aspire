@@ -61,10 +61,12 @@ All URIs are composed with `:uri` formatting to ensure values are escaped correc
 
 ## JDBC Formats
 
+JDBC connection strings do not include user and password credentials. These are provided as separate `Username` and `Password` connection properties.
+
 - PostgreSQL: `jdbc:postgresql://{Host}:{Port}[/{Database}]` (database resources append the database segment).
-- MySQL: `jdbc:mysql://{Host}:{Port}[/{Database}]?user={Username}&password={Password}`.
-- SQL Server: `jdbc:sqlserver://{Host}:{Port};user={Username};password={Password};trustServerCertificate=true[;databaseName={Database}]`.
-- Oracle: `jdbc:oracle:thin:{Username}/{Password}@//{Host}:{Port}[/{Database}]`.
+- MySQL: `jdbc:mysql://{Host}:{Port}[/{Database}]`.
+- SQL Server: `jdbc:sqlserver://{Host}:{Port};trustServerCertificate=true[;databaseName={Database}]`.
+- Oracle: `jdbc:oracle:thin:@//{Host}:{Port}[/{Database}]`.
 
 ## Implementation Guidance
 
