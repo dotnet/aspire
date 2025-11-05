@@ -280,9 +280,11 @@ jobs:
       - name: Post PR comment on failure
         if: failure() && steps.check_files.outputs.error_message != ''
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          ERROR_MESSAGE: ${{ steps.check_files.outputs.error_message }}
         with:
           script: |
-            const errorMessage = `${{ steps.check_files.outputs.error_message }}`;
+            const errorMessage = process.env.ERROR_MESSAGE;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
