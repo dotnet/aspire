@@ -797,20 +797,23 @@ This enables AI assistants to directly interact with your Aspire applications, a
 Aspire 13.0 adds first-class support for C# file-based applications, enabling you to add C# apps without full project files to your distributed application.
 
 ```csharp
+// apphost.cs
+#pragma warning disable ASPIRECSHARPAPPS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+#:package Aspire.Hosting.Redis@13.0.0
+#:sdk Aspire.AppHost.Sdk@13.0.0
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add a C# file-based app
-var app = builder.AddCSharpApp("myapp", "./path/to/app.cs")
-    .WithReference(database);
+var cache = builder.AddRedis("cache");
 
-await builder.Build().RunAsync();
+builder.AddCSharpApp("worker", "../worker/Program.cs")
+    .WithReference(cache);
+
+builder.Build().Run();
 ```
 
-This feature works seamlessly with .NET 10 SDK's file-based application support and includes:
-
-- **CSharpAppResource**: New resource type for file-based apps
-- **Launch profile support**: Debugging support for file-based apps
-- **Service discovery**: File-based apps participate in service discovery
+This works seamlessly with .NET 10 SDK's file-based application support. The C# file-based app can use service discovery, access referenced resources, and be debugged in VS Code just like regular projects.
 
 ### Network identifiers
 
