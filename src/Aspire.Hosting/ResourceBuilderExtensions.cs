@@ -8,7 +8,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -2761,40 +2760,6 @@ public static class ResourceBuilderExtensions
 
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
-    }
-
-    /// <summary>
-    /// Adds support for debugging the resource in VS Code when running in an extension host.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
-    /// <param name="launchConfigurationType">The type of the resource.</param>
-    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
-        where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
-
-        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            return builder;
-        }
-
-        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
-        {
-            resourceWithArgs.WithArgs(async ctx =>
-            {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
-                {
-                    argsCallback(ctx);
-                }
-            });
-        }
-
-        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
     }
 
     /// <summary>

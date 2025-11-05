@@ -42,6 +42,7 @@
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
+    <Compile Include="$(SharedDir)ResourceDebugSupportExtensions.cs" Link="Utils\ResourceDebugSupportExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
