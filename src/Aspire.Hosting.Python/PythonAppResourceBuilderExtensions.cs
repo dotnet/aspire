@@ -856,6 +856,61 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures custom debugger properties for the Python application.
+    /// </summary>
+    /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the <see cref="PythonDebuggerProperties"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the Python
+    /// application in VS Code or Visual Studio. The callback receives a <see cref="PythonDebuggerProperties"/> object
+    /// that is pre-populated with default values based on the application's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure debugger to stop on entry:
+    /// <code lang="csharp">
+    /// var api = builder.AddPythonScript("script", "../app", "main.py")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
+    ///     })
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Enable automatic reload for faster development:
+    /// <code lang="csharp">
+    /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
+    ///     })
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Pass custom arguments to the Python interpreter:
+    /// <code lang="csharp">
+    /// var app = builder.AddPythonModule("app", "../app", "myapp")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
+    ///     })
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithDebuggerProperties<T>(
+        this IResourceBuilder<T> builder, Action<PythonDebuggerProperties> configureDebuggerProperties) where T : PythonAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
+
+        builder.WithAnnotation(new PythonExecutableDebuggerPropertiesAnnotation(configureDebuggerProperties));
+        return builder;
+    }
+
+    /// <summary>
     /// Enables debugging support for the Python application.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -871,8 +926,8 @@ public static class PythonAppResourceBuilderExtensions
     /// the program or module to debug, and appropriate launch settings.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<T> WithDebugging<T>(
-        this IResourceBuilder<T> builder) where T : PythonAppResource
+    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
+        where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -938,6 +993,11 @@ public static class PythonAppResourceBuilderExtensions
                     Name = $"{modeText} Python: {Path.GetRelativePath(Environment.CurrentDirectory, programPath)}",
                     WorkingDirectory = builder.Resource.WorkingDirectory
                 };
+
+                if (builder.Resource.TryGetLastAnnotation<PythonExecutableDebuggerPropertiesAnnotation>(out var debuggerPropertiesAnnotation))
+                {
+                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                }
 
                 return new PythonLaunchConfiguration
                 {

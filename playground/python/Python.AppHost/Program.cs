@@ -1,9 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Python;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPythonScript("script-only", "../script_only", "main.py");
+builder.AddPythonScript("script-only", "../script_only", "main.py")
+    .WithDebuggerProperties(props =>
+    {
+        props.StopOnEntry = true;
+    });
+
 builder.AddPythonScript("instrumented-script", "../instrumented_script", "main.py");
 
 builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
@@ -27,7 +34,11 @@ builder.AddPythonModule("flask-app", "../flask_app", "flask")
         c.Args.Add("--port=8002");
     })
     .WithHttpEndpoint(targetPort: 8002)
-    .WithUvEnvironment();
+    .WithUvEnvironment()
+    .WithDebuggerProperties(props =>
+    {
+        props.AutoReload = new PythonAutoReloadOptions { Enable = true };
+    });
 
 // Uvicorn app using the AddUvicornApp method
 builder.AddUvicornApp("uvicorn-app", "../uvicorn_app", "app:app")
