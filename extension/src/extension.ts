@@ -25,12 +25,18 @@ import { updateCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
 import { checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
+import { CSharpCodeLensProvider as CSharpAppHostCodeLensProvider } from './editor/CSharpAppHostCodeLensProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
 export async function activate(context: vscode.ExtensionContext) {
   extensionLogOutputChannel.info("Activating Aspire extension");
   initializeTelemetry(context);
+
+  const csharpAppHostCodeLensProvider = new CSharpAppHostCodeLensProvider();
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider('csharp', csharpAppHostCodeLensProvider)
+  );
 
   const debuggerExtensions = getResourceDebuggerExtensions();
 

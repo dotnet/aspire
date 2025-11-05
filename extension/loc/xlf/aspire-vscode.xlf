@@ -262,5 +262,8 @@
     <trans-unit id="aspire-vscode.strings.yes">
       <source xml:lang="en">Yes</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.pythonExtensionRecommendationTitle">
+      <source xml:lang="en">💡 Python extension recommended to debug this application</source>
+    </trans-unit>
   </body></file>
 </xliff>

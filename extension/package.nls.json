@@ -85,5 +85,6 @@
   "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.",
   "aspire-vscode.strings.buildFailedForProjectWithError": "Build failed for project {0} with error: {1}.",
   "aspire-vscode.strings.lookingForDevkitBuildTask": "C# Dev Kit is installed, looking for C# Dev Kit build task...",
-  "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI..."
+  "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
+  "aspire-vscode.strings.pythonExtensionRecommendationTitle": "💡 Python extension recommended to debug this application"
 }
