@@ -414,7 +414,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
 
@@ -447,7 +447,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         if (OperatingSystem.IsWindows())
         {
@@ -508,7 +508,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
         Assert.Equal(3, commandArguments.Count);
@@ -538,7 +538,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         // Should use the app directory .venv since it exists there
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
@@ -571,7 +571,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             var executableResources = appModel.GetExecutableResources();
 
-            var pythonProjectResource = Assert.Single(executableResources);
+            var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
             // Should use the AppHost directory .venv since it only exists there
             AssertPythonCommandPath(appHostVenvPath, pythonProjectResource.Command);
@@ -616,7 +616,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             var executableResources = appModel.GetExecutableResources();
 
-            var pythonProjectResource = Assert.Single(executableResources);
+            var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
             // Should prefer the app directory .venv when it exists in both locations
             AssertPythonCommandPath(appVenvPath, pythonProjectResource.Command);
@@ -650,7 +650,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         // Should default to app directory when it doesn't exist in either location
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempAppDir.Path));
@@ -689,7 +689,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             var executableResources = appModel.GetExecutableResources();
 
-            var pythonProjectResource = Assert.Single(executableResources);
+            var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
             // Should use the explicitly specified path, NOT the AppHost .venv
             AssertPythonCommandPath(customVenvPath, pythonProjectResource.Command);
@@ -760,7 +760,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithUv_AddsWaitForCompletionRelationship()
+    public async Task WithUv_AddsWaitForCompletionRelationship()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -772,6 +772,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up wait dependencies
+        await PublishBeforeStartEventAsync(app);
 
         var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
         var uvEnvironmentResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
@@ -946,7 +949,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         Assert.Equal("pythonProject", pythonProjectResource.Name);
 
@@ -982,7 +985,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
 
@@ -1016,7 +1019,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
-        var pythonProjectResource = Assert.Single(executableResources);
+        var pythonProjectResource = Assert.Single(executableResources.OfType<PythonAppResource>());
 
         var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
 
@@ -2027,7 +2030,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithPip_CreatesDefaultVenv_And_WaitsForVenvCreation()
+    public async Task WithPip_CreatesDefaultVenv_And_WaitsForVenvCreation()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -2044,6 +2047,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up wait dependencies
+        await PublishBeforeStartEventAsync(app);
 
         // Verify pip is the package manager
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
@@ -2130,7 +2136,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void MethodOrdering_WithPip_WithVirtualEnvironment_CreateTrue_WithPip_CreatesVenv()
+    public async Task MethodOrdering_WithPip_WithVirtualEnvironment_CreateTrue_WithPip_CreatesVenv()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -2150,6 +2156,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up wait dependencies
+        await PublishBeforeStartEventAsync(app);
 
         // Verify venv creator was created (createIfNotExists: true persists)
         var venvCreatorResource = appModel.Resources.OfType<PythonVenvCreatorResource>().SingleOrDefault();
