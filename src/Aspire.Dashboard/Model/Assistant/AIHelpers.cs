@@ -192,7 +192,7 @@ internal static class AIHelpers
                 {
                     name = cmd.Name,
                     description = cmd.GetDisplayDescription(s_commandsLoc)
-                }).ToList(),
+                }).ToList()
             };
 
             if (includeDashboardUrl)
@@ -202,7 +202,7 @@ internal static class AIHelpers
 
             if (includeEnvironmentVariables)
             {
-                resourceObj["environment_variables"] = resource.Environment.Where(e => e.FromSpec).ToDictionary(e => e.Name, e => e.Value);
+                resourceObj["environment_variables"] = resource.Environment.Where(e => e.FromSpec).Select(e => e.Name).ToList();
             }
 
             return resourceObj;
