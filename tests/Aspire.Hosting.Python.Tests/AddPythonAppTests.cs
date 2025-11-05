@@ -230,7 +230,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
-        builder.AddPythonScript("pythonProject", projectDirectory, scriptName)
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName)
             .WithArgs("test");
 
         var app = builder.Build();
