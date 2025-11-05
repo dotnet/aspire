@@ -28,6 +28,7 @@
     </Compile>
     <EmbeddedResource Include="..\Aspire.Hosting\Resources\LaunchProfileStrings.resx">
       <Link>Resources\LaunchProfileStrings.resx</Link>
+      <LogicalName>Aspire.Hosting.Resources.LaunchProfileStrings.resources</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
