@@ -136,7 +136,7 @@ public static class JavaScriptHostingExtensions
                             .EmptyLine()
                             .WorkDir("/app")
                             .CopyFrom("build", "/app", "/app")
-                            .AddContainerFiles(dockerfileContext.Resource, "/app")
+                            .AddContainerFiles(dockerfileContext.Resource, "/app", dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>())
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
                             .Expose(3000)
