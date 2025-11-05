@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 /// <summary>
 /// Integration test that demonstrates the new resource-based package installer architecture.

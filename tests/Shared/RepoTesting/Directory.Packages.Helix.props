@@ -42,7 +42,7 @@
     <PackageVersion Include="Aspire.Hosting.MongoDB" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.MySql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Nats" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Oracle" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Orleans" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(PackageVersion)" />

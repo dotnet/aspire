@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.NodeJs;
+namespace Aspire.Hosting.JavaScript;
 
 /// <summary>
 /// Represents the annotation for the script used during run mode in a JavaScript resource.

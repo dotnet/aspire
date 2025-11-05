@@ -8,7 +8,7 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 public class AddNodeAppTests
 {
@@ -48,7 +48,7 @@ public class AddNodeAppTests
         Assert.Equal(expectedManifest, manifest.ToString());
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var npmApp = builder.AddNpmApp("npmapp", workingDirectory)
+        var npmApp = builder.AddJavaScriptApp("npmapp", workingDirectory)
             .WithHttpEndpoint(port: 5032, env: "PORT");
 #pragma warning restore CS0618 // Type or member is obsolete
 
@@ -61,7 +61,7 @@ public class AddNodeAppTests
               "command": "npm",
               "args": [
                 "run",
-                "start"
+                "dev"
               ],
               "env": {
                 "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}",
