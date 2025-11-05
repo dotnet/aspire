@@ -27,7 +27,8 @@ public static class DockerfileStageExtensions
     /// <para>
     /// For each annotation:
     /// <list type="bullet">
-    /// <item>The source resource must have a container image name (via <c>TryGetContainerImageName</c>)</item>
+    /// <item>If the source resource has a container image name (via <c>TryGetContainerImageName</c>), COPY statements are generated</item>
+    /// <item>If the source resource does not have a container image name, it is silently skipped</item>
     /// <item>Relative destination paths are combined with <paramref name="rootDestinationPath"/></item>
     /// <item>Absolute destination paths are used as-is</item>
     /// <item>Each <see cref="ContainerFilesSourceAnnotation"/> on the source resource generates a COPY statement</item>
@@ -48,9 +49,6 @@ public static class DockerfileStageExtensions
     ///     .Entrypoint(["dotnet", "MyApp.dll"]);
     /// </code>
     /// </example>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when a source resource does not have a container image name.
-    /// </exception>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
     {
@@ -62,10 +60,10 @@ public static class DockerfileStageExtensions
         {
             foreach (var containerFileDestination in containerFilesDestinationAnnotations)
             {
-                // get image name
+                // get image name - skip this source if it doesn't have an image name
                 if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
                 {
-                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
+                    continue;
                 }
 
                 var destinationPath = containerFileDestination.DestinationPath;
