@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.Utils;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 public class NodeJsPublicApiTests
 {
@@ -102,14 +102,13 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
-    [Obsolete]
-    public void AddNpmAppShouldThrowWhenBuilderIsNull()
+    public void AddJavaScriptAppShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "NpmApp";
         const string workingDirectory = ".\\app";
 
-        var action = () => builder.AddNpmApp(name: name, workingDirectory: workingDirectory);
+        var action = () => builder.AddJavaScriptApp(name: name, workingDirectory);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -118,14 +117,13 @@ public class NodeJsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [Obsolete]
-    public void AddNpmAppShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    public void AddJavaScriptAppShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var name = isNull ? null! : string.Empty;
         const string workingDirectory = ".\\app";
 
-        var action = () => builder.AddNpmApp(name: name, workingDirectory);
+        var action = () => builder.AddJavaScriptApp(name: name, workingDirectory);
 
         var exception = isNull
              ? Assert.Throws<ArgumentNullException>(action)
@@ -134,35 +132,33 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
-    [Obsolete]
-    public void AddNpmAppShouldThrowWhenWorkingDirectoryIsNull()
+    public void AddJavaScriptAppShouldThrowWhenWorkingDirectoryIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         const string name = "NpmApp";
-        string workingDirectory = null!;
+        string appDirectory = null!;
 
-        var action = () => builder.AddNpmApp(name, workingDirectory);
+        var action = () => builder.AddJavaScriptApp(name, appDirectory);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(workingDirectory), exception.ParamName);
+        Assert.Equal(nameof(appDirectory), exception.ParamName);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [Obsolete]
-    public void AddNpmAppShouldThrowWhenScriptNameIsNullOrEmpty(bool isNull)
+    public void AddJavaScriptAppShouldThrowWhenScriptNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         const string name = "NpmApp";
         const string workingDirectory = ".\\app";
-        var scriptName = isNull ? null! : string.Empty;
+        var runScriptName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddNpmApp(name, workingDirectory, scriptName);
+        var action = () => builder.AddJavaScriptApp(name, workingDirectory, runScriptName);
 
         var exception = isNull
              ? Assert.Throws<ArgumentNullException>(action)
              : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(scriptName), exception.ParamName);
+        Assert.Equal(nameof(runScriptName), exception.ParamName);
     }
 }

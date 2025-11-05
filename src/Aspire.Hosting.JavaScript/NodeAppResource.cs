@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.NodeJs;
-
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.JavaScript;
 
 /// <summary>
 /// A resource that represents a node application.
