@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.JavaScript;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -144,6 +146,20 @@ public static class JavaScriptHostingExtensions
                             .Entrypoint([resource.Command, scriptPath]);
                 });
             });
+
+        // Configure pipeline to ensure container file sources are built first
+        resourceBuilder.WithPipelineConfiguration(context =>
+        {
+            if (resourceBuilder.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+            {
+                var buildSteps = context.GetSteps(resourceBuilder.Resource, WellKnownPipelineTags.BuildCompute);
+
+                foreach (var containerFile in containerFilesAnnotations)
+                {
+                    buildSteps.DependsOn(context.GetSteps(containerFile.Source, WellKnownPipelineTags.BuildCompute));
+                }
+            }
+        });
 
         if (File.Exists(Path.Combine(appDirectory, "package.json")))
         {
@@ -692,34 +708,5 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
-    }
-
-    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
-    {
-        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
-        {
-            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
-            {
-                // get image name
-                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
-                {
-                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
-                }
-
-                var destinationPath = containerFileDestination.DestinationPath;
-                if (!destinationPath.StartsWith('/'))
-                {
-                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
-                }
-
-                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                {
-                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
-                }
-            }
-
-            stage.EmptyLine();
-        }
-        return stage;
     }
 }
