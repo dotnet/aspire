@@ -297,8 +297,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     {
         if (IsContainer)
         {
-            return ((IResourceWithConnectionString)InnerResource).GetConnectionProperties()
-                .Union([new("Azure", ReferenceExpression.Create($"false"))]);
+            return ((IResourceWithConnectionString)InnerResource).GetConnectionProperties();
         }
 
         var result = new Dictionary<string, ReferenceExpression>(
@@ -307,7 +306,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             new ("Port", ReferenceExpression.Create($"1433")),
             new ("Uri", UriExpression),
             new("JdbcConnectionString", JdbcConnectionString),
-            new ("Azure", ReferenceExpression.Create($"true")),
         ]);
 
         return result;

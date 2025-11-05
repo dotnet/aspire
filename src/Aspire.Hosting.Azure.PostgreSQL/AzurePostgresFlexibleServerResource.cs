@@ -269,7 +269,6 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
                 ]);
 
         var propertiesDictionary = properties.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparers.ResourceName);
-        propertiesDictionary["Azure"] = ReferenceExpression.Create($"{(IsContainer ? "false" : "true")}");
 
         if (UserNameParameter is not null)
         {
