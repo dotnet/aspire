@@ -6,6 +6,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Pipelines.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -64,7 +65,7 @@ public sealed class FileDeploymentStateManager(
                 return;
             }
 
-            var flattenedSecrets = FlattenJsonObject(state);
+            var flattenedSecrets = JsonFlattener.FlattenJsonObject(state);
             Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
             await File.WriteAllTextAsync(
                 deploymentStatePath,
