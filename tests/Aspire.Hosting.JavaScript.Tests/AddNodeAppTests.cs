@@ -335,9 +335,7 @@ public class AddNodeAppTests
 
         var dockerfileContent = File.ReadAllText(nodeDockerfilePath);
 
-        // Verify that the Dockerfile includes the COPY --from statement for container files
-        // Note: The image name is prefixed with the resource name, so it's "source:source-tag"
-        Assert.Contains("COPY --from=source:source-tag /app/dist /app/./static", dockerfileContent);
+        await Verify(dockerfileContent);
     }
 
     private sealed class MyFilesContainer(string name, string command, string workingDirectory)

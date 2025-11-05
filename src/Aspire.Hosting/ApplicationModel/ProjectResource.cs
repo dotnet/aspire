@@ -120,6 +120,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
         // Generate a Dockerfile that layers the container files on top
         var dockerfileBuilder = new DockerfileBuilder();
+        dockerfileBuilder.AddContainerFilesStages(this, logger);
+
         var stage = dockerfileBuilder.From(tempImageName);
 
         var projectMetadata = this.GetProjectMetadata();

@@ -550,10 +550,13 @@ public static class PythonAppResourceBuilderExtensions
                     "type=cache,target=/root/.cache/uv");
         }
 
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
         var runtimeBuilder = context.Builder
             .From(runtimeImage, "app")
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app", context.Services.GetService<ILogger<PythonAppResource>>())
+            .AddContainerFiles(context.Resource, "/app", logger)
             .Comment("------------------------------")
             .Comment("🚀 Runtime stage")
             .Comment("------------------------------")
@@ -603,10 +606,13 @@ public static class PythonAppResourceBuilderExtensions
         var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
         var hasRequirementsTxt = File.Exists(requirementsTxtPath);
 
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
         var stage = context.Builder
             .From(runtimeImage)
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app", context.Services.GetService<ILogger<PythonAppResource>>())
+            .AddContainerFiles(context.Resource, "/app", logger)
             .Comment("------------------------------")
             .Comment("🚀 Python Application")
             .Comment("------------------------------")
