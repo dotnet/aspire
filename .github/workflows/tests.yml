@@ -207,6 +207,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Restore
+        run: ./restore.sh
+
+      - name: Build ProjectTemplates
+        run: ./dotnet.sh build ${{ github.workspace }}/src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplates.binlog
+
       - name: Check for modified templatestrings files
         id: check_files
         shell: bash
@@ -285,6 +291,14 @@ jobs:
               issue_number: context.issue.number,
               body: errorMessage
             });
+
+      - name: Upload binlog
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: check-templatestrings-binlog
+          path: ${{ github.workspace }}/artifacts/log/Debug/BuildTemplates.binlog
+          if-no-files-found: warn
 
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
