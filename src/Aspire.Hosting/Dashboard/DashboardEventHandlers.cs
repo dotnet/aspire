@@ -63,7 +63,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     private CancellationTokenSource? _dashboardLogsCts;
     private string? _customRuntimeConfigPath;
     private readonly TaskCompletionSource<bool> _dashboardReadyTcs = new();
-    private Task? _unsecuredTransportInteractionTask;
+    private readonly TaskCompletionSource _unsecuredTransportInteractionTcs = new();
 
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
@@ -852,91 +852,96 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Block all other resources until the interaction is complete
-        if (_unsecuredTransportInteractionTask is not null)
-        {
-            await _unsecuredTransportInteractionTask.ConfigureAwait(false);
-        }
+        await _unsecuredTransportInteractionTcs.Task.ConfigureAwait(false);
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private async Task HandleUnsecuredTransportAsync(CancellationToken cancellationToken)
     {
-        // Only check in run mode, not in publish mode
-        if (executionContext.IsPublishMode)
+        try
         {
-            return;
-        }
-
-        // If there are no warnings, nothing to do
-        if (!unsecuredTransportWarning.HasWarnings)
-        {
-            return;
-        }
-
-        // If the interaction service is not available (e.g., dashboard disabled), 
-        // log warnings and exit the process
-        if (!interactionService.IsAvailable)
-        {
-            foreach (var warning in unsecuredTransportWarning.Warnings)
+            // Only check in run mode, not in publish mode
+            if (executionContext.IsPublishMode)
             {
-                distributedApplicationLogger.LogError("Unsecured transport detected: {Warning}", warning);
+                return;
             }
-            distributedApplicationLogger.LogError("The application is configured to use unsecured transport (HTTP) but the '{EnvVar}' environment variable is not set. Either enable HTTPS or set {EnvVar}=true to allow unsecured transport. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.", 
-                KnownConfigNames.AllowUnsecuredTransport, KnownConfigNames.AllowUnsecuredTransport);
-            
-            // Exit the process with an error code
-            Environment.Exit(1);
-            return;
+
+            // If there are no warnings, nothing to do
+            if (!unsecuredTransportWarning.HasWarnings)
+            {
+                return;
+            }
+
+            // If the interaction service is not available (e.g., dashboard disabled), 
+            // log warnings and exit the process
+            if (!interactionService.IsAvailable)
+            {
+                foreach (var warning in unsecuredTransportWarning.Warnings)
+                {
+                    distributedApplicationLogger.LogError("Unsecured transport detected: {Warning}", warning);
+                }
+                distributedApplicationLogger.LogError("The application is configured to use unsecured transport (HTTP) but the '{EnvVar}' environment variable is not set. Either enable HTTPS or set {EnvVar}=true to allow unsecured transport. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.", 
+                    KnownConfigNames.AllowUnsecuredTransport, KnownConfigNames.AllowUnsecuredTransport);
+                
+                // Exit the process with an error code
+                Environment.Exit(1);
+                return;
+            }
+
+            // Wait for the dashboard to be ready before showing the modal
+            await _dashboardReadyTcs.Task.ConfigureAwait(false);
+
+            // Show a blocking modal dialog to the user
+            var title = "Unsecured Transport Detected";
+            var message = "The application is configured to use unsecured transport (HTTP). This means that sensitive data may be transmitted without encryption.\n\n" +
+                         "To resolve this issue, you can either:\n" +
+                         "• Enable HTTPS in your launch profile settings\n" +
+                         $"• Set the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable to 'true' to allow unsecured transport\n\n" +
+                         "For more information, visit: https://aka.ms/dotnet/aspire/allowunsecuredtransport\n\n" +
+                         "Do you want to continue running with unsecured transport?";
+
+            var options = new MessageBoxInteractionOptions
+            {
+                Intent = MessageIntent.Warning,
+                ShowSecondaryButton = true,
+                PrimaryButtonText = "Continue",
+                SecondaryButtonText = "Quit",
+                ShowDismiss = false,
+                EnableMessageMarkdown = false
+            };
+
+            var result = await interactionService.PromptConfirmationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+
+            if (result.Canceled || !result.Data)
+            {
+                // User chose to quit or dismissed the dialog
+                distributedApplicationLogger.LogWarning("User declined to continue with unsecured transport. Exiting application.");
+                Environment.Exit(0);
+                return;
+            }
+
+            // User chose to continue
+            distributedApplicationLogger.LogWarning("User accepted running with unsecured transport.");
+            unsecuredTransportWarning.UserAcceptedRisk = true;
+
+            // Show a notification at the top of the dashboard
+            var notificationTitle = "Running with Unsecured Transport";
+            var notificationMessage = "The application is using unsecured transport (HTTP). Sensitive data may be transmitted without encryption.";
+            var notificationOptions = new NotificationInteractionOptions
+            {
+                Intent = MessageIntent.Warning,
+                LinkText = "Learn more",
+                LinkUrl = "https://aka.ms/dotnet/aspire/allowunsecuredtransport"
+            };
+
+            // Fire and forget - don't wait for the notification to be dismissed
+            _ = interactionService.PromptNotificationAsync(notificationTitle, notificationMessage, notificationOptions, CancellationToken.None);
         }
-
-        // Wait for the dashboard to be ready before showing the modal
-        await _dashboardReadyTcs.Task.ConfigureAwait(false);
-
-        // Show a blocking modal dialog to the user
-        var title = "Unsecured Transport Detected";
-        var message = "The application is configured to use unsecured transport (HTTP). This means that sensitive data may be transmitted without encryption.\n\n" +
-                     "To resolve this issue, you can either:\n" +
-                     "• Enable HTTPS in your launch profile settings\n" +
-                     $"• Set the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable to 'true' to allow unsecured transport\n\n" +
-                     "For more information, visit: https://aka.ms/dotnet/aspire/allowunsecuredtransport\n\n" +
-                     "Do you want to continue running with unsecured transport?";
-
-        var options = new MessageBoxInteractionOptions
+        finally
         {
-            Intent = MessageIntent.Warning,
-            ShowSecondaryButton = true,
-            PrimaryButtonText = "Continue",
-            SecondaryButtonText = "Quit",
-            ShowDismiss = false,
-            EnableMessageMarkdown = false
-        };
-
-        var result = await interactionService.PromptConfirmationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
-
-        if (result.Canceled || !result.Data)
-        {
-            // User chose to quit or dismissed the dialog
-            distributedApplicationLogger.LogWarning("User declined to continue with unsecured transport. Exiting application.");
-            Environment.Exit(0);
-            return;
+            // Always signal completion so resources can start
+            _unsecuredTransportInteractionTcs.TrySetResult();
         }
-
-        // User chose to continue
-        distributedApplicationLogger.LogWarning("User accepted running with unsecured transport.");
-        unsecuredTransportWarning.UserAcceptedRisk = true;
-
-        // Show a notification at the top of the dashboard
-        var notificationTitle = "Running with Unsecured Transport";
-        var notificationMessage = "The application is using unsecured transport (HTTP). Sensitive data may be transmitted without encryption.";
-        var notificationOptions = new NotificationInteractionOptions
-        {
-            Intent = MessageIntent.Warning,
-            LinkText = "Learn more",
-            LinkUrl = "https://aka.ms/dotnet/aspire/allowunsecuredtransport"
-        };
-
-        // Fire and forget - don't wait for the notification to be dismissed
-        _ = interactionService.PromptNotificationAsync(notificationTitle, notificationMessage, notificationOptions, CancellationToken.None);
     }
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
@@ -947,7 +952,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
             
             // Start the unsecured transport interaction task asynchronously
-            _unsecuredTransportInteractionTask = HandleUnsecuredTransportAsync(cancellationToken);
+            _ = HandleUnsecuredTransportAsync(cancellationToken);
             
             // Subscribe to BeforeResourceStartedEvent to block non-dashboard resources until modal is handled
             eventing.Subscribe<BeforeResourceStartedEvent>(OnBeforeResourceStartedAsync);
