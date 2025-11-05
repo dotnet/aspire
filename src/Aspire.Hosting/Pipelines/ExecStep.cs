@@ -48,14 +48,31 @@ public class ExecStep
                 var processSpec = new ProcessSpec(executable)
                 {
                     WorkingDirectory = workingDirectory,
-                    Arguments = string.Join(" ", args)
+                    Arguments = string.Join(" ", args),
+                    OnOutputData = output =>
+                    {
+                        context.Logger.LogDebug("{Executable} (stdout): {Output}", executable, output);
+                    },
+                    OnErrorData = error =>
+                    {
+                        context.Logger.LogDebug("{Executable} (stderr): {Error}", executable, error);
+                    },
+                    ThrowOnNonZeroReturnCode = false
                 };
 
+                context.Logger.LogDebug("Running {Executable} with arguments: {Arguments}", executable, processSpec.Arguments);
                 var (resultTask, disposable) = ProcessUtil.Run(processSpec);
                 await using (disposable.ConfigureAwait(false))
                 {
                     var result = await resultTask.ConfigureAwait(false);
-                    context.Logger.LogInformation("Process exited with code {ExitCode}", result.ExitCode);
+                    
+                    if (result.ExitCode != 0)
+                    {
+                        context.Logger.LogError("{Executable} failed with exit code {ExitCode}", executable, result.ExitCode);
+                        throw new DistributedApplicationException($"{executable} failed with exit code {result.ExitCode}.");
+                    }
+
+                    context.Logger.LogInformation("{Executable} succeeded", executable);
                 }
             }
         };
@@ -91,14 +108,31 @@ public class ExecStep
                 var processSpec = new ProcessSpec(executable)
                 {
                     WorkingDirectory = workingDirectory,
-                    Arguments = arguments
+                    Arguments = arguments,
+                    OnOutputData = output =>
+                    {
+                        context.Logger.LogDebug("{Executable} (stdout): {Output}", executable, output);
+                    },
+                    OnErrorData = error =>
+                    {
+                        context.Logger.LogDebug("{Executable} (stderr): {Error}", executable, error);
+                    },
+                    ThrowOnNonZeroReturnCode = false
                 };
 
+                context.Logger.LogDebug("Running {Executable} with arguments: {Arguments}", executable, processSpec.Arguments);
                 var (resultTask, disposable) = ProcessUtil.Run(processSpec);
                 await using (disposable.ConfigureAwait(false))
                 {
                     var result = await resultTask.ConfigureAwait(false);
-                    context.Logger.LogInformation("Process exited with code {ExitCode}", result.ExitCode);
+                    
+                    if (result.ExitCode != 0)
+                    {
+                        context.Logger.LogError("{Executable} failed with exit code {ExitCode}", executable, result.ExitCode);
+                        throw new DistributedApplicationException($"{executable} failed with exit code {result.ExitCode}.");
+                    }
+
+                    context.Logger.LogInformation("{Executable} succeeded", executable);
                 }
             }
         };
@@ -150,7 +184,16 @@ public class ExecStep
                 var processSpec = new ProcessSpec(startInfo.FileName)
                 {
                     WorkingDirectory = startInfo.WorkingDirectory ?? workingDirectory,
-                    Arguments = startInfo.Arguments
+                    Arguments = startInfo.Arguments,
+                    OnOutputData = output =>
+                    {
+                        context.Logger.LogDebug("{Executable} (stdout): {Output}", startInfo.FileName, output);
+                    },
+                    OnErrorData = error =>
+                    {
+                        context.Logger.LogDebug("{Executable} (stderr): {Error}", startInfo.FileName, error);
+                    },
+                    ThrowOnNonZeroReturnCode = false
                 };
 
                 // Transfer environment variables from ProcessStartInfo to ProcessSpec
@@ -165,11 +208,19 @@ public class ExecStep
                     }
                 }
 
+                context.Logger.LogDebug("Running {Executable} with arguments: {Arguments}", startInfo.FileName, processSpec.Arguments);
                 var (resultTask, disposable) = ProcessUtil.Run(processSpec);
                 await using (disposable.ConfigureAwait(false))
                 {
                     var result = await resultTask.ConfigureAwait(false);
-                    context.Logger.LogInformation("Process exited with code {ExitCode}", result.ExitCode);
+                    
+                    if (result.ExitCode != 0)
+                    {
+                        context.Logger.LogError("{Executable} failed with exit code {ExitCode}", startInfo.FileName, result.ExitCode);
+                        throw new DistributedApplicationException($"{startInfo.FileName} failed with exit code {result.ExitCode}.");
+                    }
+
+                    context.Logger.LogInformation("{Executable} succeeded", startInfo.FileName);
                 }
             }
         };
