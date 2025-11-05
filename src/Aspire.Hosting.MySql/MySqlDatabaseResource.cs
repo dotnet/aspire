@@ -49,7 +49,7 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// Gets the JDBC connection string for the MySQL database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:mysql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// Format: <c>jdbc:mysql://{host}:{port}/{database}</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 

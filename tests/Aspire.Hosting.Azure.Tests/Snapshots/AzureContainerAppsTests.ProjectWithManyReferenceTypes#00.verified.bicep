@@ -21,6 +21,13 @@ param storage_outputs_blobendpoint string
 
 param pg_kv_outputs_name string
 
+param pg_outputs_hostname string
+
+param pg_username_value string
+
+@secure()
+param pg_password_value string
+
 @secure()
 param value0_value string
 

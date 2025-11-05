@@ -65,6 +65,10 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               secretRef: 'connectionstrings--mydb'
             }
             {
+              name: 'MYDB_URI'
+              secretRef: 'mydb-uri'
+            }
+            {
               name: 'SECRET_VALUE'
               secretRef: 'secret-value'
             }

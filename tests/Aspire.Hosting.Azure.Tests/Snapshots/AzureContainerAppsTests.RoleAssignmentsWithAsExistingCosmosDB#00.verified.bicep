@@ -57,8 +57,12 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'ConnectionStrings__cosmos'
               value: cosmos_outputs_connectionstring
-            }
+            }  
             {
+              name: 'COSMOS_URI'
+              value: cosmos_outputs_connectionstring
+            }
+          {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
             }
