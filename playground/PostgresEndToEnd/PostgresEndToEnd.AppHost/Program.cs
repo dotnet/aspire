@@ -13,9 +13,9 @@ builder.AddProject<Projects.PostgresEndToEnd_ApiService>("dotnet")
        .WithReference(db1).WaitFor(db1);
 
 // Python (Flask)
-builder.AddPythonModule("pythonservice", "../PostgresEndToEnd.PythonService", "flask")
+builder.AddPythonApp("pythonservice", "../PostgresEndToEnd.PythonService", "flask")
        .WithEnvironment("FLASK_APP", "app:app")
-       .WithUvEnvironment()
+       .WithUv()
        .WithArgs(c =>
        {
            c.Args.Add("run");
