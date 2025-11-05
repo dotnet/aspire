@@ -7,7 +7,7 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.NodeJs.Tests;
+namespace Aspire.Hosting.JavaScript.Tests;
 
 public class PackageInstallationTests
 {
