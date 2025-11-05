@@ -33,8 +33,18 @@
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
             <artifactId>azure-identity-extensions</artifactId>
             <version>1.1.19</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.3</version>
         </dependency>
     </dependencies>
 

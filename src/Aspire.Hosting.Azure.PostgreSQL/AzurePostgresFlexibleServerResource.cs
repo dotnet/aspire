@@ -166,7 +166,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// Gets the JDBC connection string for the server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}?sslmode=require</c>.
+    /// Format: <c>jdbc:postgresql://{host}:{port}?sslmode=require&amp;authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString =>
         IsContainer ?

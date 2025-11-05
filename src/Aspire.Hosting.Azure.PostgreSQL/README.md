@@ -67,7 +67,7 @@ The Azure PostgreSQL server resource exposes the following connection properties
 | `Host` | The fully qualified host name for the PostgreSQL server |
 | `Port` | The PostgreSQL port (fixed at `5432` in Azure Flexible Server) |
 | `Uri` | The connection URI for the server, with the format `postgresql://{Username}:{Password}@{Host}` (credentials omitted when not applicable) |
-| `JdbcConnectionString` | JDBC-format connection string for the server, with the format `jdbc:postgresql://{Host}?sslmode=require` |
+| `JdbcConnectionString` | JDBC-format connection string for the server, with the format `jdbc:postgresql://{Host}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin` |
 | `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when running the container) |
 | `Username` | Present when password authentication is enabled; the configured administrator username |
 | `Password` | Present when password authentication is enabled; the configured administrator password |
@@ -80,7 +80,7 @@ The Azure PostgreSQL database resource inherits all properties from its parent s
 |---------------|-------------|
 | `Database` | The name of the database |
 | `Uri` | The database-specific connection URI, with the format `postgresql://{Username}:{Password}@{Host}/{Database}` (credentials omitted when not applicable) |
-| `JdbcConnectionString` | JDBC-format connection string for the database, with the format `jdbc:postgresql://{Host}/{Database}?sslmode=require` |
+| `JdbcConnectionString` | JDBC-format connection string for the database, with the format `jdbc:postgresql://{Host}/{Database}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin` |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

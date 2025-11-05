@@ -3,17 +3,11 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var aca = builder.AddAzureContainerAppEnvironment("aca-env");
-
-// To run on Azure comment out RunAsContainer()
-// To use your local account for DefaultCredentials, set the username property
-
 var db1 = builder.AddAzurePostgresFlexibleServer("pg")
                  .RunAsContainer()
-                 .AddDatabase("db1")
-                 //.WithConnectionProperty("username", "me@domain.com")
-                 ;
+                 .AddDatabase("db1");
 
+// .NET 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("dotnet")
        .WithExternalHttpEndpoints()
        .WithReference(db1).WaitFor(db1);
@@ -29,6 +23,7 @@ builder.AddPythonModule("pythonservice", "../PostgresEndToEnd.PythonService", "f
            c.Args.Add("--port=8002");
        })
        .WithHttpEndpoint(targetPort: 8002)
+       .WithExternalHttpEndpoints()
        .WithReference(db1).WaitFor(db1);
 
 // NodeJS (TypeScript)
@@ -39,13 +34,15 @@ builder.AddNodeApp("nodeservice", "../PostgresEndToEnd.NodeService", "app.ts")
        .WithExternalHttpEndpoints();
 
 // Java (Spark Framework)
-var mvn = builder.AddExecutable("mvn-clean", OperatingSystem.IsWindows() ? "cmd" : "bash", "../PostgresEndToEnd.JavaService", "mvn clean package -DskipTests");
+var mvn = builder.AddExecutable("mvn-clean", OperatingSystem.IsWindows() ? "mvn.cmd" : "mvn", "../PostgresEndToEnd.JavaService", ["clean", "package", "-DskipTests"]);
 
-builder.AddExecutable("javaservice", "java", "../PostgresEndToEnd.JavaService", ["-jar", "target/javaservice-1.0.0.jar"])
+var java = builder.AddExecutable("javaservice", "java", "../PostgresEndToEnd.JavaService", ["-jar", "target/javaservice-1.0.0.jar"])
        .WithHttpEndpoint(env: "PORT")
        .WaitFor(mvn)
        .WithReference(db1).WaitFor(db1)
        .WithExternalHttpEndpoints();
+
+mvn.WithParentRelationship(java);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

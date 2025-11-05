@@ -2,19 +2,22 @@ import os
 import uuid
 import psycopg
 from flask import Flask, jsonify
-from azure.identity import DefaultAzureCredential
+from entra_connection import get_entra_conninfo
 
 app = Flask(__name__)
 
 def get_connection():
     uri = os.environ['DB1_URI']
-    if os.environ.get('DB1_AZURE', "false").lower() == "true":
-        user = os.environ.get("DB1_USERNAME", "azure_user") # Default user for Entra ID Managed Indentity
-        credential = DefaultAzureCredential()
-        password = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
-    else:
-        user = os.environ['DB1_USERNAME']
-        password = os.environ['DB1_PASSWORD']
+    user = os.environ.get("DB1_USERNAME")
+    password = os.environ.get("DB1_PASSWORD")
+    if not password:
+        # use entra auth
+        entra_conninfo = get_entra_conninfo(None)
+        password = entra_conninfo["password"]
+        if not user:
+            # If user isn't already set, use the username from the token
+            user = entra_conninfo["user"]
+
     return psycopg.connect(uri, user=user, password=password)
 
 @app.route('/')
