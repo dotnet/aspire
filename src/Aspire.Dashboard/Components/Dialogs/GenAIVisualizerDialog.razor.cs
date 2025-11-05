@@ -184,55 +184,48 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         };
     }
 
-    private static bool IsImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageContent)
+    private static bool TryGetImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageUrl)
     {
         switch (itemPart.MessagePart?.Type)
         {
             case "blob":
                 {
-                    var mimeType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "mime_type")?.Value;
-                    if (mimeType is "image/png" or "image/jpeg" or "image/gif" or "image/svg+xml")
+                    if (itemPart.TryGetPropertyValue("mime_type", out var mimeType) && IsImageMimeType(mimeType))
                     {
-                        var content = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content")?.Value;
-
-                        var blobImagePart = itemPart as GenAIItemBlobImagePartViewModel;
-                        imageContent = blobImagePart?.BlobUrl;
-                        return !string.IsNullOrEmpty(imageContent);
+                        if (itemPart.TryGetPropertyValue("content", out var content))
+                        {
+                            imageUrl = $"data:{mimeType};base64,{content}";
+                            return true;
+                        }
                     }
-                    imageContent = base64ImagePart.Content;
-                    return !string.IsNullOrEmpty(imageContent);
+                    break;
                 }
             case "uri":
-                imageContent = urlImagePart.Url;
-                return !string.IsNullOrEmpty(imageContent);
+                {
+                    if (itemPart.TryGetPropertyValue("mime_type", out var mimeType) && IsImageMimeType(mimeType))
+                    {
+                        if (itemPart.TryGetPropertyValue("uri", out var uri))
+                        {
+                            if (Uri.TryCreate(uri, UriKind.Absolute, out var result) && result.Scheme.ToLowerInvariant() is "http" or "https")
+                            {
+                                // Only attempt to display image if it is an http/https address.
+                                imageUrl = uri;
+                                return true;
+                            }
+                        }
+                    }
+                    break;
+                }
         }
 
-        // Image part is a generic part with type "image" and content in additional properties.
-        // An image part isn't in the GenAI semantic conventions. This code follows what MEAI does and will need to change to support a future standard.
-        // See https://github.com/dotnet/extensions/pull/6809.
-        if (itemPart.MessagePart?.Type == "image")
-        {
-            var contentType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content");
-            imageContent = contentType?.Value;
-            return !string.IsNullOrEmpty(imageContent);
-        }
-
-        imageContent = null;
+        imageUrl = null;
         return false;
-    }
 
-    /*
-    private static bool IsSupportedImageScheme(string imageContent)
-    {
-        if (Uri.TryCreate(imageContent, UriKind.Absolute, out var result))
+        static bool IsImageMimeType(string mimeType)
         {
-            // Only attempt to display image if it is an http/https address, or an inline data image.
-            return result.Scheme.ToLowerInvariant() is "http" or "https" or "data";
+            return mimeType.ToLowerInvariant() is "image/png" or "image/jpeg" or "image/gif" or "image/svg+xml";
         }
-
-        return false;
     }
-    */
 
     public void Dispose()
     {

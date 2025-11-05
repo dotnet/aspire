@@ -443,12 +443,16 @@ app.MapGet("/genai-trace", async () =>
                     "content": "This is the input prompt."
                   },
                   {
-                    "type": "image",
-                    "content": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/9.0.9/icon"
+                    "type": "uri",
+                    "uri": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/9.0.9/icon",
+                    "mime_type": "image/png",
+                    "modality": "image"
                   },
                   {
-                    "type": "image",
-                    "content": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFwAAABcCAMAAADUMSJqAAAAilBMVEX///+XgOV0Vd1RK9S5qu7c1fZHGdKto+hOJ9Oag+ZNJNOWfuVyU91LINPi3Pi4qO6WiuOEbt9EEtJtTdtaNtZnRtn39f1WMdX6+f6ReeTs6fr08fwhAM68sO1iQtjIvvA8ANHl4fhePNeEaeHQx/Kjj+iwoOyeiednUtnCuO+jlOfWzvR5Xd5+Yt+aCjLkAAAD3ElEQVRoge2ZW3eqMBCFC0gM4VIJKlIPQkXbqvj//94hk1a5TChI+uZefes6X2dl78wMOS8vTz31VFPb7R+BN+nXv0pf6UY/295xalWifGfrZmcSDfg808sO7mxR/LtWeMSACj+WxSKd7BMX6DgyzSgWeH7Sx17vBTE2QbH4O/u1NviZCGAk4ZH4Q+Ssi73NxUEvzW8tBT3XdZ0K4Sb1fuBQOgv1sC/g5t68CRzgFy1wGUPvDvf0xTGFwldmTSsoPZ3OXse1GP4I4kinx/FYj2HDU3Kcyn5vu1mL4+QWU/gtN2ue+sU09gEK37XZprmD0g+T4BBpq8s2TeiS+ylTadaNYTOOs8fZa9JoKi1Pxe/I4y1mgcWwEUffeZQdEBlDz+ukRQj8IMGDcA+6YZkkYYnRZYspH2Nnoo0z0zEMw7lidIjjY6vABv7t0gC56LHHD8dxTuASOgB3Qqx0iCP5GM9+kxGX7EqlMo78bTQ8EU2FJT9sAy1dxjEZy7ZzmJu3wg0HTQzEMR+7PJoQQ9e4K1HH0RzHhhWLXZ0a3CmUno5bwGC20b3RUE8c4zFxhBXLD50GHI/j6AWsHUOtcQxFDGnSZuOeyjgOXsBgtsmm0lRfixk48TYQw9jtsHvj6A2Dw2xjRbfw3jjmgybeRm4qGLuSMo4WGRLHT2gqIQ7vi+Pid/Y7zLaV6yYuJqP0upILmP/7xIMVyz8f7MvpFdHsAzUa4Nff2IccZnpg23aQvc4QHbHTKgfFUYSWLm2pFKO/YqUb0GJ2/ew5hz0qkPALWvoZoTtwmnzex94yKu7DN9u2TygdvQFibFDat4AZ0A0z+yaMjXsaQhwNNTvgMBKDO/yAlv6Jle7B2FDHsRRNhdh1pYNLd1nvAgYrFjkHdTju6RHzFEpTLWAbmG07uyk07HgcxT1VTbwP4SZJgxYd9RSPoyidowvYmy9iWLbZCk8djA43kGETD2YbObTZYzxNmGLiBdBU3E7hlafowajjmHfjGIEbly5b5SlmqQHfeJ2JBysWPyOFC08xOhrHK0OeHDbw8hbhbJWn2MFAHK1mHBcyhji7amCD4xiyzgK2piKGhaLwSsNbzIq2X0tgDcJi2OupeuI1HgXE5fRDdeGKe4qWLmLX+E4SLzZEERUp9Cbh45S1Dl2szHIqK+HYuaCVm7QFFym/jWVMaBjR3uha7U8NWMj9wg4Uwk4lnX06Xbny27TRvKBr+XGyQGWEiApsa4wsZFt/g8d3ynxcDBPFBM2l/bKWiYPRI8o7o+6Q+3rYfpddnUzCOZksThL822ubzScr+6v/pnrqqad06z+o/mHi4pLvAgAAAABJRU5ErkJggg=="
+                    "type": "blob",
+                    "content": "iVBORw0KGgoAAAANSUhEUgAAAFwAAABcCAMAAADUMSJqAAAAilBMVEX///+XgOV0Vd1RK9S5qu7c1fZHGdKto+hOJ9Oag+ZNJNOWfuVyU91LINPi3Pi4qO6WiuOEbt9EEtJtTdtaNtZnRtn39f1WMdX6+f6ReeTs6fr08fwhAM68sO1iQtjIvvA8ANHl4fhePNeEaeHQx/Kjj+iwoOyeiednUtnCuO+jlOfWzvR5Xd5+Yt+aCjLkAAAD3ElEQVRoge2ZW3eqMBCFC0gM4VIJKlIPQkXbqvj//94hk1a5TChI+uZefes6X2dl78wMOS8vTz31VFPb7R+BN+nXv0pf6UY/295xalWifGfrZmcSDfg808sO7mxR/LtWeMSACj+WxSKd7BMX6DgyzSgWeH7Sx17vBTE2QbH4O/u1NviZCGAk4ZH4Q+Ssi73NxUEvzW8tBT3XdZ0K4Sb1fuBQOgv1sC/g5t68CRzgFy1wGUPvDvf0xTGFwldmTSsoPZ3OXse1GP4I4kinx/FYj2HDU3Kcyn5vu1mL4+QWU/gtN2ue+sU09gEK37XZprmD0g+T4BBpq8s2TeiS+ylTadaNYTOOs8fZa9JoKi1Pxe/I4y1mgcWwEUffeZQdEBlDz+ukRQj8IMGDcA+6YZkkYYnRZYspH2Nnoo0z0zEMw7lidIjjY6vABv7t0gC56LHHD8dxTuASOgB3Qqx0iCP5GM9+kxGX7EqlMo78bTQ8EU2FJT9sAy1dxjEZy7ZzmJu3wg0HTQzEMR+7PJoQQ9e4K1HH0RzHhhWLXZ0a3CmUno5bwGC20b3RUE8c4zFxhBXLD50GHI/j6AWsHUOtcQxFDGnSZuOeyjgOXsBgtsmm0lRfixk48TYQw9jtsHvj6A2Dw2xjRbfw3jjmgybeRm4qGLuSMo4WGRLHT2gqIQ7vi+Pid/Y7zLaV6yYuJqP0upILmP/7xIMVyz8f7MvpFdHsAzUa4Nff2IccZnpg23aQvc4QHbHTKgfFUYSWLm2pFKO/YqUb0GJ2/ew5hz0qkPALWvoZoTtwmnzex94yKu7DN9u2TygdvQFibFDat4AZ0A0z+yaMjXsaQhwNNTvgMBKDO/yAlv6Jle7B2FDHsRRNhdh1pYNLd1nvAgYrFjkHdTju6RHzFEpTLWAbmG07uyk07HgcxT1VTbwP4SZJgxYd9RSPoyidowvYmy9iWLbZCk8djA43kGETD2YbObTZYzxNmGLiBdBU3E7hlafowajjmHfjGIEbly5b5SlmqQHfeJ2JBysWPyOFC08xOhrHK0OeHDbw8hbhbJWn2MFAHK1mHBcyhji7amCD4xiyzgK2piKGhaLwSsNbzIq2X0tgDcJi2OupeuI1HgXE5fRDdeGKe4qWLmLX+E4SLzZEERUp9Cbh45S1Dl2szHIqK+HYuaCVm7QFFym/jWVMaBjR3uha7U8NWMj9wg4Uwk4lnX06Xbny27TRvKBr+XGyQGWEiApsa4wsZFt/g8d3ynxcDBPFBM2l/bKWiYPRI8o7o+6Q+3rYfpddnUzCOZksThL822ubzScr+6v/pnrqqad06z+o/mHi4pLvAgAAAABJRU5ErkJggg==",
+                    "mime_type": "image/png",
+                    "modality": "image"
                   }
                 ]
               },
