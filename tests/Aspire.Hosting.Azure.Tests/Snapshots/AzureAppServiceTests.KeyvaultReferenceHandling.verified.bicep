@@ -93,6 +93,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
         }
         {
+          name: 'MYDB_URI'
+          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
+        }
+        {
           name: 'SECRET_VALUE'
           value: '@Microsoft.KeyVault(SecretUri=${existingKv_secret.properties.secretUri})'
         }
