@@ -364,18 +364,16 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Configure required environment variables for custom certificate trust when running as an executable
-        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
-        // way to simply append additional certificates to default Python trust stores such as certifi.
+        // Configure required environment variables for custom certificate trust when running as an executable.
+        // TODO: Make CertificateTrustScope.System the default once we're able to validate that certificates are valid for OpenSSL. Otherwise we potentially add invalid certificates to the bundle which causes OpenSSL to error.
         resourceBuilder
-            .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {
                     var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
                     var logger = resourceLogger.GetLogger(ctx.Resource);
-                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
+                    logger.LogInformation("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied.");
                 }
                 else
                 {
