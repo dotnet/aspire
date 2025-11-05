@@ -281,4 +281,71 @@ public class AddNodeAppTests
             arg => Assert.Equal("start", arg),
             arg => Assert.Equal("--my-arg1", arg));
     }
+
+    [Fact]
+    public async Task VerifyNodeAppWithContainerFilesGeneratesCorrectDockerfile()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var appDirectory = sourceDir.Path;
+
+        // Create a simple Node.js app
+        var packageJsonContent = """
+            {
+              "name": "test-app",
+              "version": "1.0.0",
+              "scripts": {
+                "start": "node app.js"
+              }
+            }
+            """;
+
+        var appContent = """
+            console.log('Hello from Node.js!');
+            """;
+
+        File.WriteAllText(Path.Combine(appDirectory, "package.json"), packageJsonContent);
+        File.WriteAllText(Path.Combine(appDirectory, "app.js"), appContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        var nodeApp = builder.AddNodeApp("nodeapp", appDirectory, "app.js");
+
+        // Create a source container that provides files
+        var sourceFiles = builder.AddResource(new MyFilesContainer("source", "exe", "."))
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    dockerfileContext.Builder.From("scratch");
+                })
+                .WithImageTag("source-tag");
+            })
+            .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" });
+
+        // Configure NodeApp to consume the source files - note that NodeApp doesn't implement IResourceWithCanCopyContainerFiles
+        // because it's a JavaScriptAppResource which is an ExecutableResource, but when publishing, it generates a Dockerfile
+        // that should include the container files
+        nodeApp.Resource.Annotations.Add(new ContainerFilesDestinationAnnotation
+        {
+            Source = sourceFiles.Resource,
+            DestinationPath = "./static"
+        });
+
+        var app = builder.Build();
+        await app.RunAsync();
+
+        // Verify that Dockerfile was generated for the NodeApp
+        var nodeDockerfilePath = Path.Combine(outputDir.Path, "nodeapp.Dockerfile");
+        Assert.True(File.Exists(nodeDockerfilePath), "Dockerfile should be generated for NodeApp");
+
+        var dockerfileContent = File.ReadAllText(nodeDockerfilePath);
+
+        // Verify that the Dockerfile includes the COPY --from statement for container files
+        // Note: The image name is prefixed with the resource name, so it's "source:source-tag"
+        Assert.Contains("COPY --from=source:source-tag /app/dist /app/./static", dockerfileContent);
+    }
+
+    private sealed class MyFilesContainer(string name, string command, string workingDirectory)
+        : ExecutableResource(name, command, workingDirectory), IResourceWithContainerFiles;
 }
