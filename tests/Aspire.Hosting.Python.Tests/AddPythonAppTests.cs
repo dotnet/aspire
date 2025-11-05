@@ -104,7 +104,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        builder.AddPythonScript("pyproj", projectDirectory, scriptName);
+        builder.AddPythonApp("pyproj", projectDirectory, scriptName);
 
         using var app = builder.Build();
 
@@ -129,7 +129,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var externalResource = builder.AddConnectionString("connectionString");
         builder.Configuration["ConnectionStrings:connectionString"] = "test";
 
-        var pyproj = builder.AddPythonScript("pyproj", projectDirectory, scriptName)
+        var pyproj = builder.AddPythonApp("pyproj", projectDirectory, scriptName)
                             .WithReference(externalResource);
 
         using var app = builder.Build();
@@ -224,7 +224,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
-    public async Task AddPythonScriptWithScriptArgs_IncludesTheArguments()
+    public async Task AddPythonAppWithScriptArgs_IncludesTheArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
 
@@ -387,14 +387,14 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         """";
 
     [Fact]
-    public void AddPythonScript_DoesNotThrowOnMissingVirtualEnvironment()
+    public void AddPythonApp_DoesNotThrowOnMissingVirtualEnvironment()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
         // Should not throw - validation is deferred until runtime
         var exception = Record.Exception(() =>
-            builder.AddPythonScript("pythonProject", tempDir.Path, "main.py"));
+            builder.AddPythonApp("pythonProject", tempDir.Path, "main.py"));
 
         Assert.Null(exception);
     }
@@ -407,7 +407,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithVirtualEnvironment("custom-venv");
 
         var app = builder.Build();
@@ -440,7 +440,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithVirtualEnvironment(tempVenvDir.Path);
 
         var app = builder.Build();
@@ -480,7 +480,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
 
         var scriptName = "main.py";
-        var resourceBuilder = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
 
         var nullException = Assert.Throws<ArgumentNullException>(() =>
             resourceBuilder.WithVirtualEnvironment(null!));
@@ -499,7 +499,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        var resourceBuilder = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithVirtualEnvironment(".venv")
             .WithArgs("arg1", "arg2")
             .WithEnvironment("TEST_VAR", "test_value");
@@ -532,7 +532,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Directory.CreateDirectory(appVenvPath);
 
         var scriptName = "main.py";
-        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempAppDir.Path, scriptName);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -565,7 +565,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         try
         {
             var scriptName = "main.py";
-            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName);
+            var resourceBuilder = builder.AddPythonApp("pythonProject", appDirName, scriptName);
 
             var app = builder.Build();
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -610,7 +610,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         try
         {
             var scriptName = "main.py";
-            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName);
+            var resourceBuilder = builder.AddPythonApp("pythonProject", appDirName, scriptName);
 
             var app = builder.Build();
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -644,7 +644,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // Don't create .venv in either directory
 
         var scriptName = "main.py";
-        var resourceBuilder = builder.AddPythonScript("pythonProject", tempAppDir.Path, scriptName);
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempAppDir.Path, scriptName);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -682,7 +682,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             var scriptName = "main.py";
             
             // Explicitly specify a custom venv path - should use it verbatim, not fall back to AppHost .venv
-            var resourceBuilder = builder.AddPythonScript("pythonProject", appDirName, scriptName)
+            var resourceBuilder = builder.AddPythonApp("pythonProject", appDirName, scriptName)
                 .WithVirtualEnvironment("custom-venv");
 
             var app = builder.Build();
@@ -716,7 +716,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithUv();
 
         var app = builder.Build();
@@ -746,7 +746,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithUv();
 
         var app = builder.Build();
@@ -767,7 +767,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var scriptName = "main.py";
 
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithUv();
 
         var app = builder.Build();
@@ -805,7 +805,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         // Call WithUv twice
-        var pythonBuilder = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithUv()
             .WithUv();
 
@@ -826,7 +826,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         // Call WithUv then WithPip - WithPip should replace WithUv
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithUv()
             .WithPip();
 
@@ -857,7 +857,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         // Call WithPip then WithUv - WithUv should replace WithPip
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithPip()
             .WithUv();
 
@@ -879,12 +879,12 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void AddPythonScript_CreatesResourceWithScriptEntrypoint()
+    public void AddPythonApp_CreatesResourceWithScriptEntrypoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonBuilder = builder.AddPythonScript("python-script", tempDir.Path, "main.py");
+        var pythonBuilder = builder.AddPythonApp("python-script", tempDir.Path, "main.py");
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -936,14 +936,14 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AddPythonScript_SetsCorrectCommandAndArguments()
+    public async Task AddPythonApp_SetsCorrectCommandAndArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
         var scriptName = "main.py";
 
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -1063,12 +1063,12 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AddPythonScript_WithArgs_AddsArgumentsCorrectly()
+    public async Task AddPythonApp_WithArgs_AddsArgumentsCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonBuilder = builder.AddPythonScript("python-app", tempDir.Path, "main.py")
+        var pythonBuilder = builder.AddPythonApp("python-app", tempDir.Path, "main.py")
             .WithArgs("arg1", "arg2");
 
         var app = builder.Build();
@@ -1112,7 +1112,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
 
         // Start with a script
-        var pythonBuilder = builder.AddPythonScript("python-app", tempDir.Path, "main.py")
+        var pythonBuilder = builder.AddPythonApp("python-app", tempDir.Path, "main.py")
             .WithArgs("arg1", "arg2");
 
         // Change to a module
@@ -1146,7 +1146,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
 
         // Start with a script
-        var pythonBuilder = builder.AddPythonScript("python-app", tempDir.Path, "main.py");
+        var pythonBuilder = builder.AddPythonApp("python-app", tempDir.Path, "main.py");
 
         // Get the initial command (should be python executable)
         var initialCommand = pythonBuilder.Resource.Command;
@@ -1193,7 +1193,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var resourceBuilder = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py");
 
         var nullException = Assert.Throws<ArgumentNullException>(() =>
             resourceBuilder.WithEntrypoint(EntrypointType.Module, null!));
@@ -1242,7 +1242,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resources with different entrypoint types
-        builder.AddPythonScript("script-app", projectDirectory, "main.py")
+        builder.AddPythonApp("script-app", projectDirectory, "main.py")
             .WithUv();
 
         builder.AddPythonModule("module-app", projectDirectory, "mymodule")
@@ -1307,7 +1307,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resources with different entrypoint types
-        builder.AddPythonScript("script-app", projectDirectory, "main.py")
+        builder.AddPythonApp("script-app", projectDirectory, "main.py")
             .WithUv();
 
         builder.AddPythonModule("module-app", projectDirectory, "mymodule")
@@ -1366,7 +1366,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Directory.CreateDirectory(virtualEnvironmentPath);
         var scriptPath = "main.py";
 
-        var pythonApp = builder.AddPythonScript("myapp", appDirectory, scriptPath)
+        var pythonApp = builder.AddPythonApp("myapp", appDirectory, scriptPath)
             .WithVirtualEnvironment(virtualEnvironmentPath)
             .WithArgs("arg1", "arg2");
 
@@ -1404,7 +1404,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Directory.CreateDirectory(virtualEnvironmentPath);
         var scriptPath = "main.py";
 
-        var pythonApp = builder.AddPythonScript("myapp", appDirectory, scriptPath)
+        var pythonApp = builder.AddPythonApp("myapp", appDirectory, scriptPath)
             .WithVirtualEnvironment(virtualEnvironmentPath)
             .WithArgs("arg1", "arg2");
 
@@ -1537,7 +1537,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run).WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py");
 
         var app = builder.Build();
         var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
@@ -1559,7 +1559,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run).WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py");
 
         var app = builder.Build();
         var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
@@ -1577,7 +1577,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py");
 
         var app = builder.Build();
         var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
@@ -1623,7 +1623,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resource with custom base images
-        builder.AddPythonScript("custom-images-app", projectDirectory, "main.py")
+        builder.AddPythonApp("custom-images-app", projectDirectory, "main.py")
             .WithUv()
             .WithDockerfileBaseImage(
                 buildImage: "ghcr.io/astral-sh/uv:python3.13-bookworm",
@@ -1668,7 +1668,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resources without UV environment
-        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+        builder.AddPythonApp("script-app", projectDirectory, "main.py");
 
         var app = builder.Build();
         app.Run();
@@ -1717,7 +1717,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resources without UV environment
-        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+        builder.AddPythonApp("script-app", projectDirectory, "main.py");
 
         var app = builder.Build();
         app.Run();
@@ -1761,7 +1761,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         // Add Python resources with different entrypoint types, none using UV
-        builder.AddPythonScript("script-app", projectDirectory, "main.py");
+        builder.AddPythonApp("script-app", projectDirectory, "main.py");
         builder.AddPythonModule("module-app", projectDirectory, "mymodule");
         builder.AddPythonExecutable("executable-app", projectDirectory, "pytest");
 
@@ -1811,7 +1811,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var pyprojectPath = Path.Combine(tempDir.Path, "pyproject.toml");
         File.WriteAllText(pyprojectPath, "[project]\nname = \"test\"");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
 
         var app = builder.Build();
 
@@ -1845,7 +1845,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
         File.WriteAllText(requirementsPath, "requests==2.31.0");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
 
         var app = builder.Build();
 
@@ -1882,7 +1882,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
         File.WriteAllText(requirementsPath, "requests==2.31.0");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
 
         var app = builder.Build();
 
@@ -1906,7 +1906,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptPath = Path.Combine(tempDir.Path, scriptName);
         File.WriteAllText(scriptPath, "print('Hello')");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, scriptName);
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
 
         var app = builder.Build();
 
@@ -1931,7 +1931,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(scriptPath, "print('Hello')");
 
         // Add Python script with venv but disable automatic creation
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: false);
 
         var app = builder.Build();
@@ -1958,7 +1958,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(requirementsPath, "requests");
 
         // Add Python script with venv and enable automatic creation (default)
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: true);
 
         var app = builder.Build();
@@ -1986,7 +1986,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(requirementsPath, "requests");
 
         // Add Python script with venv using default behavior (createIfNotExists defaults to true)
-        builder.AddPythonScript("pythonProject", tempDir.Path, scriptName)
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
             .WithVirtualEnvironment(tempVenvDir.Path);
 
         var app = builder.Build();
@@ -2010,7 +2010,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptPath = Path.Combine(tempDir.Path, "main.py");
         File.WriteAllText(scriptPath, "print('Hello')");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithUv();
 
         var app = builder.Build();
@@ -2042,7 +2042,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
         File.WriteAllText(requirementsPath, "requests");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithPip();
 
         var app = builder.Build();
@@ -2084,7 +2084,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
         File.WriteAllText(requirementsPath, "requests");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithPip()
             .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: true);
 
@@ -2114,7 +2114,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
         File.WriteAllText(requirementsPath, "requests");
 
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithPip()
             .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: false);
 
@@ -2149,7 +2149,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(requirementsPath, "requests");
 
         // WithPip → WithVirtualEnvironment(createIfNotExists: true) → WithPip again
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithPip()
             .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: true)
             .WithPip();
@@ -2185,7 +2185,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(requirementsPath, "requests");
 
         // WithPip → WithVirtualEnvironment(createIfNotExists: false) → WithPip again
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithPip()
             .WithVirtualEnvironment(tempVenvDir.Path, createIfNotExists: false)
             .WithPip();
@@ -2215,7 +2215,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(requirementsPath, "requests");
 
         // WithPip → WithUv (uv should replace pip and disable venv creation)
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithPip()
             .WithUv();
 
@@ -2247,7 +2247,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(requirementsPath, "requests");
 
         // WithUv → WithPip (pip should replace uv and enable venv creation)
-        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
             .WithUv()
             .WithPip();
 
