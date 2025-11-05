@@ -6,6 +6,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.JavaScript;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -133,6 +134,7 @@ public static class JavaScriptHostingExtensions
                             .EmptyLine()
                             .WorkDir("/app")
                             .CopyFrom("build", "/app", "/app")
+                            .AddContainerFiles(dockerfileContext.Resource, "/app")
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
                             .Expose(3000)
@@ -690,5 +692,34 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
+    }
+
+    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
+    {
+        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
+        {
+            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
+            {
+                // get image name
+                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
+                {
+                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
+                }
+
+                var destinationPath = containerFileDestination.DestinationPath;
+                if (!destinationPath.StartsWith('/'))
+                {
+                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
+                }
+
+                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                {
+                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
+                }
+            }
+
+            stage.EmptyLine();
+        }
+        return stage;
     }
 }

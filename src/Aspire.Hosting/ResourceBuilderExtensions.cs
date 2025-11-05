@@ -1285,14 +1285,14 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Configures the resource to copy container files from the specified source resource during publishing.
     /// </summary>
-    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IResource"/>.</typeparam>
+    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IResourceWithCanCopyContainerFiles"/>.</typeparam>
     /// <param name="builder">The resource builder to which container files will be copied to.</param>
     /// <param name="source">The resource which contains the container files to be copied.</param>
     /// <param name="destinationPath">The destination path within the resource's container where the files will be copied.</param>
     public static IResourceBuilder<T> PublishWithContainerFiles<T>(
          this IResourceBuilder<T> builder,
          IResourceBuilder<IResourceWithContainerFiles> source,
-         string destinationPath) where T : IResource
+         string destinationPath) where T : IResourceWithCanCopyContainerFiles
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
