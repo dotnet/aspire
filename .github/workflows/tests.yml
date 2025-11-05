@@ -201,7 +201,6 @@ jobs:
   check_templatestrings:
     name: Check templatestrings files not modified
     runs-on: ubuntu-latest
-    needs: build_packages
     if: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: Checkout code
