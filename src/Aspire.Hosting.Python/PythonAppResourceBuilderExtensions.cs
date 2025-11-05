@@ -26,46 +26,6 @@ public static class PythonAppResourceBuilderExtensions
     private const string DefaultPythonVersion = "3.13";
 
     /// <summary>
-    /// Adds a python application to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="appDirectory">The path to the directory containing the python app files.</param>
-    /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method is obsolete. Use one of the more specific methods instead:
-    /// </para>
-    /// <list type="bullet">
-    /// <item><description><see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string)"/> - To run a Python script file</description></item>
-    /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
-    /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
-    /// </list>
-    /// <para>
-    /// These new methods provide better clarity about how the Python application will be executed.
-    /// You can also use <see cref="WithEntrypoint"/> to change the entrypoint type after creation.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Replace with <see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string)"/>:
-    /// <code lang="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// builder.AddPythonApp("python-app", "../python-app", "main.py")
-    ///        .WithArgs("arg1", "arg2");
-    ///
-    /// builder.Build().Run();
-    /// </code>
-    /// </example>
-    [Obsolete("Use AddPythonApp, AddPythonModule, or AddPythonExecutable instead for more explicit control over how the Python application is executed.")]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public static IResourceBuilder<PythonAppResource> AddPythonScript(
-        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
-            .WithDebugging();
-
-    /// <summary>
     /// Adds a Python application to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
@@ -192,7 +152,7 @@ public static class PythonAppResourceBuilderExtensions
     /// This overload is obsolete. Use one of the more specific methods instead:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string)"/> - To run a Python script file</description></item>
     /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
     /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
     /// </list>
@@ -233,7 +193,7 @@ public static class PythonAppResourceBuilderExtensions
     /// This overload is obsolete. Use one of the more specific methods instead:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string)"/> - To run a Python script file</description></item>
     /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
     /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
     /// </list>
