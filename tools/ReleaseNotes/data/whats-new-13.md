@@ -1390,20 +1390,27 @@ public class MyLifecycleHook : IDistributedApplicationLifecycleHook
     }
 }
 
-builder.Services.AddSingleton<IDistributedApplicationLifecycleHook, MyLifecycleHook>();
+builder.Services.AddLifecycleHook<MyLifecycleHook>();
 ```
 
 **After (13.0)**:
 ```csharp
 public class MyEventSubscriber : IDistributedApplicationEventingSubscriber
 {
-    public async Task OnEventAsync<TEvent>(TEvent evt, CancellationToken cancellationToken)
-        where TEvent : IDistributedApplicationEvent
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        if (evt is BeforeStartEvent beforeStart)
+        eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
         {
+            // Access model and services via event
+            var model = @event.Model;
+            var services = @event.Services;
+
             // Logic before start
-        }
+
+            return Task.CompletedTask;
+        });
+
+        return Task.CompletedTask;
     }
 }
 
