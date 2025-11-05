@@ -68,7 +68,6 @@ The Azure PostgreSQL server resource exposes the following connection properties
 | `Port` | The PostgreSQL port (fixed at `5432` in Azure Flexible Server) |
 | `Uri` | The connection URI for the server, with the format `postgresql://{Username}:{Password}@{Host}` (credentials omitted when not applicable) |
 | `JdbcConnectionString` | JDBC-format connection string for the server, with the format `jdbc:postgresql://{Host}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin` |
-| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when running the container) |
 | `Username` | Present when password authentication is enabled; the configured administrator username |
 | `Password` | Present when password authentication is enabled; the configured administrator password |
 

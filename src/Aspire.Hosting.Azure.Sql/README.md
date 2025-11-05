@@ -67,7 +67,6 @@ The Azure SQL Server resource exposes the following connection properties:
 | `Host` | The fully qualified domain name of the Azure SQL Server |
 | `Port` | The SQL Server port (`1433`) |
 | `Uri` | The connection URI, with the format `mssql://{Host}:{Port}` |
-| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when using a container) |
 
 ### Azure SQL database resource
 

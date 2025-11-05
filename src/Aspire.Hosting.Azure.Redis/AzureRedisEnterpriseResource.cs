@@ -190,12 +190,10 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
             {
                 yield return property;
             }
-            yield return new("Azure", ReferenceExpression.Create($"false"));
             yield break;
         }
 
         yield return new("Host", HostName);
         yield return new("Uri", UriExpression);
-        yield return new("Azure", ReferenceExpression.Create($"true"));
     }
 }

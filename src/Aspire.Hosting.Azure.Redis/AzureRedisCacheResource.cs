@@ -121,13 +121,11 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
                 yield return property;
             }
 
-            yield return new("Azure", ReferenceExpression.Create($"false"));
             yield break;
         }
 
         yield return new("Host", HostName);
         yield return new("Uri", UriExpression);
-        yield return new("Azure", ReferenceExpression.Create($"true"));
     }
 
     /// <inheritdoc/>

@@ -63,6 +63,5 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Uri", ServiceUriExpression);
-        yield return new("Azure", ReferenceExpression.Create($"{(Parent.IsEmulator ? "false" : "true")}"));
     }
 }

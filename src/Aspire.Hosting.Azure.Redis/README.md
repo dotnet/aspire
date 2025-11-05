@@ -73,9 +73,8 @@ When you reference Azure Redis resources using `WithReference`, the following co
 |---------------|-------------|
 | `Host` | The hostname of the Azure Cache for Redis instance. |
 | `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
-| `Azure` | Indicates this connection targets Azure (`true`) or a local container (`false`). |
 
-When `RunAsContainer` is used, the resource inherits the standard Redis connection properties (`Host`, `Port`, optional `Password`, `Uri`) from `RedisResource` and reports `Azure` as `false`.
+When `RunAsContainer` is used, the resource inherits the standard Redis connection properties (`Host`, `Port`, optional `Password`, `Uri`) from `RedisResource`.
 
 ### Azure Redis Enterprise
 
@@ -83,7 +82,6 @@ When `RunAsContainer` is used, the resource inherits the standard Redis connecti
 |---------------|-------------|
 | `Host` | The hostname of the Azure Redis Enterprise database endpoint. |
 | `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
-| `Azure` | Indicates this connection targets Azure (`true`) or a local container (`false`). |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

@@ -180,6 +180,5 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     {
         yield return new("Host", HostName);
         yield return new("Uri", UriExpression);
-        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }

@@ -159,6 +159,5 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     {
         yield return new("Host", HostName);
         yield return new("Uri", UriExpression);
-        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }

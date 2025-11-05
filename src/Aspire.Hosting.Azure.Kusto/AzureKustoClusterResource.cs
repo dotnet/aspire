@@ -174,6 +174,5 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Uri", UriExpression);
-        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }

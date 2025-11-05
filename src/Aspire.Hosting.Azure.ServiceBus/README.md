@@ -65,7 +65,6 @@ The Service Bus namespace resource exposes the following connection properties:
 |---------------|-------------|
 | `Host` | The hostname of the Service Bus namespace |
 | `Uri` | The connection URI, with the format `sb://myservicebus.servicebus.windows.net` |
-| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
 ### Service Bus queue
 

@@ -109,6 +109,5 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     {
         yield return new("Uri", UriExpression);
         yield return new("Key", ReferenceExpression.Create($"{ApiKey}"));
-        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }

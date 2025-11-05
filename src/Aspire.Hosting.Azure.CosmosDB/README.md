@@ -80,7 +80,6 @@ The Cosmos DB account resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Uri` | The account endpoint URI for the Cosmos DB account, with the format `https://mycosmosaccount.documents.azure.com:443/` |
-| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
 ### Cosmos DB database
 

@@ -64,7 +64,6 @@ When you reference Azure Key Vault resources using `WithReference`, the followin
 | Property Name | Description |
 |---------------|-------------|
 | `Uri`         | The Key Vault endpoint URI, typically `https://<vault-name>.vault.azure.net/` |
-| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

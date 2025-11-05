@@ -91,7 +91,6 @@ The Azure AI Foundry resource exposes the following connection properties:
 |---------------|-------------|
 | `Uri`         | The endpoint URI for the Azure AI Foundry resource |
 | `Key`         | The API key to access Foundry Local |
-| `Azure`       | Indicates this is an Azure resource (`true` for Azure, `false` when using Foundry Local) |
 
 ### Azure AI Foundry deployment
 

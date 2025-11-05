@@ -118,7 +118,6 @@ The Blob Storage resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Uri` | The URI of the blob storage service, with the format `https://mystorageaccount.blob.core.windows.net/` |
-| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
 ### Blob Container
 
@@ -135,7 +134,6 @@ The Queue Storage resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Uri` | The URI of the queue storage service, with the format `https://mystorageaccount.queue.core.windows.net/` |
-| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
 ### Queue
 
@@ -152,7 +150,6 @@ The Table Storage resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Uri` | The URI of the table storage service, with the format `https://mystorageaccount.table.core.windows.net/` |
-| `Azure` | Indicates this is an Azure resource (`true` for Azure, `false` when using the emulator) |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

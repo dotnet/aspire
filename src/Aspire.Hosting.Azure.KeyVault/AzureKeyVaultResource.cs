@@ -138,6 +138,5 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Uri", Endpoint);
-        yield return new("Azure", ReferenceExpression.Create($"{(IsEmulator ? "false" : "true")}"));
     }
 }
