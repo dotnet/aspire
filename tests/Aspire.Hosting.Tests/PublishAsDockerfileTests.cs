@@ -33,7 +33,8 @@ public class PublishAsDockerfileTests
               "type": "container.v1",
               "build": {
                 "context": ".",
-                "dockerfile": "Dockerfile"
+                "dockerfile": "Dockerfile",
+                "buildOnly": true
               },
               "env": {
                 "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
@@ -80,6 +81,7 @@ public class PublishAsDockerfileTests
               "build": {
                 "context": ".",
                 "dockerfile": "Dockerfile",
+                "buildOnly": true,
                 "args": {
                   "SOME_STRING": "Test",
                   "SOME_BOOL": "true",
@@ -129,6 +131,7 @@ public class PublishAsDockerfileTests
               "build": {
                 "context": ".",
                 "dockerfile": "Dockerfile",
+                "buildOnly": true,
                 "args": {
                   "SOME_ARG": null
                 }
@@ -178,6 +181,7 @@ public class PublishAsDockerfileTests
               "build": {
                 "context": ".",
                 "dockerfile": "Dockerfile",
+                "buildOnly": true,
                 "secrets": {
                   "buildSecret": {
                     "type": "env",
