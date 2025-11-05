@@ -323,14 +323,8 @@ public class AddNodeAppTests
             })
             .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" });
 
-        // Configure NodeApp to consume the source files - note that NodeApp doesn't implement IResourceWithCanCopyContainerFiles
-        // because it's a JavaScriptAppResource which is an ExecutableResource, but when publishing, it generates a Dockerfile
-        // that should include the container files
-        nodeApp.Resource.Annotations.Add(new ContainerFilesDestinationAnnotation
-        {
-            Source = sourceFiles.Resource,
-            DestinationPath = "./static"
-        });
+        // Configure NodeApp to consume the source files using the proper PublishWithContainerFiles API
+        nodeApp.PublishWithContainerFiles(sourceFiles, "./static");
 
         var app = builder.Build();
         await app.RunAsync();
