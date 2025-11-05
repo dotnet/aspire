@@ -63,7 +63,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     private CancellationTokenSource? _dashboardLogsCts;
     private string? _customRuntimeConfigPath;
     private readonly TaskCompletionSource<bool> _dashboardReadyTcs = new();
-    private readonly TaskCompletionSource _unsecuredTransportInteractionTcs = new();
+    private readonly TaskCompletionSource _unsecuredTransportInteractionTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
