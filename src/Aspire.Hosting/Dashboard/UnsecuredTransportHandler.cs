@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -12,9 +11,9 @@ namespace Aspire.Hosting.Dashboard;
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 /// <summary>
-/// Hosted service that handles unsecured transport warnings by showing an interactive modal to the user.
+/// Eventing subscriber that handles unsecured transport warnings by showing an interactive modal to the user.
 /// </summary>
-internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedApplicationEventingSubscriber
+internal sealed class UnsecuredTransportHandler : IDistributedApplicationEventingSubscriber
 {
     private readonly UnsecuredTransportWarning _unsecuredTransportWarning;
     private readonly IInteractionService _interactionService;
@@ -35,18 +34,14 @@ internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedAp
         _executionContext = executionContext;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        // Start the interaction task asynchronously - don't block app startup
-        _interactionTask = HandleUnsecuredTransportAsync(cancellationToken);
-        return Task.CompletedTask;
-    }
-
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         // Only subscribe in run mode
         if (executionContext.IsRunMode)
         {
+            // Start the interaction task asynchronously
+            _interactionTask = HandleUnsecuredTransportAsync(cancellationToken);
+            
             // Subscribe to ResourceReadyEvent for the dashboard
             eventing.Subscribe<ResourceReadyEvent>(OnResourceReadyAsync);
             
@@ -162,11 +157,6 @@ internal sealed class UnsecuredTransportHandler : IHostedService, IDistributedAp
 
         // Fire and forget - don't wait for the notification to be dismissed
         _ = _interactionService.PromptNotificationAsync(notificationTitle, notificationMessage, notificationOptions, CancellationToken.None);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 }
 
