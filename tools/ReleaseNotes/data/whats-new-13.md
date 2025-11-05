@@ -846,18 +846,39 @@ The dynamic input system allows inputs to load options based on other input valu
 > This is an experimental feature marked with `[Experimental("ASPIREINTERACTION001")]`.
 
 ```csharp
-var input = new InteractionInput
+var inputs = new List<InteractionInput>
 {
-    Name = "Subscription",
-    InputType = InputType.Choice,
-    DynamicLoading = new InputLoadOptions
+    // First input - static options
+    new InteractionInput
     {
-        LoadCallback = async (context) =>
+        Name = "DatabaseType",
+        InputType = InputType.Choice,
+        Label = "Database Type",
+        Required = true,
+        Options =
+        [
+            KeyValuePair.Create("postgres", "PostgreSQL"),
+            KeyValuePair.Create("mysql", "MySQL"),
+            KeyValuePair.Create("sqlserver", "SQL Server")
+        ]
+    },
+
+    // Second input - loads dynamically based on DatabaseType
+    new InteractionInput
+    {
+        Name = "DatabaseVersion",
+        InputType = InputType.Choice,
+        Label = "Database Version",
+        Required = true,
+        DynamicLoading = new InputLoadOptions
         {
-            var region = context.AllInputs["Region"].Value;
-            context.Input.Options = await GetSubscriptionsForRegionAsync(region);
-        },
-        DependsOnInputs = ["Region"]
+            LoadCallback = async (context) =>
+            {
+                var dbType = context.AllInputs["DatabaseType"].Value;
+                context.Input.Options = await GetAvailableVersionsAsync(dbType);
+            },
+            DependsOnInputs = ["DatabaseType"]
+        }
     }
 };
 ```
