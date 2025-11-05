@@ -13,6 +13,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using System.Text.Json;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -2254,6 +2255,18 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify only one installer exists
         Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+    }
+
+    /// <summary>
+    /// Helper method to manually trigger BeforeStartEvent for tests.
+    /// This is needed because BeforeStartEvent is normally triggered during StartAsync(),
+    /// but tests often build and assert on the model without starting the application.
+    /// </summary>
+    private static async Task PublishBeforeStartEventAsync(DistributedApplication app)
+    {
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        await eventing.PublishAsync(new BeforeStartEvent(app.Services, appModel), CancellationToken.None);
     }
 }
 

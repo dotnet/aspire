@@ -497,16 +497,20 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Subscribe to BeforeStartEvent for this specific resource to wire up wait relationships dynamically
+        // Subscribe to BeforeStartEvent for this specific resource to wire up dependencies dynamically
         // This allows methods like WithPip, WithUv, and WithVirtualEnvironment to add/remove resources
-        // and the wait relationships will be established based on which resources actually exist
-        var resourceToSetup = resourceBuilder.Resource;
-        builder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+        // and the dependencies will be established based on which resources actually exist
+        // Only do this in run mode since the installer and venv creator only run in run mode
+        if (builder.ExecutionContext.IsRunMode)
         {
-            // Wire up wait dependencies for this resource based on which child resources exist
-            SetupWaitDependencies(builder, resourceToSetup);
-            return Task.CompletedTask;
-        });
+            var resourceToSetup = resourceBuilder.Resource;
+            builder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+            {
+                // Wire up wait dependencies for this resource based on which child resources exist
+                SetupDependencies(builder, resourceToSetup);
+                return Task.CompletedTask;
+            });
+        }
 
         // Automatically add pip as the package manager if pyproject.toml or requirements.txt exists
         // Only do this in run mode since the installer resource only runs in run mode
@@ -1264,28 +1268,39 @@ public static class PythonAppResourceBuilderExtensions
 
     private static bool IsPythonCommandAvailable(string command)
     {
-        try
+        var pathVariable = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathVariable))
         {
-            var startInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = command,
-                Arguments = "--version",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+            return false;
+        }
 
-            using var process = System.Diagnostics.Process.Start(startInfo);
-            if (process != null)
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, try both .exe and .cmd extensions
+            foreach (var ext in new[] { ".exe", ".cmd" })
             {
-                process.WaitForExit(1000); // Wait up to 1 second
-                return process.ExitCode == 0;
+                var commandWithExt = command + ext;
+                foreach (var directory in pathVariable.Split(Path.PathSeparator))
+                {
+                    var fullPath = Path.Combine(directory, commandWithExt);
+                    if (File.Exists(fullPath))
+                    {
+                        return true;
+                    }
+                }
             }
         }
-        catch
+        else
         {
-            // Command not found or other error
+            // On Unix-like systems, no extension needed
+            foreach (var directory in pathVariable.Split(Path.PathSeparator))
+            {
+                var fullPath = Path.Combine(directory, command);
+                if (File.Exists(fullPath))
+                {
+                    return true;
+                }
+            }
         }
 
         return false;
@@ -1392,14 +1407,14 @@ public static class PythonAppResourceBuilderExtensions
             pythonCommand = IsPythonCommandAvailable("python3") ? "python3" : "python";
         }
 
-        var venvCreatorBuilder = builder.ApplicationBuilder.AddResource(venvCreator)
+        builder.ApplicationBuilder.AddResource(venvCreator)
             .WithCommand(pythonCommand)
             .WithArgs(["-m", "venv", venvPath])
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest();
 
-        // Wait relationships will be set up dynamically in SetupWaitDependencies
+        // Wait relationships will be set up dynamically in SetupDependencies
     }
 
     private static void RemoveVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
@@ -1417,13 +1432,13 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         builder.ApplicationBuilder.Resources.Remove(venvCreator);
-        // Wait relationships are managed dynamically in SetupWaitDependencies, so no need to clean them up here
+        // Wait relationships are managed dynamically in SetupDependencies, so no need to clean them up here
     }
 
-    private static void SetupWaitDependencies(IDistributedApplicationBuilder builder, PythonAppResource resource)
+    private static void SetupDependencies(IDistributedApplicationBuilder builder, PythonAppResource resource)
     {
-        // This method is called in BeforeStartEvent to dynamically set up wait relationships
-        // based on which resources actually exist after all method calls have been made
+        // This method is called in BeforeStartEvent to dynamically set up dependencies
+        // based on which child resources actually exist after all method calls have been made
         
         var venvCreatorName = $"{resource.Name}-venv-creator";
         var installerName = $"{resource.Name}-installer";
