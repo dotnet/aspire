@@ -178,80 +178,38 @@ When using `WithUvEnvironment()`, Aspire:
 
 #### VS Code Debugging Support
 
-Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13.0 automatically enables debugging infrastructure for all Python resources.
-
-**Automatic debugging configuration:**
-
-Debugging support is automatically enabled for Python resources created with `AddPythonScript`, `AddPythonModule`, and `AddPythonExecutable`. No additional configuration is required:
-
-```csharp
-// Debugging is automatically enabled
-var worker = builder.AddPythonModule("worker", "./worker", "worker.main");
-// Internally calls .WithDebugging() automatically
-```
+Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13.0 automatically enables debugging infrastructure for all Python resources - no additional configuration required.
 
 **Supported debugging scenarios:**
 
-- **Python scripts**: Debug `AddPythonScript` resources with breakpoints and variable inspection
-- **Python modules**: Debug `AddPythonModule` with proper module resolution and import handling
-- **Flask applications**: Debug Flask apps with auto-reload and request debugging
-- **Uvicorn/FastAPI**: Debug ASGI applications with hot-reload and async/await support
+- **Python scripts**: Debug `AddPythonScript` with breakpoints and variable inspection
+- **Python modules**: Debug `AddPythonModule` with module resolution
+- **Flask applications**: Debug Flask apps with auto-reload
+- **Uvicorn/FastAPI**: Debug ASGI applications with async/await support
 
-**How it works:**
-
-1. Aspire automatically configures Python debugging annotations for each Python resource
-2. The Aspire IDE extension (VS Code) reads these annotations and generates launch configurations
-3. Launch configurations are written to `.vscode/launch.json` with correct:
-   - Python interpreter paths
-   - Environment variables
-   - Working directories
-   - Module paths and entry points
-4. The debugger attaches using `debugpy` (automatically installed in your virtual environment)
-
-**IDE execution specifications:**
-
-Aspire writes IDE execution specifications to `.aspire/ide-execution-spec.json` that include:
-- Interpreter paths (`interpreterPath`)
-- Module names for `-m` execution
-- Environment variables for debugging
-- Working directory paths
-
-This enables seamless debugging across Python scripts, modules, Flask apps, and ASGI frameworks without manual configuration.
+> [!NOTE]
+> Debugging is automatically enabled for Python resources. The Aspire IDE extension generates VS Code launch configurations automatically.
 
 #### Automatic Dockerfile Generation
 
-Aspire automatically generates production-ready Dockerfiles for Python applications when publishing. No additional configuration is required:
+Aspire automatically generates production-ready Dockerfiles for Python applications when publishing:
 
 ```csharp
 builder.AddUvicornApp("api", "./api", "main:app")
     .WithUvEnvironment();
 ```
 
-When you publish this app, Aspire automatically generates a Dockerfile that:
-- Uses appropriate Python base images
-- Installs dependencies using uv or pip
-- Configures the working directory
-- Sets up the ASGI server with production settings
-- Follows Python container best practices
+The generated Dockerfile uses appropriate Python base images, installs dependencies (using uv or pip), and follows container best practices.
 
 #### Python Version Detection
 
-Aspire automatically detects the Python version for Dockerfile generation using multiple sources:
+Aspire automatically detects the Python version for Dockerfile generation from multiple sources (in priority order):
 
 1. **`.python-version` file** (highest priority)
-   ```
-   3.13
-   ```
-
 2. **`pyproject.toml`** - `requires-python` field
-   ```toml
-   [project]
-   requires-python = ">=3.13"
-   ```
+3. **Virtual environment** - `python --version` as fallback
 
-3. **Virtual environment** - Executes `python --version` as fallback
-
-The detected version is used to select the appropriate Python base image for Docker publishing. Aspire does not enforce a minimum Python version requirement - any Python version detected through these methods will be supported.
+The detected version selects the appropriate Python base image for Docker publishing.
 
 #### Starter Template: Vite + FastAPI
 
@@ -315,21 +273,13 @@ This ensures reproducible builds in CI/CD and production environments while rema
 **Customizing package managers:**
 
 ```csharp
-// Disable auto-install (not recommended)
-var app1 = builder.AddJavaScriptApp("app1", "./app1")
-    .WithNpm(install: false);
-
-// Customize install command for npm
-var app2 = builder.AddJavaScriptApp("app2", "./app2")
+// Customize npm with additional flags
+var app = builder.AddJavaScriptApp("app", "./app")
     .WithNpm(installCommand: "ci", installArgs: ["--legacy-peer-deps"]);
 
-// Use yarn with custom arguments
-var app3 = builder.AddJavaScriptApp("app3", "./app3")
-    .WithYarn(installArgs: ["--immutable", "--check-cache"]);
-
-// Use pnpm with specific flags
-var app4 = builder.AddJavaScriptApp("app4", "./app4")
-    .WithPnpm(installArgs: ["--frozen-lockfile", "--prefer-offline"]);
+// Or use different package managers
+var yarnApp = builder.AddJavaScriptApp("yarn-app", "./yarn-app")
+    .WithYarn(installArgs: ["--immutable"]);
 ```
 
 #### Customizing Scripts
@@ -399,24 +349,13 @@ var javaApp = builder.AddExecutable("java-app", "java", "./app", ["-jar", "app.j
     .WithEnvironment("DB_JDBC", postgres.Resource.JdbcConnectionStringExpression);
 ```
 
-When you reference a database resource with `WithReference`, Aspire automatically exposes multiple connection properties as environment variables:
+When you reference a database resource with `WithReference`, Aspire automatically exposes multiple connection properties as environment variables. For example, a PostgreSQL resource named `db` exposes:
 
-**PostgreSQL example** - for a resource named `db`, Aspire exposes:
 - `DB_URI` - PostgreSQL URI format: `postgresql://user:pass@host:port/dbname`
 - `DB_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:postgresql://host:port/dbname?user=user&password=pass`
 - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASENAME` - Individual properties
 
-**SQL Server example** - for a resource named `sql`, Aspire exposes:
-- `SQL_URI` - SQL Server URI format: `mssql://user:pass@host:port/dbname`
-- `SQL_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:sqlserver://host:port;user=user;password=pass;databaseName=dbname;trustServerCertificate=true`
-- `SQL_HOST`, `SQL_PORT`, `SQL_USERNAME`, `SQL_PASSWORD`, `SQL_DATABASENAME` - Individual properties
-
-**Oracle example** - for a resource named `oracle`, Aspire exposes:
-- `ORACLE_URI` - Oracle URI format: `oracle://user:pass@host:port/dbname`
-- `ORACLE_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:oracle:thin:user/pass@//host:port/dbname`
-- `ORACLE_HOST`, `ORACLE_PORT`, `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_DATABASE` - Individual properties
-
-This works automatically for all supported databases including PostgreSQL, SQL Server, Oracle, MySQL, MongoDB, and more. No additional configuration needed - just use `WithReference` and access the connection format your language needs.
+This pattern works for all supported databases (PostgreSQL, SQL Server, Oracle, MySQL, MongoDB, etc.) with appropriate URI and JDBC formats for each.
 
 > [!NOTE]
 > These new connection property conventions are available in the built-in Aspire database integrations (PostgreSQL, SQL Server, Oracle, MySQL, MongoDB, etc.). If you have custom or community integrations, they may need to be updated to expose these properties. See the [connection properties agent documentation](https://github.com/dotnet/aspire/blob/main/.github/agents/connectionproperties.agent.md) for guidance on implementing these conventions in your own integrations.
@@ -628,109 +567,39 @@ The `aspire do` system replaces the previous publishing infrastructure with a mo
 
 For basic CLI commands and tooling, see [CLI and tooling](#cli-and-tooling), which covers [aspire init](#aspire-init-command), [aspire update](#aspire-update-improvements), and [non-interactive mode](#non-interactive-mode-for-cicd).
 
-**Global pipeline steps:**
+**Example: Custom pipeline step**
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add a custom pipeline step that runs before build
 builder.Pipeline.AddStep("validate", (context) =>
 {
     context.Logger.LogInformation("Running validation checks...");
     // Your custom validation logic
-    context.Logger.LogInformation("Validation complete!");
     return Task.CompletedTask;
 }, requiredBy: "build");
-
-await builder.Build().RunAsync();
 ```
 
-You can run this step directly using the CLI:
+Run the step using the CLI:
 
 ```bash
-# Run the validate step and all its dependencies
 aspire do validate
 ```
 
-**Resource-specific pipeline steps:**
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithPipelineStepFactory(context => new PipelineStep
-    {
-        Name = "seed-database",
-        Action = async (ctx) =>
-        {
-            ctx.Logger.LogInformation("Seeding database for {Resource}...", context.Resource.Name);
-            // Your seeding logic here
-            await Task.CompletedTask;
-        }
-    });
-
-await builder.Build().RunAsync();
-```
-
-**Configure step dependencies between resources:**
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var api = builder.AddProject<Projects.Api>("api");
-
-var frontend = builder.AddJavaScriptApp("frontend", "../frontend")
-    .WithPipelineConfiguration(context =>
-    {
-        // Get the build steps for this resource
-        var frontendBuild = context.GetSteps(context.Resource, WellKnownPipelineTags.BuildCompute);
-
-        // Get the build steps for the API resource
-        var apiBuild = context.GetSteps(api.Resource, WellKnownPipelineTags.BuildCompute);
- 
-        // Make frontend build depend on API build
-        frontendBuild.DependsOn(apiBuild);
-    });
-
-await builder.Build().RunAsync();
-```
-
-The pipeline system includes:
-
-- **Global steps**: Define custom pipeline steps with `builder.Pipeline.AddStep`
-- **Resource steps**: Resources contribute steps via `WithPipelineStepFactory`
-- **Dependency configuration**: Control step ordering with `WithPipelineConfiguration`
-- **Parallel execution**: Steps run concurrently when dependencies allow
-- **Built-in logging**: Use `context.Logger` to log step progress
-- **CLI execution**: Run specific steps with `aspire do <step-name>`
+The pipeline system supports global steps, resource-specific steps, dependency configuration, parallel execution, and built-in logging. Resources can contribute their own steps via `WithPipelineStepFactory` and control ordering with `WithPipelineConfiguration`.
 
 #### Running pipeline steps
 
-Once you've defined your pipeline steps using the APIs above, you can execute them through the CLI using `aspire do`. This command serves as the primary entry point for running pipeline steps, whether they're built-in steps like `build`, `publish`, and `deploy`, or custom steps you've defined in your AppHost.
-
-The `aspire do` command understands the entire pipeline graph, automatically resolving dependencies and executing steps in the correct order. For example, when you run `aspire do deploy`, it will automatically run any prerequisite steps (like `build` and `publish`) before executing the deployment itself.
+Use `aspire do` to execute pipeline steps. The command automatically resolves dependencies and executes steps in the correct order:
 
 ```bash
-# Execute a specific pipeline step (e.g., deploy)
-# This automatically runs all required steps: build → publish → deploy
-aspire do deploy
-
-# Execute with custom output path
-aspire do publish --output-path ./artifacts
-
-# Execute with specific environment
-aspire do deploy --environment Production
-
-# Execute with verbose logging
-aspire do deploy --log-level debug
-
-# Execute a custom step you defined (like the "validate" example above)
-aspire do validate
+aspire do deploy                              # Runs build → publish → deploy
+aspire do publish --output-path ./artifacts   # Custom output path
+aspire do deploy --environment Production     # Target specific environment
+aspire do deploy --log-level debug            # Verbose logging for troubleshooting
 ```
 
-The `aspire do` command provides fine-grained control over deployment workflows, allowing you to execute any step in your pipeline independently while ensuring all dependencies are satisfied.
-
-For more details on the pipeline architecture, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
+For more details, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
 
 ### Container Files as Build Artifacts
 
@@ -738,7 +607,6 @@ Aspire 13.0 introduces the ability to **extract files from one resource's contai
 
 ```csharp
 var frontend = builder.AddViteApp("frontend", "./frontend");
-
 var api = builder.AddUvicornApp("api", "./api", "main:app");
 
 // Extract files FROM the frontend container and copy TO the api container
@@ -747,38 +615,12 @@ api.PublishWithContainerFiles(frontend, "./static");
 
 **How it works:**
 
-1. The `frontend` resource builds inside its container, producing output files at `/app/dist`
+1. The `frontend` resource builds inside its container, producing output files
 2. Aspire extracts those files from the frontend container
-3. The files are copied into the `api` container at `./static` during the build process
+3. The files are copied into the `api` container at `./static`
 4. The final `api` container contains both the API code and the frontend static files
 
-#### Example: Frontend with Backend API
-
-A common pattern is building a frontend and serving it from a backend:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Build a Vite frontend in a container
-var frontend = builder.AddViteApp("frontend", "./frontend");
-
-// Python FastAPI backend
-var api = builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUvEnvironment()
-    .WithExternalHttpEndpoints();
-
-// Extract frontend's /app/dist and copy to api's ./static
-api.PublishWithContainerFiles(frontend, "./static");
-
-builder.Build().Run();
-```
-
-When you deploy this:
-
-1. **Frontend container builds**: Vite builds the React/Vue/Svelte app inside a Node container
-2. **Files are extracted**: Aspire extracts `/app/dist` from the frontend container
-3. **Files are injected**: The dist files are copied into the API container at `./static`
-4. **Single deployment artifact**: The API container now contains both the Python app AND the frontend static files
+**Example: Serving frontend from backend**
 
 The FastAPI app can serve the static files:
 
@@ -797,34 +639,7 @@ def get_data():
     return {"message": "Hello from API"}
 ```
 
-#### Using with .NET Projects
-
-You can also use container files with .NET projects that produce build artifacts:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// .NET Blazor WebAssembly app that builds to wwwroot
-var blazorWasm = builder.AddProject<Projects.BlazorWasm>("blazor-wasm");
-
-// .NET API that serves static files
-var api = builder.AddProject<Projects.Api>("api");
-
-// Copy Blazor's published wwwroot into the API container
-api.PublishWithContainerFiles(blazorWasm, "./static");
-```
-
-#### Container Files in the Pipeline
-
-Container files integrate seamlessly with `aspire do`:
-
-- **Dependency tracking**: The pipeline knows that the API container depends on the frontend container
-- **Parallel execution**: Independent containers build in parallel
-- **Incremental builds**: Only changed containers rebuild
-
-This makes container files a natural fit for complex build workflows with multiple dependent services.
-
-The `PublishWithContainerFiles` API is the key to this functionality, allowing you to specify which resource's container to extract files from and where to place them in the consuming container.
+This pattern works with any resource types (.NET, Python, JavaScript) and integrates seamlessly with `aspire do` for dependency tracking, parallel execution, and incremental builds.
 
 ### Dockerfile Builder API (Experimental)
 
@@ -834,110 +649,43 @@ Aspire 13.0 introduces an experimental programmatic Dockerfile generation API th
 > 🧪 **Experimental Feature**: The Dockerfile Builder API is experimental and may change before general availability.
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var app = builder.AddContainer("goapp", "goapp")
+var app = builder.AddContainer("app", "app")
     .PublishAsDockerFile(publish =>
     {
-        publish.WithDockerfileBuilder("/path/to/goapp", context =>
+        publish.WithDockerfileBuilder("/path/to/app", context =>
         {
-            // Build stage - compile Go application
             var buildStage = context.Builder
-                .From("golang:1.23-alpine", "builder")
-                .EmptyLine()
-                .Comment("Install build dependencies")
-                .Run("apk add --no-cache git")
-                .EmptyLine()
+                .From("golang:1.23", "builder")
                 .WorkDir("/build")
-                .Comment("Download dependencies first for better caching")
-                .Copy("go.mod", "./")
-                .Copy("go.sum", "./")
-                .Run("go mod download")
-                .EmptyLine()
-                .Comment("Copy source and build")
                 .Copy(".", "./")
-                .Run("CGO_ENABLED=0 GOOS=linux go build -o /app/server .");
+                .Run("go build -o /app/server .");
 
-            // Runtime stage - minimal runtime image
             context.Builder
-                .From("alpine:latest", "runtime")
-                .EmptyLine()
-                .Comment("Install CA certificates for HTTPS")
-                .Run("apk add --no-cache ca-certificates")
-                .EmptyLine()
-                .Comment("Create non-root user")
-                .Run("adduser -D -u 1000 appuser")
-                .EmptyLine()
-                .Comment("Copy binary from builder")
-                .CopyFrom(buildStage.StageName!, "/app/server", "/app/server", "appuser:appuser")
-                .EmptyLine()
-                .User("appuser")
-                .WorkDir("/app")
-                .EmptyLine()
+                .From("alpine:latest")
+                .CopyFrom(buildStage.StageName!, "/app/server", "/app/server")
                 .Entrypoint(["/app/server"]);
         });
     });
-
-await builder.Build().RunAsync();
 ```
 
-The Dockerfile Builder API provides:
-
-- **Multi-stage builds**: Create stages with `From(image, stageName)` and reference them with `CopyFrom`
-- **Fluent API**: Chain methods like `WorkDir`, `Copy`, `Run`, `Env`, `User`, `Entrypoint`
-- **Comments and formatting**: Add comments and empty lines for readable generated Dockerfiles
-- **BuildKit features**: Use `RunWithMounts` for cache mounts and bind mounts
-- **Dynamic generation**: Access resource configuration via `context.Resource` to customize based on annotations
-
-This experimental feature enables sophisticated container image construction scenarios while maintaining the developer experience of working in C#.
+The API provides multi-stage builds, fluent method chaining (`WorkDir`, `Copy`, `Run`, `Env`, `User`, `Entrypoint`), comments/formatting, and BuildKit features.
 
 ### Certificate Management
 
-Aspire 13.0 introduces comprehensive certificate management capabilities for handling custom certificate authorities and developer certificate trust in containerized environments.
-
-#### Certificate Authority Collections
-
-Define and manage custom certificate collections for your distributed applications:
+Aspire 13.0 introduces certificate management for custom certificate authorities and developer certificate trust:
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add a certificate authority collection
+// Add custom certificate collections
 var certs = builder.AddCertificateAuthorityCollection("custom-certs")
     .WithCertificatesFromFile("./certs/my-ca.pem")
-    .WithCertificatesFromStore(
-        StoreName.CertificateAuthority,
-        StoreLocation.LocalMachine);
-
-// Use the certificate collection in your resources
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(certs);
-
-await builder.Build().RunAsync();
-```
-
-#### Developer Certificate Trust
-
-Automatically configure container trust for developer certificates on Mac and Linux:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
+    .WithCertificatesFromStore(StoreName.CertificateAuthority, StoreLocation.LocalMachine);
 
 var api = builder.AddProject<Projects.Api>("api")
-    .WithDeveloperCertificateTrust(trust: true); // Trust dev certs in container
-
-await builder.Build().RunAsync();
+    .WithReference(certs)
+    .WithDeveloperCertificateTrust(trust: true);
 ```
 
-Certificate management features include:
-
-- **Multiple certificate sources**: Load from PEM files, Windows certificate stores, or programmatically
-- **Flexible trust scoping**: System-level, append, override, or no trust
-- **Container certificate paths**: Customize where certificates are placed in containers
-- **Developer certificate support**: Automatic trust configuration for local development
-- **Environment variable control**: Configure certificate behavior through environment variables
-
-These features enable production-ready certificate handling in development, testing, and deployment scenarios.
+Features include loading from PEM files or certificate stores, flexible trust scoping, customizable container paths, and automatic dev certificate trust configuration.
 
 ## 📦 Integrations
 
@@ -1089,74 +837,29 @@ Network identifier features:
 
 ### Dynamic input system (Experimental)
 
-The new dynamic input system allows inputs to load options based on other input values, enabling sophisticated parameter prompting scenarios like cascading dropdowns.
+The dynamic input system allows inputs to load options based on other input values, enabling cascading dropdowns and dependent parameter prompting.
 
 > [!NOTE]
 > This is an experimental feature marked with `[Experimental("ASPIREINTERACTION001")]`.
 
 ```csharp
-var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-
-var inputs = new List<InteractionInput>
+var input = new InteractionInput
 {
-    // First input - static options
-    new InteractionInput
+    Name = "Subscription",
+    InputType = InputType.Choice,
+    DynamicLoading = new InputLoadOptions
     {
-        Name = "Region",
-        InputType = InputType.Choice,
-        Label = "Azure Region",
-        Required = true,
-        Options =
-        [
-            KeyValuePair.Create("eastus", "East US"),
-            KeyValuePair.Create("westus", "West US"),
-            KeyValuePair.Create("centralus", "Central US")
-        ]
-    },
-
-    // Second input - dynamically loads based on first input
-    new InteractionInput
-    {
-        Name = "Subscription",
-        InputType = InputType.Choice,
-        Label = "Subscription",
-        Required = true,
-        Disabled = true, // Initially disabled until region is selected
-        DynamicLoading = new InputLoadOptions
+        LoadCallback = async (context) =>
         {
-            LoadCallback = async (context) =>
-            {
-                // Access the region input value
-                var region = context.AllInputs["Region"].Value;
-
-                if (!string.IsNullOrEmpty(region))
-                {
-                    // Load subscriptions for the selected region
-                    var subscriptions = await GetSubscriptionsForRegionAsync(region, context.CancellationToken);
-
-                    context.Input.Options = subscriptions;
-                    context.Input.Disabled = false; // Enable input when options are loaded
-                }
-            },
-            DependsOnInputs = ["Region"] // Reload when Region changes
-        }
+            var region = context.AllInputs["Region"].Value;
+            context.Input.Options = await GetSubscriptionsForRegionAsync(region);
+        },
+        DependsOnInputs = ["Region"]
     }
 };
-
-var result = await interactionService.PromptInputsAsync(
-    "Azure Configuration",
-    "Select your Azure region and subscription",
-    inputs,
-    cancellationToken);
 ```
 
-Dynamic input features:
-
-- **InputLoadOptions**: Define callback-based option loading with `LoadCallback`
-- **LoadInputContext**: Access other inputs via `context.AllInputs[name]`, cancellation token, and the current input via `context.Input`
-- **Dependency tracking**: Specify dependencies with `DependsOnInputs` array to trigger reloading
-- **Dynamic enable/disable**: Control `context.Input.Disabled` based on loaded data
-- **Async support**: Load options from APIs, databases, or external services
+Features include callback-based loading (`LoadCallback`), dependency tracking (`DependsOnInputs`), access to other input values (`context.AllInputs`), and async support for loading from APIs or databases.
 
 ### Reference and connection improvements
 
@@ -1303,147 +1006,30 @@ Event system features:
 
 Aspire 13.0 completely reimplements the deployment workflow on top of [aspire do](#aspire-do). This architectural change transforms deployment from a monolithic operation into a composable set of discrete, parallelizable steps.
 
-#### Maximum Parallelization
+The new deployment pipeline automatically parallelizes independent operations, dramatically reducing deployment time. Steps like prerequisites, builds, and provisioning run concurrently when dependencies allow.
 
-The new deployment pipeline automatically parallelizes independent operations. Here's a real execution graph from `aspire do diagnostics` for an Azure deployment:
+**Granular step control:**
 
-```
-aspire deploy
-
-Execution order (14 total steps):
-  [0] build-prereq | deploy-prereq (parallel)
-  [1] build-fe | validate-azure-login (parallel)
-  [2] build-static | create-provisioning-context (parallel)
-  [3] provision-env
-  [4] login-to-acr-env
-  [5] push-static
-  [6] provision-static-containerapp
-  [7] print-static-summary | provision-azure-bicep-resources (parallel)
-  [8] print-dashboard-url-env
-  [9] deploy
-```
-
-Notice how the pipeline automatically parallelizes at multiple levels:
-- **Level 0**: Prerequisites run in parallel
-- **Level 1**: Frontend builds while Azure login validates (parallel)
-- **Level 2**: Static files build while provisioning context is created (parallel)
-- **Level 7**: Summary printing and Bicep resource provisioning run in parallel
-
-This dramatically reduces deployment time for applications with multiple services by executing independent steps concurrently.
-
-#### Granular Step Control
-
-You can now execute individual deployment phases as discrete operations using `aspire do`:
+Execute individual deployment phases using `aspire do`:
 
 ```bash
-# Build all containers
-aspire do build
-
-# Push a specific container image
-aspire do push-static
-
-# Provision Azure infrastructure
-aspire do provision-azure-bicep-resources
-
-# Deploy everything
-aspire deploy
+aspire do build                           # Build all containers
+aspire do provision-azure-bicep-resources # Provision infrastructure
+aspire deploy                              # Complete deployment
+aspire do deploy --log-level debug        # Deploy with verbose logging
 ```
 
-This granular control enables powerful workflows:
+This enables incremental deployments, debugging specific steps, and CI/CD pipeline splitting. Use `--log-level debug` for detailed troubleshooting output.
 
-**Incremental deployments**: Build once, reuse across environments
-```bash
-aspire do build                              # Build containers locally
-aspire do push-static                        # Push to registry
-aspire do provision-azure-bicep-resources    # Deploy infrastructure
-aspire deploy                                # Complete deployment
-```
+**Pipeline diagnostics:**
 
-**Debugging builds**: Iterate on specific steps
-```bash
-aspire do build-fe        # Build just the frontend
-aspire do build-static    # Build just the static files
-aspire deploy             # Then deploy everything
-```
+Use `aspire do diagnostics` to understand your pipeline graph, view execution order with parallelization indicators, see step dependencies and resources, simulate "what if" scenarios, and detect configuration issues like orphaned steps or circular dependencies.
 
-**CI/CD integration**: Split pipeline stages
-```bash
-# CI stage: Build and test
-aspire do build
+**Benefits:**
 
-# CD stage: Push and deploy
-aspire deploy
-```
+The pipeline-based deployment provides dependency tracking, real-time progress reporting, failure isolation, selective execution, extensibility, and built-in diagnostics.
 
-#### Pipeline Diagnostics
-
-Aspire 13.0 includes a built-in `aspire do diagnostics` command to help you understand and troubleshoot your pipeline graph:
-
-```bash
-aspire do diagnostics
-```
-
-This command provides comprehensive information about your pipeline:
-
-**Execution order analysis:**
-Shows the complete execution order with parallelization indicators:
-```
-Execution order (14 total steps):
-  [0] build-prereq | deploy-prereq (parallel)
-  [1] build-fe | validate-azure-login (parallel)
-  [2] build-static | create-provisioning-context (parallel)
-  ...
-```
-
-**Detailed step analysis:**
-For each step, see:
-- Dependencies (with validation)
-- Associated resources
-- Tags for categorization
-
-```
-Step: push-static
-    Dependencies: ✓ build-static, ✓ login-to-acr-env, ✓ provision-env
-    Resource: static-containerapp (AzureContainerAppResource)
-    Tags: push-container-image
-```
-
-**"What If" simulation:**
-See exactly what steps will run for any target:
-```
-If targeting 'build':
-  Total steps: 5
-  Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
-    [1] build-fe
-    [2] build-static
-    [3] build
-```
-
-**Problem detection:**
-Identifies configuration issues:
-- Orphaned steps (not required by anything)
-- Missing dependencies
-- Circular dependencies
-
-Use `aspire do diagnostics` when:
-- Setting up a new deployment pipeline
-- Adding custom pipeline steps
-- Debugging why certain steps aren't running
-- Understanding deployment performance
-
-#### Pipeline Step Benefits
-
-The pipeline-based deployment provides:
-
-- **Dependency tracking**: Steps automatically run prerequisites
-- **Progress reporting**: Real-time status for each step
-- **Failure isolation**: Identify exactly which step failed
-- **Selective execution**: Run only the steps you need
-- **Extensibility**: Add custom pipeline steps via pipeline API
-- **Built-in diagnostics**: `aspire do diagnostics` for pipeline visualization and troubleshooting
-
-For more details on the underlying pipeline system, see [aspire do](#aspire-do).
+For more details, see [aspire do](#aspire-do).
 
 ### Deployment state management
 
@@ -1660,18 +1246,14 @@ await resource.ProcessArgumentValuesAsync(
     executionContext, processValue, logger,
     containerHostName: "localhost", cancellationToken);
 
-// After (13.0) - uses NetworkIdentifier instead
+// After (13.0)
 await resource.ProcessArgumentValuesAsync(
     executionContext, processValue, logger, cancellationToken);
 ```
 
-The `containerHostName` parameter has been removed from these extension methods. Network context is now handled through the `NetworkIdentifier` type.
+The `containerHostName` parameter has been removed. Network context is now handled through `NetworkIdentifier`.
 
 **EndpointReference.GetValueAsync behavior change**:
-- `EndpointReference.GetValueAsync` now waits for endpoint allocation before resolving values
-- Previously, it would throw immediately if the endpoint wasn't allocated
-- Code that relied on immediate throwing will now hang unless `IsAllocated` is checked manually first
-
 ```csharp
 // Before (9.x) - would throw immediately if not allocated
 var value = await endpointRef.GetValueAsync(cancellationToken);
@@ -1694,21 +1276,22 @@ Aspire 13.0 introduces a major architectural change to enable universal containe
 - Leverages DCP's container tunnel capability for container-to-host connectivity
 - `EndpointReference` resolution is now context-aware (uses `NetworkIdentifier`)
 - Endpoint references are tracked by their `EndpointAnnotation`
-- `AllocatedEndpoint` constructor signature changed (see above)
+- `AllocatedEndpoint` constructor signature changed
 
 **Impact:**
-- This enables containers to communicate with host-based services reliably across all deployment scenarios
+- Enables containers to communicate with host-based services reliably across all deployment scenarios
 - Code that directly constructs `AllocatedEndpoint` objects will need updates
 - Extension methods that process endpoint references may need Network Identifier context
 
 **Migration:**
-Most applications won't need changes as the endpoint resolution happens automatically. However, if you have custom code that creates or processes endpoints:
+
+Most applications won't need changes as endpoint resolution happens automatically. However, if you have custom code that creates or processes endpoints:
 
 ```csharp
 // Before (9.x)
 var endpoint = new AllocatedEndpoint("http", 8080, containerHostAddress: "localhost");
 
-// After (13.0) - specify network context
+// After (13.0)
 var endpoint = new AllocatedEndpoint("http", 8080, networkIdentifier: NetworkIdentifier.Host);
 ```
 
@@ -1716,7 +1299,7 @@ This change fixes long-standing issues with container-to-host communication (iss
 
 #### Refactored AddNodeApp API
 
-The `AddNodeApp` API has been refactored in Aspire 13.0 with breaking changes to how Node.js applications are configured.
+The `AddNodeApp` API has been refactored with breaking changes to how Node.js applications are configured.
 
 **Signature changes:**
 
@@ -1724,39 +1307,37 @@ The `AddNodeApp` API has been refactored in Aspire 13.0 with breaking changes to
 // Before (9.x) - absolute scriptPath with optional workingDirectory
 builder.AddNodeApp(
     name: "frontend",
-    scriptPath: "/absolute/path/to/app.js",    // Absolute path to script
-    workingDirectory: "/absolute/path/to",     // Optional working directory
+    scriptPath: "/absolute/path/to/app.js",
+    workingDirectory: "/absolute/path/to",
     args: ["--port", "3000"]);
 
 // After (13.0) - appDirectory with relative scriptPath
 builder.AddNodeApp(
     name: "frontend",
-    appDirectory: "../frontend",    // Directory containing the app
-    scriptPath: "app.js");          // Relative path from appDirectory
+    appDirectory: "../frontend",
+    scriptPath: "app.js");
 ```
 
 **Behavioral changes:**
 
-1. **Automatic npm integration**: If `package.json` exists in `appDirectory`, npm is automatically configured as the package manager with auto-install enabled
-2. **Automatic Dockerfile generation**: The new API includes Docker publishing support with multi-stage builds by default
-3. **Package manager flexibility**: Use `WithNpm()`, `WithYarn()`, or `WithPnpm()` combined with `WithRunScript()` to execute package.json scripts instead of direct node execution
+1. **Automatic npm integration**: If `package.json` exists in `appDirectory`, npm is automatically configured with auto-install enabled
+2. **Automatic Dockerfile generation**: Includes Docker publishing support with multi-stage builds by default
+3. **Package manager flexibility**: Use `WithNpm()`, `WithYarn()`, or `WithPnpm()` with `WithRunScript()` to execute package.json scripts
 
-**Migration example:**
+**Migration:**
 
 ```csharp
 // Before (9.x)
 var app = builder.AddNodeApp("frontend", "../frontend/server.js", "../frontend");
 
-// After (13.0) - basic migration
+// After (13.0)
 var app = builder.AddNodeApp("frontend", "../frontend", "server.js");
 
-// After (13.0) - with package.json script
+// Or use package.json script
 var app = builder.AddNodeApp("frontend", "../frontend", "server.js")
     .WithNpm()
-    .WithRunScript("dev");  // Runs "npm run dev" instead
+    .WithRunScript("dev");
 ```
-
-**Impact:** If you're using `AddNodeApp` directly, update your method calls to use the new parameter structure. The old method signature is marked obsolete and will be removed in a future release.
 
 ### Migration guide
 
@@ -1767,29 +1348,25 @@ var app = builder.AddNodeApp("frontend", "../frontend", "server.js")
 var api = builder.AddProject<Projects.Api>("api")
     .WithPublishingCallback(async (context, cancellationToken) =>
     {
-        // Custom publishing logic
         await CustomDeployAsync(context, cancellationToken);
     });
 ```
 
 **After (13.0)**:
 ```csharp
-// Define a custom pipeline step
 public class CustomDeployStep : PipelineStep
 {
     public override async Task ExecuteAsync(PipelineStepContext context, CancellationToken cancellationToken)
     {
-        // Custom deployment logic
         await CustomDeployAsync(context, cancellationToken);
     }
 }
 
-// Register the step
 var api = builder.AddProject<Projects.Api>("api");
 builder.Services.AddSingleton<CustomDeployStep>();
 ```
 
-For more details on the pipeline system, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
+For more details, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
 
 #### Migrating from lifecycle hooks to events
 
