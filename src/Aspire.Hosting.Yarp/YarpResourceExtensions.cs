@@ -4,6 +4,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -171,27 +172,10 @@ public static class YarpResourceExtensions
 
         return builder.WithDockerfileBuilder(".", ctx =>
         {
-            var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
             var imageName = GetYarpImageName(ctx.Resource);
-            var stage = ctx.Builder.From(imageName).WorkDir("/app");
-
-            if (ctx.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
-            {
-                foreach (var containerFileDestination in containerFilesDestinationAnnotations)
-                {
-                    var source = containerFileDestination.Source;
-                    if (!source.TryGetContainerImageName(out var sourceImageName))
-                    {
-                        logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
-                        return;
-                    }
-
-                    foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                    {
-                        stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, "/app/wwwroot");
-                    }
-                }
-            }
+            ctx.Builder.From(imageName)
+                .WorkDir("/app")
+                .AddContainerFiles(ctx.Resource, "/app/wwwroot", ctx.Services.GetService<ILogger<YarpResource>>());
         });
     }
 
