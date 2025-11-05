@@ -18,6 +18,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
@@ -76,6 +77,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+    private readonly BackchannelLoggerProvider _backchannelLoggerProvider;
 
     private readonly string _normalizedApplicationName;
 
@@ -108,8 +110,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpExecutorEvents executorEvents,
                        Locations locations,
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                       IDeveloperCertificateService developerCertificateService)
+                       IDeveloperCertificateService developerCertificateService,
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                        BackchannelLoggerProvider backchannelLoggerProvider)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -129,6 +132,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _backchannelLoggerProvider = backchannelLoggerProvider;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
@@ -1264,7 +1268,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
+                _backchannelLoggerProvider.CreateLogger("DcpExector");
+                var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
+                {
+                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger("DcpExector"),
+                    Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
+                };
+
+                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
             }
             else
             {

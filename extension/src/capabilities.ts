@@ -37,6 +37,11 @@ export function getSupportedCapabilities(): string[] {
         capabilities.push("ms-python.python");
     }
 
+    // Also, push all extensions as capabilities
+    for (const extension of vscode.extensions.all) {
+        capabilities.push(extension.id);
+    }
+
     return capabilities;
 }
 

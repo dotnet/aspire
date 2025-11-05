@@ -903,7 +903,7 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         builder.WithDebugSupport(
-            mode =>
+            options =>
             {
                 string interpreterPath;
                 if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation) || annotation.VirtualEnvironment is null)
@@ -924,14 +924,28 @@ public static class PythonAppResourceBuilderExtensions
                     {
                         interpreterPath = Path.Join(venvPath, "bin", "python");
                     }
+
+                    options.DebugConsoleLogger.LogInformation("Using Python interpreter from virtual environment at '{InterpreterPath}'", interpreterPath);
                 }
+
+                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+                var debuggerProperties = new PythonDebuggerProperties
+                {
+                    InterpreterPath = interpreterPath,
+                    Module = module,
+                    ProgramPath = programPath,
+                    Jinja = true, // by default, activate Jinja support,
+                    Name = $"{modeText} Python: {Path.GetRelativePath(Environment.CurrentDirectory, programPath)}",
+                    WorkingDirectory = builder.Resource.WorkingDirectory
+                };
 
                 return new PythonLaunchConfiguration
                 {
                     ProgramPath = programPath,
                     Module = module,
-                    Mode = mode,
-                    InterpreterPath = interpreterPath
+                    Mode = options.Mode,
+                    InterpreterPath = interpreterPath,
+                    DebuggerProperties = debuggerProperties
                 };
             },
             "python",

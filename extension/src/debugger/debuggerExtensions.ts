@@ -19,28 +19,42 @@ export interface ResourceDebuggerExtension {
     createDebugSessionConfigurationCallback?: (launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
 }
 
-export async function createDebugSessionConfiguration(debugSessionConfig: AspireExtendedDebugConfiguration, launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension): Promise<AspireResourceExtendedDebugConfiguration> {
+export async function createDebugSessionConfiguration(debugSessionConfig: AspireExtendedDebugConfiguration, launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension?: ResourceDebuggerExtension): Promise<AspireResourceExtendedDebugConfiguration> {
     if (debuggerExtension === null) {
         extensionLogOutputChannel.warn(`Unknown type: ${launchConfig.type}.`);
     }
 
-    const projectPath = debuggerExtension.getProjectFile(launchConfig);
-
-    const configuration: AspireResourceExtendedDebugConfiguration = {
-        type: debuggerExtension.debugAdapter || launchConfig.type,
-        request: 'launch',
-        name: launchOptions.debug ? debugProject(debuggerExtension.getDisplayName(launchConfig)) : runProject(debuggerExtension.getDisplayName(launchConfig)),
-        program: projectPath,
+    const baseConfig = {
         args: args,
-        cwd: await isDirectory(projectPath) ? projectPath : path.dirname(projectPath),
         env: mergeEnvs(process.env, env),
-        justMyCode: false,
-        stopAtEntry: false,
         noDebug: !launchOptions.debug,
         runId: launchOptions.runId,
         debugSessionId: launchOptions.debugSessionId,
-        console: 'internalConsole'
     };
+
+    let configuration: AspireResourceExtendedDebugConfiguration;
+
+    if (debuggerExtension) {
+        const projectPath = debuggerExtension.getProjectFile(launchConfig);
+
+        configuration = {
+            type: debuggerExtension.debugAdapter || launchConfig.type,
+            request: 'launch',
+            name: launchOptions.debug ? debugProject(debuggerExtension.getDisplayName(launchConfig)) : runProject(debuggerExtension.getDisplayName(launchConfig)),
+            program: projectPath,
+            justMyCode: false,
+            stopAtEntry: false,
+            cwd: await isDirectory(projectPath) ? projectPath : path.dirname(projectPath),
+            console: 'internalConsole',
+            ...baseConfig
+        };
+    }
+    else {
+        configuration = {
+            ...baseConfig,
+            ...launchConfig.debugger_properties
+        } as any as AspireResourceExtendedDebugConfiguration;
+    }
 
     if (debugSessionConfig.debuggers) {
         // 1. Check if this is the apphost

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Dcp.Model;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -14,7 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
 {
-    private SupportsDebuggingAnnotation(string launchConfigurationType, Action<Executable, string> launchConfigurationAnnotator)
+    private SupportsDebuggingAnnotation(string launchConfigurationType, Action<Executable, LaunchConfigurationProducerOptions> launchConfigurationAnnotator)
     {
         LaunchConfigurationType = launchConfigurationType;
         LaunchConfigurationAnnotator = launchConfigurationAnnotator;
@@ -28,7 +29,7 @@ public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets the action that annotates the launch configuration for the resource.
     /// </summary>
-    internal Action<Executable, string> LaunchConfigurationAnnotator { get; }
+    internal Action<Executable, LaunchConfigurationProducerOptions> LaunchConfigurationAnnotator { get; }
 
     /// <summary>
     /// Creates a new instance of the <see cref="SupportsDebuggingAnnotation"/> class.
@@ -36,11 +37,27 @@ public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
     /// <typeparam name="T">The type of the launch configuration.</typeparam>
     /// <param name="launchConfigurationType">The type of launch configuration supported by the resource.</param>
     /// <param name="launchProfileProducer">The function that produces the launch configuration for the resource.</param>
-    public static SupportsDebuggingAnnotation Create<T>(string launchConfigurationType, Func<string, T> launchProfileProducer)
+    public static SupportsDebuggingAnnotation Create<T>(string launchConfigurationType, Func<LaunchConfigurationProducerOptions, T> launchProfileProducer)
     {
-        return new SupportsDebuggingAnnotation(launchConfigurationType, (exe, mode) =>
+        return new SupportsDebuggingAnnotation(launchConfigurationType, (exe, options) =>
         {
-            exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchProfileProducer(mode));
+            exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchProfileProducer(options));
         });
     }
+}
+
+/// <summary>
+/// Provides options for producing launch configurations for debugging resources.
+/// </summary>
+public sealed class LaunchConfigurationProducerOptions
+{
+    /// <summary>
+    /// The mode for the launch configuration. Possible values include Debug or NoDebug.
+    /// </summary>
+    public required string Mode { get; init; }
+
+    /// <summary>
+    /// The logger used for debug console output.
+    /// </summary>
+    public required ILogger DebugConsoleLogger { get; init; }
 }
