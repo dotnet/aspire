@@ -87,7 +87,7 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// Gets the JDBC connection string for the MySQL server.
     /// </summary>
     /// <remarks>
-    /// <para>Format: <c>jdbc:mysql://{host}:{port}/</c>.</para>
+    /// <para>Format: <c>jdbc:mysql://{host}:{port}</c>.</para>
     /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
