@@ -247,11 +247,6 @@ public static class JavaScriptHostingExtensions
                 // Only generate a Dockerfile if one doesn't already exist in the app directory
                 if (File.Exists(Path.Combine(appDirectory, "Dockerfile")))
                 {
-                    // Javascript apps don't have an entrypoint
-                    if (c.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerFileAnnotation))
-                    {
-                        dockerFileAnnotation.HasEntrypoint = false;
-                    }
                     return;
                 }
 
@@ -289,14 +284,13 @@ public static class JavaScriptHostingExtensions
                 });
 
                 // Javascript apps don't have an entrypoint
-                // This must be set AFTER WithDockerfileBuilder because WithDockerfileBuilder creates a new annotation
-                if (c.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerFileAnnotation2))
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerFileAnnotation))
                 {
-                    dockerFileAnnotation2.HasEntrypoint = false;
+                    dockerFileAnnotation.HasEntrypoint = false;
                 }
                 else
                 {
-                    throw new InvalidOperationException("DockerfileBuildAnnotation should exist after calling WithDockerfileBuilder.");
+                    throw new InvalidOperationException("DockerfileBuildAnnotation should exist after calling PublishAsDockerFile.");
                 }
             })
             .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" })
