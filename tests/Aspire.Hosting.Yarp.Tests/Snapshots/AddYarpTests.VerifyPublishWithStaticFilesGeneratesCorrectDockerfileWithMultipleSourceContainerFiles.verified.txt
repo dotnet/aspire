@@ -1,9 +1,9 @@
-﻿ARG source1_IMAGENAME=sourceimage:latest
-ARG source2_IMAGENAME=sourceimage2:latest
+﻿ARG SOURCE1_IMAGENAME=sourceimage:latest
+ARG SOURCE2_IMAGENAME=sourceimage2:latest
 
-FROM ${source1_IMAGENAME} AS source1_stage
+FROM ${SOURCE1_IMAGENAME} AS source1_stage
 
-FROM ${source2_IMAGENAME} AS source2_stage
+FROM ${SOURCE2_IMAGENAME} AS source2_stage
 
 FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4
 WORKDIR /app

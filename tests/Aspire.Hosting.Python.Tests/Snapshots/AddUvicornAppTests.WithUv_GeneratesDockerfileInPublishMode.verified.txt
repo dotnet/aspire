@@ -1,4 +1,4 @@
-﻿ARG exe_IMAGENAME=exe:deterministc-tag
+﻿ARG EXE_IMAGENAME=exe:deterministc-tag
 
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
@@ -18,7 +18,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
-FROM ${exe_IMAGENAME} AS exe_stage
+FROM ${EXE_IMAGENAME} AS exe_stage
 
 FROM python:3.12-slim-bookworm AS app
 

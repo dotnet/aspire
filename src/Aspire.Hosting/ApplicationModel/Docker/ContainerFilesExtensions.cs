@@ -15,9 +15,6 @@ public static class ContainerFilesExtensions
     /// Adds Dockerfile instructions to include container files from the specified resource into the Dockerfile build
     /// process.
     /// </summary>
-    /// <remarks>If the resource does not provide valid container image names for its sources, those sources
-    /// are skipped and a warning is logged if a logger is provided. This method is experimental and its behavior may
-    /// change in future releases.</remarks>
     /// <param name="builder">The Dockerfile builder to which container file instructions will be added. Cannot be null.</param>
     /// <param name="resource">The resource containing container files to be added to the Dockerfile. Cannot be null.</param>
     /// <param name="logger">An optional logger used to record warnings if container image names cannot be determined for source resources.</param>
@@ -68,7 +65,7 @@ public static class ContainerFilesExtensions
     /// For each annotation:
     /// <list type="bullet">
     /// <item>If the source resource has a container image name (via <c>TryGetContainerImageName</c>), COPY statements are generated</item>
-    /// <item>If the source resource does not have a container image name, it is silently skipped</item>
+    /// <item>If the source resource does not have a container image name, it is skipped</item>
     /// <item>Relative destination paths are combined with <paramref name="rootDestinationPath"/></item>
     /// <item>Absolute destination paths are used as-is</item>
     /// <item>Each <see cref="ContainerFilesSourceAnnotation"/> on the source resource generates a COPY statement</item>
@@ -120,7 +117,7 @@ public static class ContainerFilesExtensions
         return stage;
     }
 
-    private static string GetSourceImageArgName(IResource source) => $"{source.Name}_IMAGENAME";
+    private static string GetSourceImageArgName(IResource source) => $"{source.Name.ToUpperInvariant()}_IMAGENAME";
 
     private static string GetSourceStageName(IResource source) => $"{source.Name}_stage";
 }
