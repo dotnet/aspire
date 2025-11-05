@@ -1,4 +1,4 @@
-﻿ARG source_IMAGENAME=source:source-tag
+﻿ARG SOURCE_IMAGENAME=source:source-tag
 
 FROM node:22-alpine AS build
 
@@ -7,7 +7,7 @@ COPY . .
 
 RUN npm install
 
-FROM ${source_IMAGENAME} AS source_stage
+FROM ${SOURCE_IMAGENAME} AS source_stage
 
 FROM node:22-alpine AS runtime
 
