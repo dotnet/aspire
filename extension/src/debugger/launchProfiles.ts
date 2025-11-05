@@ -203,9 +203,11 @@ export function determineServerReadyAction(launchBrowser?: boolean, applicationU
         return undefined;
     }
 
+    let uriFormat = applicationUrl.includes(';') ? applicationUrl.split(';')[0] : applicationUrl;
+
     return {
         action: "openExternally",
         pattern: "\\bNow listening on:\\s+https?://\\S+",
-        uriFormat: applicationUrl
+        uriFormat: uriFormat
     };
 }

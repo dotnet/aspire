@@ -396,6 +396,16 @@ suite('Launch Profile Tests', () => {
             assert.strictEqual(result?.uriFormat, applicationUrl);
             assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+https?://\\S+');
         });
+
+        test('returns serverReadyAction with first URL when multiple URLs separated by semicolon', () => {
+            const applicationUrl = 'https://localhost:5001;http://localhost:5000';
+            const result = determineServerReadyAction(true, applicationUrl);
+
+            assert.notStrictEqual(result, undefined);
+            assert.strictEqual(result?.action, 'openExternally');
+            assert.strictEqual(result?.uriFormat, 'https://localhost:5001');
+            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+https?://\\S+');
+        });
     });
 
     suite('readLaunchSettings', () => {

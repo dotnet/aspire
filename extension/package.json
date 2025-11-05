@@ -205,6 +205,12 @@
           "default": false,
           "description": "%configuration.aspire.enableAspireDcpDebugLogging%",
           "scope": "window"
+        },
+        "aspire.enableAspireDashboardAutoLaunch": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
+          "scope": "window"
         }
       }
     }
