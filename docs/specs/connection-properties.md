@@ -62,7 +62,7 @@ All URIs are composed with `:uri` formatting to ensure values are escaped correc
 ## JDBC Formats
 
 - PostgreSQL: `jdbc:postgresql://{Host}:{Port}[/{Database}]` (database resources append the database segment).
-- MySQL: `jdbc:mysql://{Host}:{Port}[/{Database}]?user={Username}&password={Password}`.
+- MySQL: `jdbc:mysql://{Host}:{Port}[/{Database}]`.
 - SQL Server: `jdbc:sqlserver://{Host}:{Port};user={Username};password={Password};trustServerCertificate=true[;databaseName={Database}]`.
 - Oracle: `jdbc:oracle:thin:{Username}/{Password}@//{Host}:{Port}[/{Database}]`.
 

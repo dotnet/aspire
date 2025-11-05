@@ -64,7 +64,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
             ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
-            : ReferenceExpression.Create($"sb://{ServiceBusEndpoint}");
+            : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
         => ApplyAzureFunctionsConfiguration(target, connectionName);

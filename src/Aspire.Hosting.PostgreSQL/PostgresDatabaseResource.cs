@@ -60,7 +60,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// Gets the JDBC connection string for the PostgreSQL database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// Format: <c>jdbc:postgresql://{host}:{port}/{database}</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
