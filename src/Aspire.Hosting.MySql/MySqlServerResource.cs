@@ -80,11 +80,6 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
             builder.Append($"{databaseExpression:uri}");
         }
 
-        builder.AppendLiteral("?user=");
-        builder.Append($"{UserNameReference:uri}");
-        builder.AppendLiteral("&password=");
-        builder.Append($"{PasswordParameter:uri}");
-
         return builder.Build();
     }
 
@@ -92,7 +87,8 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// Gets the JDBC connection string for the MySQL server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:mysql://{host}:{port}/?user={user}&amp;password={password}</c>.
+    /// <para>Format: <c>jdbc:mysql://{host}:{port}/</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 

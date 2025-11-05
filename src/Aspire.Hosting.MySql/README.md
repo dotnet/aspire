@@ -38,7 +38,7 @@ The MySQL server resource exposes the following connection properties:
 | `Username` | The username for authentication |
 | `Password` | The password for authentication |
 | `Uri` | The connection URI, with the format `mysql://root:{Password}@{Host}:{Port}` |
-| `JdbcConnectionString` | The JDBC connection string for MySQL, with the format `jdbc:mysql://{Host}:{Port}/?user={Username}&password={Password}` |
+| `JdbcConnectionString` | The JDBC connection string for MySQL, with the format `jdbc:mysql://{Host}:{Port}/`. User and password credentials are provided as separate `Username` and `Password` properties. |
 
 ### MySQL database
 
@@ -48,7 +48,7 @@ The MySQL database resource combines the server properties above and adds the fo
 |---------------|-------------|
 | `Database` | The MySQL database name |
 | `Uri` | The database-specific URI, with the format `mysql://root:{Password}@{Host}:{Port}/{Database}` |
-| `JdbcConnectionString` | The database-specific JDBC connection string, with the format `jdbc:mysql://{Host}:{Port}/{Database}?user={Username}&password={Password}` |
+| `JdbcConnectionString` | The database-specific JDBC connection string, with the format `jdbc:mysql://{Host}:{Port}/{Database}`. User and password credentials are provided as separate `Username` and `Password` properties. |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

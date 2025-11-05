@@ -60,7 +60,8 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// Gets the JDBC connection string for the PostgreSQL database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// <para>Format: <c>jdbc:postgresql://{host}:{port}/{database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
