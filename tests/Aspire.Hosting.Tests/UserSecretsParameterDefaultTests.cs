@@ -199,6 +199,107 @@ public class UserSecretsParameterDefaultTests
         DeleteUserSecretsFile(userSecretsId);
     }
 
+    [Fact]
+    public void UserSecretsParameterDefault_WithCustomFactory_UsesProvidedFactory()
+    {
+        // This test verifies that the constructor overload taking a factory parameter
+        // uses the provided factory instead of the singleton instance
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        // Create a custom factory instance for test isolation
+        var customFactory = new UserSecretsManagerFactory();
+        var paramDefault = new TestParameterDefault();
+        var userSecretDefault = new UserSecretsParameterDefault(testAssembly, "TestApplication.AppHost", "param1", paramDefault, customFactory);
+
+        var initialValue = userSecretDefault.GetDefaultValue();
+
+        var userSecrets = GetUserSecrets(userSecretsId);
+        Assert.Equal(initialValue, userSecrets["Parameters:param1"]);
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
+    [Fact]
+    public void UserSecretsParameterDefault_WithCustomFactory_IsolatesFromGlobalInstance()
+    {
+        // This test verifies that using a custom factory provides isolation
+        // between test runs and doesn't interfere with the singleton instance
+        var userSecretsId1 = Guid.NewGuid().ToString("N");
+        var userSecretsId2 = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId1);
+        ClearUsersSecrets(userSecretsId2);
+
+        var testAssembly1 = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly1"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId1])]);
+        var testAssembly2 = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly2"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId2])]);
+
+        // Use custom factory for first parameter default
+        var customFactory = new UserSecretsManagerFactory();
+        var paramDefault1 = new TestParameterDefault();
+        var userSecretDefault1 = new UserSecretsParameterDefault(testAssembly1, "TestApp1.AppHost", "param1", paramDefault1, customFactory);
+
+        // Use default singleton factory for second parameter default
+        var paramDefault2 = new TestParameterDefault();
+        var userSecretDefault2 = new UserSecretsParameterDefault(testAssembly2, "TestApp2.AppHost", "param2", paramDefault2);
+
+        var value1 = userSecretDefault1.GetDefaultValue();
+        var value2 = userSecretDefault2.GetDefaultValue();
+
+        // Both should save successfully to their respective user secrets files
+        var userSecrets1 = GetUserSecrets(userSecretsId1);
+        var userSecrets2 = GetUserSecrets(userSecretsId2);
+
+        Assert.Equal(value1, userSecrets1["Parameters:param1"]);
+        Assert.Equal(value2, userSecrets2["Parameters:param2"]);
+
+        DeleteUserSecretsFile(userSecretsId1);
+        DeleteUserSecretsFile(userSecretsId2);
+    }
+
+    [Fact]
+    public async Task UserSecretsParameterDefault_WithCustomFactory_ConcurrentAccess()
+    {
+        // This test verifies that the custom factory properly handles concurrent access
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        var customFactory = new UserSecretsManagerFactory();
+
+        // Create multiple UserSecretsParameterDefault instances with different parameter names
+        var tasks = new List<Task<string>>();
+        for (int i = 0; i < 5; i++)
+        {
+            var paramName = $"param{i}";
+            tasks.Add(Task.Run(() =>
+            {
+                var paramDefault = new TestParameterDefault();
+                var userSecretDefault = new UserSecretsParameterDefault(testAssembly, "TestApp.AppHost", paramName, paramDefault, customFactory);
+                return userSecretDefault.GetDefaultValue();
+            }));
+        }
+
+        var values = await Task.WhenAll(tasks);
+
+        // All parameters should be saved
+        var userSecrets = GetUserSecrets(userSecretsId);
+        for (int i = 0; i < 5; i++)
+        {
+            var paramKey = $"Parameters:param{i}";
+            Assert.True(userSecrets.ContainsKey(paramKey), $"Parameter '{paramKey}' was not found in user secrets");
+            Assert.Equal(values[i], userSecrets[paramKey]);
+        }
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
     private static void EnsureUserSecretsDirectory(string secretsFilePath)
     {
         var directoryName = Path.GetDirectoryName(secretsFilePath);
