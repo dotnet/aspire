@@ -3,8 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPythonScript("script-only", "../script_only", "main.py");
-builder.AddPythonScript("instrumented-script", "../instrumented_script", "main.py");
+builder.AddPythonApp("script-only", "../script_only", "main.py");
+builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py");
 
 builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8000")
