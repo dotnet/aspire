@@ -38,7 +38,7 @@ The MySQL server resource exposes the following connection properties:
 | `Username` | The username for authentication |
 | `Password` | The password for authentication |
 | `Uri` | The connection URI, with the format `mysql://root:{Password}@{Host}:{Port}` |
-| `JdbcConnectionString` | The JDBC connection string for MySQL, with the format `jdbc:mysql://{Host}:{Port}/`. User and password credentials are provided as separate `Username` and `Password` properties. |
+| `JdbcConnectionString` | The JDBC connection string for MySQL, with the format `jdbc:mysql://{Host}:{Port}`. User and password credentials are provided as separate `Username` and `Password` properties. |
 
 ### MySQL database
 
