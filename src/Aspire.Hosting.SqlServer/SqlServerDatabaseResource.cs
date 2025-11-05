@@ -51,7 +51,7 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// </summary>
     /// <remarks>
     /// <para>Format: <c>jdbc:sqlserver://{host}:{port};trustServerCertificate=true;databaseName={database}</c>.</para>
-    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
