@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Hosting.Dcp.Model;
+namespace Aspire.Hosting;
 
 internal static class ExecutableLaunchMode
 {
@@ -15,7 +15,7 @@ internal static class ExecutableLaunchMode
 /// Base properties for all executable launch configurations.
 /// </summary>
 /// <param name="type">Launch configuration type indicator.</param>
-internal class ExecutableLaunchConfiguration(string type)
+public class ExecutableLaunchConfiguration(string type)
 {
     /// <summary>
     /// The launch configuration type indicator.

@@ -468,7 +468,7 @@ public static class PythonAppResourceBuilderExtensions
 
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
-                    
+
                     // Check if using UV
                     var isUsingUv = pythonEnvironmentAnnotation?.Uv ?? false;
 
@@ -499,7 +499,7 @@ public static class PythonAppResourceBuilderExtensions
         return resourceBuilder;
     }
 
-    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource, 
+    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
         string pythonVersion, EntrypointType entrypointType, string entrypoint)
     {
         // Check if uv.lock exists in the working directory
@@ -730,11 +730,11 @@ public static class PythonAppResourceBuilderExtensions
     private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appDirectory, string virtualEnvironmentPath)
     {
         var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
-        
+
         // Walk up from the Python app directory looking for the virtual environment
         // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
         var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
-        
+
         // Check if the app directory is under the AppHost's parent directory
         // If not, only look in the app directory itself
         if (appHostParentDirectory != null)
@@ -742,16 +742,16 @@ public static class PythonAppResourceBuilderExtensions
             var relativePath = Path.GetRelativePath(appHostParentDirectory, appDirectoryFullPath);
             var isUnderAppHostParent = !relativePath.StartsWith("..", StringComparison.Ordinal) &&
                                         !Path.IsPathRooted(relativePath);
-            
+
             if (!isUnderAppHostParent)
             {
                 // App is not under AppHost's parent, only use the app directory
                 return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
             }
         }
-        
+
         var currentDirectory = appDirectoryFullPath;
-        
+
         while (currentDirectory != null)
         {
             var venvPath = Path.Combine(currentDirectory, virtualEnvironmentPath);
@@ -759,27 +759,27 @@ public static class PythonAppResourceBuilderExtensions
             {
                 return venvPath;
             }
-            
+
             // Stop if we've reached the AppHost's parent directory
             // Use case-insensitive comparison on Windows, case-sensitive on Unix
             var reachedBoundary = OperatingSystem.IsWindows()
                 ? string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase)
                 : string.Equals(currentDirectory, appHostParentDirectory, StringComparison.Ordinal);
-            
+
             if (reachedBoundary)
             {
                 break;
             }
-            
+
             // Move up to the parent directory
             var parentDirectory = Path.GetDirectoryName(currentDirectory);
-            
+
             // Stop if we can't go up anymore or if we've gone beyond the AppHost's parent
             if (parentDirectory == null || parentDirectory == currentDirectory)
             {
                 break;
             }
-            
+
             currentDirectory = parentDirectory;
         }
 

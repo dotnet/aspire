@@ -2894,4 +2894,5 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
+
 }
