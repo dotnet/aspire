@@ -932,7 +932,7 @@ public static class PythonAppResourceBuilderExtensions
                 var debuggerProperties = new PythonDebuggerProperties
                 {
                     InterpreterPath = interpreterPath,
-                    Module = module,
+                    Module = string.IsNullOrEmpty(module) ? null : module,
                     ProgramPath = programPath,
                     Jinja = true, // by default, activate Jinja support,
                     Name = $"{modeText} Python: {Path.GetRelativePath(Environment.CurrentDirectory, programPath)}",

@@ -34,7 +34,7 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
 
     let configuration: AspireResourceExtendedDebugConfiguration;
 
-    if (debuggerExtension) {
+    if (debuggerExtension && !launchConfig.debugger_properties) {
         const projectPath = debuggerExtension.getProjectFile(launchConfig);
 
         configuration = {
@@ -50,9 +50,14 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
         };
     }
     else {
+        // Filter out any null debugger properties
+        const filteredDebuggerProperties = Object.fromEntries(
+            Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== null)
+        );
+
         configuration = {
             ...baseConfig,
-            ...launchConfig.debugger_properties
+            ...filteredDebuggerProperties
         } as any as AspireResourceExtendedDebugConfiguration;
     }
 
