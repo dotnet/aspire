@@ -27,7 +27,7 @@ builder.AddPythonModule("pythonservice", "../PostgresEndToEnd.PythonService", "f
        .WithReference(db1).WaitFor(db1);
 
 // NodeJS (TypeScript)
-builder.AddNodeApp("nodeservice", "../PostgresEndToEnd.NodeService", "app.ts")
+builder.AddJavaScriptApp("nodeservice", "../PostgresEndToEnd.NodeService", "app.ts")
        .WithHttpEndpoint(env: "PORT")
        .WithReference(db1)
        .WaitFor(db1)
