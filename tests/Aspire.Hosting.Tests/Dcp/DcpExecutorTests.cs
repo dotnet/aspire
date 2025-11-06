@@ -18,9 +18,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using static Aspire.Hosting.ResourceDebugSupportExtensions;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -1551,7 +1553,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(mode => new ExecutableLaunchConfiguration("test") { Mode = mode }, "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(options => new CustomExecutableLaunchConfiguration("test") { Mode = options.Mode }, "test");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         // No SupportsDebuggingAnnotation for this one
@@ -1606,7 +1608,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var executable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(executable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(executable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session port and extension endpoint (extension mode)
         var configDict = new Dictionary<string, string?>
@@ -1642,7 +1644,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         builder.AddResource(nonDebuggableExecutable);
@@ -1684,7 +1686,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate no debug session port and no extension endpoint (no debug session info)
         var configDict = new Dictionary<string, string?>
@@ -1720,7 +1722,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session port with invalid JSON in DebugSessionInfo
         var configDict = new Dictionary<string, string?>
@@ -1756,7 +1758,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session info with null SupportedLaunchConfigurations
         var runSessionInfo = new RunSessionInfo
@@ -1798,7 +1800,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session info with SupportedLaunchConfigurations that do not match the executable type
         var runSessionInfo = new RunSessionInfo
@@ -1840,7 +1842,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session info with SupportedLaunchConfigurations that match the executable type
         var runSessionInfo = new RunSessionInfo
@@ -2049,7 +2051,8 @@ public class DcpExecutorTests
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
-            developerCertificateService);
+            developerCertificateService,
+            new Hosting.Backchannel.BackchannelLoggerProvider());
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -2144,4 +2147,6 @@ public class DcpExecutorTests
     {
         public IResource Parent => parent;
     }
+
+    private sealed class CustomExecutableLaunchConfiguration(string type) : ExecutableLaunchConfiguration(type);
 }
