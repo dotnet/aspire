@@ -185,8 +185,8 @@ suite('utils/workspace tests', () => {
                 getEnableSettingsFileCreationPromptOnStartup,
                 setEnableSettingsFileCreationPromptOnStartup);
 
-            // When multiple settings files exist without appHostPath,
-            // the function should return null (see line 97-101 in workspace.ts)
+            // The function should return null when any settings file has an appHostPath configured
+            // (see line 85-88 in workspace.ts)
             assert.strictEqual(result, null);
         });
 
