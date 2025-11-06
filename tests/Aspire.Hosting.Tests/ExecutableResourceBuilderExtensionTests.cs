@@ -90,7 +90,7 @@ public class ExecutableResourceBuilderExtensionTests
         });
         Assert.Equal("ms-python.python", annotation.LaunchConfigurationType);
 
-        Assert.True(exe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var annotations));
+        Assert.True(exe.TryGetAnnotationAsObjectList<CustomExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var annotations));
         Assert.Equal(launchConfig.Mode, annotations.Single().Mode);
         Assert.Equal(launchConfig.Type, annotations.Single().Type);
     }
