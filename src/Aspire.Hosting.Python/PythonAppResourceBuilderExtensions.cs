@@ -1240,7 +1240,7 @@ public static class PythonAppResourceBuilderExtensions
         return builder;
     }
 
-  /// <summary>
+/// <summary>
     /// Configures custom debugger properties for a Python resource.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
