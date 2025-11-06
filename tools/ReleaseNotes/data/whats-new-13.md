@@ -163,11 +163,23 @@ The `AddUvicornApp` method automatically:
 
 #### Python Package Management
 
-Aspire 13.0 provides flexible Python package management following the same patterns as JavaScript (npm, yarn, pnpm).
+Aspire 13.0 provides flexible Python package management with automatic detection.
 
-**Using uv (recommended):**
+**Automatic package manager detection:**
 
-Aspire integrates with [uv](https://github.com/astral-sh/uv), the modern Python package and project manager:
+When you add a Python app, Aspire automatically detects and configures package management:
+
+```csharp
+// If pyproject.toml or requirements.txt exists → automatically uses pip
+// If neither exists → creates a virtual environment (.venv)
+var api = builder.AddUvicornApp("api", "./api", "main:app");
+```
+
+**In most cases, you don't need to explicitly configure package management** - Aspire detects it automatically.
+
+**Using uv (recommended for new projects):**
+
+For modern Python projects using [uv](https://github.com/astral-sh/uv), explicitly opt-in with `WithUv()`:
 
 ```csharp
 builder.AddUvicornApp("api", "./api", "main:app")
@@ -180,27 +192,27 @@ When using `WithUv()`, Aspire:
 - Leverages uv's performance benefits (10-100x faster than pip)
 - Auto-detects Python version from project configuration
 
-**Using pip:**
+**Explicit pip configuration:**
 
-For existing projects using pip and `requirements.txt`, use `WithPip()`:
+To explicitly configure pip behavior, use `WithPip()`:
 
 ```csharp
 builder.AddUvicornApp("api", "./api", "main:app")
-    .WithPip();  // Use pip for package management
+    .WithPip();  // Explicitly use pip for package management
 ```
 
 When using `WithPip()`, Aspire:
-- Automatically installs dependencies from `requirements.txt`
+- Automatically installs dependencies from `requirements.txt` or `pyproject.toml` (pip supports both)
 - Detects virtual environments (`.venv`) by walking up parent directories
-- Works with existing pip-based workflows
+- Creates a virtual environment if one doesn't exist
 
 **Using an existing virtual environment:**
 
-If you already have a virtual environment set up, use `WithVirtualEnvironment()`:
+If you already have a virtual environment set up and don't want dependency installation, use `WithVirtualEnvironment()`:
 
 ```csharp
 builder.AddPythonApp("api", "./api", "main.py")
-    .WithVirtualEnvironment();  // Use existing .venv
+    .WithVirtualEnvironment();  // Use existing .venv without installing dependencies
 ```
 
 #### VS Code Debugging Support
