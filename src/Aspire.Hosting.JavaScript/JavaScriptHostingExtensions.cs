@@ -112,7 +112,10 @@ public static class JavaScriptHostingExtensions
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
                             // Copy package files first for better layer caching
-                            builderStage.Copy("package*.json", "./");
+                            if (!string.IsNullOrEmpty(packageManager.PackageFilesPattern))
+                            {
+                                builderStage.Copy(packageManager.PackageFilesPattern, "./");
+                            }
                             
                             // Use BuildKit cache mount for npm cache if available
                             var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
@@ -433,40 +436,47 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installCommand ??= GetDefaultNpmInstallCommand(resource);
-
-        // Build args list
+        var (defaultCommand, defaultArgs) = GetDefaultNpmInstallCommand(resource);
+        
+        installCommand ??= defaultCommand;
+        
         var args = new List<string> { installCommand };
         if (installArgs != null)
         {
             args.AddRange(installArgs);
         }
-
-        // Add production flag in publish mode if using default install commands
-        if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode && 
-            (installCommand == "ci" || installCommand == "install"))
+        else
         {
-            // Add --omit=dev for npm ci, --production for npm install
-            var productionFlag = installCommand == "ci" ? "--omit=dev" : "--production";
-            if (!args.Contains(productionFlag) && !args.Contains("--production") && !args.Contains("--omit=dev"))
-            {
-                args.Add(productionFlag);
-            }
+            // Use default args if no custom args provided
+            args.AddRange(defaultArgs);
         }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm", packageFilesPattern: "package*.json"))
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource) =>
-        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
-            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"))
-            ? "ci"
-            : "install";
+    private static (string installCommand, string[] installArgs) GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource)
+    {
+        var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
+        var hasLockFile = File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"));
+        
+        var installCommand = isPublishMode && hasLockFile ? "ci" : "install";
+        
+        var installArgs = new List<string>();
+        
+        // Add production flag in publish mode if using default install commands
+        if (isPublishMode && (installCommand == "ci" || installCommand == "install"))
+        {
+            var productionFlag = installCommand == "ci" ? "--omit=dev" : "--production";
+            installArgs.Add(productionFlag);
+        }
+        
+        return (installCommand, [.. installArgs]);
+    }
 
     /// <summary>
     /// Configures the Node.js resource to use yarn as the package manager and optionally installs packages before the application starts.
@@ -479,24 +489,22 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installArgs ??= GetDefaultYarnInstallArgs(resource);
-
-        // Build args list
         var args = new List<string> { "install" };
-        args.AddRange(installArgs);
-
-        // Add production flag in publish mode if not already implied by other flags
-        if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        
+        if (installArgs != null)
         {
-            // --frozen-lockfile and --immutable already imply production, so don't add --production
-            if (!args.Contains("--production") && !args.Contains("--frozen-lockfile") && !args.Contains("--immutable") && !args.Contains("--immutable-cache"))
-            {
-                args.Add("--production");
-            }
+            // Use custom args as-is
+            args.AddRange(installArgs);
+        }
+        else
+        {
+            // Use default args
+            var defaultArgs = GetDefaultYarnInstallArgs(resource);
+            args.AddRange(defaultArgs);
         }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount: "/usr/local/share/.cache/yarn"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount: "/usr/local/share/.cache/yarn", packageFilesPattern: "package*.json"))
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
 
         AddInstaller(resource, install);
@@ -506,8 +514,9 @@ public static class JavaScriptHostingExtensions
     private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
     {
         var workingDirectory = resource.Resource.WorkingDirectory;
-        if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
-            !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
+        var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
+        
+        if (!isPublishMode || !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
         {
             // Not publish mode or no yarn.lock, use default install args
             return [];
@@ -538,34 +547,59 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installArgs ??= GetDefaultPnpmInstallArgs(resource);
-
-        // Add production flag in publish mode
         var args = new List<string> { "install" };
-        args.AddRange(installArgs);
-
-        if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        
+        if (installArgs != null)
         {
-            // Add --prod if not already present (and not using --frozen-lockfile which implies production)
-            if (!args.Contains("--prod") && !args.Contains("--production") && !args.Contains("--frozen-lockfile"))
+            // Use custom args
+            args.AddRange(installArgs);
+            
+            // Add --prod in publish mode if not already present
+            if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
             {
-                args.Add("--prod");
+                if (!args.Contains("--prod") && !args.Contains("--production"))
+                {
+                    args.Add("--prod");
+                }
             }
+        }
+        else
+        {
+            // Use default args
+            var defaultArgs = GetDefaultPnpmInstallArgs(resource);
+            args.AddRange(defaultArgs);
         }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/root/.local/share/pnpm/store"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/root/.local/share/pnpm/store", packageFilesPattern: "package*.json"))
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
-        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
-            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"))
-            ? ["--frozen-lockfile"]
-            : [];
+    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
+    {
+        var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
+        var hasLockFile = File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"));
+        
+        if (!isPublishMode)
+        {
+            return [];
+        }
+        
+        var args = new List<string>();
+        
+        if (hasLockFile)
+        {
+            args.Add("--frozen-lockfile");
+        }
+        
+        // Add --prod in publish mode
+        args.Add("--prod");
+        
+        return [.. args];
+    }
 
     /// <summary>
     /// Adds a build script annotation to the resource builder using the specified command-line arguments.

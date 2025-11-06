@@ -529,7 +529,7 @@ public class PackageInstallationTests
             .WithPnpm();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
-        Assert.Equal(["install", "--frozen-lockfile"], installCommand.Args);
+        Assert.Equal(["install", "--frozen-lockfile", "--prod"], installCommand.Args);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
