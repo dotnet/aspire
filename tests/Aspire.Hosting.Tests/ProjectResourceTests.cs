@@ -6,6 +6,7 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using System.Text;
+using System.Text.RegularExpressions;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Testing;
@@ -818,7 +819,21 @@ public class ProjectResourceTests
         builder.AddProject<TestProject>("projectName", launchProfileName: null)
             .PublishWithContainerFiles(sourceContainer, "./wwwroot");
 
+        var dockerfileVerified = false;
+
         using var app = builder.Build();
+        var fakeContainerRuntime = (FakeContainerRuntime)app.Services.GetRequiredService<IContainerRuntime>();
+
+        fakeContainerRuntime.BuildImageAsyncCallback = async (contextPath, dockerfilePath, imageName, options, buildArgs, buildSecrets, stage, cancellationToken) =>
+        {
+            // Verify that the Dockerfile contains the expected COPY command
+            var dockerFileContent = File.ReadAllText(dockerfilePath);
+            await Verify(dockerFileContent)
+                .ScrubLinesWithReplace(s => Regex.Replace(s, "FROM projectname:temp-.*", "FROM projectname:temp-"));
+
+            dockerfileVerified = true;
+        };
+
         await app.StartAsync();
         await app.WaitForShutdownAsync();
 
@@ -828,7 +843,6 @@ public class ProjectResourceTests
         Assert.Equal("projectName", builtImage.Name);
         Assert.False(mockImageBuilder.PushImageCalled);
 
-        var fakeContainerRuntime = (FakeContainerRuntime)app.Services.GetRequiredService<IContainerRuntime>();
         Assert.True(fakeContainerRuntime.WasTagImageCalled);
         var tagCall = Assert.Single(fakeContainerRuntime.TagImageCalls);
         Assert.Equal("projectname", tagCall.localImageName);
@@ -839,6 +853,8 @@ public class ProjectResourceTests
         Assert.Equal("projectname", buildCall.imageName);
         Assert.Empty(buildCall.contextPath);
         Assert.NotEmpty(buildCall.dockerfilePath);
+
+        Assert.True(dockerfileVerified);
 
         Assert.True(fakeContainerRuntime.WasRemoveImageCalled);
         var removeCall = Assert.Single(fakeContainerRuntime.RemoveImageCalls);

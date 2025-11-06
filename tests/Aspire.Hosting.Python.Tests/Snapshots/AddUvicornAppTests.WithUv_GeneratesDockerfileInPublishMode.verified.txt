@@ -1,4 +1,6 @@
-﻿FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+﻿ARG EXE_IMAGENAME=exe:deterministc-tag
+
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 # Enable bytecode compilation and copy mode for the virtual environment
 ENV UV_COMPILE_BYTECODE=1
@@ -16,9 +18,11 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
+FROM ${EXE_IMAGENAME} AS exe_stage
+
 FROM python:3.12-slim-bookworm AS app
 
-COPY --from=exe:deterministc-tag /app/dist /app/./static
+COPY --from=exe_stage /app/dist /app/./static
 
 # ------------------------------
 # 🚀 Runtime stage
