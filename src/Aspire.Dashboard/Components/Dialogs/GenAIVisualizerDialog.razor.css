@@ -151,6 +151,10 @@
     height: auto;
 }
 
+::deep .tab-container audio {
+    flex: 0 0 auto; /* prevent shrinking */
+}
+
 ::deep .section-container {
     display: flex;
     flex-direction: column;

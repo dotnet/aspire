@@ -9,6 +9,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -184,17 +185,22 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         };
     }
 
-    private static bool TryGetImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageUrl)
+    private record DataInfo(string Url, string MimeType, string? FileName);
+
+    private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)
     {
         switch (itemPart.MessagePart?.Type)
         {
             case "blob":
                 {
-                    if (itemPart.TryGetPropertyValue("mime_type", out var mimeType) && IsImageMimeType(mimeType))
+                    if (MatchMimeType(itemPart, matchingMimeTypes, out var mimeType))
                     {
                         if (itemPart.TryGetPropertyValue("content", out var content))
                         {
-                            imageUrl = $"data:{mimeType};base64,{content}";
+                            dataInfo = new DataInfo(
+                                Url: $"data:{mimeType};base64,{content}",
+                                MimeType: mimeType,
+                                FileName: CalculateFileName(currentFileName: null, mimeType));
                             return true;
                         }
                     }
@@ -202,14 +208,17 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
                 }
             case "uri":
                 {
-                    if (itemPart.TryGetPropertyValue("mime_type", out var mimeType) && IsImageMimeType(mimeType))
+                    if (MatchMimeType(itemPart, matchingMimeTypes, out var mimeType))
                     {
                         if (itemPart.TryGetPropertyValue("uri", out var uri))
                         {
+                            // Only attempt to display image if it is an http/https address.
                             if (Uri.TryCreate(uri, UriKind.Absolute, out var result) && result.Scheme.ToLowerInvariant() is "http" or "https")
                             {
-                                // Only attempt to display image if it is an http/https address.
-                                imageUrl = uri;
+                                dataInfo = new DataInfo(
+                                    Url: uri,
+                                    MimeType: mimeType,
+                                    FileName: CalculateFileName(Path.GetFileName(result.LocalPath), mimeType));
                                 return true;
                             }
                         }
@@ -218,12 +227,34 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
                 }
         }
 
-        imageUrl = null;
+        dataInfo = null;
         return false;
 
-        static bool IsImageMimeType(string mimeType)
+        static bool MatchMimeType(GenAIItemPartViewModel viewModel, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out string? mimeType)
         {
-            return mimeType.ToLowerInvariant() is "image/png" or "image/jpeg" or "image/gif" or "image/svg+xml";
+            if (viewModel.TryGetPropertyValue("mime_type", out mimeType))
+            {
+                return matchingMimeTypes == null || matchingMimeTypes.Contains(mimeType);
+            }
+
+            return false;
+        }
+
+        static string CalculateFileName(string? currentFileName, string mimeType)
+        {
+            if (!string.IsNullOrEmpty(currentFileName))
+            {
+                return currentFileName;
+            }
+
+            if (MimeTypeHelpers.MimeToExtension.TryGetValue(mimeType, out var extension))
+            {
+                return $"download{extension}";
+            }
+            else
+            {
+                return "download";
+            }
         }
     }
 
