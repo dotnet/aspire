@@ -1240,6 +1240,59 @@ public static class PythonAppResourceBuilderExtensions
         return builder;
     }
 
+  /// <summary>
+    /// Configures custom debugger properties for a Python resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object
+    /// that is pre-populated with default values based on the resource's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure Python debugger to stop on entry:
+    /// <code lang="csharp">
+    /// var api = builder.AddPythonScript("script", "../app", "main.py")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
+    ///     })
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Enable automatic reload for faster development:
+    /// <code lang="csharp">
+    /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
+    ///     })
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Pass custom arguments to the Python interpreter:
+    /// <code lang="csharp">
+    /// var app = builder.AddPythonModule("app", "../app", "myapp")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
+    ///     })
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithPythonDebuggerProperties<T>(
+        this IResourceBuilder<T> builder,
+        Action<PythonDebuggerProperties> configureDebuggerProperties)
+        where T : PythonAppResource
+    {
+        return builder.WithDebuggerProperties(configureDebuggerProperties);
+    }
+
     private static bool IsPythonCommandAvailable(string command)
     {
         var pathVariable = Environment.GetEnvironmentVariable("PATH");
