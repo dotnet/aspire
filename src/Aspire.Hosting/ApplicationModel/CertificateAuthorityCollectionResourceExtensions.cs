@@ -24,6 +24,7 @@ public static class CertificateAuthorityCollectionResourceExtensions
 
         var resource = new CertificateAuthorityCollection(name);
         return builder.AddResource(resource)
+            .WithIconName("Certificate")
             .ExcludeFromManifest()
             .WithInitialState(new CustomResourceSnapshot
             {
