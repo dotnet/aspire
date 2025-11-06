@@ -67,7 +67,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             command = `& "${cliPath}" ${subcommand}`;
         } else {
             // For Unix-like systems, quote only if needed
-            const quotedPath = /[\s"'`$!*?()&|<>;]/.test(cliPath) ? `'${cliPath.replace(/'/g, `'\\''`)}'` : cliPath;
+            const quotedPath = /[\s"'`$!*?()&|<>;]/.test(cliPath) ? `'${cliPath.replace(/'/g, `'\"'\"'`)}'` : cliPath;
             command = `${quotedPath} ${subcommand}`;
         }
 
