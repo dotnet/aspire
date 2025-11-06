@@ -97,7 +97,24 @@ internal static class X509Certificate2Extensions
         {
             using var store = new X509Store(storeName, storeLocation);
             store.Open(OpenFlags.ReadOnly);
-            collection.AddRange(store.Certificates);
+            // Add all root certificates, excluding any localhost certificates without a Subject Key Identifier.
+            // This avoid conflicts between legacy self-signed localhost certificates and the ASP.NET Core development certificate in OpenSSL.
+            foreach (var certificate in store.Certificates.Where(c => !string.Equals(c.Subject, "localhost", StringComparison.OrdinalIgnoreCase) || c.HasSubjectKeyIdentifier()))
+            {
+                collection.Add(certificate);
+            }
         }
+    }
+
+    /// <summary>
+    /// A Subject Key Identifier is used to identify certificate trust chains: https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.2
+    /// </summary>
+    /// <param name="certificate"></param>
+    /// <returns></returns>
+    public static bool HasSubjectKeyIdentifier(this X509Certificate2 certificate)
+    {
+        ArgumentNullException.ThrowIfNull(certificate);
+
+        return certificate.Extensions.OfType<X509SubjectKeyIdentifierExtension>().Any(ski => !string.IsNullOrEmpty(ski.SubjectKeyIdentifier));
     }
 }
