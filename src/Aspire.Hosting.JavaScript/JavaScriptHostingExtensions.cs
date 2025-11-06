@@ -105,16 +105,38 @@ public static class JavaScriptHostingExtensions
                     var builderStage = dockerfileContext.Builder
                         .From(baseBuildImage, "build")
                         .EmptyLine()
-                        .WorkDir("/app")
-                        .Copy(".", ".")
-                        .EmptyLine();
+                        .WorkDir("/app");
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            builderStage.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
+                            // Copy package files first for better layer caching
+                            builderStage.Copy("package*.json", "./");
+                            
+                            // Add production-only flag to install command
+                            var installArgs = new List<string>(installCommand.Args);
+                            var productionFlag = GetProductionInstallFlag(packageManager.ExecutableName, installArgs);
+                            if (productionFlag != null)
+                            {
+                                installArgs.Add(productionFlag);
+                            }
+
+                            // Use BuildKit cache mount for npm cache
+                            var cacheMount = GetCacheMount(packageManager.ExecutableName);
+                            var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installArgs)}";
+                            if (!string.IsNullOrEmpty(cacheMount))
+                            {
+                                builderStage.Run($"--mount=type=cache,target={cacheMount} {installCmd}");
+                            }
+                            else
+                            {
+                                builderStage.Run(installCmd);
+                            }
                         }
+
+                        // Copy application source code after dependencies are installed
+                        builderStage.Copy(".", ".");
 
                         if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
                         {
@@ -126,8 +148,14 @@ public static class JavaScriptHostingExtensions
                             commandArgs.Add(buildCommand.ScriptName);
                             commandArgs.AddRange(buildCommand.Args);
 
-                            builderStage.Run(string.Join(' ', commandArgs));
+                            builderStage.EmptyLine()
+                                .Run(string.Join(' ', commandArgs));
                         }
+                    }
+                    else
+                    {
+                        // No package manager, just copy everything
+                        builderStage.Copy(".", ".");
                     }
 
                     var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>();
@@ -137,9 +165,28 @@ public static class JavaScriptHostingExtensions
                     var runtimeBuilder = dockerfileContext.Builder
                         .From(baseRuntimeImage, "runtime")
                             .EmptyLine()
-                            .WorkDir("/app")
-                            .CopyFrom("build", "/app", "/app")
-                            .AddContainerFiles(dockerfileContext.Resource, "/app", logger)
+                            .WorkDir("/app");
+
+                    // Copy only node_modules and the app script
+                    if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out _))
+                    {
+                        runtimeBuilder.CopyFrom("build", "/app/node_modules", "./node_modules");
+                    }
+                    
+                    // Copy the script file - handle both relative and absolute paths
+                    var scriptDir = Path.GetDirectoryName(scriptPath);
+                    if (!string.IsNullOrEmpty(scriptDir) && scriptDir != ".")
+                    {
+                        // If script is in a subdirectory, copy the whole directory structure
+                        runtimeBuilder.CopyFrom("build", $"/app/{scriptDir}", $"./{scriptDir}");
+                    }
+                    else
+                    {
+                        // Script is in root, copy just the file
+                        runtimeBuilder.CopyFrom("build", $"/app/{scriptPath}", $"./{scriptPath}");
+                    }
+
+                    runtimeBuilder.AddContainerFiles(dockerfileContext.Resource, "/app", logger)
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
                             .Expose(3000)
@@ -711,5 +758,53 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Gets the production-only install flag for the specified package manager.
+    /// Returns null if the install command already contains a production flag or if it's not applicable.
+    /// </summary>
+    /// <param name="packageManager">The package manager executable name (npm, yarn, pnpm).</param>
+    /// <param name="installArgs">The current install arguments.</param>
+    /// <returns>The production flag to add, or null if not needed.</returns>
+    private static string? GetProductionInstallFlag(string packageManager, List<string> installArgs)
+    {
+        // Check if production flags are already present
+        var hasProductionFlag = installArgs.Any(arg =>
+            arg.Contains("--production", StringComparison.OrdinalIgnoreCase) ||
+            arg.Contains("--omit=dev", StringComparison.OrdinalIgnoreCase) ||
+            arg.Contains("--prod", StringComparison.OrdinalIgnoreCase) ||
+            arg.Contains("--frozen-lockfile", StringComparison.OrdinalIgnoreCase) ||
+            arg.Contains("--immutable", StringComparison.OrdinalIgnoreCase));
+
+        if (hasProductionFlag)
+        {
+            return null;
+        }
+
+        // Return appropriate production flag based on package manager
+        return packageManager.ToLowerInvariant() switch
+        {
+            "npm" => installArgs.Contains("ci") ? "--omit=dev" : "--production",
+            "yarn" => "--production",
+            "pnpm" => "--prod",
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Gets the cache mount path for the specified package manager.
+    /// </summary>
+    /// <param name="packageManager">The package manager executable name (npm, yarn, pnpm).</param>
+    /// <returns>The cache mount path for BuildKit, or null if not supported.</returns>
+    private static string? GetCacheMount(string packageManager)
+    {
+        return packageManager.ToLowerInvariant() switch
+        {
+            "npm" => "/root/.npm",
+            "yarn" => "/usr/local/share/.cache/yarn",
+            "pnpm" => "/root/.local/share/pnpm/store",
+            _ => null
+        };
     }
 }

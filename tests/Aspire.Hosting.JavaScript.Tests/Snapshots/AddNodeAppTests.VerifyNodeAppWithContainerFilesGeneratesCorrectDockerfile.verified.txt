@@ -3,16 +3,17 @@
 FROM node:22-alpine AS build
 
 WORKDIR /app
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm npm install --production
 COPY . .
-
-RUN npm install
 
 FROM ${SOURCE_IMAGENAME} AS source_stage
 
 FROM node:22-alpine AS runtime
 
 WORKDIR /app
-COPY --from=build /app /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/app.js ./app.js
 COPY --from=source_stage /app/dist /app/./static
 
 
