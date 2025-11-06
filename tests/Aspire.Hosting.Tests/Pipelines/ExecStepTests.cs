@@ -192,20 +192,6 @@ public class ExecStepTests
     }
 
     [Fact]
-    public void Create_WithNullConfigureCallback_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var name = "test-step";
-        var executable = "test";
-        var args = new[] { "arg1" };
-        var workDir = "/test/dir";
-        Action<System.Diagnostics.ProcessStartInfo>? configure = null;
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => ExecStep.Create(name, executable, args, workDir, configure!));
-    }
-
-    [Fact]
     public void Create_WithEmptyArgs_ReturnsValidPipelineStep()
     {
         // Arrange

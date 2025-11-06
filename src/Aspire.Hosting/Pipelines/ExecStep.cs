@@ -23,6 +23,7 @@ public class ExecStep
     /// <param name="name">The unique name for the pipeline step.</param>
     /// <param name="commandLine">The full command line including the executable and arguments.</param>
     /// <param name="workingDirectory">The working directory for the process.</param>
+    /// <param name="configure">Optional callback to customize the <see cref="ProcessStartInfo"/> before the process starts.</param>
     /// <returns>A <see cref="PipelineStep"/> that executes the specified command.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/>, <paramref name="commandLine"/>, or <paramref name="workingDirectory"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> or <paramref name="commandLine"/> is empty or whitespace.</exception>
@@ -30,7 +31,7 @@ public class ExecStep
     /// The command line will be parsed to extract the executable path and arguments.
     /// </remarks>
     [Experimental("ASPIREEXECSTEP001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static PipelineStep Create(string name, string commandLine, string workingDirectory)
+    public static PipelineStep Create(string name, string commandLine, string workingDirectory, Action<ProcessStartInfo>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -40,42 +41,7 @@ public class ExecStep
 
         var (executable, args) = CommandLineArgsParser.ParseCommand(commandLine);
 
-        return new PipelineStep
-        {
-            Name = name,
-            Action = async context =>
-            {
-                var processSpec = new ProcessSpec(executable)
-                {
-                    WorkingDirectory = workingDirectory,
-                    Arguments = string.Join(" ", args),
-                    OnOutputData = output =>
-                    {
-                        context.Logger.LogDebug("{Executable} (stdout): {Output}", executable, output);
-                    },
-                    OnErrorData = error =>
-                    {
-                        context.Logger.LogDebug("{Executable} (stderr): {Error}", executable, error);
-                    },
-                    ThrowOnNonZeroReturnCode = false
-                };
-
-                context.Logger.LogDebug("Running {Executable} with arguments: {Arguments}", executable, processSpec.Arguments);
-                var (resultTask, disposable) = ProcessUtil.Run(processSpec);
-                await using (disposable.ConfigureAwait(false))
-                {
-                    var result = await resultTask.ConfigureAwait(false);
-                    
-                    if (result.ExitCode != 0)
-                    {
-                        context.Logger.LogError("{Executable} failed with exit code {ExitCode}", executable, result.ExitCode);
-                        throw new DistributedApplicationException($"{executable} failed with exit code {result.ExitCode}.");
-                    }
-
-                    context.Logger.LogInformation("{Executable} succeeded", executable);
-                }
-            }
-        };
+        return Create(name, executable, args, workingDirectory, configure);
     }
 
     /// <summary>
@@ -85,11 +51,12 @@ public class ExecStep
     /// <param name="executable">The path to the executable to run.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
     /// <param name="workingDirectory">The working directory for the process.</param>
+    /// <param name="configure">Optional callback to customize the <see cref="ProcessStartInfo"/> before the process starts.</param>
     /// <returns>A <see cref="PipelineStep"/> that executes the specified command.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/>, <paramref name="executable"/>, <paramref name="args"/>, or <paramref name="workingDirectory"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> or <paramref name="executable"/> is empty or whitespace.</exception>
     [Experimental("ASPIREEXECSTEP001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static PipelineStep Create(string name, string executable, string[] args, string workingDirectory)
+    public static PipelineStep Create(string name, string executable, string[] args, string workingDirectory, Action<ProcessStartInfo>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -97,68 +64,6 @@ public class ExecStep
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(workingDirectory);
-
-        var arguments = string.Join(" ", args.Select(EscapeArgument));
-
-        return new PipelineStep
-        {
-            Name = name,
-            Action = async context =>
-            {
-                var processSpec = new ProcessSpec(executable)
-                {
-                    WorkingDirectory = workingDirectory,
-                    Arguments = arguments,
-                    OnOutputData = output =>
-                    {
-                        context.Logger.LogDebug("{Executable} (stdout): {Output}", executable, output);
-                    },
-                    OnErrorData = error =>
-                    {
-                        context.Logger.LogDebug("{Executable} (stderr): {Error}", executable, error);
-                    },
-                    ThrowOnNonZeroReturnCode = false
-                };
-
-                context.Logger.LogDebug("Running {Executable} with arguments: {Arguments}", executable, processSpec.Arguments);
-                var (resultTask, disposable) = ProcessUtil.Run(processSpec);
-                await using (disposable.ConfigureAwait(false))
-                {
-                    var result = await resultTask.ConfigureAwait(false);
-                    
-                    if (result.ExitCode != 0)
-                    {
-                        context.Logger.LogError("{Executable} failed with exit code {ExitCode}", executable, result.ExitCode);
-                        throw new DistributedApplicationException($"{executable} failed with exit code {result.ExitCode}.");
-                    }
-
-                    context.Logger.LogInformation("{Executable} succeeded", executable);
-                }
-            }
-        };
-    }
-
-    /// <summary>
-    /// Creates a pipeline step with the ability to customize the process specification.
-    /// </summary>
-    /// <param name="name">The unique name for the pipeline step.</param>
-    /// <param name="executable">The path to the executable to run.</param>
-    /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="workingDirectory">The working directory for the process.</param>
-    /// <param name="configure">A callback to customize the <see cref="ProcessStartInfo"/> before the process starts.</param>
-    /// <returns>A <see cref="PipelineStep"/> that executes the specified command.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/>, <paramref name="executable"/>, <paramref name="args"/>, <paramref name="workingDirectory"/>, or <paramref name="configure"/> is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> or <paramref name="executable"/> is empty or whitespace.</exception>
-    [Experimental("ASPIREEXECSTEP001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static PipelineStep Create(string name, string executable, string[] args, string workingDirectory, Action<ProcessStartInfo> configure)
-    {
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentNullException.ThrowIfNull(executable);
-        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
-        ArgumentNullException.ThrowIfNull(args);
-        ArgumentNullException.ThrowIfNull(workingDirectory);
-        ArgumentNullException.ThrowIfNull(configure);
 
         var arguments = string.Join(" ", args.Select(EscapeArgument));
 
@@ -177,8 +82,8 @@ public class ExecStep
                     CreateNoWindow = true
                 };
 
-                // Allow user to customize
-                configure(startInfo);
+                // Allow user to customize if callback is provided
+                configure?.Invoke(startInfo);
 
                 // Create ProcessSpec from customized ProcessStartInfo
                 var processSpec = new ProcessSpec(startInfo.FileName)
