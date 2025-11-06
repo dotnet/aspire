@@ -27,6 +27,24 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
        ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 
     /// <summary>
+    /// Gets the connection URI expression for the Oracle database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>oracle://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the Oracle Database.
+    /// </summary>
+    /// <remarks>
+    /// <para>Format: <c>jdbc:oracle:thin:@//{host}:{port}/{database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
+    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
@@ -36,4 +54,11 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

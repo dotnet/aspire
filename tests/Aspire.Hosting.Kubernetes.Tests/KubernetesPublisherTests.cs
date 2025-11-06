@@ -14,7 +14,7 @@ public class KubernetesPublisherTests()
     public async Task PublishAsync_GeneratesValidHelmChart()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
 
@@ -80,7 +80,7 @@ public class KubernetesPublisherTests()
     public async Task PublishAppliesServiceCustomizations()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env")
             .WithProperties(e => e.DefaultImagePullPolicy = "Always");
@@ -111,7 +111,7 @@ public class KubernetesPublisherTests()
     public async Task PublishAsync_CustomWorkloadAndResourceType()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
 
@@ -175,7 +175,7 @@ public class KubernetesPublisherTests()
     public async Task PublishAsync_HandlesSpecialResourceName()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env")
                    .WithProperties(k => k.HelmChartName = "my-chart");
@@ -229,7 +229,7 @@ public class KubernetesPublisherTests()
     public async Task PublishAsync_ResourceWithProbes()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
 
@@ -284,13 +284,13 @@ public class KubernetesPublisherTests()
     public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
     {
         using var tempDir = new TempDirectory();
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for kubernetes'";
         var container = builder.AddContainer("testcontainer", "testimage")
-                               .WithDockerfile(".", context => dockerfileContent);
+                               .WithDockerfileFactory(".", context => dockerfileContent);
 
         var app = builder.Build();
         app.Run();
@@ -299,7 +299,7 @@ public class KubernetesPublisherTests()
         var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
         Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
         var actualContent = await File.ReadAllTextAsync(dockerfilePath);
-        
+
         await Verify(actualContent);
     }
 

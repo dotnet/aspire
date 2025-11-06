@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="ClearPendingSelectedResource">
         <source>Remove for resource</source>
-        <target state="translated">Remover para o recurso</target>
+        <target state="translated">Remover para o recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSelectedResource">
@@ -634,7 +634,7 @@
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>
-        <target state="translated">Tipo de montagem</target>
+        <target state="translated">Tipo de montagem</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumePathColumnHeader">

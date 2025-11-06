@@ -1,0 +1,24 @@
+﻿ARG SOURCE_IMAGENAME=source:source-tag
+
+FROM node:22-alpine AS build
+
+WORKDIR /app
+COPY . .
+
+RUN npm install
+
+FROM ${SOURCE_IMAGENAME} AS source_stage
+
+FROM node:22-alpine AS runtime
+
+WORKDIR /app
+COPY --from=build /app /app
+COPY --from=source_stage /app/dist /app/./static
+
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+USER node
+
+ENTRYPOINT ["node","app.js"]

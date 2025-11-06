@@ -94,17 +94,11 @@
                                                   Items="input.ViewModel.SelectOptions"
                                                   OptionValue="@(vm => vm.Id)"
                                                   OptionText="@(vm => vm.Name)"
+                                                  OptionTitle="@(vm => DashboardUIHelpers.ResolveTooltip(vm.Name))"
                                                   Height="250px"
                                                   Position="SelectPosition.Below"
                                                   Disabled="input.ViewModel.InputDisabled"
                                                   aria-describedby="@input.DescriptionId">
-                                        <OptionTemplate Context="optionContext">
-                                            @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
-                                            @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
-                                            <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
-                                                @optionContext.Name
-                                            </span>
-                                        </OptionTemplate>
                                     </FluentSelect>
                                 }
                                 else
@@ -114,19 +108,18 @@
                                                     @bind-Value="input.ViewModel.Value"
                                                     Placeholder="@input.ViewModel.Input.Placeholder"
                                                     Required="input.ViewModel.Input.Required"
-                                                    Items="input.ViewModel.SelectOptions"
+                                                    Items="@input.ViewModel.FilteredOptions()"
                                                     OptionValue="@(vm => vm.Id)"
                                                     OptionText="@(vm => vm.Name)"
+                                                    OptionTitle="@(vm => DashboardUIHelpers.ResolveTooltip(vm.Name))"
                                                     Height="250px"
                                                     Position="SelectPosition.Below"
                                                     Disabled="input.ViewModel.InputDisabled"
+                                                    Immediate="true"
+                                                    ImmediateDelay="@FluentUIExtensions.InputDelay"
                                                     aria-describedby="@input.DescriptionId">
                                         <OptionTemplate Context="optionContext">
-                                            @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
-                                            @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
-                                            <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
-                                                @optionContext.Name
-                                            </span>
+                                            <FluentHighlighter Text="@optionContext.Name" HighlightedText="@input.ViewModel.Value" />
                                         </OptionTemplate>
                                     </FluentCombobox>
                                 }

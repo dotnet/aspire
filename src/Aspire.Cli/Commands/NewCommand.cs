@@ -27,6 +27,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
@@ -52,7 +53,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -62,6 +63,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -69,6 +71,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _prompter = prompter;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
@@ -121,7 +124,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -158,10 +161,8 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         // Local helpers
         static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
         {
-            // Keep it concise: "Id Version"
-            var pkg = item.Package;
-            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
-            return $"{pkg.Version} ({source})";
+            // Keep it concise: "Version (source)"
+            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
         }
 
         async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(

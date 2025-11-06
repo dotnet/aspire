@@ -44,6 +44,7 @@ internal interface IExtensionBackchannel
     Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
     Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, CancellationToken cancellationToken);
     Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
+    Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -573,8 +574,6 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        _logger.LogDebug("Logging message at level {LogLevel}: {Message}", logLevel, message);
-
         await rpc.InvokeWithCancellationAsync(
             "logMessage",
             [_token, logLevel.ToString(), message],
@@ -594,6 +593,22 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         await rpc.InvokeWithCancellationAsync(
             "displayPlainText",
             [_token, text],
+            cancellationToken);
+    }
+
+    public async Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Sent debug session message {Message}", message);
+
+        await rpc.InvokeWithCancellationAsync(
+            "writeDebugSessionMessage",
+            [_token, message, stdout, textStyle],
             cancellationToken);
     }
 
@@ -692,6 +707,10 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         var serverCertificate = _configuration[KnownConfigNames.ExtensionCert];
         Debug.Assert(!string.IsNullOrEmpty(serverCertificate));
         var data = Convert.FromBase64String(serverCertificate);
+#if NET9_0_OR_GREATER
+        return X509CertificateLoader.LoadCertificate(data);
+#else
         return new X509Certificate2(data);
+#endif
     }
 }

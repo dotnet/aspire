@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="AspireWithMaui.MauiClient.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:AspireWithMaui.MauiClient"
+    Title="AspireWithMaui.MauiClient">
+
+    <TabBar>
+        <Tab Title="Weather" Icon="weather.png">
+            <ShellContent
+                Title="Weather"
+                ContentTemplate="{DataTemplate local:MainPage}"
+                Route="weather" />
+        </Tab>
+        <Tab Title="Environment" Icon="aspire_outline.png">
+            <ShellContent
+                Title="Environment"
+                ContentTemplate="{DataTemplate local:EnvironmentPage}"
+                Route="environment" />
+        </Tab>
+    </TabBar>
+
+</Shell>

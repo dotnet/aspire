@@ -34,8 +34,10 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: take('envasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
+    elasticScaleEnabled: false
     perSiteScaling: true
     reserved: true
+    maximumElasticWorkerCount: 10
   }
   kind: 'Linux'
   sku: {
@@ -47,6 +49,8 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
 output name string = env_asplan.name
 
 output planId string = env_asplan.id
+
+output webSiteSuffix string = uniqueString(resourceGroup().id)
 
 output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
 

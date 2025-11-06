@@ -98,4 +98,63 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         _databases.TryAdd(name, databaseName);
     }
+
+    // Expose Host and Port properties for convenience,
+    // maybe removing the need for IResourceWithConnectionProperties<T> in some cases.
+
+    /// <summary>
+    /// Gets the host endpoint reference for this service.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the endpoint reference expression that identifies the port for this endpoint.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
+    /// Gets the connection URI expression for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>postgresql://{user}:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+
+    internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("jdbc:postgresql://");
+        builder.Append($"{Host}");
+        builder.AppendLiteral(":");
+        builder.Append($"{Port}");
+
+        if (databaseName is not null)
+        {
+            builder.AppendLiteral("/");
+            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
+            builder.Append($"{databaseNameExpression:uri}");
+        }
+
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Gets the JDBC connection string for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// <para>Format: <c>jdbc:postgresql://{host}:{port}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+    [
+        new ("Host", ReferenceExpression.Create($"{Host}")),
+        new ("Port", ReferenceExpression.Create($"{Port}")),
+        new ("Username", ReferenceExpression.Create($"{UserNameReference}")),
+        new ("Password", ReferenceExpression.Create($"{PasswordParameter}")),
+        new ("Uri", UriExpression),
+        new ("JdbcConnectionString", JdbcConnectionString),
+    ];
 }

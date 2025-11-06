@@ -13,11 +13,13 @@ public sealed class DistributedApplicationOptions
     private readonly Lazy<Assembly?> _assembly;
     private readonly Lazy<string?> _projectDirectoryLazy;
     private readonly Lazy<string?> _projectNameLazy;
+    private readonly Lazy<string?> _dashboardApplicationNameLazy;
     private readonly Lazy<string?> _configurationLazy;
     // This is for testing
     private string? _projectDirectory;
     private bool _projectDirectorySet;
     private string? _projectName;
+    private string? _dashboardApplicationName;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DistributedApplicationOptions"/>.
@@ -27,6 +29,7 @@ public sealed class DistributedApplicationOptions
         _assembly = new(ResolveAssembly);
         _projectDirectoryLazy = new(ResolveProjectDirectory);
         _projectNameLazy = new(ResolveProjectName);
+        _dashboardApplicationNameLazy = new(ResolveDashboardApplicationName);
         _configurationLazy = new(ResolveConfiguration);
     }
 
@@ -79,12 +82,28 @@ public sealed class DistributedApplicationOptions
         set => _projectName = value;
     }
 
+    /// <summary>
+    /// The application name to display in the dashboard. For file-based app hosts, this defaults to the directory name.
+    /// For other apps, it falls back to the environment's application name.
+    /// </summary>
+    public string? DashboardApplicationName
+    {
+        get => _dashboardApplicationName ?? _dashboardApplicationNameLazy.Value;
+        set => _dashboardApplicationName = value;
+    }
+
     internal bool DashboardEnabled => !DisableDashboard;
 
     /// <summary>
     /// Allows the use of HTTP urls for for the AppHost resource endpoint.
     /// </summary>
     public bool AllowUnsecuredTransport { get; set; }
+
+    /// <summary>
+    /// Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate)
+    /// by default at runtime.
+    /// </summary>
+    public bool? TrustDeveloperCertificate { get; set; }
 
     private string? ResolveProjectDirectory()
     {
@@ -96,6 +115,27 @@ public sealed class DistributedApplicationOptions
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         return GetMetadataValue(assemblyMetadata, "AppHostProjectName");
+    }
+
+    private string? ResolveDashboardApplicationName()
+    {
+        // For file-based app hosts (single-file programs), use the directory name as the dashboard application name
+        // to provide a more meaningful identifier than the generated assembly name.
+        // File-based programs set the "EntryPointFilePath" data in AppContext.
+        // For example, if the apphost file is at "foo/apphost.cs", the dashboard name becomes "foo".
+        var entryPointFilePath = AppContext.GetData("EntryPointFilePath") as string;
+        if (!string.IsNullOrEmpty(entryPointFilePath))
+        {
+            // Use the directory name from ProjectDirectory if available
+            var projectDirectory = ProjectDirectory;
+            if (!string.IsNullOrEmpty(projectDirectory))
+            {
+                return Path.GetFileName(projectDirectory);
+            }
+        }
+
+        // For non-file-based apps, return null to fall back to IHostEnvironment.ApplicationName
+        return null;
     }
 
     private Assembly? ResolveAssembly()

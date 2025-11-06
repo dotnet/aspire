@@ -4,57 +4,57 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding AppHost project to solution...</source>
-        <target state="new">Adding AppHost project to solution...</target>
+        <target state="translated">AppHost プロジェクトをソリューションに追加しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
         <source>Adding projects to solution...</source>
-        <target state="new">Adding projects to solution...</target>
+        <target state="translated">ソリューションにプロジェクトを追加しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingServiceDefaultsProjectToSolution">
         <source>Adding ServiceDefaults project to solution...</source>
-        <target state="new">Adding ServiceDefaults project to solution...</target>
+        <target state="translated">ServiceDefaults プロジェクトをソリューションに追加しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireInitializationComplete">
         <source>Aspire initialization complete!</source>
-        <target state="new">Aspire initialization complete!</target>
+        <target state="translated">Aspire の初期化が完了しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating AppHost project...</source>
-        <target state="new">Creating AppHost project...</target>
+        <target state="translated">AppHost プロジェクトを作成しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
         <source>Creating ServiceDefaults project...</source>
-        <target state="new">Creating ServiceDefaults project...</target>
+        <target state="translated">ServiceDefaults プロジェクトを作成しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
-        <target state="new">Initialize Aspire support in an existing solution or create a single-file AppHost.</target>
+        <target state="translated">既存のソリューションで Aspire サポートを初期化するか、単一ファイルの AppHost を作成します。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
         <source>Multiple solution files found. Please select which one to add the Aspire projects to:</source>
-        <target state="new">Multiple solution files found. Please select which one to add the Aspire projects to:</target>
+        <target state="translated">複数のソリューション ファイルが見つかりました。Aspire プロジェクトを追加するプロジェクトを選択してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file AppHost...</source>
-        <target state="new">No solution file found. Creating single-file AppHost...</target>
+        <target state="translated">ソリューション ファイルが見つかりません。単一ファイルの AppHost を作成しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
-        <target state="new">Solution detected: {0}</target>
+        <target state="translated">ソリューションが検出されました: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionAlreadyInitialized">
         <source>Solution has already been initialized with Aspire.</source>
-        <target state="new">Solution has already been initialized with Aspire.</target>
+        <target state="translated">ソリューションは既に Aspire で初期化されています。</target>
         <note />
       </trans-unit>
     </body>

@@ -21,7 +21,7 @@ internal sealed class ContainerNetworkSpec
     public bool? Persistent { get; set; }
 }
 
-internal sealed class ContainerNetworkStatus : V1Status
+internal sealed record ContainerNetworkStatus : V1Status
 {
     // The current state of the network
     [JsonPropertyName("state")]

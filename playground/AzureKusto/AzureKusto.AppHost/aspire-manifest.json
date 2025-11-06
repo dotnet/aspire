@@ -22,7 +22,7 @@
       "path": "../AzureKusto.Worker/AzureKusto.Worker.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "worker.module.bicep",
+        "path": "worker-containerapp.module.bicep",
         "params": {
           "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",

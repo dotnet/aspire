@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param env_outputs_azure_container_registry_endpoint string
@@ -23,6 +23,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
     authType: 'UserAssigned'
     image: api_containerimage
     isMain: true
+    targetPort: '85'
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
@@ -39,6 +40,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: env_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
+        {
+          name: 'WEBSITES_PORT'
+          value: '85'
+        }
         {
           name: 'PORT'
           value: '85'
@@ -82,7 +87,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   }
 }
 
-resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource api_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: env_outputs_azure_website_contributor_managed_identity_principal_id

@@ -40,7 +40,7 @@
       "path": "../AzureAppService.ApiService/AzureAppService.ApiService.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "api.module.bicep",
+        "path": "api-website.module.bicep",
         "params": {
           "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "infra_outputs_planid": "{infra.outputs.planId}",
@@ -53,7 +53,10 @@
           "secretparam_value": "{secretparam.value}",
           "api_identity_outputs_principalname": "{api-identity.outputs.principalName}",
           "api_identity_outputs_id": "{api-identity.outputs.id}",
-          "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
+          "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
+          "infra_outputs_azure_app_service_dashboard_uri": "{infra.outputs.AZURE_APP_SERVICE_DASHBOARD_URI}",
+          "infra_outputs_azure_website_contributor_managed_identity_id": "{infra.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID}",
+          "infra_outputs_azure_website_contributor_managed_identity_principal_id": "{infra.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID}"
         }
       },
       "env": {

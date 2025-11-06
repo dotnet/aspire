@@ -30,6 +30,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ISolutionLocator _solutionLocator;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
@@ -38,7 +39,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     /// InitCommand prefetches template package metadata.
     /// </summary>
     public bool PrefetchesTemplatePackageMetadata => true;
-    
+
     /// <summary>
     /// InitCommand prefetches CLI package metadata for update notifications.
     /// </summary>
@@ -55,7 +56,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext,
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -67,6 +68,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(solutionLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -76,6 +78,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _solutionLocator = solutionLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
@@ -94,7 +97,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -246,19 +249,27 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 }
             }
         }
-     
+
         // Get template version/channel selection using the same logic as NewCommand
         var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
-        
+
+        // Create or update NuGet.config for explicit channels in the solution directory
+        // This matches the behavior of 'aspire new' when creating in-place
+        var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
+        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(
+            ExecutionContext.WorkingDirectory,
+            selectedTemplateDetails.Channel,
+            cancellationToken);
+
         // Create a temporary directory for the template output
         var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
         Directory.CreateDirectory(tempProjectDir);
-        
+
         try
         {
             // Create temporary NuGet config if using explicit channel
             using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
-            
+
             // Install templates first if needed
             initContext.InstallTemplateOutputCollector = new OutputCollector();
             var templateInstallResult = await InteractionService.ShowStatusAsync(
@@ -280,14 +291,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         options: options,
                         cancellationToken: cancellationToken);
                 });
-            
+
             if (templateInstallResult.ExitCode != 0)
             {
                 InteractionService.DisplayLines(initContext.InstallTemplateOutputCollector.GetLines());
                 InteractionService.DisplayError("Failed to install Aspire templates.");
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
-            
+
             initContext.NewProjectOutputCollector = new OutputCollector();
             var createResult = await InteractionService.ShowStatusAsync(
                 "Creating Aspire projects from template...",
@@ -300,14 +311,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     };
 
                     return await _runner.NewProjectAsync(
-                        "aspire", 
-                        initContext.SolutionName, 
-                        tempProjectDir, 
+                        "aspire",
+                        initContext.SolutionName,
+                        tempProjectDir,
                         ["--framework", initContext.RequiredAppHostFramework],
-                        options, 
+                        options,
                         cancellationToken);
                 });
-            
+
             if (createResult != 0)
             {
                 InteractionService.DisplayLines(initContext.NewProjectOutputCollector.GetLines());
@@ -329,17 +340,20 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostProjectDir = appHostProjects[0];
             var serviceDefaultsProjectDir = serviceDefaultsProjects[0];
 
-            // Move the projects to the solution directory
+            // Copy the projects to the solution directory
+            // Using copy instead of move to support cross-drive operations on Windows
             var finalAppHostDir = Path.Combine(initContext.SolutionDirectory.FullName, appHostProjectDir.Name);
             var finalServiceDefaultsDir = Path.Combine(initContext.SolutionDirectory.FullName, serviceDefaultsProjectDir.Name);
 
-            Directory.Move(appHostProjectDir.FullName, finalAppHostDir);
-            Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
+            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir);
+            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
 
-            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+            // Delete the temporary directory
+            Directory.Delete(tempProjectDir, recursive: true);
 
             // Add AppHost project to solution
+            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
             initContext.AddAppHostToSolutionOutputCollector = new OutputCollector();
             var addAppHostResult = await InteractionService.ShowStatusAsync(
                 InitCommandStrings.AddingAppHostProjectToSolution,
@@ -352,12 +366,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     };
 
                     return await _runner.AddProjectToSolutionAsync(
-                        solutionFile, 
-                        appHostProjectFile, 
-                        options, 
+                        solutionFile,
+                        appHostProjectFile,
+                        options,
                         cancellationToken);
                 });
-            
+
             if (addAppHostResult != 0)
             {
                 InteractionService.DisplayLines(initContext.AddAppHostToSolutionOutputCollector.GetLines());
@@ -378,12 +392,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     };
 
                     return await _runner.AddProjectToSolutionAsync(
-                        solutionFile, 
-                        serviceDefaultsProjectFile, 
-                        options, 
+                        solutionFile,
+                        serviceDefaultsProjectFile,
+                        options,
                         cancellationToken);
                 });
-            
+
             if (addServiceDefaultsResult != 0)
             {
                 InteractionService.DisplayLines(initContext.AddServiceDefaultsToSolutionOutputCollector.GetLines());
@@ -460,7 +474,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
-            
+
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
         }
@@ -476,33 +490,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        ITemplate template;
-        
-        if (_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        // Use single-file AppHost template
+        var singleFileTemplate = _templateFactory.GetInitTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+        if (singleFileTemplate is null)
         {
-            // Use single-file AppHost template if feature is enabled
-            var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
-            if (singleFileTemplate is null)
-            {
-                InteractionService.DisplayError("Single-file AppHost template not found.");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            template = singleFileTemplate;
+            InteractionService.DisplayError("Single-file AppHost template not found.");
+            return ExitCodeConstants.FailedToCreateNewProject;
         }
-        else
-        {
-            // Use regular AppHost template if single-file feature is not enabled
-            var appHostTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
-            if (appHostTemplate is null)
-            {
-                InteractionService.DisplayError("AppHost template not found.");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            template = appHostTemplate;
-        }
+        var template = singleFileTemplate;
 
         var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        
+
         if (result.ExitCode == 0)
         {
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
@@ -515,9 +513,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private async Task EvaluateSolutionProjectsAsync(InitContext initContext, CancellationToken cancellationToken)
     {
         var executableProjects = new List<ExecutableProjectInfo>();
-        
+
         initContext.EvaluateSolutionProjectsOutputCollector = new OutputCollector();
-        
+
         foreach (var project in initContext.SolutionProjects)
         {
             var options = new DotNetCliRunnerInvocationOptions
@@ -754,7 +752,7 @@ internal sealed class InitContext
                     {
                         versionString += ".0";
                     }
-                    
+
                     if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var version))
                     {
                         if (highestVersion is null || SemVersion.ComparePrecedence(version, highestVersion) > 0)

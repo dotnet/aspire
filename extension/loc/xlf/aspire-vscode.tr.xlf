@@ -1,0 +1,255 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file original="package" source-language="en" datatype="plaintext" target-language="tr">
+    <body>
+      <trans-unit id="aspire-vscode.strings.debugSessionAlreadyExists">
+        <source xml:lang="en">A debug session is already active for id {0}.</source>
+        <target state="translated">{0} kimliği için bir hata ayıklama oturumu zaten etkin.</target>
+      </trans-unit>
+      <trans-unit id="command.add">
+        <source xml:lang="en">Add an integration</source>
+        <target state="translated">Bir tümleştirme ekleyin</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.aspireCliVersion">
+        <source xml:lang="en">Aspire CLI Version: {0}.</source>
+        <target state="translated">Aspire CLI Sürümü: {0}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.aspireOutputChannelName">
+        <source xml:lang="en">Aspire Extension</source>
+        <target state="translated">Aspire Uzantısı</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.aspireHostingSdkVersion">
+        <source xml:lang="en">Aspire Hosting SDK Version: {0}.</source>
+        <target state="translated">Aspire Hosting SDK Sürümü: {0}.</target>
+      </trans-unit>
+      <trans-unit id="extension.title">
+        <source xml:lang="en">Aspire VSCode</source>
+        <target state="translated">Aspire VSCode</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.aspireConfigExists">
+        <source xml:lang="en">Aspire launch configuration already exists in launch.json.</source>
+        <target state="translated">Aspire başlatma yapılandırması launch.json dosyasında zaten mevcut.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.aspireTerminalName">
+        <source xml:lang="en">Aspire terminal</source>
+        <target state="translated">Aspire terminali</target>
+      </trans-unit>
+      <trans-unit id="extension.debug.defaultConfiguration.name">
+        <source xml:lang="en">Aspire: Launch default apphost</source>
+        <target state="translated">Aspire: Varsayılan apphost'u başlat</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.unsupportedResourceType">
+        <source xml:lang="en">Attempted to start unsupported resource type: {0}.</source>
+        <target state="translated">Desteklenmeyen kaynak türü başlatılmaya çalışıldı: {0}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
+        <source xml:lang="en">Build failed with exit code {0}.</source>
+        <target state="translated">Derleme, çıkış kodu {0} ile başarısız oldu.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
+        <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
+        <target state="translated">Bu çalışma alanında C# desteği etkinleştirilmemiştir. Bu proje Aspire CLI aracılığıyla başlatılmalıydı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.codespacesUrl">
+        <source xml:lang="en">Codespaces: {0}</source>
+        <target state="translated">Codespaces: {0}</target>
+      </trans-unit>
+      <trans-unit id="extension.debug.debuggers">
+        <source xml:lang="en">Configuration to apply when launching resources of specific types</source>
+        <target state="translated">Belirli türdeki kaynakları başlatırken uygulanacak yapılandırma</target>
+      </trans-unit>
+      <trans-unit id="command.configureLaunchJson">
+        <source xml:lang="en">Configure launch.json file</source>
+        <target state="translated">launch.json dosyasını yapılandırın</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.dcpServerNotInitialized">
+        <source xml:lang="en">DCP server not initialized - cannot forward debug output.</source>
+        <target state="translated">DCP sunucusu başlatılmadı - hata ayıklama çıktısı iletilemiyor.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.debugProject">
+        <source xml:lang="en">Debug {0}</source>
+        <target state="translated">{0} öğesinin hatalarını ayıklayın</target>
+      </trans-unit>
+      <trans-unit id="command.deploy">
+        <source xml:lang="en">Deploy app</source>
+        <target state="translated">Uygulama dağıtın</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.directUrl">
+        <source xml:lang="en">Direct: {0}</source>
+        <target state="translated">Doğrudan: {0}</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
+        <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
+        <target state="translated">Aspire hata ayıklama oturumundan bağlantı kesiliyor... Alt süreçler durdurulacaktır.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.processExceptionOccurred">
+        <source xml:lang="en">Encountered an exception ({0}) while running the following command: {1}.</source>
+        <target state="translated">Aşağıdaki komutu çalıştırırken bir özel durum ({0}) ile karşılaşıldı: {1}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.errorRetrievingAppHosts">
+        <source xml:lang="en">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</source>
+        <target state="translated">Geçerli çalışma alanında apphosts alınırken hata oluştu. Hata ayıklama seçenekleri eksik olabilir.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.error">
+        <source xml:lang="en">Error: {0}</source>
+        <target state="translated">Hata: {0}</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
+        <source xml:lang="en">Extension context is not initialized.</source>
+        <target state="translated">Uzantı bağlamı başlatılmadı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
+        <source xml:lang="en">Failed to configure launch.json: {0}.</source>
+        <target state="translated">launch.json yapılamadı: {0}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.addressError">
+        <source xml:lang="en">Failed to get RPC server address. The extension may not function correctly.</source>
+        <target state="translated">RPC sunucu adresi alınamadı. Uzantı düzgün çalışmayabilir.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.failedToGetTargetPath">
+        <source xml:lang="en">Failed to get TargetPath: {0}.</source>
+        <target state="translated">TargetPath alınamadı: {0}..</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.failedToShowPromptEmpty">
+        <source xml:lang="en">Failed to show prompt, text was empty.</source>
+        <target state="translated">İstemi gösterilemedi, metin boştu.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.failedToStartPythonProgram">
+        <source xml:lang="en">Failed to start Python program: {0}.</source>
+        <target state="translated">Python programı başlatılamadı: {0}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.failedToStartDebugSession">
+        <source xml:lang="en">Failed to start debug session.</source>
+        <target state="translated">Hata ayıklama oturumu başlatılamadı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.failedToStartProject">
+        <source xml:lang="en">Failed to start project: {0}.</source>
+        <target state="translated">Proje başlatılamadı: {0}.</target>
+      </trans-unit>
+      <trans-unit id="command.init">
+        <source xml:lang="en">Initialize Aspire</source>
+        <target state="translated">Aspire'ı başlat</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
+        <source xml:lang="en">Invalid launch configuration for {0}.</source>
+        <target state="translated">{0} için geçersiz başlatma yapılandırması.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.invalidTokenProvided">
+        <source xml:lang="en">Invalid token provided.</source>
+        <target state="translated">Geçersiz belirteç sağlandı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.openAspireDashboard">
+        <source xml:lang="en">Launch Aspire Dashboard</source>
+        <target state="translated">Aspire Panosunu başlatın</target>
+      </trans-unit>
+      <trans-unit id="extension.debug.defaultConfiguration.description">
+        <source xml:lang="en">Launch the effective Aspire apphost in your workspace</source>
+        <target state="translated">Çalışma alanınızda etkili Aspire apphost'u başlatın</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.launchingWithAppHost">
+        <source xml:lang="en">Launching Aspire debug session for apphost {0}...</source>
+        <target state="translated">Apphost {0} için Aspire hata ayıklama oturumu başlatılıyor...</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
+        <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
+        <target state="translated">{0} dizini kullanılarak Aspire hata ayıklama oturumu başlatılıyor: etkili apphost'u belirlemeye çalışılıyor...</target>
+      </trans-unit>
+      <trans-unit id="command.config">
+        <source xml:lang="en">Manage configuration settings</source>
+        <target state="translated">Yapılandırma ayarlarını yönetin</target>
+      </trans-unit>
+      <trans-unit id="command.new">
+        <source xml:lang="en">New Aspire project</source>
+        <target state="translated">Yeni Aspire projesi</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.no">
+        <source xml:lang="en">No</source>
+        <target state="translated">Hayır</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.noCsharpBuildTask">
+        <source xml:lang="en">No C# Dev Kit build task found.</source>
+        <target state="translated">C# Dev Kit derleme görevi bulunamadı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.noCsprojFound">
+        <source xml:lang="en">No apphost found in the current workspace.</source>
+        <target state="translated">Geçerli çalışma alanında apphost bulunamadı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.noOutputFromMsbuild">
+        <source xml:lang="en">No output from msbuild.</source>
+        <target state="translated">msbuild'den çıktı yok.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.noWatchTask">
+        <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
+        <target state="translated">İzleme görevi bulunamadı. Çalışma alanınızda bir izleme görevi tanımlandığından emin olun.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.noWorkspaceFolder">
+        <source xml:lang="en">No workspace folder found.</source>
+        <target state="translated">Çalışma alanı klasörü bulunamadı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.noWorkspaceOpen">
+        <source xml:lang="en">No workspace is open. Please open a folder or workspace before running this command.</source>
+        <target state="translated">Hiçbir çalışma alanı açık değil. Bu komutu çalıştırmadan önce bir klasör veya çalışma alanı açın.</target>
+      </trans-unit>
+      <trans-unit id="extension.description">
+        <source xml:lang="en">Official Aspire extension for Visual Studio Code</source>
+        <target state="translated">Visual Studio Code için resmi Aspire uzantısı</target>
+      </trans-unit>
+      <trans-unit id="command.openTerminal">
+        <source xml:lang="en">Open Aspire terminal</source>
+        <target state="translated">Aspire terminalini açın</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.codespacesLink">
+        <source xml:lang="en">Open codespaces URL</source>
+        <target state="translated">Codespaces'i aç URL'si</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.directLink">
+        <source xml:lang="en">Open local URL</source>
+        <target state="translated">Yerel URL'yi aç</target>
+      </trans-unit>
+      <trans-unit id="extension.debug.program">
+        <source xml:lang="en">Path to the apphost to run</source>
+        <target state="translated">Çalıştırılacak apphost'a giden yol</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.processExitedWithCode">
+        <source xml:lang="en">Process exited with code {0}.</source>
+        <target state="translated">İşlem, {0} koduyla sonlandırıldı.</target>
+      </trans-unit>
+      <trans-unit id="command.publish">
+        <source xml:lang="en">Publish deployment artifacts</source>
+        <target state="translated">Dağıtım yapılarını yayımlayın</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.rpcServerError">
+        <source xml:lang="en">RPC server error: {0}.</source>
+        <target state="translated">RPC sunucu hatası: {0}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.rpcServerNotInitialized">
+        <source xml:lang="en">RPC server is not initialized.</source>
+        <target state="translated">RPC sunucusu başlatılmadı.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.requiredCapability">
+        <source xml:lang="en">Required capability: {0}.</source>
+        <target state="translated">Gerekli yetenek: {0}.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
+        <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
+        <target state="translated">Apphost uyumlu değil. Apphost veya Aspire CLI'yi yükseltmeyi düşünün.</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.fieldRequired">
+        <source xml:lang="en">This field is required.</source>
+        <target state="translated">Bu alan gereklidir.</target>
+      </trans-unit>
+      <trans-unit id="command.update">
+        <source xml:lang="en">Update integrations</source>
+        <target state="translated">Tümleştirmeleri güncelleştir</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.watchProject">
+        <source xml:lang="en">Watch {0} ({1})</source>
+        <target state="translated">{0} ({1}) izle</target>
+      </trans-unit>
+      <trans-unit id="aspire-vscode.strings.yes">
+        <source xml:lang="en">Yes</source>
+        <target state="translated">Evet</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -36,30 +36,46 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      # We need to build the whole solution, so that we can interrogate each test project
+      - name: Show disk usage before build
+        run: |-
+          df -h
+          du -sh ${{ github.workspace }}
+
+      # We need to build test projects, so that we can interrogate each test project
       # and find out whether it contains any tests of the specified type.
+      # We use BuildTestsOnly=true to reduce disk space usage by skipping src, playground, and pack projects.
       - name: Build the solution
         run: >
           ./build.sh
           --restore
           --build
           -c Release
-          --ci
+          /p:BuildTestsOnly=true
           /p:GeneratePackageOnBuild=false
-          ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          /p:InstallBrowsersForPlaywright=false
 
       - name: Generate test runsheet
         id: generate_tests_matrix
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: >
           ./build.sh
           --test
           /p:TestRunnerName=${{ inputs.testRunnerName }}
           ${{ inputs.extraRunSheetBuilderArgs }}
           -c Release
-          --ci
           /p:Restore=false
           /p:Build=false
+          /p:InstallBrowsersForPlaywright=false
           /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
+
+      - name: Show disk usage after build
+        if: ${{ always() }}
+        run: |-
+          df -h
+          du -d 1 -h ~/.nuget/packages
+          du -d 1 -h ${{ github.workspace }}
+          du -d 1 -h ${{ github.workspace }}/artifacts
 
       - name: Upload logs, and test results
         if: ${{ always() }}
@@ -96,7 +112,7 @@ jobs:
       ignoreTestFailures: ${{ inputs.ignoreTestFailures }}
 
   results:
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [generate_tests_matrix, build_packages, run_tests]

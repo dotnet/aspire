@@ -117,8 +117,7 @@ jobs:
       - name: Install Azure Functions Core Tools
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Test ${{ matrix.tests.label }}
         run: |
@@ -179,8 +178,7 @@ jobs:
       - name: Install Azure Functions Core Tools
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Test ${{ matrix.tests.label }}
         env:

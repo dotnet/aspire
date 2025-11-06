@@ -8,6 +8,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
+using Aspire.Hosting.Azure.Utils;
 
 namespace Aspire.Hosting.Azure;
 
@@ -288,7 +289,14 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             // Special case simple expressions
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
-                return ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+
+                if (expr.StringFormats[0] is string format)
+                {
+                    val = (BicepFormattingHelpers.FormatBicepExpression(val, format), secretType);
+                }
+
+                return val;
             }
 
             var args = new object[expr.ValueProviders.Count];
@@ -304,11 +312,15 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
                     finalSecretType = SecretType.Normal;
                 }
 
+                if (expr.StringFormats[index] is string format)
+                {
+                    val = BicepFormattingHelpers.FormatBicepExpression(val, format);
+                }
+
                 args[index++] = val;
             }
 
             return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
-
         }
 
         if (value is IManifestExpressionProvider manifestExpressionProvider)

@@ -30,7 +30,13 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__FREEPDB1": "{FREEPDB1.connectionString}"
+        "ConnectionStrings__FREEPDB1": "{FREEPDB1.connectionString}",
+        "FREEPDB1_HOST": "{oracle.bindings.tcp.host}",
+        "FREEPDB1_PORT": "{oracle.bindings.tcp.port}",
+        "FREEPDB1_USERNAME": "system",
+        "FREEPDB1_PASSWORD": "{oracle-password.value}",
+        "FREEPDB1_JDBCCONNECTIONSTRING": "jdbc:oracle:thin:system/{oracle-password-uri-encoded.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/FREEPDB1",
+        "FREEPDB1_DATABASE": "FREEPDB1"
       },
       "bindings": {
         "http": {
@@ -59,6 +65,11 @@
           }
         }
       }
+    },
+    "oracle-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{oracle-password.value}",
+      "filter": "uri"
     }
   }
 }

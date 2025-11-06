@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Hosting;
@@ -10,12 +11,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService, ICliUpdateNotifier cliUpdateNotifier) : BackgroundService
+internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService, ICliUpdateNotifier cliUpdateNotifier, IDotNetSdkInstaller sdkInstaller) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Wait for command to be selected
         var command = await WaitForCommandSelectionAsync(stoppingToken);
+        
+        // Check if SDK is installed before attempting to prefetch packages
+        // This prevents dirtying the cache when SDK is not available
+        var (sdkAvailable, _, _, _) = await sdkInstaller.CheckAsync(stoppingToken);
+        
+        if (!sdkAvailable)
+        {
+            logger.LogDebug("SDK is not installed. Skipping package prefetching to avoid cache pollution.");
+            return;
+        }
         
         var shouldPrefetchTemplates = ShouldPrefetchTemplatePackages(command);
         var shouldPrefetchCli = ShouldPrefetchCliPackages(command);
@@ -115,6 +126,6 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
     private static bool IsRuntimeOnlyCommand(BaseCommand command)
     {
         var commandName = command.Name;
-        return commandName is "run" or "publish" or "deploy";
+        return commandName is "run" or "publish" or "deploy" or "do";
     }
 }

@@ -81,6 +81,31 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
         <target state="translated">Wählen Sie Ihr Azure-Abonnement aus:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Azure-Mandant</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">Mandanten-ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Geben Sie Ihre Azure-Mandanten-ID ein:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Mandanten-ID auswählen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Wählen Sie Ihren Azure-Mandanten aus:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">Der Ressourcengruppenname muss ein gültiger Azure-Ressourcengruppenname sein.</target>
@@ -89,6 +114,11 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">Die Abonnement-ID muss eine gültige GUID sein.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">Die Mandanten-ID muss eine gültige GUID sein.</target>
         <note />
       </trans-unit>
     </body>

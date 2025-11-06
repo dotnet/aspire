@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 public interface IProjectMetadata : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the fully-qualified path to the project.
+    /// Gets the fully-qualified path to the project or file-based app file.
     /// </summary>
     public string ProjectPath { get; }
 
@@ -24,10 +24,47 @@ public interface IProjectMetadata : IResourceAnnotation
 
     // Internal for testing.
     internal IConfiguration? Configuration => null;
+
+    /// <summary>
+    /// Gets a value indicating whether building the project before running it should be suppressed.
+    /// </summary>
+    public bool SuppressBuild => false;
+
+    /// <summary>
+    /// Gets a value indicating whether the project is a file-based app (a .cs file) rather than a full project (.csproj).
+    /// </summary>
+    public bool IsFileBasedApp => string.Equals(Path.GetExtension(ProjectPath), ".cs", StringComparison.OrdinalIgnoreCase);
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
-    public string ProjectPath { get; } = projectPath;
+    private string? _resolvedProjectPath;
+
+    public string ProjectPath => _resolvedProjectPath ??= ResolveProjectPath(projectPath);
+
+    public bool SuppressBuild => false;
+
+    private static string ResolveProjectPath(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            // Path is a directory, assume it's a project directory
+            var projectFiles = Directory.GetFiles(path, "*.csproj", new EnumerationOptions
+            {
+                MatchCasing = MatchCasing.CaseInsensitive,
+                RecurseSubdirectories = false,
+                IgnoreInaccessible = true
+            });
+
+            if (projectFiles.Length != 1)
+            {
+                // No project files found, just let it pass through and be handled later during resource start
+                return path;
+            }
+            return Path.GetFullPath(projectFiles[0]);
+        }
+
+        return path;
+    }
 }

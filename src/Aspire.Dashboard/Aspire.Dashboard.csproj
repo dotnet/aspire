@@ -19,6 +19,12 @@
     <RollForward>Major</RollForward>
 
     <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
+
+    <!--
+      Enable raw string literals support in Razor. Can remove when target switches to .NET 10+.
+      See https://devblogs.microsoft.com/dotnet/enhancing-razor-productivity-with-new-features/
+    -->
+    <Features>use-roslyn-tokenizer</Features>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -51,6 +57,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>
@@ -297,6 +305,11 @@
 
   <ItemGroup>
     <Content Remove="wwwroot\js\README.md" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-16.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-256.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-32.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-48.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-64.png" />
     <None Include="wwwroot\js\README.md" />
   </ItemGroup>
 </Project>

@@ -145,34 +145,6 @@ public class BicepUtilitiesTests
     }
 
     [Fact]
-    public async Task GetCurrentChecksumSkipsKnownValuesForCheckSumCreation()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("name", "david");
-
-        // Simulate the case where a known parameter has a value
-        var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId, "id")
-                       .WithParameter(AzureBicepResource.KnownParameters.Location, "tomorrow")
-                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType, "type");
-
-        var parameters0 = new JsonObject();
-        await BicepUtilities.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepUtilities.GetChecksum(bicep0.Resource, parameters0, null);
-
-        // Save the old version of this resource's parameters to config
-        var config = new ConfigurationManager();
-        config["Parameters"] = parameters0.ToJsonString();
-
-        var checkSum1 = await BicepUtilities.GetCurrentChecksumAsync(bicep1.Resource, config);
-
-        Assert.Equal(checkSum0, checkSum1);
-    }
-
-    [Fact]
     public async Task ResourceWithDifferentScopeHaveDifferentChecksums()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -335,28 +307,6 @@ public class BicepUtilitiesTests
     }
 
     [Fact]
-    public async Task SetParametersAsync_SkipsKnownParametersWhenSkipDynamicValuesIsTrue()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        bicep.Parameters["normalParam"] = "normalValue";
-        bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = "someId";
-        bicep.Parameters[AzureBicepResource.KnownParameters.Location] = "someLocation";
-        
-        var parameters = new JsonObject();
-
-        // Act
-        await BicepUtilities.SetParametersAsync(parameters, bicep, skipDynamicValues: true);
-
-        // Assert
-        Assert.Single(parameters);
-        Assert.True(parameters.ContainsKey("normalParam"));
-        Assert.False(parameters.ContainsKey(AzureBicepResource.KnownParameters.PrincipalId));
-        Assert.False(parameters.ContainsKey(AzureBicepResource.KnownParameters.Location));
-    }
-
-    [Fact]
     public async Task SetParametersAsync_IncludesAllParametersWhenSkipDynamicValuesIsFalse()
     {
         // Arrange
@@ -369,7 +319,7 @@ public class BicepUtilitiesTests
         var parameters = new JsonObject();
 
         // Act
-        await BicepUtilities.SetParametersAsync(parameters, bicep, skipDynamicValues: false);
+        await BicepUtilities.SetParametersAsync(parameters, bicep);
 
         // Assert
         Assert.Equal(3, parameters.Count);

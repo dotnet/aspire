@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
@@ -25,7 +26,7 @@ internal sealed class ServiceSpec
     public string AddressAllocationMode { get; set; } = AddressAllocationModes.Localhost;
 }
 
-internal sealed class ServiceStatus : V1Status
+internal sealed record ServiceStatus : V1Status
 {
     // The actual address the service is running on
     [JsonPropertyName("effectiveAddress")]
@@ -67,6 +68,7 @@ internal static class AddressAllocationModes
     public const string Proxyless = "Proxyless";
 }
 
+[DebuggerDisplay("Service {Metadata.Name} State={Status?.State}")]
 internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
 {
     [JsonConstructor]

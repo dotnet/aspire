@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ChatModelSelectButtonTitle">
         <source>Select a model (current: {0})</source>
-        <target state="new">Select a model (current: {0})</target>
+        <target state="translated">選取模型 (目前: {0})</target>
         <note>{0} is an AI model display name</note>
       </trans-unit>
       <trans-unit id="ChatRefreshFollowUpPrompts">
@@ -48,8 +48,8 @@
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenDescription">
-        <source>To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</source>
-        <target state="translated">若要在 .NET Aspire 中使用 GitHub Copilot，您必須安裝最新版本的 IDE，而且 GitHub 帳戶必須能夠存取 GitHub Copilot。&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 或更新版本&lt;/li&gt;&lt;li&gt;VS Code 和 C# Dev Kit 1.19.63 或更新版本&lt;/li&gt;&lt;/ul&gt;</target>
+        <source>To use GitHub Copilot in Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</source>
+        <target state="translated">若要在 Aspire 中使用 GitHub Copilot，您必須安裝最新版本的 IDE，而且您的 GitHub 帳戶必須能夠存取 GitHub Copilot。&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 或更新版本&lt;/li&gt;&lt;li&gt;VS Code 和 C# Dev Kit 1.19.63 或更新版本&lt;/li&gt;&lt;/ul&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenVSCode">

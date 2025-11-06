@@ -17,7 +17,7 @@ public class PublishAsDockerfileTests
 
         var path = tempDir.Path;
 
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile();
 
         // There should be an equivalent container resource with the same name
@@ -56,7 +56,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_STRING", "Test"),
                 new DockerBuildArg("SOME_BOOL", true),
@@ -109,7 +109,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_ARG")
             ]);
@@ -155,7 +155,7 @@ public class PublishAsDockerfileTests
 
         var secret = builder.AddParameter("secret", secret: true);
 
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .WithArgs("/usr/foo")
             .PublishAsDockerFile(c =>
             {
@@ -352,6 +352,99 @@ public class PublishAsDockerfileTests
                 Assert.Equal("https", e.Name);
                 Assert.Equal(8080, e.TargetPort);
             });
+    }
+
+    [Fact]
+    public void PublishAsDockerFile_CalledMultipleTimes_IsIdempotent()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
+            .PublishAsDockerFile()
+            .PublishAsDockerFile(); // Call again - should not throw
+
+        // There should be an equivalent container resource with the same name
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("frontend", containerResource.Name);
+    }
+
+    [Fact]
+    public void PublishAsDockerFile_CalledMultipleTimesWithCallbacks_IsIdempotent()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+
+        var callbackCount = 0;
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
+            .PublishAsDockerFile(c =>
+            {
+                callbackCount++;
+                c.WithBuildArg("ARG1", "value1");
+            })
+            .PublishAsDockerFile(c =>
+            {
+                callbackCount++;
+                c.WithBuildArg("ARG2", "value2");
+            });
+
+        // There should be an equivalent container resource with the same name
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("frontend", containerResource.Name);
+        
+        // Both callbacks should have been invoked
+        Assert.Equal(2, callbackCount);
+    }
+
+    [Fact]
+    public void PublishProjectAsDockerFile_CalledMultipleTimes_IsIdempotent()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+        var projectPath = Path.Combine(path, "project.csproj");
+
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
+            .PublishAsDockerFile()
+            .PublishAsDockerFile(); // Call again - should not throw
+
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("project", containerResource.Name);
+    }
+
+    [Fact]
+    public void PublishProjectAsDockerFile_CalledMultipleTimesWithCallbacks_IsIdempotent()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+
+        var projectPath = Path.Combine(path, "project.csproj");
+
+        var callbackCount = 0;
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
+            .PublishAsDockerFile(c =>
+            {
+                callbackCount++;
+                c.WithBuildArg("ARG1", "value1");
+            })
+            .PublishAsDockerFile(c =>
+            {
+                callbackCount++;
+                c.WithBuildArg("ARG2", "value2");
+            });
+
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("project", containerResource.Name);
+        
+        // Both callbacks should have been invoked
+        Assert.Equal(2, callbackCount);
     }
 
     private static TempDirectory CreateDirectoryWithDockerFile()

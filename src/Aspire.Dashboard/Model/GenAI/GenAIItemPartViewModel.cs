@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Components.Controls;
@@ -22,6 +23,12 @@ public sealed class GenAIItemPartViewModel
     public string? ErrorMessage { get; init; }
     public required TextVisualizerViewModel TextVisualizerViewModel { get; init; }
     public List<GenAIPartPropertyViewModel>? AdditionalProperties { get; init; }
+
+    public bool TryGetPropertyValue(string propertyName, [NotNullWhen(true)] out string? value)
+    {
+        value = AdditionalProperties?.SingleOrDefault(p => p.Name == propertyName)?.Value;
+        return value != null;
+    }
 
     private GenAIItemPartViewModel()
     {

@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="translated">최대 {1}자까지 허용됩니다.</target>
+        <target state="translated">최대 {1} 문자가 허용됩니다.</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="GenAIDisplayErrorMessageText">
         <source>Error displaying GenAI content:</source>
-        <target state="new">Error displaying GenAI content:</target>
+        <target state="translated">GenAI 콘텐츠를 표시하는 동안 오류가 발생했습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">
@@ -330,6 +330,101 @@
       <trans-unit id="InteractionButtonOk">
         <source>OK</source>
         <target state="translated">확인</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogConfigurationHeading">
+        <source>Aspire MCP configuration</source>
+        <target state="translated">Aspire MCP 구성</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
+        <source>VS Code: Install Aspire MCP Server</source>
+        <target state="translated">VS Code: Aspire MCP 서버 설치</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCodeInsiders">
+        <source>VS Code Insiders: Install Aspire MCP Server</source>
+        <target state="translated">VS Code 참가자: Aspire MCP 서버 설치</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVisualStudio">
+        <source>Visual Studio: Install Aspire MCP Server</source>
+        <target state="translated">Visual Studio: Aspire MCP 서버 설치</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogIntroduction">
+        <source>Aspire MCP connects AI assistants to Aspire app data. AI can use Aspire MCP to get information about app resources, health checks, commands, console logs and real-time telemetry.</source>
+        <target state="translated">Aspire MCP는 AI 도우미를 Aspire 앱 데이터에 연결합니다. AI는 Aspire MCP를 사용하여 앱 리소스, 상태 검사, 명령, 콘솔 로그 및 실시간 원격 분석에 대한 정보를 가져올 수 있습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogLearnMoreLink">
+        <source>Use Aspire MCP with AI</source>
+        <target state="translated">AI와 함께 Aspire MCP 사용</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherDescription">
+        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
+        <target state="translated">Aspire MCP는 스트리밍 가능한 HTTP MCP 서버를 지원하는 모든 AI 도구와 함께 사용할 수 있습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherInstructions">
+        <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
+        <target state="translated">Aspire MCP 구성에 대한 중요한 세부 정보는 다음과 같습니다. MCP 서버 추가 방법은 AI 클라이언트 설명서를 참조하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherOptionsVSCode">
+        <source>For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="{0}" target="_blank"&gt;Add an MCP server to VS Code&lt;/a&gt;.</source>
+        <target state="translated">&lt;code&gt;mcp.json&lt;/code&gt; 업데이트와 같은 기타 옵션은 &lt;a href="{0}" target="_blank"&gt;VS Code에 MCP 서버 추가&lt;/a&gt;를 참조하세요.</target>
+        <note>{0} is a URL to documentation</note>
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherOptionsVisualStudio">
+        <source>For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="{0}" target="_blank"&gt;Add an MCP server to Visual Studio&lt;/a&gt;.</source>
+        <target state="translated">&lt;code&gt;mcp.json&lt;/code&gt; 업데이트와 같은 기타 옵션은 &lt;a href="{0}" target="_blank"&gt;Visual Studio에 MCP 서버 추가&lt;/a&gt;를 참조하세요.</target>
+        <note>{0} is a URL to documentation</note>
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherTab">
+        <source>Other</source>
+        <target state="translated">기타</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogQuicklyAddVSCode">
+        <source>Quickly add Aspire MCP to VS Code using a browser install button:</source>
+        <target state="translated">브라우저 설치 단추를 사용하여 VS Code에 Aspire MCP를 빠르게 추가하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogQuicklyAddVisualStudio">
+        <source>Quickly add Aspire MCP to Visual Studio using a browser install button:</source>
+        <target state="translated">브라우저 설치 단추를 사용하여 Visual Studio에 Aspire MCP를 빠르게 추가하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeTab">
+        <source>VS Code</source>
+        <target state="translated">VS Code</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningInstructions">
+        <source>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS. Note that this will remove transport security from Aspire MCP communication and could allow data to be read by a third party.</source>
+        <target state="translated">VS Code를 사용하려면 HTTPS 대신 HTTP를 사용하도록 MCP 엔드포인트를 구성합니다. 이렇게 하면 Aspire MCP 통신에서 전송 보안이 제거되고 타사에서 데이터를 읽을 수 있습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningMessage">
+        <source>As of October 2025, VS Code does not support using Aspire MCP over HTTPS.</source>
+        <target state="translated">2025년 10월부터 VS Code는 HTTPS를 통한 Aspire MCP 사용을 지원하지 않습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningMoreInfo">
+        <source>More information</source>
+        <target state="translated">자세한 정보</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningTitle">
+        <source>VS Code limitation</source>
+        <target state="translated">VS Code 제한</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioTab">
+        <source>Visual Studio</source>
+        <target state="translated">Visual Studio</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">

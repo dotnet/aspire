@@ -62,6 +62,11 @@ public abstract class ContainerFileBase : ContainerFileSystemItem
     /// Setting SourcePath is mutually exclusive with <see cref="Contents"/>. If both are set, an exception will be thrown.
     /// </summary>
     public string? SourcePath { get; set; }
+
+    /// <summary>
+    /// If true, errors creating this file will be ignored and the container creation will continue. Defaults to false.
+    /// </summary>
+    public bool? ContinueOnError { get; set; }
 }
 
 /// <summary>

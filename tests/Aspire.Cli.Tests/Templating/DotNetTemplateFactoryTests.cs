@@ -300,32 +300,17 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-starter", templateNames);
-        Assert.Contains("aspire", templateNames);
+        Assert.DoesNotContain("aspire", templateNames);
         Assert.DoesNotContain("aspire-apphost", templateNames);
         Assert.DoesNotContain("aspire-servicedefaults", templateNames);
         Assert.DoesNotContain("aspire-test", templateNames);
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
+    public void GetTemplates_SingleFileAppHostIsAlwaysVisible()
     {
-        // Arrange - disable showAllTemplates but enable singleFileAppHost
-        var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
-        var factory = CreateTemplateFactory(features);
-
-        // Act
-        var templates = factory.GetTemplates().ToList();
-
-        // Assert
-        var templateNames = templates.Select(t => t.Name).ToList();
-        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
-    }
-
-    [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
-    {
-        // Arrange - enable showAllTemplates and enable singleFileAppHost
-        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: true);
+        // Arrange - single-file templates should always be visible now
+        var features = new TestFeatures(showAllTemplates: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -334,6 +319,7 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-apphost-singlefile", templateNames);
+        Assert.Contains("aspire-py-starter", templateNames);
     }
 
     private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
@@ -346,7 +332,7 @@ public class DotNetTemplateFactoryTests
         var workingDirectory = new DirectoryInfo("/tmp");
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
-        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -361,12 +347,10 @@ public class DotNetTemplateFactoryTests
     private sealed class TestFeatures : IFeatures
     {
         private readonly bool _showAllTemplates;
-        private readonly bool _singleFileAppHostEnabled;
 
-        public TestFeatures(bool showAllTemplates = false, bool singleFileAppHostEnabled = false)
+        public TestFeatures(bool showAllTemplates = false)
         {
             _showAllTemplates = showAllTemplates;
-            _singleFileAppHostEnabled = singleFileAppHostEnabled;
         }
 
         public bool IsFeatureEnabled(string featureFlag, bool defaultValue)
@@ -374,7 +358,6 @@ public class DotNetTemplateFactoryTests
             return featureFlag switch
             {
                 "showAllTemplates" => _showAllTemplates,
-                "singlefileAppHostEnabled" => _singleFileAppHostEnabled,
                 _ => defaultValue
             };
         }
@@ -411,9 +394,9 @@ public class DotNetTemplateFactoryTests
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
         public void DisplayPlainText(string text) { }
         public void DisplayMarkdown(string markdown) { }
-        public void DisplaySubtleMessage(string message) { }
+        public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
-        public void DisplayVersionUpdateNotification(string message) { }
+        public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
     }
 

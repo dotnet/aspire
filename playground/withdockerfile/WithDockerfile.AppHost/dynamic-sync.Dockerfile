@@ -1,7 +1,7 @@
 FROM golang:1.22-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN echo "Built at 20251010215821" > /build-info.txt
+RUN echo "Built at 20251029163708" > /build-info.txt
 RUN go build -o qots .
 
 FROM alpine:latest

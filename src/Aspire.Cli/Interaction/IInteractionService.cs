@@ -20,11 +20,11 @@ internal interface IInteractionService
     void DisplayPlainText(string text);
     void DisplayMarkdown(string markdown);
     void DisplaySuccess(string message);
-    void DisplaySubtleMessage(string message);
+    void DisplaySubtleMessage(string message, bool escapeMarkup = true);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 
-    void DisplayVersionUpdateNotification(string newerVersion);
+    void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
 }

@@ -356,23 +356,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Registers an async callback which is invoked when publishing is performed for the app model.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">Callback method which takes a <see cref="PublishingContext"/> which can be used to publish assets.</param>
-    /// <returns></returns>
-    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithPublishingCallback<T>(this IResourceBuilder<T> builder, Func<PublishingContext, Task> callback) where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        // You can only ever have one publishing callback, so it must be a replace operation.
-        return builder.WithAnnotation(new PublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
     /// Registers an async callback which is invoked when manifest is generated for the app model.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -404,14 +387,25 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
-    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation)
+    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation, string? specificEndpointName = null, string? name = null)
     {
         return (context) =>
         {
             var annotation = endpointReferencesAnnotation;
-            var serviceName = annotation.Resource.Name;
-            foreach (var endpoint in annotation.Resource.GetEndpoints())
+            var serviceName = name ?? annotation.Resource.Name;
+
+            // Determine what to inject based on the annotation on the destination resource
+            context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
+            var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
+            foreach (var endpoint in annotation.Resource.GetEndpoints(annotation.ContextNetworkID))
             {
+                if (specificEndpointName != null && !string.Equals(endpoint.EndpointName, specificEndpointName, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Skip this endpoint since it's not the one we want to reference.
+                    continue;
+                }
+
                 var endpointName = endpoint.EndpointName;
                 if (!annotation.UseAllEndpoints && !annotation.EndpointNames.Contains(endpointName))
                 {
@@ -420,9 +414,34 @@ public static class ResourceBuilderExtensions
                 }
 
                 // Add the endpoint, rewriting localhost to the container host if necessary.
-                context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+                {
+                    var serviceKey = name is null ? serviceName.ToUpperInvariant() : name;
+                    context.EnvironmentVariables[$"{serviceKey}_{endpointName.ToUpperInvariant()}"] = endpoint;
+                }
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+                {
+                    context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
+                }
             }
         };
+    }
+
+    /// <summary>
+    /// Configures how information is injected into environment variables when the resource references other resources.
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource to configure.</param>
+    /// <param name="flags">The injection flags determining which reference information is emitted.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReferenceEnvironment<TDestination>(this IResourceBuilder<TDestination> builder, ReferenceEnvironmentInjectionFlags flags)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(flags));
     }
 
     /// <summary>
@@ -455,17 +474,66 @@ public static class ResourceBuilderExtensions
 
         builder.WithReferenceRelationship(resource);
 
+        // Determine what to inject based on the annotation on the destination resource
+        builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
+            {
+                var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+                context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            }
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+            {
+                var prefix = connectionName switch
+                {
+                    "" => "",
+                    _ => $"{connectionName.ToUpperInvariant()}_"
+                };
+
+                SplatConnectionProperties(resource, prefix, context);
+            }
         });
     }
 
     /// <summary>
-    /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
+    /// Retrieves the value of a specified connection property from the resource's connection properties.
+    /// </summary>
+    /// <remarks>Throws a KeyNotFoundException if the specified key does not exist in the resource's
+    /// connection properties.</remarks>
+    /// <param name="resource">The resource that provides the connection properties. Cannot be null.</param>
+    /// <param name="key">The key of the connection property to retrieve. Cannot be null.</param>
+    /// <returns>The value associated with the specified connection property key.</returns>
+    public static ReferenceExpression GetConnectionProperty(this IResourceWithConnectionString resource, string key)
+    {
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            if (string.Equals(connectionProperty.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return connectionProperty.Value;
+            }
+        }
+
+        return ReferenceExpression.Empty;
+    }
+
+    private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            context.EnvironmentVariables[$"{prefix}{connectionProperty.Key.ToUpperInvariant()}"] = connectionProperty.Value;
+        }
+    }
+
+    /// <summary>
+    /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -482,8 +550,29 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery information as environment variables from the uri into the destination resource, using the name as the service name.
-    /// The uri will be injected using the format "services__{name}__default__0={uri}."
+    /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{name}_{ENDPOINT}={uri}" for endpoint injection.
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="source">The resource from which to extract service discovery information.</param>
+    /// <param name="name">The name of the resource for the environment variable.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source, string name)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        ApplyEndpoints(builder, source.Resource, endpointName: null, name);
+        return builder;
+    }
+
+    /// <summary>
+    /// Injects service discovery and endpoint information as environment variables from the uri into the destination resource, using the name as the service name.
+    /// The uri will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{name}__default__0={uri}" for .NET service discovery, or "{name}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination"></typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -507,7 +596,21 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri absolute path must be \"/\".");
         }
 
-        return builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
+        // Determine what to inject based on the annotation on the destination resource
+        builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+        {
+            builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
+        }
+
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+        {
+            builder.WithEnvironment($"{name}", uri.ToString());
+        }
+
+        return builder;
     }
 
     /// <summary>
@@ -526,30 +629,56 @@ public static class ResourceBuilderExtensions
 
         builder.WithReferenceRelationship(externalService.Resource);
 
+        // Determine what to inject based on the annotation on the destination resource
+        builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
         if (externalService.Resource.Uri is { } uri)
         {
-            var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-            builder.WithEnvironment(envVarName, uri.ToString());
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+            {
+                var envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
+                builder.WithEnvironment(envVarName, uri.ToString());
+            }
+
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+            {
+                var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                builder.WithEnvironment(envVarName, uri.ToString());
+            }
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
             builder.WithEnvironment(async context =>
             {
-                string envVarName;
+                string discoveryEnvVarName;
+                string endpointEnvVarName;
+
                 if (context.ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
-                    envVarName = $"services__{externalService.Resource.Name}__default__0";
+                    discoveryEnvVarName = $"services__{externalService.Resource.Name}__default__0";
+                    endpointEnvVarName = externalService.Resource.Name.ToUpperInvariant();
                 }
                 else if (ExternalServiceResource.UrlIsValidForExternalService(await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false), out var uri, out var message))
                 {
-                    envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                    discoveryEnvVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                    endpointEnvVarName = $"{externalService.Resource.Name.ToUpperInvariant()}_{uri.Scheme.ToUpperInvariant()}";
                 }
                 else
                 {
                     throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
                 }
-                context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+                {
+                    context.EnvironmentVariables[discoveryEnvVarName] = externalService.Resource.UrlParameter;
+                }
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+                {
+                    context.EnvironmentVariables[endpointEnvVarName] = externalService.Resource.UrlParameter;
+                }
             });
         }
 
@@ -557,8 +686,9 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
+    /// Injects service discovery and endpoint information from the specified endpoint into the project resource using the source resource's name as the service name.
+    /// Each endpoint uri will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{NAME}_{ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -574,7 +704,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
+    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null, string? name = null)
         where T : IResourceWithEnvironment
     {
         // When adding an endpoint we get to see whether there is an EndpointReferenceAnnotation
@@ -589,9 +719,13 @@ public static class ResourceBuilderExtensions
         if (endpointReferenceAnnotation == null)
         {
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
+            if (builder.Resource.IsContainer())
+            {
+                endpointReferenceAnnotation.ContextNetworkID = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
+            }
             builder.WithAnnotation(endpointReferenceAnnotation);
 
-            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation);
+            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation, null, name);
             builder.WithEnvironment(callback);
         }
 
@@ -657,7 +791,11 @@ public static class ResourceBuilderExtensions
 
         if (endpoint == null && createIfNotExists)
         {
-            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            // Endpoints for a Container will be consumed from localhost network by default, but the same EndpointAnnotation
+            // can also be resolved in the context of container-to-container communication by using the target port
+            // and the container name as the host. This is why we only set the context network to localhost,
+            // for both container and non-container resources.
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName, networkID: KnownNetworkIdentifiers.LocalhostNetwork);
             callback(endpoint);
             builder.Resource.Annotations.Add(endpoint);
         }
@@ -670,7 +808,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. A reference to this endpoint can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -690,6 +828,10 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Endpoints for a Container will be consumed from localhost network by default, but the same EndpointAnnotation
+        // can also be resolved in the context of container-to-container communication by using the target port
+        // and the container name as the host. This is why we only set the context network to localhost,
+        // for both container and non-container resources.
         var annotation = new EndpointAnnotation(
             protocol: protocol ?? ProtocolType.Tcp,
             uriScheme: scheme,
@@ -697,11 +839,12 @@ public static class ResourceBuilderExtensions
             port: port,
             targetPort: targetPort,
             isExternal: isExternal,
-            isProxied: isProxied);
+            isProxied: isProxied,
+            networkID: KnownNetworkIdentifiers.LocalhostNetwork);
 
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, annotation.Name, StringComparisons.EndpointAnnotationName)))
         {
-            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking");
+            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking");
         }
 
         // Set the environment variable on the resource
@@ -709,7 +852,7 @@ public static class ResourceBuilderExtensions
         {
             annotation.TargetPortEnvironmentVariable = env;
 
-            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation);
+            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation, KnownNetworkIdentifiers.LocalhostNetwork);
 
             builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
             {
@@ -721,7 +864,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -741,7 +884,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be "http" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -761,7 +904,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier)"/>.
     /// The endpoint name will be "https" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -804,6 +947,22 @@ public static class ResourceBuilderExtensions
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, int?, string?, string?, string?, bool, bool?, ProtocolType?)"/> or by launch settings (for project resources).
+    /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The the resource builder.</param>
+    /// <param name="name">The name of the endpoint.</param>
+    /// <param name="contextNetworkID">The network context in which to resolve the endpoint. If null, localhost (loopback) network context will be used.</param>
+    /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name, NetworkIdentifier contextNetworkID) where T : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.Resource.GetEndpoint(name, contextNetworkID);
     }
 
     /// <summary>
@@ -1119,6 +1278,74 @@ public static class ResourceBuilderExtensions
                 context.Logger.LogWarning("Could not execute callback to add an endpoint URL as no endpoint with name '{EndpointName}' could be found on resource '{ResourceName}'.", endpointName, builder.Resource.Name);
             }
         });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the resource to copy container files from the specified source resource during publishing.
+    /// </summary>
+    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IContainerFilesDestinationResource"/>.</typeparam>
+    /// <param name="builder">The resource builder to which container files will be copied to.</param>
+    /// <param name="source">The resource which contains the container files to be copied.</param>
+    /// <param name="destinationPath">The destination path within the resource's container where the files will be copied.</param>
+    public static IResourceBuilder<T> PublishWithContainerFiles<T>(
+         this IResourceBuilder<T> builder,
+         IResourceBuilder<IResourceWithContainerFiles> source,
+         string destinationPath) where T : IContainerFilesDestinationResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(destinationPath);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        return builder.WithAnnotation(new ContainerFilesDestinationAnnotation()
+        {
+            Source = source.Resource,
+            DestinationPath = destinationPath
+        });
+    }
+
+    /// <summary>
+    /// Adds a container files source annotation to the resource being built, specifying the path to the container files
+    /// source.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
+    /// <param name="builder">The resource builder to which the container files source annotation will be added. Cannot be null.</param>
+    /// <param name="sourcePath">The path to the container files source to associate with the resource. Cannot be null.</param>
+    /// <returns>The resource builder instance with the container files source annotation applied.</returns>
+    public static IResourceBuilder<T> WithContainerFilesSource<T>(
+         this IResourceBuilder<T> builder,
+         string sourcePath) where T : IResourceWithContainerFiles
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        return builder.WithAnnotation(new ContainerFilesSourceAnnotation()
+        {
+            SourcePath = sourcePath
+        });
+    }
+
+    /// <summary>
+    /// Removes any container files source annotation from the resource being built.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
+    /// <param name="builder">The resource builder to which the container files source annotations should be removed. Cannot be null.</param>
+    /// <returns>The resource builder instance with the container files source annotation applied.</returns>
+    public static IResourceBuilder<T> ClearContainerFilesSources<T>(
+         this IResourceBuilder<T> builder) where T : IResourceWithContainerFiles
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Annotations
+                .OfType<ContainerFilesSourceAnnotation>()
+                .ToList()
+                .ForEach(w => builder.Resource.Annotations.Remove(w));
 
         return builder;
     }
@@ -1999,6 +2226,185 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a <see cref="CertificateAuthorityCollectionAnnotation"/> to the resource annotations to associate a certificate authority collection with the resource.
+    /// This is used to configure additional trusted certificate authorities for the resource.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="certificateAuthorityCollection">Additional certificates in a <see cref="CertificateAuthorityCollection"/> to treat as trusted certificate authorities for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a certificate authority collection to a container resource.
+    /// <code lang="csharp">
+    /// var caCollection = builder.AddCertificateAuthorityCollection("my-cas")
+    ///     .WithCertificatesFromFile("../my-ca.pem");
+    ///
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateAuthorityCollection(caCollection);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCertificateAuthorityCollection<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<CertificateAuthorityCollection> certificateAuthorityCollection)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(certificateAuthorityCollection);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            CertificateAuthorityCollections = { certificateAuthorityCollection.Resource },
+        };
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            foreach (var existingCollection in existingAnnotation.CertificateAuthorityCollections)
+            {
+                if (existingCollection != certificateAuthorityCollection.Resource)
+                {
+                    annotation.CertificateAuthorityCollections.Add(existingCollection);
+                }
+            }
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
+    /// Currently this indicates trust for the ASP.NET Core developer certificate. The developer certificate will only be trusted
+    /// when running in local development scenarios; in publish mode resources will use their default certificate trust.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="trust">Indicates whether the developer certificate should be treated as trusted.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Disable trust for app host managed developer certificate(s) for a container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithDeveloperCertificateTrust(false);
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Disable automatic trust for app host managed developer certificate(s), but explicitly enable it for a specific resource.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions()
+    /// {
+    ///     Args = args,
+    ///     TrustDeveloperCertificate = false,
+    /// });
+    /// var project = builder.AddProject&lt;MyService&gt;("my-service")
+    ///    .WithDeveloperCertificateTrust(true);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithDeveloperCertificateTrust<TResource>(this IResourceBuilder<TResource> builder, bool trust)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            TrustDeveloperCertificates = trust,
+        };
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Sets the <see cref="CertificateTrustScope"/> for custom certificate authorities associated with the resource. The scope
+    /// specifies how custom certificate authorities should be applied to a resource at run time in local development scenarios.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="scope">The scope to apply to custom certificate authorities associated with the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// The default scope if not overridden is <see cref="CertificateTrustScope.Append"/> which means that custom certificate
+    /// authorities should be appended to the default trusted certificate authorities for the resource. Setting the scope to
+    /// <see cref="CertificateTrustScope.Override"/> indicates the set of certificates in referenced
+    /// <see cref="CertificateAuthorityCollection"/> (and optionally Aspire developer certificiates) should be used as the
+    /// exclusive source of trust for a resource.
+    /// In all cases, this is a best effort implementation as not all resources support full customization of certificate
+    /// trust.
+    /// <example>
+    /// Set the scope for custom certificate authorities to override the default trusted certificate authorities for a container resource.
+    /// <code lang="csharp">
+    /// var caCollection = builder.AddCertificateAuthorityCollection("my-cas")
+    ///     .WithCertificate(new X509Certificate2("my-ca.pem"));
+    ///
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateAuthorityCollection(caCollection)
+    ///     .WithCertificateTrustScope(CertificateTrustScope.Override);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCertificateTrustScope<TResource>(this IResourceBuilder<TResource> builder, CertificateTrustScope scope)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            Scope = scope,
+        };
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="CertificateTrustConfigurationCallbackAnnotation"/> to the resource annotations to associate a callback that
+    /// is invoked when a resource needs to configure itself for custom certificate trust. May be called multiple times to register
+    /// additional callbacks to append additional configuration.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateTrustConfigurationCallback(ctx =>
+    ///     {
+    ///         if (ctx.Scope != CertificateTrustScope.Append)
+    ///         {
+    ///             ctx.EnvironmentVariables["CUSTOM_CERTS_BUNDLE_ENV"] = ctx.CertificateBundlePath;
+    ///         }
+    ///         ctx.EnvironmentVariables["ADDITIONAL_CERTS_DIR_ENV"] = ctx.CertificateDirectoriesPath;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCertificateTrustConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
+        where TResource : IResourceWithArgs, IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new CertificateTrustConfigurationCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
     // created for ASP.NET Core projects with the default launch settings added via AddProject. HTTPS is first so that we prefer it
     // if found.
@@ -2347,7 +2753,6 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// This method allows associating a specific compute environment with the compute resource.
     /// </remarks>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
         where T : IComputeResource
     {
@@ -2366,7 +2771,7 @@ public static class ResourceBuilderExtensions
     /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2379,10 +2784,10 @@ public static class ResourceBuilderExtensions
 
         if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
         {
-            resourceWithArgs.WithArgs(ctx =>
+            resourceWithArgs.WithArgs(async ctx =>
             {
                 var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
+                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
@@ -2510,5 +2915,18 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(probeAnnotation);
+    }
+
+    /// <summary>
+    /// Exclude the resource from MCP operations using the Aspire MCP server. The resource is excluded from results that return resources, console logs and telemetry.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> ExcludeFromMcp<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
 }

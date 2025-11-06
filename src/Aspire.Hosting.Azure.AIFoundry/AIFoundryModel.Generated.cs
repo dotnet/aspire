@@ -10,24 +10,23 @@ public partial class AIFoundryModel
     /// <summary>
     /// Models published by AI21 Labs.
     /// </summary>
-    public static class AI21Labs
+    public static partial class AI21Labs
     {
         /// <summary>
         /// A 398B parameters (94B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
         /// </summary>
-        public static readonly AIFoundryModel Ai21Jamba15Large = new() { Name = "AI21-Jamba-1.5-Large", Version = "1", Format = "AI21 Labs" };
+        public static readonly AIFoundryModel AI21Jamba15Large = new() { Name = "AI21-Jamba-1.5-Large", Version = "1", Format = "AI21 Labs" };
 
         /// <summary>
         /// A 52B parameters (12B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
         /// </summary>
-        public static readonly AIFoundryModel Ai21Jamba15Mini = new() { Name = "AI21-Jamba-1.5-Mini", Version = "1", Format = "AI21 Labs" };
-
+        public static readonly AIFoundryModel AI21Jamba15Mini = new() { Name = "AI21-Jamba-1.5-Mini", Version = "1", Format = "AI21 Labs" };
     }
 
     /// <summary>
     /// Models published by Black Forest Labs.
     /// </summary>
-    public static class BlackForestLabs
+    public static partial class BlackForestLabs
     {
         /// <summary>
         /// Generate images with amazing image quality, prompt adherence, and diversity at blazing fast speeds. FLUX1.1 [pro] delivers six times faster image generation and achieved the highest Elo score on Artificial Analysis benchmarks when launched, surpassing all
@@ -38,13 +37,12 @@ public partial class AIFoundryModel
         /// Generate and edit images through both text and image prompts. FLUX.1 Kontext is a multimodal flow matching model that enables both text-to-image generation and in-context image editing. Modify images while maintaining character consistency and performing l
         /// </summary>
         public static readonly AIFoundryModel Flux1KontextPro = new() { Name = "FLUX.1-Kontext-pro", Version = "1", Format = "Black Forest Labs" };
-
     }
 
     /// <summary>
     /// Models published by Cohere.
     /// </summary>
-    public static class Cohere
+    public static partial class Cohere
     {
         /// <summary>
         /// Command A is a highly efficient generative model that excels at agentic and multilingual use cases.
@@ -85,52 +83,54 @@ public partial class AIFoundryModel
         /// Embed 4 transforms texts and images into numerical vectors
         /// </summary>
         public static readonly AIFoundryModel EmbedV40 = new() { Name = "embed-v-4-0", Version = "5", Format = "Cohere" };
-
     }
 
     /// <summary>
     /// Models published by Core42.
     /// </summary>
-    public static class Core42
+    public static partial class Core42
     {
         /// <summary>
         /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
         /// </summary>
         public static readonly AIFoundryModel Jais30bChat = new() { Name = "jais-30b-chat", Version = "3", Format = "Core42" };
-
     }
 
     /// <summary>
     /// Models published by DeepSeek.
     /// </summary>
-    public static class DeepSeek
+    public static partial class DeepSeek
     {
         /// <summary>
         /// DeepSeek-R1 excels at reasoning tasks using a step-by-step training process, such as language, scientific reasoning, and coding tasks.
         /// </summary>
-        public static readonly AIFoundryModel DeepseekR1 = new() { Name = "DeepSeek-R1", Version = "1", Format = "DeepSeek" };
+        public static readonly AIFoundryModel DeepSeekR1 = new() { Name = "DeepSeek-R1", Version = "1", Format = "DeepSeek" };
 
         /// <summary>
         /// The DeepSeek R1 0528 model has improved reasoning capabilities, this version also offers a reduced hallucination rate, enhanced support for function calling, and better experience for vibe coding.
         /// </summary>
-        public static readonly AIFoundryModel DeepseekR10528 = new() { Name = "DeepSeek-R1-0528", Version = "1", Format = "DeepSeek" };
+        public static readonly AIFoundryModel DeepSeekR10528 = new() { Name = "DeepSeek-R1-0528", Version = "1", Format = "DeepSeek" };
 
         /// <summary>
         /// A strong Mixture-of-Experts (MoE) language model with 671B total parameters with 37B activated for each token.
         /// </summary>
-        public static readonly AIFoundryModel DeepseekV3 = new() { Name = "DeepSeek-V3", Version = "1", Format = "DeepSeek" };
+        public static readonly AIFoundryModel DeepSeekV3 = new() { Name = "DeepSeek-V3", Version = "1", Format = "DeepSeek" };
 
         /// <summary>
         /// DeepSeek-V3-0324 demonstrates notable improvements over its predecessor, DeepSeek-V3, in several key aspects, including enhanced reasoning, improved function calling, and superior code generation capabilities.
         /// </summary>
-        public static readonly AIFoundryModel DeepseekV30324 = new() { Name = "DeepSeek-V3-0324", Version = "1", Format = "DeepSeek" };
+        public static readonly AIFoundryModel DeepSeekV30324 = new() { Name = "DeepSeek-V3-0324", Version = "1", Format = "DeepSeek" };
 
+        /// <summary>
+        /// DeepSeek-V3.1 is a hybrid model that enhances tool usage, thinking efficiency, and supports both thinking and non-thinking modes via chat template switching
+        /// </summary>
+        public static readonly AIFoundryModel DeepSeekV31 = new() { Name = "DeepSeek-V3.1", Version = "1", Format = "DeepSeek" };
     }
 
     /// <summary>
     /// Models published by Meta.
     /// </summary>
-    public static class Meta
+    public static partial class Meta
     {
         /// <summary>
         /// Excels in image reasoning capabilities on high-res images for visual understanding apps.
@@ -150,7 +150,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// Llama 4 Maverick 17B 128E Instruct FP8 is great at precise image understanding and creative writing, offering high quality at a lower price compared to Llama 3.3 70B
         /// </summary>
-        public static readonly AIFoundryModel Llama4Maverick17B128EInstructFp8 = new() { Name = "Llama-4-Maverick-17B-128E-Instruct-FP8", Version = "1", Format = "Meta" };
+        public static readonly AIFoundryModel Llama4Maverick17B128EInstructFP8 = new() { Name = "Llama-4-Maverick-17B-128E-Instruct-FP8", Version = "1", Format = "Meta" };
 
         /// <summary>
         /// Llama 4 Scout 17B 16E Instruct is great at multi-document summarization, parsing extensive user activity for personalized tasks, and reasoning over vast codebases.
@@ -181,58 +181,102 @@ public partial class AIFoundryModel
         /// The Llama 3.1 instruction tuned text only models are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.
         /// </summary>
         public static readonly AIFoundryModel MetaLlama318BInstruct = new() { Name = "Meta-Llama-3.1-8B-Instruct", Version = "5", Format = "Meta" };
-
     }
 
     /// <summary>
     /// Models published by Microsoft.
     /// </summary>
-    public static class Microsoft
+    public static partial class Microsoft
     {
         /// <summary>
         /// ## Azure AI Content Safety ## Introduction Azure AI Content Safety is a safety system for monitoring content generated by both foundation models and humans. Detect and block potential risks, threats, and quality problems. You can build an advanced safety system for foundation models to detect and mitigate harmful content and risks in user prompts and AI-generated outputs. Use Prompt Shields to detect and block prompt injection attacks, groundedness detection to pinpoint ungrounded or hallucinated materials, and protected material detection to identify copyrighted or owned content. ## Core Features - **Block harmful input and output**  - **Description**: Detect and block violence, hate, sexual, and self-harm content for both text, images and multimodal. Configure severity thresholds for your specific use case and adhere to your responsible AI policies.  - **Key Features**: Violence, hate, sexual, and self-harm content detection. Custom blocklist. - **Policy customization with custom categories**  - **Description**: Create unique content filters tailored to your requirements using custom categories. Quickly train a new custom category by providing examples of content you need to block.  - **Key Features**: Custom categories - **Identify the security risks**  - **Description**: Safeguard your AI applications against prompt injection attacks and jailbreak attempts. Identify and mitigate both direct and indirect threats with prompt shields.  - **Key Features**: Direct jailbreak attack, indirect prompt injection from docs. - **Detect and correct Gen AI hallucinations**  - **Description**: Identify and correct generative AI hallucinations and ensure outputs are reliable, accurate, and grounded in data with groundedness detection.  - **Key Features**: Groundedness detection, reasoning, and correction. - **Identify protected material**  - **Description**: Pinpoint copyrighted content and provide sources for preexisting text and code with protected material detection.  - **Key Features**: Protected material for code, protected material for text ## Use Cases - Generative AI services screen user-submitted prompts and generated outputs to ensure safe and appropriate content. - Online marketplaces monitor and filter product listings and other user-generated content to prevent harmful or inappropriate material. - Gaming platforms manage and moderate user-created game content and in-game communication to maintain a safe environment. - Social media platforms review and regulate user-uploaded images and posts to enforce community standards and prevent harmful content. - Enterprise media companies implement centralized content moderation systems to ensure the safety and appropriateness of their published materials. - K-12 educational technology providers filter out potentially harmful or inappropriate content to create a safe learning environment for students and educators. ## Benefits - **No ML experience required**: Incorporate content safety features into your projects with no machine learning experience required. - **Effortlessly customize your RAI policies**: Customizing your content safety classifiers can be done with one line of description, a few samples using Custom Categories. - **State of the art models**: ready for use APIs, SOTA models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. Microsoft has a science team and policy experts working on the frontier of Gen AI to constantly improve the safety and security models to ensure our customers can develop and deploy generative AI safely and responsibly. - **Global Reach**: Support more than 100 languages, enabling businesses to communicate effectively with customers, partners, and employees worldwide. - **Scalable and Reliable**: Built on Azure’s cloud infrastructure, the Azure AI Content Safety service scales automatically to meet demand, from small business applications to global enterprise workloads. - **Security and Compliance**: Azure AI Content Safety runs on Azure’s secure cloud infrastructure, ensuring data privacy and compliance with global standards. User data is not stored after the translation process. - **Flexible deployment**: Azure AI Content Safety can be deployed on cloud, on premises and on devices. ## Technical Details - **Deployment**  - **Container for on-premise deployment**: [Content safety containers overview - Azure AI Content Safety - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/how-to/containers/container-overview)  - **Embedded Content Safety**: [Embedded Content Safety - Azure AI Content Safety - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/how-to/embedded-content-safety?tabs=windows-target%2Ctext)  - **Cloud**: [Azure AI Content Safety documentation - Quickstarts, Tutorials, API Reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/) - **Requirements**: Requirements vary feature by feature, for more details, refer to the Azure AI Content Safety documentation: [Azure AI Content Safety documentation - Quickstarts, Tutorials, API Reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/). - **Support**: Azure AI Content Safety is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcontent-safety%2Fcontext%2Fcontext). ## Pricing Explore pricing options here: [Azure AI Content Safety - Pricing | Microsoft Azure](https://azure.microsoft.com/pricing/details/cognitive-services/content-safety/).
         /// </summary>
-        public static readonly AIFoundryModel AzureAiContentSafety = new() { Name = "Azure-AI-Content-Safety", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel AzureAIContentSafety = new() { Name = "Azure-AI-Content-Safety", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// # Azure AI Content Understanding  ## Introduction Azure AI Content Understanding empowers you to transform unstructured multimodal data—such as text, images, audio, and video—into structured, actionable insights. By streamlining content processing with advanced AI techniques like schema extraction and grounding, it delivers accurate structured data for downstream applications. Offering prebuilt templates for common use cases and customizable models, it helps you unify diverse data types into a single, efficient pipeline, optimizing workflows and accelerating time to value. ## Core Features  - **Multimodal data ingestion**  Ingest a range of modalities such as documents, images, audio, or video. Use a variety of AI models to convert the input data into a structured format that can be easily processed and analyzed by downstream services or applications. - **Customizable output schemas**  Customize the schemas of extracted results to meet your specific needs. Tailor the format and structure of summaries, insights, or features to include only the most relevant details—such as key points or timestamps—from video or audio files.  - **Confidence scores** Leverage confidence scores to minimize human intervention and continuously improve accuracy through user feedback. - **Output ready for downstream applications**  Automate business processes by building enterprise AI apps or agentic workflows. Use outputs that downstream applications can consume for reasoning with retrieval-augmented generation (RAG). - **Grounding** Ensure the information extracted, inferred, or abstracted is represented in the underlying content. - **Automatic labeling** Save time and effort on manual annotation and create models quicker by using large language models (LLMs) to extract fields from various document types. ## Use Cases  - **Post-call analytics for call centers**: Generate insights from call recordings, track key performance indicators (KPIs), and answer customer questions more accurately and efficiently.  - **Tax process automation**: Streamline the tax return process by extracting data from tax forms to create a consolidated view of information across various documents.  - **Media asset management**: Extract features from images and videos to provide richer tools for targeted content and enhance media asset management solutions.  - **Chart understanding**: Enhance chart understanding by automating the analysis and interpretation of various types of charts and diagrams using Content Understanding. ## Benefits  - **Streamline workflows**: Azure AI Content Understanding standardizes the extraction of content, structure, and insights from various content types into a unified process. - **Simplify field extraction**: Field extraction in Content Understanding makes it easier to generate structured output from unstructured content. Define a schema to extract, classify, or generate field values with no complex prompt engineering. - **Enhance accuracy**: Content Understanding employs multiple AI models to analyze and cross-validate information simultaneously, resulting in more accurate and reliable results. - **Confidence scores &amp; grounding**: Content Understanding ensures the accuracy of extracted values while minimizing the cost of human review. ## Technical Details  - **Deployment**: Deployment options may vary by service, reference the following docs for more information: [Create an Azure AI Services multi-service resource](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource). - **Requirements**: Requirements may vary depending on the input data you are analyzing, reference the following docs for more information: [Service quotas and limits](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/service-limits). - **Support**: Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/en-us/azure/ai-services/cognitive-services-support-options?view=doc-intel-4.0.0).  ## Pricing  View up-to-date pay-as-you-go pricing details here: [Azure AI Content Understanding pricing](https://azure.microsoft.com/en-us/pricing/details/content-understanding/).
         /// </summary>
-        public static readonly AIFoundryModel AzureAiContentUnderstanding = new() { Name = "Azure-AI-Content-Understanding", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel AzureAIContentUnderstanding = new() { Name = "Azure-AI-Content-Understanding", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// ## Azure AI Document Intelligence Document Intelligence is a cloud-based service that enables you to build intelligent document processing solutions. Massive amounts of data, spanning a wide variety of data types, are stored in forms and documents. Document Intelligence enables you to effectively manage the velocity at which data is collected and processed and is key to improved operations, informed data-driven decisions, and enlightened innovation.  ## Core Features - **General extraction models**  - **Description**: General extraction models enable text extraction from forms and documents and return structured business-ready content ready for your organization&apos;s action, use, or development.  - **Key Features**   - Read model allows you to extract written or printed text liens, words, locations, and detected languages.   - Layout model, on top of text extraction, extracts structural information like tables, selection marks, paragraphs, titles, headings, and subheadings. Layout model can also output the extraction results in a Markdown format, enabling you to define your semantic chunking strategy based on provided building blocks, allowing for easier RAG (Retrieval Augmented Generation). - **Prebuilt models**  - **Description**: Prebuilt models enable you to add intelligent document processing to your apps and flows without having to train and build your own models. Prebuilt models extract a pre-defined set of fields depending on the document type.  - **Key Features**   - **Financial Services and Legal Documents**: Credit Cards, Bank Statement, Pay Slip, Check, Invoices, Receipts, Contracts.   - **US Tax Documents**: Unified Tax, W-2, 1099 Combo, 1040 (multiple variations), 1098 (multiple variations), 1099 (multiple variations).   - **US Mortgage Documents**: 1003, 1004, 1005, 1008, Closing Disclosure.   - **Personal Identification Documents**: Identity Documents, Health Insurance Cards, Marriage Certificates. - **Custom models**  - **Description**: Custom models are trained using your labeled datasets to extract distinct data from forms and documents, specific to your use cases. Standalone custom models can be combined to create composed models.  - **Key Features**   - **Document field extraction models**    - **Custom generative**: Build a custom extraction model using generative AI for documents with unstructured format and varying templates.    - **Custom neural**: Extract data from mixed-type documents.    - **Custom template**: Extract data from static layouts.    - **Custom composed**: Extract data using a collection of models. Explicitly choose the classifier and enable confidence-based routing based on the threshold you set.   - **Custom classification models**    - **Custom classifier**: Identify designated document types (classes) before invoking an extraction model. - **Add-on capabilities**  - **Description**: Use the add-on features to extend the results to include more features extracted from your documents. Some add-on features incur an extra cost. These optional features can be enabled and disabled depending on the scenario of the document extraction.  - **Key Features**   - High resolution extraction   - Formula extraction   - Font extraction   - Barcode extraction   - Language detection   - Searchable PDF output ## Use Cases - **Accounts payable**: A company can increase the efficiency of its accounts payable clerks by using the prebuilt invoice model and custom forms to speed up invoice data entry with a human in the loop. The prebuilt invoice model can extract key fields, such as Invoice Total and Shipping Address. - **Insurance form processing**: A customer can train a model by using custom forms to extract a key-value pair in insurance forms and then feeds the data to their business flow to improve the accuracy and efficiency of their process. For their unique forms, customers can build their own model that extracts key values by using custom forms. These extracted values then become actionable data for various workflows within their business. - **Bank form processing**: A bank can use the prebuilt ID model and custom forms to speed up the data entry for &quot;know your customer&quot; documentation, or to speed up data entry for a mortgage packet. If a bank requires their customers to submit personal identification as part of a process, the prebuilt ID model can extract key values, such as Name and Document Number, speeding up the overall time for data entry. - **Robotic process automation (RPA)**: Using the custom extraction model, customers can extract specific data needed from distinct types of documents. The key-value pair extracted can then be entered into various systems such as databases, or CRM systems, through RPA, replacing manual data entry. Customers can also use custom classification model to categorize documents based on their content and file them in proper location. As such, an organized set of data extracted from the custom model can be an essential first step to document RPA scenarios for businesses that manage large volumes of documents regularly. ## Benefits - **No experience required**: Incorporate Document Intelligence features into your projects with no machine learning experience required. - **Effortlessly customize your models**: Training your own custom extraction and classification model can be done with as little as one document labeled, making it easy to train your own models. - **State of the art models**: ready for use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. ## Technical Details: - **Deployment**: Deployment options may vary by service, reference the following docs for more information: [Use Document Intelligence models](https://learn.microsoft.com/azure/ai-services/document-intelligence/how-to-guides/use-sdk-rest-api?view=doc-intel-3.1.0&amp;tabs=linux&amp;pivots=programming-language-rest-api) and [Install and run containers](https://learn.microsoft.com/azure/ai-services/document-intelligence/containers/install-run?view=doc-intel-4.0.0&amp;tabs=read). - **Requirements**: Requirements may vary slightly depending on the model you are using to analyze the documents. Reference the following docs for more information: [Service quotas and limits](https://learn.microsoft.com/azure/ai-services/document-intelligence/service-limits?view=doc-intel-4.0.0). - **Support**: Support options for AI Services can be found here: [Azure AI services support and help options - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fdocument-intelligence%2Fcontext%2Fcontext&amp;view=doc-intel-4.0.0). ## Pricing View up-to-date pricing information for the pay-as-you-go pricing model here: [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/).
         /// </summary>
-        public static readonly AIFoundryModel AzureAiDocumentIntelligence = new() { Name = "Azure-AI-Document-Intelligence", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel AzureAIDocumentIntelligence = new() { Name = "Azure-AI-Document-Intelligence", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// ## Azure AI Language Azure AI Language is a cloud-based service designed to help you easily get insights from unstructured text data. It uses a combination of SLMs and LLMs, including task-optimized decoder models and encoder models, for Language AI solutions. It provides premium quality at an affordable price, excels in scale and low latency. With it, you can extract, classify, and summarize information to gain insights. You can also customize and finetune them for your specific needs. It empowers you to integrate natural language into apps, bots, and IoT devices. For example, it can redact sensitive data, segment long meetings into chapters, analyze health records, and orchestrate conversational bots on your custom intents and factual answers to ensure consistency and control. ## Core Features - **Extract Classify and Understand Information**  - **Description**: Extract and distill key insights from unstructured data, such as named entities, medical information, important statements, etc. and analyze sentiment and my opinion.  - **Key Features**: Named Entity Recognition (NER), Custom Extraction, Key Phrase Extraction, Health Information Extraction, Text Summarization, Extractive summarization, Abstractive summarization, Sentiment Analysis, Language Detection. - **Enhanced Conversational Experiences**  - **Description**: Customize your conversational experience with a deterministic and repeatable solution; distill insights from long conversion, empower intelligent conversational agents that can understand, respond, and orchestrate responses in a natural, context-aware manner  - **Key Features**: Conversation Summarization, Conversational Language Understanding (CLU), Question Answering (Q&amp;A), and Orchestration Workflow - **Data Privacy and Compliance**  - **Description**: Identify personally identifiable information, masking it as needed to help you to adhere to your privacy policies.  - **Key Features**: PII Detection, PII Redaction. ## Use Cases - **Protect privacy data with PII detection**: Use PII detection to identify and redact sensitive information before sending your data to LLMs or other cloud services. Redact personal information to protect your customers’ privacy from call center transcription, reduce unconscious bias from resumes, apply sensitivity labels for documents, or clean your data and reduce unfairness for data science. - **Reduce hallucinations and derive insights with Name Entity Recognition and Text Analytics for health**: Use Named Entity Recognition or Text Analytics for health to reduce hallucinations from LLMs by prompting the model with extracted entity values (e.g., product names, price numbers, MedDRA code, etc.). Build knowledge graphs based on entities detected in documents to enhance search quality. Extract key information to enable business process automation. Derive insights into popular information from customer reviews, emails, and calls. - **Meeting Summarization for Efficient Recaps and Chaptering**: Using summarization features, long meetings can be effectively condensed into quick recaps and organized into timestamped chapters with detailed narratives, making the information more accessible to both participants and those who missed the meeting. - **Call Center Summarization**: Using summarization features, customer service calls can be efficiently summarized into concise recaps with focused notes on customer issues and the resolutions provided by agents. This allows agents and supervisors to quickly review key details, improving follow-up actions and overall customer satisfaction. - **Build deterministic and repeatable conversational AI experience**: Use conversational language understanding (CLU) to define the top user intents and key information you want to track over the conversations. Build your Q&amp;A bot with custom question answering to control the wording in answers for critical questions with hallucination worry-free. Route user queries over orchestration workflow based on users’ intents or questions. - **Analyze healthcare data with Text Analytics for health**: Use Text Analytics for health to extract insights and statistics, develop predictive models and flag possible errors from clinical notes, research documents and medical reports by identifying medical entities, entity relationships and assertions. Auto-annotate and curate clinical data such as automating clinical coding and digitizing manually created data by using entity linking to Unified Medical Language System (UMLS) Metathesaurus and other Text Analytics for health features. ## Benefits - **Premium Quality**: Pre-trained task-optimized models ensure premium quality as they are built on vast, diverse datasets and fine-tuned by experts to deliver accurate and reliable results across various use cases - **Low Maintenance**: Ready to use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing prompt rewriting, manual training, or extensive customization. This allows you to focus business insights rather than managing infrastructure. - **Enterprise Scalability**: Scalable across multiple environments, from on-premises containers to cloud-based services. adaptable to different workflows and data volumes without sacrificing performance. seamlessly integrated into various enterprise systems ## Technical Details - **Deployment**: Azure AI Language is composed of many natural language process capabilities. All are available as cloud and most of them also have container offerings. - **Requirements**: Azure AI Language requirements may vary slightly depending on the model you are using. Reference the following docs for more information: [Data limits for Language service features - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/language-service/concepts/data-limits). - **Support**: Azure AI Language is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing Azure AI Language offers competitive pricing. The pricing model includes pay-as-go and discounts based on volume commitments. Explore [Azure AI Language pricing options here](https://aka.ms/languageprice).
         /// </summary>
-        public static readonly AIFoundryModel AzureAiLanguage = new() { Name = "Azure-AI-Language", Version = "1", Format = "Microsoft" };
-
-        /// <summary>
-        /// ## Azure AI Speech ## Introduction The Speech service provides speech to text and text to speech capabilities with a Speech resource. You can transcribe speech to text with high accuracy, produce natural-sounding text to speech voices, translate spoken audio, and use speaker recognition during conversations. Create custom voices, add specific words to your base vocabulary, or build your own models. Run Speech anywhere, in the cloud or at the edge in containers. It&apos;s easy to speech enable your applications, tools, and devices with the [Speech CLI](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/spx-overview), [Speech SDK](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-sdk), and [REST APIs](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-speech-to-text). ## Core Features - **Speech To Text**  - **Description**: Use speech to text to transcribe audio into text, either in real-time or asynchronously with batch transcription. Convert audio to text from a range of sources, including microphones, audio files, and blob storage. Use speaker diarization to determine who said what and when. Get readable transcripts with automatic formatting and punctuation.   The base model might not be sufficient if the audio contains ambient noise or includes numerous industry and domain-specific jargon. In these cases, you can create and train custom speech models with acoustic, language, and pronunciation data. Custom speech models are private and can offer a competitive advantage.  - **Key Features**   - Real Time Speech To Text   - Transcriptions, captions, or subtitles for live meetings   - [Diarization](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/get-started-stt-diarization)   - [Pronunciation assessment](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-pronunciation-assessment)   - Contact center agents assist   - Dictation   - Voice agents   - Fast Transcription   - Quick audio or video transcription, subtitles, and edit   - Video translation   - Batch Transcription   - Transcriptions, captions, or subtitles for prerecorded audio   - Contact center post-call analytics   - Diarization   - Custom Speech   - Models with enhanced accuracy for specific domains and conditions. - **Text To Speech**  - **Description**: With [text to speech](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech), you can convert input text into human like synthesized speech. Use human-like prebuilt neural voices out of the box in more than 140 locales and 500 voices or create a custom neural voice that&apos;s unique to your product or brand. You can also enhance the voice experience by using together with Text to speech Avatar to convert text to life-like and high-quality synthetic talking avatar videos.   - **Prebuilt neural voice**: Highly natural out-of-the-box voices. Check the prebuilt neural voice samples the [Voice Gallery](https://speech.microsoft.com/portal/voicegallery) and determine the right voice for your business needs.   - **Custom neural voice**: Besides the prebuilt neural voices that come out of the box, you can also create a [custom neural voice](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/custom-neural-voice) that is recognizable and unique to your brand or product. Custom neural voices are private and can offer a competitive advantage. Check the custom neural voice samples [here](https://aka.ms/customvoice).   - **Text to speech Avatar**: You can convert text into a digital video of a photorealistic human (either a prebuilt avatar or a [custom text to speech avatar](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar#custom-text-to-speech-avatar)) speaking with a natural-sounding voice. It works best with the Azure neural voices.  - **Key Features**   - **Prebuilt neural voice**    - Neural voice (incl. OpenAI-based voices)    - Neural HD voice (incl. OpenAI-based voices)   - **Custom neural voice**    - Professional voice    - Personal voice   - **TTS Avatar**    - Prebuilt avatar    - Custom avatar - **Speech Translation**  - **Description**: Speech Translation enables real-time, multi-language translation of speech, allowing you to add end-to-end, real-time, multi-language translation capabilities to your applications, tools, and devices.  - **Key Features**   - **Realtime Speech Translation**: This Speech service supports real-time, multi-language speech to speech and speech to text translation of audio streams.    - Support both audio and text output    - Automatic language detection    - Integrated customization built-in   - **Video Translation**: This end-to-end solution performs video translation covering global locales.    - End-to-end solution with both no-code and API support    - GPT built-in to optimize the translation content, augmented by content editing    - Personal voice (limited access) to keep the original timbre, emotions, intonation &amp; style intact ## Use cases **Speech To Text** | Use case | Scenario | Solution | | :---: | :--- | :--- | | Live meeting transcriptions and captions | A virtual event platform needs to provide real-time captions for webinars. | Integrate real-time speech to text using the Speech SDK to transcribe spoken content into captions displayed live during the event. | | Customer service enhancement | A call center wants to assist agents by providing real-time transcriptions of customer calls. | Use real-time speech to text via the Speech CLI to transcribe calls, enabling agents to better understand and respond to customer queries. | | Video subtitling | A video-hosting platform wants to quickly generate a set of subtitles for a video. | Use fast transcription to quickly get a set of subtitles for the entire video. | | Educational tools | An e-learning platform aims to provide transcriptions for video lectures. | Apply batch transcription through the speech to text REST API to process prerecorded lecture videos, generating text transcripts for students. | | Healthcare documentation | A healthcare provider needs to document patient consultations. | Use real-time speech to text for dictation, allowing healthcare professionals to speak their notes and have them transcribed instantly. Use a custom model to enhance recognition of specific medical terms. | | Media and entertainment | A media company wants to create subtitles for a large archive of videos. | Use batch transcription to process the video files in bulk, generating accurate subtitles for each video. | | Market research | A market research firm needs to analyze customer feedback from audio recordings. | Employ batch transcription to convert audio feedback into text, enabling easier analysis and insights extraction. | **Text To Speech** | Use case | Scenario | | :---: | :--- | | Educational or interactive learning | To create a fictional brand or character voice for reading or speaking educational materials, online learning, interactive lesson plans, simulation learning, or guided museum tours. | | Media Entertainment | To create a fictional brand or character voice for reading or speaking entertainment content for video games, movies, TV, recorded music, podcasts, audio books, or augmented or virtual reality. | | Media Marketing | To create a fictional brand or character voice for reading or speaking marketing and product or service media, product introductions, business promotion, or advertisements. | | Self-authored content | To create a voice for reading content authored by the voice talent. | | Accessibility Features | For use in audio description systems and narration, including any fictional brand or character voice, or to facilitate communication by people with speech impairments. | | Interactive Voice Response (IVR) Systems | To create voices, including any fictional brand or character voice, for call center operations, telephony systems, or responses for phone interactions. | | Public Service and Informational Announcements | To create a fictional brand or character voice for communicating public service information, including announcements for public venues, or for informational broadcasts such as traffic, weather, event information, and schedules. This use case is not intended for journalistic or news content. | | Translation and Localization | For use in translation applications for translating conversations in different languages or translating audio media. | | Virtual Assistant or Chatbot | To create a fictional brand or character voice for smart assistants in or for virtual web assistants, appliances, cars, home appliances, toys, control of IoT devices, navigation systems, reading out personal messages, virtual companions, or customer service scenarios. | **Speech Translation** | Use case | Scenario | | :---: | :--- | | Realtime translated caption/subtitle | Realtime translated captions /subtitles for meetings or audio/video content | | Realtime audio/video translation (speech-to-speech) | Translate audio/video into target language audio. The input can be short-form videos, live broadcasts, online or in-person conversations (e.g., Live Interpreter), etc. | | Batch Video Translation | Automated dubbing of spoken content in videos from one language to another | ## Benefits **Text To Speech** - **Global Reach with Extensive Locale and Voice Coverage**: Azure TTS supports more than 140 languages and dialects, along with 400+ unique neural voices. Its widespread data center coverage across 60+ Azure regions makes it highly accessible globally, ensuring low-latency voice services in key markets across North America, Europe, Asia Pacific, and emerging markets in Africa, South America, and the Middle East. - **Customization Capabilities**: Azure’s Custom Neural Voice enables businesses to create unique, branded voices in a low/no code self-serving portal that can speak in specific accents or styles, reflecting a company’s identity. This customization extends to creating regional variants and accents, making Azure ideal for multinational corporations seeking to tailor voices to specific local audiences. - **Flexible Deployment Options**: Azure TTS can be deployed in the cloud, on-premises, or at the edge. - **Security and Compliance**: Azure offers end-to-end encryption, comprehensive compliance certifications (like GDPR, HIPAA, ISO 27001, SOC), and a strong focus on privacy. - **TTS Avatar as a Differentiator**: Azure’s TTS avatars, combined with Custom Neural Voice, create immersive, interactive virtual characters. This innovation allows businesses to integrate human-like avatars in customer service, e-learning, and entertainment, providing visually engaging interactions that go beyond simple audio output. **Speech Translation** - **Multiple language detection**: Model will detect multiple languages among the supported languages in the same audio stream. - **Automatic language detection**: No need to specify input languages – model will detect them automatically. - **Integrated custom translation**: Adapt model to your domain-specific vocabulary. - **Simple &amp; Quick**: End-to-end solution that performs video translation covering global locales - **High quality**: GPT built-in to optimize the translation content, augmented by content editing - **Personalized (Limited Access)**: Keep the original timbre, emotions, intonation &amp; style intact ## Pricing Speech is available for many [languages](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support), [regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions), and [price points](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/).
-        /// </summary>
-        public static readonly AIFoundryModel AzureAiSpeech = new() { Name = "Azure-AI-Speech", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel AzureAILanguage = new() { Name = "Azure-AI-Language", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// ## Azure AI Translator Azure AI Translator, a part of the Azure AI services, is a cloud-based neural machine translation service that enables businesses to translate text and documents across multiple languages in real time and in batches. The service also offers customization options, enabling businesses to fine-tune translations to specific domain or industry contexts. Azure AI Translator supports more than 100 languages and dialects, and it scales automatically to handle both small-scale projects and enterprise-level translation needs.   Azure AI Translator powers many Microsoft products and services used by thousands of businesses and millions of users worldwide for language translation and other language-related operations. ## Core Features - **Text Translation**  - **Description**: Translates text across multiple languages in real time, making it easy to integrate translation into data process automation, facilitate conversation between speakers of different languages, perform live caption translation, and browse webpages in the language of your choice.  - **Key Features**   - **Translate**: Translates a single text phrase or an array of text phrases to multiple target-language texts. Users can specify whether to use standard or custom machine translation models in the request.   - **Transliterate**: Converts a single text phrase or an array of text phrases from native script to Latin script and vice versa.   - **Languages**: Returns a list of languages supported by Translate and Transliterate operations. This request does not require authentication. - **Document Translation**  - **Description**: Translates complex documents across all supported languages and dialects while preserving original document structure and data format. Documents can be translated using standard or custom machine translation models, with the option for users to provide glossaries to ensure that specific terms are translated consistently according to their preferences.  - **Key Features**   - **Batch translation**: Translates multiple documents and large files asynchronously across up to 10 target languages in a single request. The service retrieves source documents from an Azure blob storage container, processes and translates the textual content, and then places the translated documents into a target Azure blob storage container.   - **Single document translation**: Translates a small single document into one target language. It accepts the document as part of the request, processes and translates the textual content, and returns the translated document as part of the response. - **Custom Translator**  - **Description**: Custom Translator is a feature of the Azure AI Translator service that enables enterprises, app developers, and language service providers to build customized neural machine translation (NMT) systems.  - **Key Features**   - **Customize with parallel data**: Build translation systems using parallel documents that understand the terminologies used in your own business and industry.   - **Customize with dictionary data**: Build translation systems using bilingual dictionaries of terms used in your own business and industry. ## Use Cases - **Webpage translation**: Translate webpages to engage global audiences in their native language. - **Conversation translation**: Break communication barriers by enabling live multi-lingual conversations in chat applications, customer support, and conferencing tools by providing real-time text and speech translation. - **Document translation**: Translate manuals, marketing materials, documentation, product or service descriptions, specifications, instructions, contracts, etc. to execute business operations across the world. - **Accessibility**: Translate live captions in a TV program or an event for user to follow in their native language. - **Education**: Learn or teach a foreign language with ease. Facilitate cross-language communication in educational settings, enabling students, teachers, and parents to interact seamlessly in multiple languages. - **Social &amp; entertainment**: Engage with people worldwide on social media in your native language, learning new topics and sharing your thoughts. Join online gaming chats with players from different countries and watch movies or programs in foreign languages with subtitle translation. - **Digital investigation**: Translate business intelligence content into a target language for consumption and analysis. ## Benefits - **Global Reach**: Translate content into over 100 languages, enabling businesses to communicate effectively with customers, partners, and employees worldwide. - **Scalable and Reliable**: Built on Azure’s cloud infrastructure, the Translator service automatically scales to meet demand, from small business applications to global enterprise workloads. - **Security and Compliance**: Azure AI Translator runs on Azure’s secure cloud infrastructure, ensuring data privacy and compliance with global standards. User data is not stored after the translation process. - **Customization**: Customize translation models to suit your business-specific terminology and style, improving the accuracy of translations for specialized industries such as legal, medical, or technical fields. - **Easy Integration**: Azure AI Translator service can be easily integrated into various applications through REST APIs and SDKs, making it accessible for developers across platforms. - **Availability**: Azure AI Translator supports translation across over 100 languages. Enables translation of content in languages, for which native speakers and human translators are not available to you. - **Time**: Translate content within seconds, minutes, or a few hours, which otherwise takes several days with human translation. Enables adoption of translation in workflow automation and real-time conversations. - **Cost**: Translate large volumes of content at a fraction of the cost—up to 1,000 times less than traditional human translation—making it accessible even when high costs would normally be a barrier.  ## Technical Details - **Deployment**: Azure AI Translator is available both as cloud and container offering. Translator container offering is gated and is available in [connected (for billing only)](https://learn.microsoft.com/azure/ai-services/translator/containers/overview#connected-containers) and [disconnected (for air gapped network)](https://learn.microsoft.com/azure/ai-services/translator/containers/overview#disconnected-containers). - **Requirements**: Azure AI Translator prerequisites differ based on the core features and the deployment environment. Please refer to the document for more information – [Text Translation Overview](https://aka.ms/TranslatorText), [Document Translation Overview](https://aka.ms/DocumentTranslationDocs), [Translator Container Overview](https://aka.ms/TranslatorContainerDocs), and [Custom Translator Overview](https://aka.ms/CustomTranslator) for specific requirements. - **Support**: Azure AI Translator is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing Azure AI Translator offers competitive pricing. The pricing model includes pay-as-go and discounts based on volume commitments. Explore [Azure AI Translator pricing options here](https://aka.ms/TranslatorPricing).
         /// </summary>
-        public static readonly AIFoundryModel AzureAiTranslator = new() { Name = "Azure-AI-Translator", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel AzureAITranslator = new() { Name = "Azure-AI-Translator", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// ## Azure AI Vision ## Introduction The Azure AI Vision service gives you access to advanced algorithms that process images and videos and return insights based on the visual features and content you are interested in. Azure AI Vision can power a diverse set of scenarios, including digital asset management, video content search &amp; summary, identity verification, generating accessible alt-text for images, and many more. The key product categories for Azure AI Vision include Video Analysis, Image Analysis, Face, and Optical Character Recognition.  ## Core Features - **Video analysis**  - **Description**: Video Analysis includes video-related features like Spatial Analysis and Video Retrieval. Spatial Analysis analyzes the presence and movement of people on a video feed and produces events that other systems can respond to. Video Retrieval lets you create an index of videos that you can search in your natural language.  - **Key Features**: Video retrieval, spatial analysis, person counting, person in a zone, person crossing a line, person distance - **Face**  - **Description**: The Face service provides AI algorithms that detect, recognize, and analyze human faces in images. Facial recognition software is important in many different scenarios, such as identification, touchless access control, and face blurring for privacy.  - **Key Features**: Face detection and analysis, face liveness, face identification, face verification - **Image analysis**  - **Description**: The Image Analysis service extracts many visual features from images, such as objects, faces, adult content, and auto-generated text descriptions.  - **Key Features**: Image tagging, image classification, object detection, image captioning, dense captioning, face detection, optical character recognition, image embeddings, and image search - **Optical character recognition**  - **Description**: The Optical Character Recognition (OCR) service extracts text from images. You can use the Read API to extract printed and handwritten text from photos and documents. It uses deep-learning-based models and works with text on various surfaces and backgrounds. These include business documents, invoices, receipts, posters, business cards, letters, and whiteboards. The OCR APIs support extracting printed text in several languages.  - **Key Features**: OCR ## Use Cases - Boost content discovery with image analysis - Verify identities with the Face service - Search content in videos ## Benefits - **No experience required**: Incorporate vision features into your projects with no machine learning experience required. - **Effortlessly customize your models**: Customizing your image classification and object detection models can be done with as little as one image per tag, making it easy to train your own models. - **State of the art models**: Ready to use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. ## Technical Details - **Deployment**: Deployment options may vary by service, reference the following docs for more information: [Image Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-image-analysis?tabs=4-0), [Optical Character Recognition Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-ocr), [Video Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/intro-to-spatial-analysis-public-preview?tabs=sa), and [Face Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-identity). - **Requirements**: Requirements may very slightly depending on the data you are analyzing, reference the following docs for more information: [Image Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-image-analysis?tabs=4-0), [Optical Character Recognition Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-ocr), [Video Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/intro-to-spatial-analysis-public-preview?tabs=sa), and [Face Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-identity). - **Support**: Support options for AI Services can be found here: [Azure AI services support and help options - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing View up-to-date pricing information for the pay-as-you-go pricing model here: [Azure AI Vision pricing](https://azure.microsoft.com/pricing/details/cognitive-services/computer-vision).
         /// </summary>
-        public static readonly AIFoundryModel AzureAiVision = new() { Name = "Azure-AI-Vision", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel AzureAIVision = new() { Name = "Azure-AI-Vision", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        /// ## Language Detection Azure AI Language is a cloud-based service designed to help you easily get insights from unstructured text data. It uses a combination of SLMs and LLMs, including task-optimized decoder models and encoder models, for Language AI solutions. It provides premium quality at an affordable price, excels in scale and low latency. With it, you can extract, classify, and summarize information to gain insights. You can also customize and finetune them for your specific needs. It empowers you to integrate natural language into apps, bots, and IoT devices. For example, it can redact sensitive data, segment long meetings into chapters, analyze health records, and orchestrate conversational bots on your custom intents and factual answers to ensure consistency and control. ## Core Features - **Extract Classify and Understand Information**  - **Description**: Extract and distill key insights from unstructured data, such as named entities, medical information, important statements, etc. and analyze sentiment and my opinion.  - **Key Features**: Named Entity Recognition (NER), Custom Extraction, Key Phrase Extraction, Health Information Extraction, Text Summarization, Extractive summarization, Abstractive summarization, Sentiment Analysis, Language Detection. - **Enhanced Conversational Experiences**  - **Description**: Customize your conversational experience with a deterministic and repeatable solution; distill insights from long conversion, empower intelligent conversational agents that can understand, respond, and orchestrate responses in a natural, context-aware manner  - **Key Features**: Conversation Summarization, Conversational Language Understanding (CLU), Question Answering (Q&amp;A), and Orchestration Workflow - **Data Privacy and Compliance**  - **Description**: Identify personally identifiable information, masking it as needed to help you to adhere to your privacy policies.  - **Key Features**: PII Detection, PII Redaction. ## Use Cases - **Protect privacy data with PII detection**: Use PII detection to identify and redact sensitive information before sending your data to LLMs or other cloud services. Redact personal information to protect your customers’ privacy from call center transcription, reduce unconscious bias from resumes, apply sensitivity labels for documents, or clean your data and reduce unfairness for data science. - **Reduce hallucinations and derive insights with Name Entity Recognition and Text Analytics for health**: Use Named Entity Recognition or Text Analytics for health to reduce hallucinations from LLMs by prompting the model with extracted entity values (e.g., product names, price numbers, MedDRA code, etc.). Build knowledge graphs based on entities detected in documents to enhance search quality. Extract key information to enable business process automation. Derive insights into popular information from customer reviews, emails, and calls. - **Meeting Summarization for Efficient Recaps and Chaptering**: Using summarization features, long meetings can be effectively condensed into quick recaps and organized into timestamped chapters with detailed narratives, making the information more accessible to both participants and those who missed the meeting. - **Call Center Summarization**: Using summarization features, customer service calls can be efficiently summarized into concise recaps with focused notes on customer issues and the resolutions provided by agents. This allows agents and supervisors to quickly review key details, improving follow-up actions and overall customer satisfaction. - **Build deterministic and repeatable conversational AI experience**: Use conversational language understanding (CLU) to define the top user intents and key information you want to track over the conversations. Build your Q&amp;A bot with custom question answering to control the wording in answers for critical questions with hallucination worry-free. Route user queries over orchestration workflow based on users’ intents or questions. - **Analyze healthcare data with Text Analytics for health**: Use Text Analytics for health to extract insights and statistics, develop predictive models and flag possible errors from clinical notes, research documents and medical reports by identifying medical entities, entity relationships and assertions. Auto-annotate and curate clinical data such as automating clinical coding and digitizing manually created data by using entity linking to Unified Medical Language System (UMLS) Metathesaurus and other Text Analytics for health features. ## Benefits - **Premium Quality**: Pre-trained task-optimized models ensure premium quality as they are built on vast, diverse datasets and fine-tuned by experts to deliver accurate and reliable results across various use cases - **Low Maintenance**: Ready to use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing prompt rewriting, manual training, or extensive customization. This allows you to focus business insights rather than managing infrastructure. - **Enterprise Scalability**: Scalable across multiple environments, from on-premises containers to cloud-based services. adaptable to different workflows and data volumes without sacrificing performance. seamlessly integrated into various enterprise systems ## Technical Details - **Deployment**: Azure AI Language is composed of many natural language process capabilities. All are available as cloud and most of them also have container offerings. - **Requirements**: Azure AI Language requirements may vary slightly depending on the model you are using. Reference the following docs for more information: [Data limits for Language service features - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/language-service/concepts/data-limits). - **Support**: Azure AI Language is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing Azure AI Language offers competitive pricing. The pricing model includes pay-as-go and discounts based on volume commitments. Explore [Azure AI Language pricing options here](https://aka.ms/languageprice).
+        /// </summary>
+        public static readonly AIFoundryModel LanguageDetection = new() { Name = "Language-Detection", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// MAI-DS-R1 is a DeepSeek-R1 reasoning model that has been post-trained by the Microsoft AI team to fill in information gaps in the previous version of the model and improve its harm protections while maintaining R1 reasoning capabilities.
         /// </summary>
-        public static readonly AIFoundryModel MaiDsR1 = new() { Name = "MAI-DS-R1", Version = "1", Format = "Microsoft" };
+        public static readonly AIFoundryModel MaiDSR1 = new() { Name = "MAI-DS-R1", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// Model router is a deployable AI model that is trained to select the most suitable large language model (LLM) for a given prompt.
         /// </summary>
         public static readonly AIFoundryModel ModelRouter = new() { Name = "model-router", Version = "2025-08-07", Format = "Microsoft" };
+
+        /// <summary>
+        /// Same Phi-3-medium model, but with a larger context size for RAG or few shot prompting.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Medium128kInstruct = new() { Name = "Phi-3-medium-128k-instruct", Version = "7", Format = "Microsoft" };
+
+        /// <summary>
+        /// A 14B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Medium4kInstruct = new() { Name = "Phi-3-medium-4k-instruct", Version = "6", Format = "Microsoft" };
+
+        /// <summary>
+        /// Same Phi-3-mini model, but with a larger context size for RAG or few shot prompting.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Mini128kInstruct = new() { Name = "Phi-3-mini-128k-instruct", Version = "13", Format = "Microsoft" };
+
+        /// <summary>
+        /// Tiniest member of the Phi-3 family. Optimized for both quality and low latency.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Mini4kInstruct = new() { Name = "Phi-3-mini-4k-instruct", Version = "15", Format = "Microsoft" };
+
+        /// <summary>
+        /// Same Phi-3-small model, but with a larger context size for RAG or few shot prompting.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Small128kInstruct = new() { Name = "Phi-3-small-128k-instruct", Version = "5", Format = "Microsoft" };
+
+        /// <summary>
+        /// A 7B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Small8kInstruct = new() { Name = "Phi-3-small-8k-instruct", Version = "6", Format = "Microsoft" };
+
+        /// <summary>
+        /// Refresh of Phi-3-mini model.
+        /// </summary>
+        public static readonly AIFoundryModel Phi35MiniInstruct = new() { Name = "Phi-3.5-mini-instruct", Version = "6", Format = "Microsoft" };
+
+        /// <summary>
+        /// A new mixture of experts model
+        /// </summary>
+        public static readonly AIFoundryModel Phi35MoEInstruct = new() { Name = "Phi-3.5-MoE-instruct", Version = "5", Format = "Microsoft" };
+
+        /// <summary>
+        /// Refresh of Phi-3-vision model.
+        /// </summary>
+        public static readonly AIFoundryModel Phi35VisionInstruct = new() { Name = "Phi-3.5-vision-instruct", Version = "2", Format = "Microsoft" };
 
         /// <summary>
         /// Phi-4 14B, a highly capable model for low latency scenarios.
@@ -250,16 +294,25 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Phi4MiniReasoning = new() { Name = "Phi-4-mini-reasoning", Version = "1", Format = "Microsoft" };
 
         /// <summary>
+        /// First small multimodal model to have 3 modality inputs (text, audio, image), excelling in quality and efficiency
+        /// </summary>
+        public static readonly AIFoundryModel Phi4MultimodalInstruct = new() { Name = "Phi-4-multimodal-instruct", Version = "2", Format = "Microsoft" };
+
+        /// <summary>
         /// State-of-the-art open-weight reasoning model.
         /// </summary>
         public static readonly AIFoundryModel Phi4Reasoning = new() { Name = "Phi-4-reasoning", Version = "1", Format = "Microsoft" };
 
+        /// <summary>
+        /// ## Text PII Azure AI Language is a cloud-based service designed to help you easily get insights from unstructured text data. It uses a combination of SLMs and LLMs, including task-optimized decoder models and encoder models, for Language AI solutions. It provides premium quality at an affordable price, excels in scale and low latency. With it, you can extract, classify, and summarize information to gain insights. You can also customize and finetune them for your specific needs. It empowers you to integrate natural language into apps, bots, and IoT devices. For example, it can redact sensitive data, segment long meetings into chapters, analyze health records, and orchestrate conversational bots on your custom intents and factual answers to ensure consistency and control. ## Core Features - **Extract Classify and Understand Information**  - **Description**: Extract and distill key insights from unstructured data, such as named entities, medical information, important statements, etc. and analyze sentiment and my opinion.  - **Key Features**: Named Entity Recognition (NER), Custom Extraction, Key Phrase Extraction, Health Information Extraction, Text Summarization, Extractive summarization, Abstractive summarization, Sentiment Analysis, Language Detection. - **Enhanced Conversational Experiences**  - **Description**: Customize your conversational experience with a deterministic and repeatable solution; distill insights from long conversion, empower intelligent conversational agents that can understand, respond, and orchestrate responses in a natural, context-aware manner  - **Key Features**: Conversation Summarization, Conversational Language Understanding (CLU), Question Answering (Q&amp;A), and Orchestration Workflow - **Data Privacy and Compliance**  - **Description**: Identify personally identifiable information, masking it as needed to help you to adhere to your privacy policies.  - **Key Features**: PII Detection, PII Redaction. ## Use Cases - **Protect privacy data with PII detection**: Use PII detection to identify and redact sensitive information before sending your data to LLMs or other cloud services. Redact personal information to protect your customers’ privacy from call center transcription, reduce unconscious bias from resumes, apply sensitivity labels for documents, or clean your data and reduce unfairness for data science. - **Reduce hallucinations and derive insights with Name Entity Recognition and Text Analytics for health**: Use Named Entity Recognition or Text Analytics for health to reduce hallucinations from LLMs by prompting the model with extracted entity values (e.g., product names, price numbers, MedDRA code, etc.). Build knowledge graphs based on entities detected in documents to enhance search quality. Extract key information to enable business process automation. Derive insights into popular information from customer reviews, emails, and calls. - **Meeting Summarization for Efficient Recaps and Chaptering**: Using summarization features, long meetings can be effectively condensed into quick recaps and organized into timestamped chapters with detailed narratives, making the information more accessible to both participants and those who missed the meeting. - **Call Center Summarization**: Using summarization features, customer service calls can be efficiently summarized into concise recaps with focused notes on customer issues and the resolutions provided by agents. This allows agents and supervisors to quickly review key details, improving follow-up actions and overall customer satisfaction. - **Build deterministic and repeatable conversational AI experience**: Use conversational language understanding (CLU) to define the top user intents and key information you want to track over the conversations. Build your Q&amp;A bot with custom question answering to control the wording in answers for critical questions with hallucination worry-free. Route user queries over orchestration workflow based on users’ intents or questions. - **Analyze healthcare data with Text Analytics for health**: Use Text Analytics for health to extract insights and statistics, develop predictive models and flag possible errors from clinical notes, research documents and medical reports by identifying medical entities, entity relationships and assertions. Auto-annotate and curate clinical data such as automating clinical coding and digitizing manually created data by using entity linking to Unified Medical Language System (UMLS) Metathesaurus and other Text Analytics for health features. ## Benefits - **Premium Quality**: Pre-trained task-optimized models ensure premium quality as they are built on vast, diverse datasets and fine-tuned by experts to deliver accurate and reliable results across various use cases - **Low Maintenance**: Ready to use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing prompt rewriting, manual training, or extensive customization. This allows you to focus business insights rather than managing infrastructure. - **Enterprise Scalability**: Scalable across multiple environments, from on-premises containers to cloud-based services. adaptable to different workflows and data volumes without sacrificing performance. seamlessly integrated into various enterprise systems ## Technical Details - **Deployment**: Azure AI Language is composed of many natural language process capabilities. All are available as cloud and most of them also have container offerings. - **Requirements**: Azure AI Language requirements may vary slightly depending on the model you are using. Reference the following docs for more information: [Data limits for Language service features - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/language-service/concepts/data-limits). - **Support**: Azure AI Language is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing Azure AI Language offers competitive pricing. The pricing model includes pay-as-go and discounts based on volume commitments. Explore [Azure AI Language pricing options here](https://aka.ms/languageprice).
+        /// </summary>
+        public static readonly AIFoundryModel TextPii = new() { Name = "Text-PII", Version = "1", Format = "Microsoft" };
     }
 
     /// <summary>
     /// Models published by Mistral AI.
     /// </summary>
-    public static class MistralAi
+    public static partial class MistralAI
     {
         /// <summary>
         /// Codestral 25.01 by Mistral AI is designed for code generation, supporting 80+ programming languages, and optimized for tasks like code completion and fill-in-the-middle
@@ -305,18 +358,22 @@ public partial class AIFoundryModel
         /// Enhanced Mistral Small 3 with multimodal capabilities and a 128k context length.
         /// </summary>
         public static readonly AIFoundryModel MistralSmall2503 = new() { Name = "mistral-small-2503", Version = "1", Format = "Mistral AI" };
-
     }
 
     /// <summary>
     /// Models published by OpenAI.
     /// </summary>
-    public static class OpenAI
+    public static partial class OpenAI
     {
         /// <summary>
         /// codex-mini is a fine-tuned variant of the o4-mini model, designed to deliver rapid, instruction-following performance for developers working in CLI workflows. Whether you&apos;re automating shell commands, editing scripts, or refactoring repositories, Codex-Min
         /// </summary>
         public static readonly AIFoundryModel CodexMini = new() { Name = "codex-mini", Version = "2025-05-16", Format = "OpenAI" };
+
+        /// <summary>
+        /// computer-use-preview is the model for Computer Use Agent for use in Responses API. You can use computer-use-preview model to get instructions to control a browser on your computer screen and take action on a user&apos;s behalf.
+        /// </summary>
+        public static readonly AIFoundryModel ComputerUsePreview = new() { Name = "computer-use-preview", Version = "2025-03-11", Format = "OpenAI" };
 
         /// <summary>
         /// DALL-E 3 generates images from text prompts that are provided by the user. DALL-E 3 is generally available for use on Azure OpenAI. The image generation API creates an image from a text prompt. It does not edit existing images or create variations. Learn more at: &lt;https://learn.microsoft.com/azure/ai-services/openai/concepts/models#dall-e&gt;
@@ -369,6 +426,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt41Nano = new() { Name = "gpt-4.1-nano", Version = "2025-04-14", Format = "OpenAI" };
 
         /// <summary>
+        /// the largest and strongest general purpose model in the gpt model family up to date, best suited for diverse text and image tasks.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt45Preview = new() { Name = "gpt-4.5-preview", Version = "2025-02-27", Format = "OpenAI" };
+
+        /// <summary>
         /// OpenAI&apos;s most advanced multimodal model in the gpt-4o family. Can handle both text and image inputs.
         /// </summary>
         public static readonly AIFoundryModel Gpt4o = new() { Name = "gpt-4o", Version = "2024-11-20", Format = "OpenAI" };
@@ -414,9 +476,24 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt4oTranscribe = new() { Name = "gpt-4o-transcribe", Version = "2025-03-20", Format = "OpenAI" };
 
         /// <summary>
+        /// A cutting-edge speech-to-text solution that deliverables reliable and accurate transcripts; now equipped with diarization support aka identifying different speakers through the transcription.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt4oTranscribeDiarize = new() { Name = "gpt-4o-transcribe-diarize", Version = "2025-10-15", Format = "OpenAI" };
+
+        /// <summary>
+        /// gpt-5 is designed for logic-heavy and multi-step tasks.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt5 = new() { Name = "gpt-5", Version = "2025-08-07", Format = "OpenAI" };
+
+        /// <summary>
         /// gpt-5-chat (preview) is an advanced, natural, multimodal, and context-aware conversations for enterprise applications.
         /// </summary>
         public static readonly AIFoundryModel Gpt5Chat = new() { Name = "gpt-5-chat", Version = "2025-10-03", Format = "OpenAI" };
+
+        /// <summary>
+        /// gpt-5-codex is designed for steerability, front end development, and interactivity.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt5Codex = new() { Name = "gpt-5-codex", Version = "2025-09-15", Format = "OpenAI" };
 
         /// <summary>
         /// gpt-5-mini is a lightweight version for cost-sensitive applications.
@@ -429,9 +506,44 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt5Nano = new() { Name = "gpt-5-nano", Version = "2025-08-07", Format = "OpenAI" };
 
         /// <summary>
+        /// gpt-5-pro uses more compute to think harder and provide consistently better answers.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt5Pro = new() { Name = "gpt-5-pro", Version = "2025-10-06", Format = "OpenAI" };
+
+        /// <summary>
+        /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
+        /// </summary>
+        public static readonly AIFoundryModel GptAudio = new() { Name = "gpt-audio", Version = "2025-08-28", Format = "OpenAI" };
+
+        /// <summary>
+        /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
+        /// </summary>
+        public static readonly AIFoundryModel GptAudioMini = new() { Name = "gpt-audio-mini", Version = "2025-10-06", Format = "OpenAI" };
+
+        /// <summary>
+        /// An efficient AI solution for diverse text and image tasks, including text to image, image to image, inpainting, and prompt transformation.
+        /// </summary>
+        public static readonly AIFoundryModel GptImage1 = new() { Name = "gpt-image-1", Version = "2025-04-15", Format = "OpenAI" };
+
+        /// <summary>
+        /// An efficient AI solution for diverse text and image tasks, including high quality, cheap text to image generation
+        /// </summary>
+        public static readonly AIFoundryModel GptImage1Mini = new() { Name = "gpt-image-1-mini", Version = "2025-10-06", Format = "OpenAI" };
+
+        /// <summary>
         /// Push the open model frontier with GPT-OSS models, released under the permissive Apache 2.0 license, allowing anyone to use, modify, and deploy them freely.
         /// </summary>
         public static readonly AIFoundryModel GptOss120b = new() { Name = "gpt-oss-120b", Version = "4", Format = "OpenAI" };
+
+        /// <summary>
+        /// A new S2S (speech to speech) model with improved instruction following.
+        /// </summary>
+        public static readonly AIFoundryModel GptRealtime = new() { Name = "gpt-realtime", Version = "2025-08-28", Format = "OpenAI" };
+
+        /// <summary>
+        /// gpt-realtime-mini is a smaller version of gpt-realtime S2S (speech to speech) model built on chive architecture. This model excels at instruction following and is optimized for cost efficiency.
+        /// </summary>
+        public static readonly AIFoundryModel GptRealtimeMini = new() { Name = "gpt-realtime-mini", Version = "2025-10-06", Format = "OpenAI" };
 
         /// <summary>
         /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
@@ -444,9 +556,29 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel O1Mini = new() { Name = "o1-mini", Version = "2024-09-12", Format = "OpenAI" };
 
         /// <summary>
+        /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
+        /// </summary>
+        public static readonly AIFoundryModel O1Preview = new() { Name = "o1-preview", Version = "1", Format = "OpenAI" };
+
+        /// <summary>
+        /// o3 includes significant improvements on quality and safety while supporting the existing features of o1 and delivering comparable or better performance.
+        /// </summary>
+        public static readonly AIFoundryModel O3 = new() { Name = "o3", Version = "2025-04-16", Format = "OpenAI" };
+
+        /// <summary>
+        /// The o3 series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o1-pro model uses more compute to think harder and provide consistently better answers.
+        /// </summary>
+        public static readonly AIFoundryModel O3DeepResearch = new() { Name = "o3-deep-research", Version = "2025-06-26", Format = "OpenAI" };
+
+        /// <summary>
         /// o3-mini includes the o1 features with significant cost-efficiencies for scenarios requiring high performance.
         /// </summary>
         public static readonly AIFoundryModel O3Mini = new() { Name = "o3-mini", Version = "2025-01-31", Format = "OpenAI" };
+
+        /// <summary>
+        /// The o3 series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o1-pro model uses more compute to think harder and provide consistently better answers.
+        /// </summary>
+        public static readonly AIFoundryModel O3Pro = new() { Name = "o3-pro", Version = "2025-06-10", Format = "OpenAI" };
 
         /// <summary>
         /// o4-mini includes significant improvements on quality and safety while supporting the existing features of o3-mini and delivering comparable or better performance.
@@ -487,13 +619,33 @@ public partial class AIFoundryModel
         /// The Whisper models are trained for speech recognition and translation tasks, capable of transcribing speech audio into the text in the language it is spoken (automatic speech recognition) as well as translated into English (speech translation). Researchers at OpenAI developed the models to study the robustness of speech processing systems trained under large-scale weak supervision. The model version 001 corresponds to whisper large v2. Max request data size: 25mb of audio can be converted from speech to text per API request.
         /// </summary>
         public static readonly AIFoundryModel Whisper = new() { Name = "whisper", Version = "001", Format = "OpenAI" };
+    }
 
+    /// <summary>
+    /// Models published by Stability AI.
+    /// </summary>
+    public static partial class StabilityAI
+    {
+        /// <summary>
+        /// At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family. This model is ideal for professional use cases at 1 megapixel resolution. Stable Diffusion 3.5 Large produces diverse outputs, creating images that are representative of the world, with different skin tones and features, all without requiring extensive prompting.  It also offers unmatched versatility, generating visuals in virtually any style, from 3D and photography to painting and line art. Our analysis shows that Stable Diffusion 3.5 Large leads the market in prompt adherence and rivals significantly larger models in image quality.
+        /// </summary>
+        public static readonly AIFoundryModel StableDiffusion35Large = new() { Name = "Stable-Diffusion-3.5-Large", Version = "1", Format = "Stability AI" };
+
+        /// <summary>
+        /// Leveraging an enhanced version of SDXL, Stable Image Core, delivers exceptional speed and efficiency while maintaining the high-quality output synonymous with Stable Diffusion models.
+        /// </summary>
+        public static readonly AIFoundryModel StableImageCore = new() { Name = "Stable-Image-Core", Version = "1", Format = "Stability AI" };
+
+        /// <summary>
+        /// Powered by the advanced capabilities of Stable Diffusion 3.5 Large, Stable Image Ultra sets a new standard in photorealism. Stable Image Ultra is ideal for product imagery in marketing and advertising. It also excels in typography, dynamic lighting, and vibrant color rendering.
+        /// </summary>
+        public static readonly AIFoundryModel StableImageUltra = new() { Name = "Stable-Image-Ultra", Version = "1", Format = "Stability AI" };
     }
 
     /// <summary>
     /// Models published by xAI.
     /// </summary>
-    public static class XAI
+    public static partial class XAI
     {
         /// <summary>
         /// Grok 3 is xAI&apos;s debut model, pretrained by Colossus at supermassive scale to excel in specialized domains like finance, healthcare, and the law.
@@ -505,6 +657,24 @@ public partial class AIFoundryModel
         /// </summary>
         public static readonly AIFoundryModel Grok3Mini = new() { Name = "grok-3-mini", Version = "1", Format = "xAI" };
 
-    }
+        /// <summary>
+        /// Grok 4 is the latest reasoning model from xAI with advanced reasoning and tool-use capabilities, enabling it to achieve new state-of-the-art performance across challenging academic and industry benchmarks.
+        /// </summary>
+        public static readonly AIFoundryModel Grok4 = new() { Name = "grok-4", Version = "1", Format = "xAI" };
 
+        /// <summary>
+        /// Grok 4 Fast is an efficiency-focused large language model developed by xAI, pre-trained on general-purpose data and post-trained on task demonstrations and tool use, with built-in safety features including refusal behaviors, a fixed system prompt enforcing
+        /// </summary>
+        public static readonly AIFoundryModel Grok4FastNonReasoning = new() { Name = "grok-4-fast-non-reasoning", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok 4 Fast is an efficiency-focused large language model developed by xAI, pre-trained on general-purpose data and post-trained on task demonstrations and tool use, with built-in safety features including refusal behaviors, a fixed system prompt enforcing
+        /// </summary>
+        public static readonly AIFoundryModel Grok4FastReasoning = new() { Name = "grok-4-fast-reasoning", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok Code Fast 1 is a fast, economical AI model for agentic coding, built from scratch with a new architecture, trained on programming-rich data, and fine-tuned for real-world coding tasks like bug fixes and project setup.
+        /// </summary>
+        public static readonly AIFoundryModel GrokCodeFast1 = new() { Name = "grok-code-fast-1", Version = "1", Format = "xAI" };
+    }
 }

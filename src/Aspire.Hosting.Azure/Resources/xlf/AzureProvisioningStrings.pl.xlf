@@ -81,6 +81,31 @@ Aby dowiedzieć się więcej, zobacz [dokumentację aprowizacji platformy Azure]
         <target state="translated">Wybierz subskrypcję platformy Azure:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Dzierżawa platformy Azure</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">Identyfikator dzierżawy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Wprowadź identyfikator dzierżawy platformy Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">Wybierz identyfikator dzierżawy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Wybierz dzierżawę platformy Azure:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">Nazwa grupy zasobów musi być prawidłową nazwą grupy zasobów platformy Azure.</target>
@@ -89,6 +114,11 @@ Aby dowiedzieć się więcej, zobacz [dokumentację aprowizacji platformy Azure]
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">Identyfikator subskrypcji musi być prawidłowym identyfikatorem GUID.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">Identyfikator dzierżawcy musi być prawidłowym identyfikatorem GUID.</target>
         <note />
       </trans-unit>
     </body>

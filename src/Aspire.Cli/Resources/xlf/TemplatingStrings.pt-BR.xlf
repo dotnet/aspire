@@ -22,19 +22,24 @@
         <target state="translated">NUnit</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">React (Vite) e iniciador FastAPI</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
         <target state="translated">Padrões de serviço</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
-        <source>Single-file AppHost (experimental)</source>
-        <target state="translated">AppHost de Arquivo Único (experimental)</target>
+        <source>Empty AppHost</source>
+        <target state="translated">AppHost Vazio</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Starter template</source>
-        <target state="translated">Modelo inicial</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Iniciador de API mínimo e Blazor</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
@@ -150,6 +155,26 @@
       <trans-unit id="Unknown">
         <source>Unknown</source>
         <target state="translated">Desconhecido</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_Description">
+        <source>Configures whether to use *.dev.localhost URLs for local development.</source>
+        <target state="translated">Configura se as URLs *.dev.localhost devem ser usadas para desenvolvimento local.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_Prompt">
+        <source>Use *.dev.localhost URLs</source>
+        <target state="translated">Usar URLs *.dev.localhost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UnexpectedChoice">
+        <source>Unexpected choice for *.dev.localhost option</source>
+        <target state="translated">Opção inesperada para a opção *.dev.localhost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UsingLocalhostTld">
+        <source>Using *.dev.localhost URLs for local development.</source>
+        <target state="translated">Usando URLs *.dev.localhost para desenvolvimento local.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">

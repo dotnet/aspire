@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
@@ -45,9 +46,22 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             arguments, 
             $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} succeeded.",
-            $"{Name} tag failed with exit code {{ExitCode}}.",
+            $"{Name} tag failed with exit code {{0}}.",
             cancellationToken,
             localImageName, targetImageName).ConfigureAwait(false);
+    }
+
+    public virtual async Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"rmi \"{imageName}\"";
+
+        await ExecuteContainerCommandAsync(
+            arguments,
+            $"{Name} rmi for {{ImageName}} failed with exit code {{ExitCode}}.",
+            $"{Name} rmi for {{ImageName}} succeeded.",
+            $"{Name} rmi failed with exit code {{0}}.",
+            cancellationToken,
+            imageName).ConfigureAwait(false);
     }
 
     public virtual async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
@@ -58,9 +72,52 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             arguments, 
             $"{Name} push for {{ImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} push for {{ImageName}} succeeded.",
-            $"{Name} push failed with exit code {{ExitCode}}.",
+            $"{Name} push failed with exit code {{0}}.",
             cancellationToken,
             imageName).ConfigureAwait(false);
+    }
+
+    public virtual async Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
+    {
+        // Escape quotes in arguments to prevent command injection
+        var escapedRegistryServer = registryServer.Replace("\"", "\\\"");
+        var escapedUsername = username.Replace("\"", "\\\"");
+        var arguments = $"login \"{escapedRegistryServer}\" --username \"{escapedUsername}\" --password-stdin";
+        
+        var spec = new ProcessSpec(RuntimeExecutable)
+        {
+            Arguments = arguments,
+            StandardInputContent = password,
+            OnOutputData = output =>
+            {
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+            },
+            OnErrorData = error =>
+            {
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+        
+        _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, arguments);
+        _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                _logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", Name, registryServer, processResult.ExitCode);
+                throw new DistributedApplicationException($"{Name} login failed with exit code {processResult.ExitCode}.");
+            }
+
+            _logger.LogInformation("{RuntimeName} login to {RegistryServer} succeeded.", Name, registryServer);
+        }
     }
 
     /// <summary>
@@ -82,7 +139,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     {
         var spec = CreateProcessSpec(arguments);
         
-        _logger.LogInformation("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
@@ -131,7 +188,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             }
         }
         
-        _logger.LogInformation("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
@@ -147,7 +204,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
                 return processResult.ExitCode;
             }
 
-            _logger.LogInformation(successLogTemplate, logArguments);
+            _logger.LogDebug(successLogTemplate, logArguments);
             return processResult.ExitCode;
         }
     }
@@ -214,11 +271,11 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             Arguments = arguments,
             OnOutputData = output =>
             {
-                _logger.LogInformation("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
             },
             OnErrorData = error =>
             {
-                _logger.LogInformation("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true

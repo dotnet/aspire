@@ -77,6 +77,11 @@
         <target state="translated">No se pudo actualizar la referencia del paquete para {0} en el proyecto {1}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FallbackParsingWarning">
+        <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
+        <target state="translated">Nota: El plan de actualización se generó usando un análisis alternativo debido a un SDK de AppHost no resoluble. El análisis de dependencias puede ser menos preciso.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MappingAddedFormat">
         <source>   Mapping: {0} (added)</source>
         <target state="translated">   Asignación: {0} (agregado)</target>
@@ -90,6 +95,11 @@
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
         <target state="translated">   Asignación: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoAppHostFoundUpdateCliPrompt">
+        <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
+        <target state="translated">No se encontró ningún proyecto de AppHost. ¿Quiere actualizar la CLI de Aspire en su lugar?</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
@@ -150,6 +160,11 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">Ruta de acceso al código inesperada.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
+        <source>An update is available for the Aspire CLI. Would you like to update it now?</source>
+        <target state="translated">Hay una actualización disponible para la CLI de Aspire. ¿Quieres actualizarla ahora?</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">

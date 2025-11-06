@@ -358,6 +358,7 @@ internal static class ContainerFileSystemItemExtensions
         {
             entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
+            entry.ContinueOnError = file.ContinueOnError;
 
             if (file.Contents is not null && file.SourcePath is not null)
             {
@@ -407,6 +408,10 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
 
+    // If true, errors creating this entry will be ignored (does not apply to directory entries)
+    [JsonPropertyName("continueOnError")]
+    public bool? ContinueOnError { get; set; }
+
     public bool Equals(ContainerFileSystemEntry? other)
     {
         if (other is null)
@@ -434,7 +439,7 @@ internal static class ContainerFileSystemEntryType
     public const string OpenSSL = "openssl";
 }
 
-internal sealed class ContainerStatus : V1Status
+internal sealed record ContainerStatus : V1Status
 {
     // Container name displayed in Docker
     [JsonPropertyName("containerName")]

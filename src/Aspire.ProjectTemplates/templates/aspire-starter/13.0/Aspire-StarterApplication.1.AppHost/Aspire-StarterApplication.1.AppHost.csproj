@@ -1,6 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <Sdk Name="Aspire.AppHost.Sdk" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+<Project Sdk="Aspire.AppHost.Sdk/!!REPLACE_WITH_LATEST_VERSION!!">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -15,11 +13,10 @@
     <ProjectReference Include="..\XmlEncodedProjectName.Web\XmlEncodedProjectName.Web.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
   <!--#if (UseRedisCache) -->
+  <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Redis" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-  <!--#endif -->
   </ItemGroup>
 
+  <!--#endif -->
 </Project>

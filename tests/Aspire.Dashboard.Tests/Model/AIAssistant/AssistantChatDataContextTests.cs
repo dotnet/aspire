@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Model;
@@ -20,89 +21,6 @@ namespace Aspire.Dashboard.Tests.Model.AIAssistant;
 public class AssistantChatDataContextTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-    [Fact]
-    public void GetLimitFromEndWithSummary_UnderLimits_ReturnAll()
-    {
-        // Arrange
-        var values = new List<string>();
-        for (var i = 0; i < 10; i++)
-        {
-            values.Add(new string((char)('a' + i), 16));
-        }
-
-        // Act
-        var (items, message) = AssistantChatDataContext.GetLimitFromEndWithSummary(values, totalValues: values.Count, limit: 20, "test item", s => s, s => ((string)s).Length);
-
-        // Assert
-        Assert.Equal(10, items.Count);
-        Assert.Equal("Returned 10 test items.", message);
-    }
-
-    [Fact]
-    public void GetLimitFromEndWithSummary_UnderTotal_ReturnPassedIn()
-    {
-        // Arrange
-        var values = new List<string>();
-        for (var i = 0; i < 10; i++)
-        {
-            values.Add(new string((char)('a' + i), 16));
-        }
-
-        // Act
-        var (items, message) = AssistantChatDataContext.GetLimitFromEndWithSummary(values, totalValues: 100, limit: 20, "test item", s => s, s => ((string)s).Length);
-
-        // Assert
-        Assert.Equal(10, items.Count);
-        Assert.Equal("Returned latest 10 test items. Earlier 90 test items not returned because of size limits.", message);
-    }
-
-    [Fact]
-    public void GetLimitFromEndWithSummary_ExceedCountLimit_ReturnMostRecentItems()
-    {
-        // Arrange
-        var values = new List<string>();
-        for (var i = 0; i < 10; i++)
-        {
-            values.Add(new string((char)('a' + i), 2));
-        }
-
-        // Act
-        var (items, message) = AssistantChatDataContext.GetLimitFromEndWithSummary(values, totalValues: 100, limit: 5, "test item", s => s, s => ((string)s).Length);
-
-        // Assert
-        Assert.Collection(items,
-            s => Assert.Equal("ff", s),
-            s => Assert.Equal("gg", s),
-            s => Assert.Equal("hh", s),
-            s => Assert.Equal("ii", s),
-            s => Assert.Equal("jj", s));
-        Assert.Equal("Returned latest 5 test items. Earlier 95 test items not returned because of size limits.", message);
-    }
-
-    [Fact]
-    public void GetLimitFromEndWithSummary_ExceedTokenLimit_ReturnMostRecentItems()
-    {
-        const int textLength = 1024 * 2;
-
-        // Arrange
-        var values = new List<string>();
-        for (var i = 0; i < 10; i++)
-        {
-            values.Add(new string((char)('a' + i), textLength));
-        }
-
-        // Act
-        var (items, message) = AssistantChatDataContext.GetLimitFromEndWithSummary(values, limit: 10, "test item", s => s, s => ((string)s).Length);
-
-        // Assert
-        Assert.Collection(items,
-            s => Assert.Equal(new string('g', textLength), s),
-            s => Assert.Equal(new string('h', textLength), s),
-            s => Assert.Equal(new string('i', textLength), s),
-            s => Assert.Equal(new string('j', textLength), s));
-        Assert.Equal("Returned latest 4 test items. Earlier 6 test items not returned because of size limits.", message);
-    }
 
     [Fact]
     public async Task GetStructuredLogs_ExceedTokenLimit_ReturnMostRecentItems()
@@ -213,7 +131,8 @@ public class AssistantChatDataContextTests
             telemetryRepository ?? CreateRepository(),
             dashboardClient ?? new MockDashboardClient(),
             [],
-            new TestStringLocalizer<Dashboard.Resources.AIAssistant>());
+            new TestStringLocalizer<Dashboard.Resources.AIAssistant>(),
+            new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
 
         return context;
     }

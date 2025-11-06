@@ -38,6 +38,24 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     }
 
     /// <summary>
+    /// Gets the connection URI expression for the SQL Server database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mssql://{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the SQL Server database.
+    /// </summary>
+    /// <remarks>
+    /// <para>Format: <c>jdbc:sqlserver://{host}:{port};trustServerCertificate=true;databaseName={database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
+    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
@@ -47,4 +65,11 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

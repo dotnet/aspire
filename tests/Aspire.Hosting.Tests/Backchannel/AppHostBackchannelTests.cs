@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Net.Sockets;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.VisualStudio.Threading;
@@ -43,7 +42,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
 
         _ = await backchannelConnectedTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
-        
+
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
@@ -104,16 +103,4 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 file sealed class TestResource(string name) : Resource(name)
 {
 
-}
-
-file sealed class DummyPublisher : IDistributedApplicationPublisher
-{
-    public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-}
-
-file sealed class DummyPublisherOptions : PublishingOptions
-{
 }

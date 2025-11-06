@@ -1,0 +1,7 @@
+﻿ARG SOURCE_IMAGENAME=myimage:latest
+
+FROM ${SOURCE_IMAGENAME} AS source_stage
+
+FROM projectname:temp-
+COPY --from=source_stage /app/dist /app/./wwwroot
+

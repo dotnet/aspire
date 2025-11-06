@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param appservice_outputs_azure_container_registry_endpoint string
@@ -10,6 +10,8 @@ param appservice_outputs_azure_container_registry_managed_identity_id string
 param appservice_outputs_azure_container_registry_managed_identity_client_id string
 
 param myapp_containerimage string
+
+param myapp_containerport string
 
 param myidentity_outputs_id string
 
@@ -27,6 +29,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
     authType: 'UserAssigned'
     image: myapp_containerimage
     isMain: true
+    targetPort: myapp_containerport
     userManagedIdentityClientId: appservice_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
@@ -44,6 +47,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: appservice_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
+        {
+          name: 'WEBSITES_PORT'
+          value: myapp_containerport
+        }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
           value: 'true'
@@ -104,7 +111,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   }
 }
 
-resource myapp_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource myapp_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, appservice_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: appservice_outputs_azure_website_contributor_managed_identity_principal_id

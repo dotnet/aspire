@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <NoWarn>$(NoWarn);ASPIREHOSTINGPYTHON001;</NoWarn>
 
     <!--
       Do not run tests in Helix at all

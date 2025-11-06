@@ -100,13 +100,23 @@ public class ContainerResourceTests
             {
                 e.UriScheme = "http";
                 e.AllocatedEndpoint = new(e, "localhost", 1234, targetPortExpression: "1234");
+
+                // For container-container lookup we need to add an AllocatedEndpoint on the container network side
+                var ccae = new AllocatedEndpoint(e, KnownHostNames.DefaultContainerTunnelHostName, 2234, EndpointBindingMode.SingleAddress, targetPortExpression: "2234", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                snapshot.SetValue(ccae);
+                e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
             });
 
         var c2 = appBuilder.AddContainer("container", "none")
              .WithEndpoint("ep", e =>
              {
                  e.UriScheme = "http";
-                 e.AllocatedEndpoint = new(e, "localhost", 5678, targetPortExpression: "5678");
+                 // We only care about the container-side endpoint for this test
+                 var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                 var ae = new AllocatedEndpoint(e, "localhost", 5678, EndpointBindingMode.SingleAddress, targetPortExpression: "5678", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                 snapshot.SetValue(ae);
+                 e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
              })
              .WithArgs(context =>
              {
@@ -122,7 +132,7 @@ public class ContainerResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
-            arg => Assert.Equal("http://c1:1234", arg), // this is the container hostname
+            arg => Assert.Equal("http://c1:2234", arg), 
             arg => Assert.Equal("connectionString", arg),
             arg => Assert.Equal("http://container:5678", arg));
 

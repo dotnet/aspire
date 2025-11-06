@@ -1,8 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES004
+
 using System.Text.Json;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -37,17 +42,55 @@ internal sealed class JsonDocumentManifestPublisher(
     }
 }
 
-internal static class JsonDocumentManifestPublisherExtensions
+/// <summary>
+/// Service that stores the manifest document in memory for test purposes.
+/// </summary>
+internal sealed class JsonDocumentManifestStore
 {
-    public static JsonDocumentManifestPublisher GetManifestPublisher(this TestProgram testProgram)
-    {
-        var publisher = testProgram.App?.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest") as JsonDocumentManifestPublisher;
-        return publisher ?? throw new InvalidOperationException($"Manifest publisher was not {nameof(JsonDocumentManifestPublisher)}");
-    }
+    private JsonDocument? _manifestDocument;
 
-    public static JsonDocumentManifestPublisher GetManifestPublisher(this IServiceProvider services)
+    public JsonDocument ManifestDocument
     {
-        var publisher = services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest") as JsonDocumentManifestPublisher;
-        return publisher ?? throw new InvalidOperationException($"Manifest publisher was not {nameof(JsonDocumentManifestPublisher)}");
+        get => _manifestDocument ?? throw new InvalidOperationException("JsonDocument not available.");
+        set => _manifestDocument = value;
+    }
+}
+
+/// <summary>
+/// Provides extension methods for adding JSON manifest publishing to the pipeline.
+/// </summary>
+internal static class JsonDocumentManifestPublishingExtensions
+{
+    /// <summary>
+    /// Adds a step to the pipeline that publishes an Aspire manifest as a JsonDocument to memory.
+    /// </summary>
+    /// <param name="pipeline">The pipeline to add the JSON manifest publishing step to.</param>
+    /// <returns>The pipeline for chaining.</returns>
+    public static IDistributedApplicationPipeline AddJsonDocumentManifestPublishing(this IDistributedApplicationPipeline pipeline)
+    {
+        var step = new PipelineStep
+        {
+            Name = "publish-json-manifest",
+            Action = async context =>
+            {
+                var executionContext = context.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+                var manifestStore = context.Services.GetRequiredService<JsonDocumentManifestStore>();
+
+                using var stream = new MemoryStream();
+                using var writer = new Utf8JsonWriter(stream, new() { Indented = true });
+
+                var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
+                var manifestPath = outputService.GetOutputDirectory();
+                var publishingContext = new ManifestPublishingContext(executionContext, manifestPath, writer, context.CancellationToken);
+
+                await publishingContext.WriteModel(context.Model, context.CancellationToken).ConfigureAwait(false);
+
+                stream.Seek(0, SeekOrigin.Begin);
+                manifestStore.ManifestDocument = await JsonDocument.ParseAsync(stream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
+            }
+        };
+        pipeline.AddStep(step);
+
+        return pipeline;
     }
 }
