@@ -65,3 +65,4 @@ export const authorizationAndDcpHeadersRequired = vscode.l10n.t('Authorization a
 export const buildFailedForProjectWithError = (project: string, error: string) => vscode.l10n.t('Build failed for project {0} with error: {1}.', project, error);
 export const lookingForDevkitBuildTask = vscode.l10n.t('C# Dev Kit is installed, looking for C# Dev Kit build task...');
 export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not installed, building using dotnet CLI...');
+export const pythonExtensionRecommendationTitle = vscode.l10n.t('💡 Python extension recommended to debug this application');
