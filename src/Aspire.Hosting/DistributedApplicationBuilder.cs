@@ -25,6 +25,7 @@ using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +34,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting;
 
@@ -63,6 +63,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
+    private readonly IUserSecretsManager _userSecretsManager;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -287,6 +288,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Core things
+        // Create and register the user secrets manager
+        _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
+        // Always register IUserSecretsManager so dependencies can resolve
+        _innerBuilder.Services.AddSingleton(_userSecretsManager);
+        
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
@@ -355,13 +361,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
                     // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
                     // of persistent containers (as a new key would be a spec change).
-                    SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
 
                     // Set a random API key for the MCP Server if one isn't already present in configuration.
                     // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
                     // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
                     // of MCP clients.
-                    SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
 
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
