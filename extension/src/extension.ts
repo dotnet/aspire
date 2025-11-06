@@ -95,7 +95,7 @@ async function tryExecuteCommand(commandName: string, terminalProvider: AspireTe
     sendTelemetryEvent(`${commandName}.invoked`);
 
     // TODO add walkthrough commands
-    const cliCheckExcludedCommands: string[] = [];
+    const cliCheckExcludedCommands: string[] = ["aspire-vscode.settings", "aspire-vscode.configureLaunchJson"];
 
     // Skip CLI check for walkthrough commands themselves
     if (!cliCheckExcludedCommands.includes(commandName)) {
