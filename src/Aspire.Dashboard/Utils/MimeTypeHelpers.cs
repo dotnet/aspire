@@ -34,6 +34,14 @@ public static class MimeTypeHelpers
         "audio/webm"
     };
 
+    public static readonly HashSet<string> SupportedVideoTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/webm"
+    };
+
     // AI generated list of extensions.
     // Combines 100 commonly used mime types with https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types.
     public static readonly Dictionary<string, string> MimeToExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
