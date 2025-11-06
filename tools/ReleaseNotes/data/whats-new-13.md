@@ -9,7 +9,7 @@ ms.date: 11/03/2025
 📢 **Aspire 13.0 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot cloud-native application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
 
 This release introduces:
-- **First-class Python support**: Debug Python modules in VS Code, deploy with uvicorn, use modern tooling like uv, and generate production Dockerfiles automatically
+- **First-class Python support**: Debug Python modules in VS Code, deploy with uvicorn, flexible package management (uv, pip, or venv), and generate production Dockerfiles automatically
 - **First-class JavaScript support**: Vite and npm-based apps with package manager auto-detection, debugging support, and container-based build pipelines
 - **Polyglot infrastructure**: Connection properties work in any language (URI, JDBC, individual properties), certificate trust across languages and containers
 - **Container files as build artifacts**: A new paradigm where build outputs are containers, not folders - enabling reproducible, isolated, and portable builds
@@ -131,8 +131,8 @@ Aspire provides three ways to run Python code, each suited to different use case
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Run a Python script directly
-var script = builder.AddPythonScript("data-processor", "./scripts", "process.py")
+// Run a Python application/script directly
+var script = builder.AddPythonApp("data-processor", "./scripts", "process.py")
     .WithReference(database);
 
 // Run a Python module (python -m module_name)
@@ -149,7 +149,7 @@ For Python web applications using ASGI frameworks like FastAPI, Starlette, or Qu
 
 ```csharp
 var api = builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUvEnvironment()  // Use uv for fast, modern Python package management
+    .WithUv()  // Use uv for fast, modern Python package management
     .WithExternalHttpEndpoints()
     .WithReference(database)
     .WithHttpHealthCheck("/health");
@@ -161,20 +161,47 @@ The `AddUvicornApp` method automatically:
 - Supports hot-reload during development
 - Integrates with Aspire's health check system
 
-#### Modern Python Tooling with uv
+#### Python Package Management
 
-Aspire 13.0 integrates with [uv](https://github.com/astral-sh/uv), the modern Python package and project manager:
+Aspire 13.0 provides flexible Python package management following the same patterns as JavaScript (npm, yarn, pnpm).
+
+**Using uv (recommended):**
+
+Aspire integrates with [uv](https://github.com/astral-sh/uv), the modern Python package and project manager:
 
 ```csharp
 builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUvEnvironment();  // Automatically uses uv for package management
+    .WithUv();  // Use uv for package management
 ```
 
-When using `WithUvEnvironment()`, Aspire:
-- Uses uv for fast, reliable dependency resolution
-- Automatically syncs dependencies from `pyproject.toml`
+When using `WithUv()`, Aspire:
+- Automatically runs `uv sync` to install dependencies from `pyproject.toml`
 - Creates isolated virtual environments per project
 - Leverages uv's performance benefits (10-100x faster than pip)
+- Auto-detects Python version from project configuration
+
+**Using pip:**
+
+For existing projects using pip and `requirements.txt`, use `WithPip()`:
+
+```csharp
+builder.AddUvicornApp("api", "./api", "main:app")
+    .WithPip();  // Use pip for package management
+```
+
+When using `WithPip()`, Aspire:
+- Automatically installs dependencies from `requirements.txt`
+- Detects virtual environments (`.venv`) by walking up parent directories
+- Works with existing pip-based workflows
+
+**Using an existing virtual environment:**
+
+If you already have a virtual environment set up, use `WithVirtualEnvironment()`:
+
+```csharp
+builder.AddPythonApp("api", "./api", "main.py")
+    .WithVirtualEnvironment();  // Use existing .venv
+```
 
 #### VS Code Debugging Support
 
@@ -182,7 +209,7 @@ Python applications can be debugged directly in VS Code with full breakpoint sup
 
 **Supported debugging scenarios:**
 
-- **Python scripts**: Debug `AddPythonScript` with breakpoints and variable inspection
+- **Python scripts**: Debug `AddPythonApp` with breakpoints and variable inspection
 - **Python modules**: Debug `AddPythonModule` with module resolution
 - **Flask applications**: Debug Flask apps with auto-reload
 - **Uvicorn/FastAPI**: Debug ASGI applications with async/await support
@@ -195,11 +222,20 @@ Python applications can be debugged directly in VS Code with full breakpoint sup
 Aspire automatically generates production-ready Dockerfiles for Python applications when publishing:
 
 ```csharp
+// With uv (recommended)
 builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUvEnvironment();
+    .WithUv();
+
+// Or with pip
+builder.AddUvicornApp("api", "./api", "main:app")
+    .WithPip();
 ```
 
-The generated Dockerfile uses appropriate Python base images, installs dependencies (using uv or pip), and follows container best practices.
+The generated Dockerfile automatically adapts based on your package manager choice:
+- **With uv**: Uses uv for fast dependency installation from `pyproject.toml`
+- **With pip**: Uses pip to install dependencies from `requirements.txt`
+
+Both approaches use appropriate Python base images and follow container best practices.
 
 #### Python Version Detection
 
@@ -725,7 +761,7 @@ The MCP server uses streamable HTTP with API key authentication for secure acces
 
 **Available tools:**
 
-- `list_resources` - Retrieve all resources with state and metadata
+- `list_resources` - Retrieve all resources with state, endpoints, environment variables, and metadata
 - `list_console_logs` - Access resource console output
 - `list_structured_logs` - Retrieve telemetry data, optionally filtered by resource
 - `list_traces` - Access distributed trace information
