@@ -93,7 +93,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         var overrideFeed = configuration["overrideStagingFeed"];
         if (!string.IsNullOrEmpty(overrideFeed))
         {
-            return overrideFeed;
+            // Validate that the override URL is well-formed
+            if (Uri.TryCreate(overrideFeed, UriKind.Absolute, out var uri) && 
+                (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            {
+                return overrideFeed;
+            }
+            // Invalid URL, fall through to default behavior
         }
 
         // Extract commit hash from assembly version to build staging feed URL
