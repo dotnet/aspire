@@ -97,7 +97,7 @@ public abstract class DebuggerProperties
     public virtual string Request { get; init; } = "launch";
 
     /// <summary>
-    /// The reader-friendly name to appear in the Debug launch configuration dropdown.
+    /// The user-friendly name to appear in the Debug launch configuration dropdown.
     /// </summary>
     [JsonPropertyName("name")]
     public abstract string Name { get; init; }
