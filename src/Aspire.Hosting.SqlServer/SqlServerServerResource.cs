@@ -72,10 +72,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         builder.Append($"{Host}");
         builder.AppendLiteral(":");
         builder.Append($"{Port}");
-        builder.AppendLiteral(";user=");
-        builder.Append($"{UserNameReference:uri}");
-        builder.AppendLiteral(";password=");
-        builder.Append($"{PasswordParameter:uri}");
+        builder.AppendLiteral(";trustServerCertificate=true");
 
         if (!string.IsNullOrEmpty(databaseName))
         {
@@ -84,8 +81,6 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
             builder.Append($"{databaseNameReference}");
         }
 
-        builder.AppendLiteral(";trustServerCertificate=true");
-
         return builder.Build();
     }
 
@@ -93,7 +88,8 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Gets the JDBC connection string for the SQL Server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true</c>.
+    /// <para>Format: <c>jdbc:sqlserver://{host}:{port};trustServerCertificate=true</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 
