@@ -3,7 +3,7 @@
 
 using System.Reflection;
 using System.Reflection.Emit;
-using Aspire.Hosting.Publishing.Internal;
+using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
