@@ -185,7 +185,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         };
     }
 
-    private record DataInfo(string Url, string MimeType, string? FileName);
+    private record DataInfo(string Url, string MimeType, string FileName);
 
     private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)
     {
