@@ -104,17 +104,39 @@ public class AddNodeAppTests
 
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
-        var expectedDockerfile = $"""
+        var expectedDockerfile = includePackageJson ? 
+            """
+            FROM node:22-alpine AS build
+            
+            WORKDIR /app
+            COPY package*.json ./
+            RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+            COPY . .
+            
+            FROM node:22-alpine AS runtime
+            
+            WORKDIR /app
+            COPY --from=build /app/node_modules ./node_modules
+            COPY --from=build /app/app.js ./app.js
+            
+            ENV NODE_ENV=production
+            EXPOSE 3000
+            
+            USER node
+            
+            ENTRYPOINT ["node","app.js"]
+
+            """.Replace("\r\n", "\n") : 
+            """
             FROM node:22-alpine AS build
             
             WORKDIR /app
             COPY . .
             
-            {(includePackageJson ? "RUN npm ci\n" : "")}
             FROM node:22-alpine AS runtime
             
             WORKDIR /app
-            COPY --from=build /app /app
+            COPY --from=build /app/app.js ./app.js
             
             ENV NODE_ENV=production
             EXPOSE 3000
@@ -155,15 +177,17 @@ public class AddNodeAppTests
             FROM node:22-alpine AS build
 
             WORKDIR /app
+            COPY package*.json ./
+            RUN mypm myinstall
             COPY . .
 
-            RUN mypm myinstall
             RUN mypm mybuild
 
             FROM node:22-alpine AS runtime
 
             WORKDIR /app
-            COPY --from=build /app /app
+            COPY --from=build /app/node_modules ./node_modules
+            COPY --from=build /app/app.js ./app.js
 
             ENV NODE_ENV=production
             EXPOSE 3000
