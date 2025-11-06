@@ -109,8 +109,8 @@ internal static class X509Certificate2Extensions
     /// <summary>
     /// A Subject Key Identifier is used to identify certificate trust chains: https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.2
     /// </summary>
-    /// <param name="certificate"></param>
-    /// <returns></returns>
+    /// <param name="certificate">The certificate to check for a Subject Key Identifier extension.</param>
+    /// <returns>True if the certificate contains a non-empty Subject Key Identifier extension; otherwise, false.</returns>
     public static bool HasSubjectKeyIdentifier(this X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(certificate);
