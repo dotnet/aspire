@@ -8,6 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
@@ -17,8 +18,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
@@ -2052,7 +2053,7 @@ public class DcpExecutorTests
             events ?? new DcpExecutorEvents(),
             new Locations(),
             developerCertificateService,
-            new Hosting.Backchannel.BackchannelLoggerProvider());
+            new FakeBackchannelLoggerProvider());
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -2149,4 +2150,16 @@ public class DcpExecutorTests
     }
 
     private sealed class CustomExecutableLaunchConfiguration(string type) : ExecutableLaunchConfiguration(type);
+
+    private sealed class FakeBackchannelLoggerProvider : IBackchannelLoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName)
+        {
+            return NullLogger.Instance;
+        }
+
+        public void Dispose()
+        {
+        }
+    }
 }

@@ -77,7 +77,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
-    private readonly BackchannelLoggerProvider _backchannelLoggerProvider;
+    private readonly IBackchannelLoggerProvider _backchannelLoggerProvider;
 
     private readonly string _normalizedApplicationName;
 
@@ -112,7 +112,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                        IDeveloperCertificateService developerCertificateService,
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                        BackchannelLoggerProvider backchannelLoggerProvider)
+                        IBackchannelLoggerProvider backchannelLoggerProvider)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -1268,7 +1268,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-                _backchannelLoggerProvider.CreateLogger("DcpExector");
+
                 var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                 {
                     DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger("DcpExector"),

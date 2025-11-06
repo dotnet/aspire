@@ -7,7 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Backchannel;
 
-internal class BackchannelLoggerProvider : ILoggerProvider
+internal interface IBackchannelLoggerProvider : ILoggerProvider;
+
+internal class BackchannelLoggerProvider : IBackchannelLoggerProvider
 {
     private readonly Channel<BackchannelLogEntry> _channel = Channel.CreateUnbounded<BackchannelLogEntry>();
     private readonly IServiceProvider _serviceProvider;

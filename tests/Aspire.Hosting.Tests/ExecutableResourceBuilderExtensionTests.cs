@@ -6,6 +6,7 @@
 
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
@@ -75,14 +76,18 @@ public class ExecutableResourceBuilderExtensionTests
     public void WithDebugSupportAddsAnnotationInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        var launchConfig = new ExecutableLaunchConfiguration("python");
+        var launchConfig = new CustomExecutableLaunchConfiguration("python");
         var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
             .WithDebugSupport(_ => launchConfig, "ms-python.python");
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.NotNull(annotation);
         var exe = new Executable(new ExecutableSpec());
-        annotation.LaunchConfigurationAnnotator(exe, "NoDebug");
+        annotation.LaunchConfigurationAnnotator(exe, new LaunchConfigurationProducerOptions
+        {
+            Mode = "NoDebug",
+            DebugConsoleLogger = NullLogger.Instance
+        });
         Assert.Equal("ms-python.python", annotation.LaunchConfigurationType);
 
         Assert.True(exe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var annotations));
@@ -95,9 +100,11 @@ public class ExecutableResourceBuilderExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
-            .WithDebugSupport(_ => new ExecutableLaunchConfiguration("python"), "ms-python.python");
+            .WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("python"), "ms-python.python");
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.Null(annotation);
     }
+
+    private sealed class CustomExecutableLaunchConfiguration(string type) : ExecutableLaunchConfiguration(type);
 }

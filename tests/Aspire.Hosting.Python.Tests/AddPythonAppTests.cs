@@ -12,8 +12,8 @@ using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using System.Text.Json;
-using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
+using System.Text.Json.Serialization;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -367,7 +367,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var expectedCommand = OperatingSystem.IsWindows()
             ? Path.Join(expectedVenvPath, "Scripts", "python.exe")
             : Path.Join(expectedVenvPath, "bin", "python");
-        
+
         Assert.Equal(expectedCommand, actualCommand);
     }
 
@@ -552,7 +552,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempAppDir = new TempDirectory();
-        
+
         // Create app directory as a subdirectory of AppHost (realistic scenario)
         var appDirName = "python-app";
         var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
@@ -594,7 +594,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     public void WithVirtualEnvironment_PrefersAppDirectoryWhenVenvExistsInBoth()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        
+
         // Create app directory as a subdirectory of AppHost (realistic scenario)
         var appDirName = "python-app";
         var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
@@ -663,7 +663,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     public void WithVirtualEnvironment_ExplicitPath_UsesVerbatim()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        
+
         // Create app directory as a subdirectory of AppHost
         var appDirName = "python-app";
         var appDirPath = Path.Combine(builder.AppHostDirectory, appDirName);
@@ -680,7 +680,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         try
         {
             var scriptName = "main.py";
-            
+
             // Explicitly specify a custom venv path - should use it verbatim, not fall back to AppHost .venv
             var resourceBuilder = builder.AddPythonApp("pythonProject", appDirName, scriptName)
                 .WithVirtualEnvironment("custom-venv");
@@ -2276,6 +2276,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         await eventing.PublishAsync(new BeforeStartEvent(app.Services, appModel), CancellationToken.None);
+    }
+
+    internal sealed class RunSessionInfo
+    {
+        [JsonPropertyName("protocols_supported")]
+        public required string[] ProtocolsSupported { get; set; }
+
+        [JsonPropertyName("supported_launch_configurations")]
+        public string[]? SupportedLaunchConfigurations { get; set; }
     }
 }
 
