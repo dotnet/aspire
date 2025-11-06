@@ -253,6 +253,8 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             }
             else
             {
+                // The part didn't include a name (probably a blob) and we don't know the mime type.
+                // We have to give a download file name without an extension.
                 return "download";
             }
         }

@@ -95,7 +95,10 @@
                                     }
                                     else if (TryGetDataPart(itemPart, MimeTypeHelpers.SupportedAudioTypes, out var audioData))
                                     {
-                                        <audio controls src="@audioData.Url">
+                                        <audio controls>
+                                            <source src="@audioData.Url" type="@audioData.MimeType">
+                                            <!-- If audio file isn't supported then fallback to download link -->
+                                            <a href="@audioData.Url" download="@audioData.FileName">@audioData.FileName</a>
                                         </audio>
                                     }
                                     else if (TryGetDataPart(itemPart, matchingMimeTypes: null, out var otherData))
