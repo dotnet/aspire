@@ -6,7 +6,7 @@ ms.date: 11/03/2025
 
 # What's new in Aspire 13.0
 
-📢 **Aspire 13.0 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot cloud-native application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
+📢 **Aspire 13.0 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
 
 This release introduces:
 - **First-class Python support**: Debug Python modules in VS Code, deploy with uvicorn, flexible package management (uv, pip, or venv), and generate production Dockerfiles automatically
@@ -118,7 +118,7 @@ The easiest way to upgrade to Aspire 13.0 is using the `aspire update` command:
 
 ## 🌐 Aspire as a Polyglot Platform
 
-Aspire 13.0 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot cloud-native application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
+Aspire 13.0 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
 
 ### Python as a First-Class Citizen
 
