@@ -18,10 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Testing" Version="9.5.0" />
+    <PackageReference Include="Aspire.Hosting.Testing" Version="9.5.2" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" Condition=" $(TestFx) == 'xUnit.net' " />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" Condition=" $(TestFx) != 'MSTest' " />
-    <PackageReference Include="MSTest" Version="3.10.2" Condition=" $(TestFx) == 'MSTest' " />
+    <PackageReference Include="MSTest" Version="3.10.5" Condition=" $(TestFx) == 'MSTest' " />
     <PackageReference Include="NUnit" Version="4.4.0" Condition=" $(TestFx) == 'NUnit' " />
     <PackageReference Include="NUnit.Analyzers" Version="4.10.0" Condition=" $(TestFx) == 'NUnit' " />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" Condition=" $(TestFx) == 'NUnit' " />
