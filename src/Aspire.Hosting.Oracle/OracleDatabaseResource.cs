@@ -39,7 +39,8 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     /// Gets the JDBC connection string for the Oracle Database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:oracle:thin:{user}/{password}@//{host}:{port}/{database}</c>.
+    /// <para>Format: <c>jdbc:oracle:thin:@//{host}:{port}/{database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 

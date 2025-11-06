@@ -45,7 +45,7 @@ public class ConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                Assert.Equal("jdbc:oracle:thin:system/{password.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
+                Assert.Equal("jdbc:oracle:thin:@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
             });
     }
 
@@ -66,6 +66,6 @@ public class ConnectionPropertiesTests
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&
-                        property.Value.ValueExpression == "jdbc:oracle:thin:system/{password.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/Orders");
+                        property.Value.ValueExpression == "jdbc:oracle:thin:@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/Orders");
     }
 }
