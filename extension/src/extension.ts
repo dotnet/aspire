@@ -96,7 +96,6 @@ async function tryExecuteCommand(commandName: string, terminalProvider: AspireTe
 
     const cliCheckExcludedCommands: string[] = ["aspire-vscode.settings", "aspire-vscode.configureLaunchJson"];
 
-    // Skip CLI check for walkthrough commands themselves
     if (!cliCheckExcludedCommands.includes(commandName)) {
       const cliPath = terminalProvider.getAspireCliExecutablePath();
       const isCliAvailable = await checkCliAvailableOrRedirect(cliPath);

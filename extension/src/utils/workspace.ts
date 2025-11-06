@@ -238,7 +238,7 @@ export async function checkCliAvailableOrRedirect(cliPath: string): Promise<bool
             dismissLabel
         ).then(selection => {
             if (selection === openCliInstallInstructions) {
-                // Go to Aspire README in external browser
+                // Go to Aspire CLI installation instruction page in external browser
                 vscode.env.openExternal(vscode.Uri.parse('https://aspire.dev/get-started/install-cli/'));
             }
         });
