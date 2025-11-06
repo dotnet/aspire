@@ -935,7 +935,7 @@ public static class PythonAppResourceBuilderExtensions
                         interpreterPath = Path.Join(venvPath, "bin", "python");
                     }
 
-                    options.DebugConsoleLogger.LogInformation("Using Python interpreter from virtual environment at '{InterpreterPath}'", interpreterPath);
+                    options.DebugConsoleLogger.LogDebug("Using Python interpreter '{InterpreterPath}' for resource '{ResourceName}'", interpreterPath, builder.Resource.Name);
                 }
 
                 var modeText = options.Mode == "Debug" ? "Debug" : "Run";
