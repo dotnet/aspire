@@ -365,8 +365,8 @@ public static class PythonAppResourceBuilderExtensions
         });
 
         // Configure required environment variables for custom certificate trust when running as an executable.
-        // TODO: Make CertificateTrustScope.System the default once we're able to validate that certificates are valid for OpenSSL. Otherwise we potentially add invalid certificates to the bundle which causes OpenSSL to error.
         resourceBuilder
+            .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
@@ -787,7 +787,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithVirtualEnvironment("myenv");
-    /// 
+    ///
     /// // Disable automatic venv creation (require venv to exist)
     /// var python2 = builder.AddPythonApp("api2", "../python-api2", "main.py")
     ///     .WithVirtualEnvironment("myenv", createIfNotExists: false);
