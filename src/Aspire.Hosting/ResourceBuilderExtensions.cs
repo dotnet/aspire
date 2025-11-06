@@ -2931,4 +2931,62 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(SupportsDebuggingAnnotation.Create<TLaunchConfiguration>(launchConfigurationType, launchConfigurationProducer));
     }
+
+    /// <summary>
+    /// Configures custom debugger properties for a resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <typeparam name="TDebuggerProperties">The type of the debugger properties.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object
+    /// that is pre-populated with default values based on the resource's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure Python debugger to stop on entry:
+    /// <code lang="csharp">
+    /// var api = builder.AddPythonScript("script", "../app", "main.py")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
+    ///     })
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Enable automatic reload for faster development:
+    /// <code lang="csharp">
+    /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
+    ///     })
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Pass custom arguments to the Python interpreter:
+    /// <code lang="csharp">
+    /// var app = builder.AddPythonModule("app", "../app", "myapp")
+    ///     .WithDebuggerProperties(props =>
+    ///     {
+    ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
+    ///     })
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
+        this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
+        where T : IResource
+        where TDebuggerProperties : DebuggerProperties
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<TDebuggerProperties>(configureDebuggerProperties));
+        return builder;
+    }
 }
