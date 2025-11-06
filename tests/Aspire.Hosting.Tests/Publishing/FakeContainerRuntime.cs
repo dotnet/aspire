@@ -25,6 +25,7 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
     public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
     public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
     public string? CapturedStage { get; private set; }
+    public Func<string, string, string, ContainerBuildOptions?, Dictionary<string, string?>, Dictionary<string, string?>, string?, CancellationToken, Task>? BuildImageAsyncCallback { get; set; }
 
     public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
@@ -65,7 +66,7 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
         return Task.CompletedTask;
     }
 
-    public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         // Capture the arguments for verification in tests
         CapturedBuildArguments = buildArguments;
@@ -79,8 +80,12 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
             throw new InvalidOperationException("Fake container runtime is configured to fail");
         }
 
+        if (BuildImageAsyncCallback is not null)
+        {
+            await BuildImageAsyncCallback(contextPath, dockerfilePath, imageName, options, buildArguments, buildSecrets, stage, cancellationToken);
+        }
+
         // For testing, we don't need to actually build anything
-        return Task.CompletedTask;
     }
 
     public Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
