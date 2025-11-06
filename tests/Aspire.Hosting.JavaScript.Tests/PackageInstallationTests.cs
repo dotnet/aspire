@@ -449,7 +449,7 @@ public class PackageInstallationTests
             .WithNpm();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
-        Assert.Equal(["ci"], installCommand.Args);
+        Assert.Equal(["ci", "--omit=dev"], installCommand.Args);
     }
 
     [Fact]

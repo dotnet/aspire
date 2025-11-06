@@ -65,7 +65,7 @@ public class AddJavaScriptAppTests
             FROM node:22-slim
             WORKDIR /app
             COPY . .
-            RUN pnpm install --prefer-frozen-lockfile
+            RUN pnpm install --prefer-frozen-lockfile --prod
             RUN pnpm run mybuild
 
             """.Replace("\r\n", "\n");

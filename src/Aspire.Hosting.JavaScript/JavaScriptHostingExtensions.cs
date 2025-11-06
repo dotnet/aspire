@@ -114,20 +114,11 @@ public static class JavaScriptHostingExtensions
                             // Copy package files first for better layer caching
                             builderStage.Copy("package*.json", "./");
                             
-                            // Add production-only flag to install command
-                            var installArgs = new List<string>(installCommand.Args);
-                            var productionFlag = GetProductionInstallFlag(packageManager.ExecutableName, installArgs);
-                            if (productionFlag != null)
+                            // Use BuildKit cache mount for npm cache if available
+                            var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
+                            if (!string.IsNullOrEmpty(packageManager.CacheMount))
                             {
-                                installArgs.Add(productionFlag);
-                            }
-
-                            // Use BuildKit cache mount for npm cache
-                            var cacheMount = GetCacheMount(packageManager.ExecutableName);
-                            var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installArgs)}";
-                            if (!string.IsNullOrEmpty(cacheMount))
-                            {
-                                builderStage.Run($"--mount=type=cache,target={cacheMount} {installCmd}");
+                                builderStage.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
                             }
                             else
                             {
@@ -444,9 +435,28 @@ public static class JavaScriptHostingExtensions
 
         installCommand ??= GetDefaultNpmInstallCommand(resource);
 
+        // Build args list
+        var args = new List<string> { installCommand };
+        if (installArgs != null)
+        {
+            args.AddRange(installArgs);
+        }
+
+        // Add production flag in publish mode if using default install commands
+        if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode && 
+            (installCommand == "ci" || installCommand == "install"))
+        {
+            // Add --omit=dev for npm ci, --production for npm install
+            var productionFlag = installCommand == "ci" ? "--omit=dev" : "--production";
+            if (!args.Contains(productionFlag) && !args.Contains("--production") && !args.Contains("--omit=dev"))
+            {
+                args.Add(productionFlag);
+            }
+        }
+
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm"))
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
 
         AddInstaller(resource, install);
         return resource;
@@ -471,9 +481,23 @@ public static class JavaScriptHostingExtensions
 
         installArgs ??= GetDefaultYarnInstallArgs(resource);
 
+        // Build args list
+        var args = new List<string> { "install" };
+        args.AddRange(installArgs);
+
+        // Add production flag in publish mode if not already implied by other flags
+        if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            // --frozen-lockfile and --immutable already imply production, so don't add --production
+            if (!args.Contains("--production") && !args.Contains("--frozen-lockfile") && !args.Contains("--immutable") && !args.Contains("--immutable-cache"))
+            {
+                args.Add("--production");
+            }
+        }
+
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount: "/usr/local/share/.cache/yarn"))
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
 
         AddInstaller(resource, install);
         return resource;
@@ -516,9 +540,22 @@ public static class JavaScriptHostingExtensions
 
         installArgs ??= GetDefaultPnpmInstallArgs(resource);
 
+        // Add production flag in publish mode
+        var args = new List<string> { "install" };
+        args.AddRange(installArgs);
+
+        if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            // Add --prod if not already present (and not using --frozen-lockfile which implies production)
+            if (!args.Contains("--prod") && !args.Contains("--production") && !args.Contains("--frozen-lockfile"))
+            {
+                args.Add("--prod");
+            }
+        }
+
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/root/.local/share/pnpm/store"))
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
 
         AddInstaller(resource, install);
         return resource;
@@ -757,53 +794,5 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Gets the production-only install flag for the specified package manager.
-    /// Returns null if the install command already contains a production flag or if it's not applicable.
-    /// </summary>
-    /// <param name="packageManager">The package manager executable name (npm, yarn, pnpm).</param>
-    /// <param name="installArgs">The current install arguments.</param>
-    /// <returns>The production flag to add, or null if not needed.</returns>
-    private static string? GetProductionInstallFlag(string packageManager, List<string> installArgs)
-    {
-        // Check if production flags are already present
-        var hasProductionFlag = installArgs.Any(arg =>
-            arg.Contains("--production", StringComparison.OrdinalIgnoreCase) ||
-            arg.Contains("--omit=dev", StringComparison.OrdinalIgnoreCase) ||
-            arg.Contains("--prod", StringComparison.OrdinalIgnoreCase) ||
-            arg.Contains("--frozen-lockfile", StringComparison.OrdinalIgnoreCase) ||
-            arg.Contains("--immutable", StringComparison.OrdinalIgnoreCase));
-
-        if (hasProductionFlag)
-        {
-            return null;
-        }
-
-        // Return appropriate production flag based on package manager
-        return packageManager.ToLowerInvariant() switch
-        {
-            "npm" => installArgs.Contains("ci") ? "--omit=dev" : "--production",
-            "yarn" => "--production",
-            "pnpm" => "--prod",
-            _ => null
-        };
-    }
-
-    /// <summary>
-    /// Gets the cache mount path for the specified package manager.
-    /// </summary>
-    /// <param name="packageManager">The package manager executable name (npm, yarn, pnpm).</param>
-    /// <returns>The cache mount path for BuildKit, or null if not supported.</returns>
-    private static string? GetCacheMount(string packageManager)
-    {
-        return packageManager.ToLowerInvariant() switch
-        {
-            "npm" => "/root/.npm",
-            "yarn" => "/usr/local/share/.cache/yarn",
-            "pnpm" => "/root/.local/share/pnpm/store",
-            _ => null
-        };
     }
 }
