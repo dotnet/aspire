@@ -7,7 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddPythonApp("script-only", "../script_only", "main.py");
 builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py")
-    .WithDebuggerProperties(props =>
+    .WithPythonDebuggerProperties(props =>
     {
         props.StopOnEntry = true;
     });
@@ -34,10 +34,10 @@ builder.AddPythonModule("flask-app", "../flask_app", "flask")
     })
     .WithHttpEndpoint(targetPort: 8002)
     .WithUv()
-    .WithDebuggerProperties(props =>
+    .WithPythonDebuggerProperties(props =>
     {
         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
-    });;
+    });
 
 // Uvicorn app using the AddUvicornApp method
 builder.AddUvicornApp("uvicorn-app", "../uvicorn_app", "app:app")
