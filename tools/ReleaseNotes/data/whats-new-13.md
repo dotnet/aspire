@@ -1172,6 +1172,32 @@ This enables elastic scale on the App Service Plan, capping at 10 workers follow
 
 ## ⚠️ Breaking Changes
 
+### Package renames
+
+**Aspire.Hosting.NodeJs → Aspire.Hosting.JavaScript**
+
+The `Aspire.Hosting.NodeJs` package has been renamed to `Aspire.Hosting.JavaScript` to better reflect its broader support for JavaScript applications (Node.js, Vite, etc.).
+
+Update your package references:
+
+```xml
+<!-- Before (9.x) -->
+<PackageReference Include="Aspire.Hosting.NodeJs" Version="9.x.x" />
+
+<!-- After (13.0) -->
+<PackageReference Include="Aspire.Hosting.JavaScript" Version="13.0.0" />
+```
+
+Or use the CLI:
+
+```bash
+# Before (9.x)
+aspire add nodejs
+
+# After (13.0)
+aspire add javaScript
+```
+
 ### Removed APIs
 
 The following APIs have been removed in Aspire 13.0:
