@@ -120,7 +120,6 @@ public class AddNodeAppTests
             COPY --from=build /app/app.js ./app.js
             
             ENV NODE_ENV=production
-            EXPOSE 3000
             
             USER node
             
@@ -139,7 +138,6 @@ public class AddNodeAppTests
             COPY --from=build /app/app.js ./app.js
             
             ENV NODE_ENV=production
-            EXPOSE 3000
             
             USER node
             
@@ -190,7 +188,6 @@ public class AddNodeAppTests
             COPY --from=build /app/app.js ./app.js
 
             ENV NODE_ENV=production
-            EXPOSE 3000
 
             USER node
 

@@ -18,7 +18,6 @@ COPY --from=source_stage /app/dist /app/./static
 
 
 ENV NODE_ENV=production
-EXPOSE 3000
 
 USER node
 
