@@ -23,7 +23,7 @@ import { MessageConnection } from 'vscode-jsonrpc';
 import { openTerminalCommand } from './commands/openTerminal';
 import { updateCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
-import { checkForExistingAppHostPathInWorkspace } from './utils/workspace';
+import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
@@ -66,7 +66,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
 	context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
 
-  const debugConfigProvider = new AspireDebugConfigurationProvider();
+  const debugConfigProvider = new AspireDebugConfigurationProvider(terminalProvider);
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
   );
@@ -93,6 +93,19 @@ export function deactivate() {
 async function tryExecuteCommand(commandName: string, terminalProvider: AspireTerminalProvider, command: (terminalProvider: AspireTerminalProvider) => Promise<void>): Promise<void> {
   try {
     sendTelemetryEvent(`${commandName}.invoked`);
+
+    // TODO add walkthrough commands
+    const cliCheckExcludedCommands: string[] = [];
+
+    // Skip CLI check for walkthrough commands themselves
+    if (!cliCheckExcludedCommands.includes(commandName)) {
+      const cliPath = terminalProvider.getAspireCliExecutablePath();
+      const isCliAvailable = await checkCliAvailableOrRedirect(cliPath);
+      if (!isCliAvailable) {
+        return;
+      }
+    }
+
     await command(terminalProvider);
   }
   catch (error) {
