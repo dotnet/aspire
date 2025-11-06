@@ -3,8 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- Azure Functions support is in preview until the full experience is implemented. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <SuppressFinalPackageVersion>false</SuppressFinalPackageVersion>
     <PackageTags>aspire integration hosting azure functions serverless cloud</PackageTags>
     <Description>Azure Functions resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
