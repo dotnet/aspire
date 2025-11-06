@@ -158,7 +158,7 @@ internal static class AIHelpers
         return span.Attributes.GetPeerAddress();
     }
 
-    internal static string GetResponseGraphJson(List<ResourceViewModel> resources, DashboardOptions options, bool includeDashboardUrl = false, Func<ResourceViewModel, string>? getResourceName = null)
+    internal static string GetResponseGraphJson(List<ResourceViewModel> resources, DashboardOptions options, bool includeDashboardUrl = false, Func<ResourceViewModel, string>? getResourceName = null, bool includeEnvironmentVariables = false)
     {
         var data = resources.Where(resource => !resource.IsResourceHidden(false)).Select(resource =>
         {
@@ -198,6 +198,11 @@ internal static class AIHelpers
             if (includeDashboardUrl)
             {
                 resourceObj["dashboard_link"] = GetDashboardLink(options, DashboardUrls.ResourcesUrl(resource: resource.Name), resourceName);
+            }
+
+            if (includeEnvironmentVariables)
+            {
+                resourceObj["environment_variables"] = resource.Environment.Where(e => e.FromSpec).Select(e => e.Name).ToList();
             }
 
             return resourceObj;
