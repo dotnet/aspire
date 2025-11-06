@@ -207,12 +207,19 @@ async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearch
 
 const execFileAsync = promisify(execFile);
 
+let cliAvailableOnPath: boolean | undefined = undefined;
+
 /**
  * Checks if the Aspire CLI is available. If not, shows a message prompting to open Aspire CLI installation steps on the repo.
  * @param cliPath The path to the Aspire CLI executable
  * @returns true if CLI is available, false otherwise
  */
 export async function checkCliAvailableOrRedirect(cliPath: string): Promise<boolean> {
+    if (cliAvailableOnPath === true) {
+        // Assume, for now, that CLI availability does not change during the session if it was previously confirmed
+        return Promise.resolve(true);
+    }
+
     try {
         // Remove surrounding quotes if present (both single and double quotes)
         let cleanPath = cliPath.trim();
@@ -221,8 +228,10 @@ export async function checkCliAvailableOrRedirect(cliPath: string): Promise<bool
             cleanPath = cleanPath.slice(1, -1);
         }
         await execFileAsync(cleanPath, ['--version'], { timeout: 5000 });
+        cliAvailableOnPath = true;
         return true;
     } catch (error) {
+        cliAvailableOnPath = false;
         vscode.window.showErrorMessage(
             cliNotAvailable,
             openCliInstallInstructions,
