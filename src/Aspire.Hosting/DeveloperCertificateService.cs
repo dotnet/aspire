@@ -26,12 +26,13 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
                 using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadOnly);
-                var now = DateTime.UtcNow;
+
+                // Order by version and expiration date descending to get the most recent, highest version first.
+                // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
+                // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
+                // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
+                var now = DateTimeOffset.Now;
                 devCerts.AddRange(
-                    // Order by version and expiration date descending to get the most recent, highest version first.
-                    // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
-                    // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
-                    // Match the ordering logic ASP.NET Core uses: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
                     store.Certificates
                         .Where(c => c.IsAspNetCoreDevelopmentCertificate())
                         .Where(c => c.NotBefore <= now && now <= c.NotAfter)
