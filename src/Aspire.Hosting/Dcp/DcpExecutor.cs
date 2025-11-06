@@ -1271,7 +1271,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                 {
-                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger("DcpExector"),
+                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger("DcpExecutor"),
                     Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
                 };
 
