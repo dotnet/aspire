@@ -72,13 +72,11 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
 
     private PackageChannel? CreateStagingChannel()
     {
-        var commitHash = GetCommitHashForStagingChannel();
-        if (commitHash is null)
+        var stagingFeedUrl = GetStagingFeedUrl();
+        if (stagingFeedUrl is null)
         {
             return null;
         }
-
-        var stagingFeedUrl = $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json";
 
         var stagingChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, new[]
         {
@@ -89,16 +87,17 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         return stagingChannel;
     }
 
-    private string? GetCommitHashForStagingChannel()
+    private string? GetStagingFeedUrl()
     {
-        // Check for test override first
-        var overrideHash = configuration["overrideStagingHash"];
-        if (!string.IsNullOrEmpty(overrideHash))
+        // Check for configuration override first
+        var overrideFeed = configuration["overrideStagingFeed"];
+        if (!string.IsNullOrEmpty(overrideFeed))
         {
-            return overrideHash.Length >= 8 ? overrideHash[..8] : overrideHash;
+            return overrideFeed;
         }
 
-        // Extract from assembly version
+        // Extract commit hash from assembly version to build staging feed URL
+        // Staging feed URL template: https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json
         var assembly = Assembly.GetExecutingAssembly();
         var informationalVersion = assembly
             .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false)
@@ -117,6 +116,8 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         }
 
         var commitHash = informationalVersion[(plusIndex + 1)..];
-        return commitHash.Length >= 8 ? commitHash[..8] : commitHash;
+        var truncatedHash = commitHash.Length >= 8 ? commitHash[..8] : commitHash;
+        
+        return $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{truncatedHash}/nuget/v3/index.json";
     }
 }

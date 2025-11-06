@@ -72,7 +72,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task GetChannelsAsync_WhenStagingChannelEnabled_IncludesStagingChannelWithOverrideHash()
+    public async Task GetChannelsAsync_WhenStagingChannelEnabled_IncludesStagingChannelWithOverrideFeed()
     {
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -84,11 +84,11 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var features = new TestFeatures();
         features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
         
-        var testHash = "12345678";
+        var testFeedUrl = "https://example.com/nuget/v3/index.json";
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["overrideStagingHash"] = testHash
+                ["overrideStagingFeed"] = testFeedUrl
             })
             .Build();
 
@@ -108,7 +108,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
         Assert.NotNull(aspireMapping);
-        Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{testHash}/nuget/v3/index.json", aspireMapping.Source);
+        Assert.Equal(testFeedUrl, aspireMapping.Source);
         
         var nugetMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "*");
         Assert.NotNull(nugetMapping);
@@ -116,7 +116,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task GetChannelsAsync_WhenStagingChannelEnabledWithLongOverrideHash_TruncatesTo8Characters()
+    public async Task GetChannelsAsync_WhenStagingChannelEnabledWithOverrideFeed_UsesFullUrl()
     {
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -128,12 +128,11 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var features = new TestFeatures();
         features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
         
-        var longHash = "48a11dae4f2a514b4a933956701f9ae45b2c9a25";
-        var expectedHash = "48a11dae";
+        var customFeedUrl = "https://custom-feed.example.com/v3/index.json";
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["overrideStagingHash"] = longHash
+                ["overrideStagingFeed"] = customFeedUrl
             })
             .Build();
 
@@ -146,11 +145,11 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var stagingChannel = channels.First(c => c.Name == "staging");
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
         Assert.NotNull(aspireMapping);
-        Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{expectedHash}/nuget/v3/index.json", aspireMapping.Source);
+        Assert.Equal(customFeedUrl, aspireMapping.Source);
     }
 
     [Fact]
-    public async Task GetChannelsAsync_WhenStagingChannelEnabledWithShortOverrideHash_UsesFull()
+    public async Task GetChannelsAsync_WhenStagingChannelEnabledWithAzureDevOpsFeedOverride_UsesFullUrl()
     {
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -162,11 +161,11 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var features = new TestFeatures();
         features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
         
-        var shortHash = "abc123";
+        var azureDevOpsFeedUrl = "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-abcd1234/nuget/v3/index.json";
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["overrideStagingHash"] = shortHash
+                ["overrideStagingFeed"] = azureDevOpsFeedUrl
             })
             .Build();
 
@@ -179,7 +178,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var stagingChannel = channels.First(c => c.Name == "staging");
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
         Assert.NotNull(aspireMapping);
-        Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{shortHash}/nuget/v3/index.json", aspireMapping.Source);
+        Assert.Equal(azureDevOpsFeedUrl, aspireMapping.Source);
     }
 
     [Fact]
@@ -195,7 +194,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["overrideStagingHash"] = "48a11dae"
+                ["overrideStagingFeed"] = "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-48a11dae/nuget/v3/index.json"
             })
             .Build();
 
@@ -252,7 +251,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["overrideStagingHash"] = "12345678"
+                ["overrideStagingFeed"] = "https://example.com/nuget/v3/index.json"
             })
             .Build();
 
