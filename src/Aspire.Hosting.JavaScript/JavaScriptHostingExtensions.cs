@@ -189,7 +189,6 @@ public static class JavaScriptHostingExtensions
                     runtimeBuilder.AddContainerFiles(dockerfileContext.Resource, "/app", logger)
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
-                            .Expose(3000)
                             .EmptyLine()
                             .User("node")
                             .EmptyLine()
