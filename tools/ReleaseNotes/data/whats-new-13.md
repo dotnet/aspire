@@ -159,7 +159,7 @@ var api = builder.AddUvicornApp("api", "./api", "main:app")
 ```
 
 The `AddUvicornApp` method automatically:
-- Configures HTTP/HTTPS endpoints
+- Configures HTTP endpoints
 - Sets up appropriate Uvicorn command-line arguments
 - Supports hot-reload during development
 - Integrates with Aspire's health check system
