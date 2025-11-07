@@ -34,7 +34,14 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
-    public BicepValue<string> HostName => BicepFunction.Take(
+    public BicepValue<string> HostName => environmentContext.Environment.IsDeploymentSlot ?
+        BicepFunction.Take(
+        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{environmentContext.Environment.DeploymentSlot}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60) :
+        _webSiteHostName;
+
+    // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
+    // within the naming spec for the app service.
+    private BicepValue<string> _webSiteHostName => BicepFunction.Take(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
@@ -237,6 +244,18 @@ internal sealed class AzureAppServiceWebsiteContext(
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
         _infrastructure = infra;
+
+        string deploymentSlot;
+
+        if(environmentContext.Environment.DeploymentSlotParameter is not null)
+        {
+            deploymentSlot = environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra).Value.ToString();
+            if (!deploymentSlot.Equals("production", StringComparison.OrdinalIgnoreCase))
+            {
+                BuildWebSiteSlot();
+                return;
+            }
+        }
 
         // We need to reference the container registry URL so that it exists in the manifest
         var containerRegistryUrl = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
@@ -489,6 +508,241 @@ internal sealed class AzureAppServiceWebsiteContext(
             Value = "~3"
         });
     }
+
+    #region DeploymentSlot
+
+    private void BuildWebSiteSlot()//string deploymentSlot)
+    {
+        // We need to reference the container registry URL so that it exists in the manifest
+        var containerRegistryUrl = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(Infra);
+        var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(Infra);
+        var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(Infra);
+        var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(Infra);
+        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
+
+        var webSite = WebSite.FromExisting("webapp");
+        webSite.Name = _webSiteHostName;
+
+        Infra.Add(webSite);
+
+        var webSiteSlot = new WebSiteSlot("webappslot")
+        {
+            Parent = webSite,
+            //Name = deploymentSlot,
+            AppServicePlanId = appServicePlanParameter,
+            // Creating the app service with new sidecar configuration
+            SiteConfig = new SiteConfigProperties()
+            {
+                LinuxFxVersion = "SITECONTAINERS",
+                AcrUserManagedIdentityId = acrClientIdParameter,
+                UseManagedIdentityCreds = true,
+                // Setting NumberOfWorkers to maximum allowed value for Premium SKU
+                // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
+                // This is required due to use of feature PerSiteScaling for the App Service plan
+                // We want the web apps to scale normally as defined for the app service plan
+                // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
+                NumberOfWorkers = 30,
+                AppSettings = []
+            },
+            Identity = new ManagedServiceIdentity()
+            {
+                ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                UserAssignedIdentities = []
+            },
+        };
+
+        // Defining the main container for the app service on slot
+        var mainContainer = new SiteSlotSiteContainer("mainContainerSlot")
+        {
+            Parent = webSiteSlot,
+            Name = "main",
+            Image = containerImage,
+            AuthType = SiteContainerAuthType.UserAssigned,
+            UserManagedIdentityClientId = acrClientIdParameter,
+            IsMain = true
+        };
+
+        // There should be a single valid target port
+        if (_endpointMapping.FirstOrDefault() is var (_, mapping))
+        {
+            var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
+
+            mainContainer.TargetPort = targetPort;
+            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
+        }
+
+        foreach (var kv in EnvironmentVariables)
+        {
+            var (val, secretType) = ProcessValue(kv.Value);
+            var value = ResolveValue(val);
+
+            if (secretType == SecretType.KeyVault)
+            {
+                // https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
+                // @Microsoft.KeyVault({referenceString})
+                value = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={val})");
+            }
+
+            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
+        }
+
+        if (Args.Count > 0)
+        {
+            var args = new List<BicepValue<string>>();
+
+            foreach (var arg in Args)
+            {
+                var (val, secretType) = ProcessValue(arg);
+                var value = ResolveValue(val);
+
+                args.Add(value);
+            }
+
+            // App Service does not support array arguments, so we need to join them into a single string
+            static FunctionCallExpression Join(BicepExpression args, string delimeter) =>
+                new(new IdentifierExpression("join"), args, new StringLiteralExpression(delimeter));
+
+            var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
+
+            mainContainer.StartUpCommand = Join(arrayExpression, " ");
+        }
+
+        Infra.Add(mainContainer);
+
+        var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
+        webSiteSlot.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+
+        // This is the user assigned identity associated with the web app, not the container registry
+        if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
+        {
+            var appIdentityResource = appIdentityAnnotation.IdentityResource;
+
+            var computeIdentity = appIdentityResource.Id.AsProvisioningParameter(Infra);
+
+            var cid = BicepFunction.Interpolate($"{computeIdentity}").Compile().ToString();
+
+            webSiteSlot.KeyVaultReferenceIdentity = computeIdentity;
+
+            webSiteSlot.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
+            webSiteSlot.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
+
+            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "AZURE_CLIENT_ID",
+                Value = appIdentityResource.ClientId.AsProvisioningParameter(Infra)
+            });
+
+            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "AZURE_TOKEN_CREDENTIALS",
+                Value = "ManagedIdentityCredential"
+            });
+        }
+
+        // Added appsetting to identify the resource in a specific aspire environment
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
+
+        // Probes
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        {
+            // AppService allow only one "health check" with only path, so prioritize "liveness" and/or take the first one
+            var endpointProbeAnnotation = probeAnnotations
+                .OfType<EndpointProbeAnnotation>()
+                .OrderBy(probeAnnotation => probeAnnotation.Type == ProbeType.Liveness ? 0 : 1)
+                .FirstOrDefault();
+
+            if (endpointProbeAnnotation is not null)
+            {
+                webSiteSlot.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
+            }
+        }
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        RoleAssignment? webSiteRa = null;
+        if (environmentContext.Environment.EnableDashboard)
+        {
+            webSiteRa = AddDashboardPermissionAndSettingsForSlot(webSiteSlot, acrClientIdParameter);
+        }
+
+        Infra.Add(webSiteSlot);
+        if (webSiteRa is not null)
+        {
+            Infra.Add(webSiteRa);
+        }
+
+        if (environmentContext.Environment.EnableApplicationInsights)
+        {
+            EnableApplicationInsightsForWebSiteSlot(webSiteSlot);
+        }
+
+        // Allow users to customize the web app here
+        if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
+        {
+            foreach (var customizeWebSiteSlotAnnotation in customizeWebSiteSlotAnnotations)
+            {
+                customizeWebSiteSlotAnnotation.Configure(Infra, webSiteSlot);
+            }
+        }
+    }
+
+    private RoleAssignment AddDashboardPermissionAndSettingsForSlot(WebSiteSlot webSiteSlot, ProvisioningParameter acrClientIdParameter)
+    {
+        var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
+        var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
+        var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
+
+        // Add the appsettings specific to sending telemetry data to dashboard
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = resource.Name });
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+
+        // Add Website Contributor role assignment to dashboard's managed identity for this webapp
+        var websiteRaId = BicepFunction.GetSubscriptionResourceId(
+                    "Microsoft.Authorization/roleDefinitions",
+                    "de139f84-1756-47ae-9be6-808fbbe84772");
+        var websiteRaName = BicepFunction.CreateGuid(webSiteSlot.Id, contributorId, websiteRaId);
+
+        return new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra"))
+        {
+            Name = websiteRaName,
+            Scope = new IdentifierExpression(webSiteSlot.BicepIdentifier),
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorPrincipalId,
+            RoleDefinitionId = websiteRaId,
+        };
+    }
+
+    private void EnableApplicationInsightsForWebSiteSlot(WebSiteSlot webSiteSlot)
+    {
+        var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
+        var appInsightsConnectionString = environmentContext.Environment.AzureAppInsightsConnectionStringReference.AsProvisioningParameter(Infra);
+
+        // Website configuration for Application Insights
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+            Value = appInsightsInstrumentationKey
+        });
+
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            Value = appInsightsConnectionString
+        });
+
+        webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+            Value = "~3"
+        });
+    }
+
+    #endregion
 
     enum SecretType
     {

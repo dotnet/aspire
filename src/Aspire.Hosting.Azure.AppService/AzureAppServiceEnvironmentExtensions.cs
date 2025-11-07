@@ -142,13 +142,26 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             if (resource.EnableDashboard)
             {
-                // Add aspire dashboard website
-                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
-
-                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                if (IsDeploymentSlotConfigured(resource, infra))
                 {
-                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
-                });
+                    // Add aspire dashboard website slot
+                    var webSiteSlot = AzureAppServiceEnvironmentUtility.AddDashboardSlot(infra, identity, plan.Id, resource.DeploymentSlot!);
+
+                    infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                    {
+                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardSlotHostName(prefix, resource.DeploymentSlot!)}.azurewebsites.net")
+                    });
+                }
+                else
+                {
+                    // Add aspire dashboard website
+                    var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+
+                    infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                    {
+                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                    });
+                }
             }
 
             if (resource.EnableApplicationInsights)
@@ -268,5 +281,55 @@ public static partial class AzureAppServiceEnvironmentExtensions
         builder.Resource.EnableApplicationInsights = true;
         builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the slot to which the Azure App Services should be deployed.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="deploymentSlot">The deployment slot for the App Service Environment.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDeploymentSlot(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string deploymentSlot)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (deploymentSlot is not null)
+        {
+            builder.Resource.DeploymentSlot = deploymentSlot;
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the slot to which the Azure App Services should be deployed.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="deploymentSlot">The deployment slot parameter for the App Service Environment.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDeploymentSlot(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource>? deploymentSlot)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (deploymentSlot is not null)
+        {
+            builder.Resource.DeploymentSlotParameter = deploymentSlot.Resource;
+        }
+        return builder;
+    }
+
+    internal static bool IsDeploymentSlotConfigured(this AzureAppServiceEnvironmentResource resource, AzureResourceInfrastructure infra)
+    {
+        resource.IsDeploymentSlot = false;
+        if (resource.DeploymentSlotParameter is not null)
+        {
+            resource.DeploymentSlot = resource.DeploymentSlotParameter.AsProvisioningParameter(infra).Value.ToString();
+
+            resource.IsDeploymentSlot = !resource.DeploymentSlot.Equals("production", StringComparison.OrdinalIgnoreCase);
+        }
+        else if (resource.DeploymentSlot is not null)
+        {
+            resource.IsDeploymentSlot = !resource.DeploymentSlot.Equals("production", StringComparison.OrdinalIgnoreCase);
+        }
+        return resource.IsDeploymentSlot;
     }
 }
