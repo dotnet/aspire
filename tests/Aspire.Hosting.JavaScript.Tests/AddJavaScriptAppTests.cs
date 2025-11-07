@@ -29,8 +29,9 @@ public class AddJavaScriptAppTests
         var expectedDockerfile = $$"""
             FROM node:22-slim
             WORKDIR /app
+            COPY package.json ./
+            RUN --mount=type=cache,target=/root/.cache/yarn yarn install --immutable
             COPY . .
-            RUN yarn install --immutable
             RUN yarn run do --build
 
             """.Replace("\r\n", "\n");
