@@ -449,7 +449,7 @@ public class PackageInstallationTests
             .WithNpm();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
-        Assert.Equal(["ci", "--omit=dev"], installCommand.Args);
+        Assert.Equal(["ci"], installCommand.Args);
     }
 
     [Fact]
@@ -529,7 +529,7 @@ public class PackageInstallationTests
             .WithPnpm();
 
         Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
-        Assert.Equal(["install", "--frozen-lockfile", "--prod"], installCommand.Args);
+        Assert.Equal(["install", "--frozen-lockfile"], installCommand.Args);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

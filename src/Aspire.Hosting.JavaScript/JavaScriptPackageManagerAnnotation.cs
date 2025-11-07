@@ -11,8 +11,7 @@ namespace Aspire.Hosting.JavaScript;
 /// <param name="executableName">The name of the executable used to run the package manager.</param>
 /// <param name="runScriptCommand">The command used to run a script with the JavaScript package manager.</param>
 /// <param name="cacheMount">The BuildKit cache mount path for the package manager, or null if not supported.</param>
-/// <param name="packageFilesPattern">The file pattern for package dependency files (e.g., "package*.json").</param>
-public sealed class JavaScriptPackageManagerAnnotation(string executableName, string? runScriptCommand, string? cacheMount = null, string? packageFilesPattern = null) : IResourceAnnotation
+public sealed class JavaScriptPackageManagerAnnotation(string executableName, string? runScriptCommand, string? cacheMount = null) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the executable used to run the JavaScript package manager.
@@ -30,7 +29,8 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     public string? CacheMount { get; } = cacheMount;
 
     /// <summary>
-    /// Gets the file pattern for package dependency files, or null if not applicable.
+    /// Gets the file patterns for package dependency files. The first item in the tuple is the source pattern,
+    /// and the second item is the destination pattern.
     /// </summary>
-    public string? PackageFilesPattern { get; } = packageFilesPattern;
+    public List<(string Source, string Destination)> PackageFilesPatterns { get; } = [];
 }
