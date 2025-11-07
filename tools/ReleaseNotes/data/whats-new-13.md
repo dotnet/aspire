@@ -410,8 +410,10 @@ var javaApp = builder.AddExecutable("java-app", "java", "./app", ["-jar", "app.j
 When you reference a database resource with `WithReference`, Aspire automatically exposes multiple connection properties as environment variables. For example, a PostgreSQL resource named `db` exposes:
 
 - `DB_URI` - PostgreSQL URI format: `postgresql://user:pass@host:port/dbname`
-- `DB_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:postgresql://host:port/dbname?user=user&password=pass`
+- `DB_JDBCCONNECTIONSTRING` - JDBC format: `jdbc:postgresql://host:port/dbname`
 - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASENAME` - Individual properties
+
+The JDBC connection string does not include credentials for security best practices. Use the separate `DB_USERNAME` and `DB_PASSWORD` environment variables to authenticate, or configure your JDBC driver to use these properties.
 
 This pattern works for all supported databases (PostgreSQL, SQL Server, Oracle, MySQL, MongoDB, etc.) with appropriate URI and JDBC formats for each.
 
@@ -780,12 +782,20 @@ var mauiWindows = builder.AddMauiWindows("myapp-windows", "../MyApp/MyApp.csproj
 var mauiMac = builder.AddMauiMacCatalyst("myapp-mac", "../MyApp/MyApp.csproj")
     .WithReference(api);
 
+// Add MAUI app for Android
+var mauiAndroid = builder.AddMauiAndroid("myapp-android", "../MyApp/MyApp.csproj")
+    .WithReference(api);
+
+// Add MAUI app for iOS
+var mauiIos = builder.AddMauiIos("myapp-ios", "../MyApp/MyApp.csproj")
+    .WithReference(api);
+
 await builder.Build().RunAsync();
 ```
 
 MAUI integration features:
 
-- **Platform support**: Windows and Mac Catalyst platforms
+- **Platform support**: Windows, Mac Catalyst, Android, and iOS
 - **Device registration**: Register multiple device instances for testing
 - **Platform validation**: Automatically detects host OS compatibility and marks resources as unsupported when needed
 - **Full orchestration**: MAUI apps participate in service discovery and can reference backend services
