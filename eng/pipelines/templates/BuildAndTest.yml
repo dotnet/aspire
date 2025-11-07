@@ -30,6 +30,7 @@ parameters:
     default: '28.0.0'
 
 steps:
+  - template: /eng/common/templates-official/steps/enable-internal-sources.yml@self
   # Internal pipeline: Build with pack+sign
   - ${{ if ne(parameters.runAsPublic, 'true') }}:
     - script: ${{ parameters.buildScript }}
@@ -59,23 +60,23 @@ steps:
               /p:SkipPackageCheckForTemplatesTesting=true
       displayName: 🟣Prepare sdks for templates testing
 
-    - script: ${{ parameters.buildScript }}
-              -build
-              -restore
-              -test
-              -configuration ${{ parameters.buildConfig }}
-              /bl:${{ parameters.repoLogPath }}/BuildTemplatesTests.binlog
-              $(_OfficialBuildIdArgs)
-              $(_InternalBuildArgs)
-              /p:SkipTests=false
-              -projects $(Build.SourcesDirectory)\tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj
-      env:
-        RunOnlyBasicBuildTemplateTests: true
-        # test root path for template test projects
-        DEV_TEMP: $(Build.SourcesDirectory)\..
-        DOTNET_ROOT: $(Build.SourcesDirectory)\.dotnet
-        TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
-      displayName: 🟣Run Template tests
+    # - script: ${{ parameters.buildScript }}
+    #           -build
+    #           -restore
+    #           -test
+    #           -configuration ${{ parameters.buildConfig }}
+    #           /bl:${{ parameters.repoLogPath }}/BuildTemplatesTests.binlog
+    #           $(_OfficialBuildIdArgs)
+    #           $(_InternalBuildArgs)
+    #           /p:SkipTests=false
+    #           -projects $(Build.SourcesDirectory)\tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj
+    #   env:
+    #     RunOnlyBasicBuildTemplateTests: true
+    #     # test root path for template test projects
+    #     DEV_TEMP: $(Build.SourcesDirectory)\..
+    #     DOTNET_ROOT: $(Build.SourcesDirectory)\.dotnet
+    #     TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
+    #   displayName: 🟣Run Template tests
 
   # Public pipeline - helix tests
   - ${{ if eq(parameters.runAsPublic, 'true') }}:

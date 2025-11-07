@@ -105,7 +105,7 @@
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.6.11" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.4" />
-    <PackageVersion Include="OpenAI" Version="2.5.0" />
+    <PackageVersion Include="OpenAI" Version="2.6.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.90" /> <!-- Can't update to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.26.0" />
     <PackageVersion Include="Polly.Core" Version="8.6.4" />
@@ -171,8 +171,8 @@
   <ItemGroup>
     <!-- dotnet/extensions dependencies ** Common between net8 and net9 ** -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIOpenAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIAzureAIInferenceVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="$(MicrosoftExtensionsDependencyInjectionAutoActivationVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
