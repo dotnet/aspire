@@ -58,7 +58,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                     if (!options.Value.ClearCache)
                     {
                         // Add a task to show the deployment state file path if available
-                        context.Logger.LogInformation("Deployment state will be loaded from: {StateFilePath}", stateFilePath);
+                        context.Logger.LogDebug("Deployment state will be loaded from: {StateFilePath}", stateFilePath);
                     }
                     else
                     {
