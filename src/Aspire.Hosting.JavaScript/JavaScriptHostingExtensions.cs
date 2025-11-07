@@ -116,7 +116,11 @@ public static class JavaScriptHostingExtensions
                             {
                                 builderStage.Copy(packageManager.PackageFilesPattern, "./");
                             }
-                            
+                            else
+                            {
+                                builderStage.Copy(".", ".");
+                            }
+
                             // Use BuildKit cache mount for npm cache if available
                             var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
                             if (!string.IsNullOrEmpty(packageManager.CacheMount))
@@ -129,8 +133,11 @@ public static class JavaScriptHostingExtensions
                             }
                         }
 
-                        // Copy application source code after dependencies are installed
-                        builderStage.Copy(".", ".");
+                        if (!string.IsNullOrEmpty(packageManager.PackageFilesPattern))
+                        {
+                            // Copy application source code after dependencies are installed
+                            builderStage.Copy(".", ".");
+                        }
 
                         if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
                         {
@@ -159,28 +166,9 @@ public static class JavaScriptHostingExtensions
                     var runtimeBuilder = dockerfileContext.Builder
                         .From(baseRuntimeImage, "runtime")
                             .EmptyLine()
-                            .WorkDir("/app");
-
-                    // Copy only node_modules and the app script
-                    if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out _))
-                    {
-                        runtimeBuilder.CopyFrom("build", "/app/node_modules", "./node_modules");
-                    }
-                    
-                    // Copy the script file - handle both relative and absolute paths
-                    var scriptDir = Path.GetDirectoryName(scriptPath);
-                    if (!string.IsNullOrEmpty(scriptDir) && scriptDir != ".")
-                    {
-                        // If script is in a subdirectory, copy the whole directory structure
-                        runtimeBuilder.CopyFrom("build", $"/app/{scriptDir}", $"./{scriptDir}");
-                    }
-                    else
-                    {
-                        // Script is in root, copy just the file
-                        runtimeBuilder.CopyFrom("build", $"/app/{scriptPath}", $"./{scriptPath}");
-                    }
-
-                    runtimeBuilder.AddContainerFiles(dockerfileContext.Resource, "/app", logger)
+                            .WorkDir("/app")
+                            .CopyFrom("build", "/app", "/app")
+                            .AddContainerFiles(dockerfileContext.Resource, "/app", logger)
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
                             .EmptyLine()
@@ -437,9 +425,9 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(resource);
 
         var (defaultCommand, defaultArgs) = GetDefaultNpmInstallCommand(resource);
-        
+
         installCommand ??= defaultCommand;
-        
+
         var args = new List<string> { installCommand };
         if (installArgs != null)
         {
@@ -463,18 +451,18 @@ public static class JavaScriptHostingExtensions
     {
         var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
         var hasLockFile = File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"));
-        
+
         var installCommand = isPublishMode && hasLockFile ? "ci" : "install";
-        
+
         var installArgs = new List<string>();
-        
+
         // Add production flag in publish mode if using default install commands
         if (isPublishMode && (installCommand == "ci" || installCommand == "install"))
         {
             var productionFlag = installCommand == "ci" ? "--omit=dev" : "--production";
             installArgs.Add(productionFlag);
         }
-        
+
         return (installCommand, [.. installArgs]);
     }
 
@@ -490,7 +478,7 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(resource);
 
         var args = new List<string> { "install" };
-        
+
         if (installArgs != null)
         {
             // Use custom args as-is
@@ -515,7 +503,7 @@ public static class JavaScriptHostingExtensions
     {
         var workingDirectory = resource.Resource.WorkingDirectory;
         var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
-        
+
         if (!isPublishMode || !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
         {
             // Not publish mode or no yarn.lock, use default install args
@@ -548,12 +536,12 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(resource);
 
         var args = new List<string> { "install" };
-        
+
         if (installArgs != null)
         {
             // Use custom args
             args.AddRange(installArgs);
-            
+
             // Add --prod in publish mode if not already present
             if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
             {
@@ -582,22 +570,22 @@ public static class JavaScriptHostingExtensions
     {
         var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
         var hasLockFile = File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"));
-        
+
         if (!isPublishMode)
         {
             return [];
         }
-        
+
         var args = new List<string>();
-        
+
         if (hasLockFile)
         {
             args.Add("--frozen-lockfile");
         }
-        
+
         // Add --prod in publish mode
         args.Add("--prod");
-        
+
         return [.. args];
     }
 
