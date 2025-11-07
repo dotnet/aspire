@@ -112,9 +112,12 @@ public static class JavaScriptHostingExtensions
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
                             // Copy package files first for better layer caching
-                            if (!string.IsNullOrEmpty(packageManager.PackageFilesPattern))
+                            if (packageManager.PackageFilesPatterns.Count > 0)
                             {
-                                builderStage.Copy(packageManager.PackageFilesPattern, "./");
+                                foreach (var packageFilePattern in packageManager.PackageFilesPatterns)
+                                {
+                                    builderStage.Copy(packageFilePattern.Source, packageFilePattern.Destination);
+                                }
                             }
                             else
                             {
@@ -133,7 +136,7 @@ public static class JavaScriptHostingExtensions
                             }
                         }
 
-                        if (!string.IsNullOrEmpty(packageManager.PackageFilesPattern))
+                        if (packageManager.PackageFilesPatterns.Count > 0)
                         {
                             // Copy application source code after dependencies are installed
                             builderStage.Copy(".", ".");
@@ -424,47 +427,24 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var (defaultCommand, defaultArgs) = GetDefaultNpmInstallCommand(resource);
-
-        installCommand ??= defaultCommand;
-
-        var args = new List<string> { installCommand };
-        if (installArgs != null)
-        {
-            args.AddRange(installArgs);
-        }
-        else
-        {
-            // Use default args if no custom args provided
-            args.AddRange(defaultArgs);
-        }
+        installCommand ??= GetDefaultNpmInstallCommand(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm", packageFilesPattern: "package*.json"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm")
+            {
+                PackageFilesPatterns = { ("package*.json", "./") }
+            })
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static (string installCommand, string[] installArgs) GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource)
-    {
-        var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
-        var hasLockFile = File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"));
-
-        var installCommand = isPublishMode && hasLockFile ? "ci" : "install";
-
-        var installArgs = new List<string>();
-
-        // Add production flag in publish mode if using default install commands
-        if (isPublishMode && (installCommand == "ci" || installCommand == "install"))
-        {
-            var productionFlag = installCommand == "ci" ? "--omit=dev" : "--production";
-            installArgs.Add(productionFlag);
-        }
-
-        return (installCommand, [.. installArgs]);
-    }
+    private static string GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
+            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"))
+            ? "ci"
+            : "install";
 
     /// <summary>
     /// Configures the Node.js resource to use yarn as the package manager and optionally installs packages before the application starts.
@@ -477,43 +457,52 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var args = new List<string> { "install" };
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var hasYarnLock = File.Exists(Path.Combine(workingDirectory, "yarn.lock"));
+        var hasYarnrc = File.Exists(Path.Combine(workingDirectory, ".yarnrc.yml"));
+        var hasYarnBerryDir = Directory.Exists(Path.Combine(workingDirectory, ".yarn"));
 
-        if (installArgs != null)
+        installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnrc, hasYarnBerryDir);
+
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount: "/usr/local/share/.cache/yarn");
+        var packageFilesSourcePattern = "package.json";
+        if (hasYarnLock)
         {
-            // Use custom args as-is
-            args.AddRange(installArgs);
+            packageFilesSourcePattern += " yarn.lock";
         }
-        else
+        if (hasYarnrc)
         {
-            // Use default args
-            var defaultArgs = GetDefaultYarnInstallArgs(resource);
-            args.AddRange(defaultArgs);
+            packageFilesSourcePattern += " .yarnrc.yml";
+        }
+        packageManager.PackageFilesPatterns.Add((packageFilesSourcePattern, "./"));
+
+        if (hasYarnBerryDir)
+        {
+            packageManager.PackageFilesPatterns.Add((".yarn", "./.yarn"));
         }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount: "/usr/local/share/.cache/yarn", packageFilesPattern: "package*.json"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
+            .WithAnnotation(packageManager)
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
+    private static string[] GetDefaultYarnInstallArgs(
+        IResourceBuilder<JavaScriptAppResource> resource,
+        bool hasYarnLock,
+        bool hasYarnrc,
+        bool hasYarnBerryDir)
     {
-        var workingDirectory = resource.Resource.WorkingDirectory;
-        var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
-
-        if (!isPublishMode || !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
+        if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
+            !hasYarnLock)
         {
             // Not publish mode or no yarn.lock, use default install args
             return [];
         }
 
-        var yarnRcYml = Path.Combine(workingDirectory, ".yarnrc.yml");
-        var yarnBerryReleaseDir = Path.Combine(workingDirectory, ".yarn", "releases");
-        var hasYarnBerry = File.Exists(yarnRcYml) || Directory.Exists(yarnBerryReleaseDir);
-
+        var hasYarnBerry = hasYarnrc || hasYarnBerryDir;
         if (hasYarnBerry)
         {
             // Yarn 2+ detected, --frozen-lockfile is deprecated in v2+, use --immutable instead
@@ -535,59 +524,32 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var args = new List<string> { "install" };
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var hasPnpmLock = File.Exists(Path.Combine(workingDirectory, "pnpm-lock.yaml"));
 
-        if (installArgs != null)
-        {
-            // Use custom args
-            args.AddRange(installArgs);
+        installArgs ??= GetDefaultPnpmInstallArgs(resource, hasPnpmLock);
 
-            // Add --prod in publish mode if not already present
-            if (resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
-            {
-                if (!args.Contains("--prod") && !args.Contains("--production"))
-                {
-                    args.Add("--prod");
-                }
-            }
-        }
-        else
+        var packageFilesSourcePattern = "package.json";
+        if (hasPnpmLock)
         {
-            // Use default args
-            var defaultArgs = GetDefaultPnpmInstallArgs(resource);
-            args.AddRange(defaultArgs);
+            packageFilesSourcePattern += " pnpm-lock.yaml";
         }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/root/.local/share/pnpm/store", packageFilesPattern: "package*.json"))
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation([.. args]));
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/root/.local/share/pnpm/store")
+            {
+                PackageFilesPatterns = { (packageFilesSourcePattern, "./") }
+            })
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
-    {
-        var isPublishMode = resource.ApplicationBuilder.ExecutionContext.IsPublishMode;
-        var hasLockFile = File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"));
-
-        if (!isPublishMode)
-        {
-            return [];
-        }
-
-        var args = new List<string>();
-
-        if (hasLockFile)
-        {
-            args.Add("--frozen-lockfile");
-        }
-
-        // Add --prod in publish mode
-        args.Add("--prod");
-
-        return [.. args];
-    }
+    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource, bool hasPnpmLock) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode && hasPnpmLock
+            ? ["--frozen-lockfile"]
+            : [];
 
     /// <summary>
     /// Adds a build script annotation to the resource builder using the specified command-line arguments.

@@ -4,7 +4,7 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm install --production
+RUN --mount=type=cache,target=/root/.npm npm install
 COPY . .
 
 FROM ${SOURCE_IMAGENAME} AS source_stage
@@ -12,8 +12,7 @@ FROM ${SOURCE_IMAGENAME} AS source_stage
 FROM node:22-alpine AS runtime
 
 WORKDIR /app
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/app.js ./app.js
+COPY --from=build /app /app
 COPY --from=source_stage /app/dist /app/./static
 
 

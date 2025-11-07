@@ -104,20 +104,19 @@ public class AddNodeAppTests
 
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
-        var expectedDockerfile = includePackageJson ? 
+        var expectedDockerfile = includePackageJson ?
             """
             FROM node:22-alpine AS build
             
             WORKDIR /app
             COPY package*.json ./
-            RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+            RUN --mount=type=cache,target=/root/.npm npm ci
             COPY . .
             
             FROM node:22-alpine AS runtime
             
             WORKDIR /app
-            COPY --from=build /app/node_modules ./node_modules
-            COPY --from=build /app/app.js ./app.js
+            COPY --from=build /app /app
             
             ENV NODE_ENV=production
             
@@ -125,7 +124,7 @@ public class AddNodeAppTests
             
             ENTRYPOINT ["node","app.js"]
 
-            """.Replace("\r\n", "\n") : 
+            """.Replace("\r\n", "\n") :
             """
             FROM node:22-alpine AS build
             
@@ -135,7 +134,7 @@ public class AddNodeAppTests
             FROM node:22-alpine AS runtime
             
             WORKDIR /app
-            COPY --from=build /app/app.js ./app.js
+            COPY --from=build /app /app
             
             ENV NODE_ENV=production
             
@@ -163,7 +162,10 @@ public class AddNodeAppTests
         File.WriteAllText(Path.Combine(appDir, "package.json"), "{}");
 
         var nodeApp = builder.AddNodeApp("js", appDir, "app.js")
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null, cacheMount: null, packageFilesPattern: "package*.json"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null, cacheMount: null)
+            {
+                PackageFilesPatterns = { ("package*.json", "./") }
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["myinstall"]))
             .WithBuildScript("mybuild");
 
@@ -184,8 +186,7 @@ public class AddNodeAppTests
             FROM node:22-alpine AS runtime
 
             WORKDIR /app
-            COPY --from=build /app/node_modules ./node_modules
-            COPY --from=build /app/app.js ./app.js
+            COPY --from=build /app /app
 
             ENV NODE_ENV=production
 
