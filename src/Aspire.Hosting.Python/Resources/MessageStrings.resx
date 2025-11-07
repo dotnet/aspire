@@ -58,9 +58,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="VirtualEnvironmentNotFound" xml:space="preserve">
-    <value>Python virtual environment not found at '{0}'. Create a virtual environment by running 'python -m venv {1}' in the application directory, or use 'uv' for faster environment setup with 'uv venv' (requires uv to be installed).</value>
-  </data>
   <data name="UvNotFoundWhenRequired" xml:space="preserve">
     <value>The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/</value>
   </data>

@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 // Suppress experimental interaction API warnings locally.
 #pragma warning disable ASPIREINTERACTION001
-internal abstract class RequiredCommandValidator(IInteractionService interactionService, ILogger logger) : CoalescingAsyncOperation
+public abstract class RequiredCommandValidator(IInteractionService interactionService, ILogger logger) : CoalescingAsyncOperation
 {
     private readonly IInteractionService _interactionService = interactionService;
     private readonly ILogger _logger = logger;
@@ -130,7 +130,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// </summary>
     /// <param name="command">The command string.</param>
     /// <returns>Full path if resolved; otherwise null.</returns>
-    protected internal static string? ResolveCommand(string command)
+    public static string? ResolveCommand(string command)
     {
         // If the command includes any directory separator, treat it as a path (relative or absolute)
         if (command.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
