@@ -131,16 +131,18 @@ Aspire provides three ways to run Python code, each suited to different use case
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Run a Python application/script directly
-var script = builder.AddPythonApp("data-processor", "./scripts", "process.py")
+// Run a Python script directly
+var etl = builder.AddPythonApp("etl-job", "../etl", "process_data.py")
     .WithReference(database);
 
-// Run a Python module (python -m module_name)
-var worker = builder.AddPythonModule("worker", "./worker", "worker.main")
-    .WithReference(queue);
+// Run a Python module (python -m celery)
+var worker = builder.AddPythonModule("celery-worker", "../worker", "celery")
+    .WithArgs("worker", "-A", "tasks", "--loglevel=info")
+    .WithReference(redis);
 
-// Run any Python executable (e.g., Flask, FastAPI, uvicorn)
-var api = builder.AddPythonExecutable("api", "./api", "uvicorn", ["main:app", "--reload"]);
+// Run an executable from the virtual environment (e.g., gunicorn)
+var api = builder.AddPythonExecutable("api", "../api", "gunicorn")
+    .WithArgs("app:app", "--bind", "0.0.0.0:8000");
 ```
 
 #### Uvicorn Integration for ASGI Applications
