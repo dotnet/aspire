@@ -898,7 +898,7 @@ public class AzureDeployerTests
     }
 
     [Theory]
-    [InlineData("deploy")]
+    [InlineData("deploy-api")]
     [InlineData("diagnostics")]
     public async Task DeployAsync_WithAzureResourceDependencies_DoesNotHang(string step)
     {
