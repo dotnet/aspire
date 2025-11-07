@@ -62,6 +62,12 @@ export const invalidOrMissingToken = vscode.l10n.t('Invalid or missing token in 
 export const invalidTokenLength = vscode.l10n.t('Invalid token length in Authorization header.');
 export const authorizationHeaderMustStartWithBearer = vscode.l10n.t('Authorization header must start with \'Bearer \'.');
 export const authorizationAndDcpHeadersRequired = vscode.l10n.t('Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.');
-export const buildFailedForProjectWithError = (project: string, error: string) => vscode.l10n.t('Build failed for project {0} with error: {1}.', project, error);
+export const buildFailedForProjectWithError = (projectPath: string, error: string) => vscode.l10n.t('Build failed for project {0} with error: {1}.', projectPath, error);
+export const cliInstalled = vscode.l10n.t('Aspire CLI is installed and available on PATH!');
+export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.');
+export const aspireCliInstallation = vscode.l10n.t('Aspire CLI Installation');
+export const cliInstallationStarted = vscode.l10n.t('Aspire CLI installation started. Please restart VS Code after installation completes.');
+export const openCliInstallInstructions = vscode.l10n.t('See CLI installation instructions');
+export const dismissLabel = vscode.l10n.t('Dismiss');
 export const lookingForDevkitBuildTask = vscode.l10n.t('C# Dev Kit is installed, looking for C# Dev Kit build task...');
 export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not installed, building using dotnet CLI...');

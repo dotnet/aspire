@@ -57,8 +57,19 @@ export class AspireTerminalProvider implements vscode.Disposable {
     }
 
     sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true) {
-        let command = `${this.getAspireCliExecutablePath()} ${subcommand}`;
-        if (this.isCliDebugLoggingEnabled()) {
+        const cliPath = this.getAspireCliExecutablePath();
+        
+        // On Windows, use & to execute paths, especially those with special characters
+        // On Unix, just use the path directly
+        let command: string;
+        if (process.platform === 'win32') {
+            // Use & call operator with quoted path for Windows
+            command = `& "${cliPath}" ${subcommand}`;
+        } else {
+            // For Unix-like systems, quote only if needed
+            const quotedPath = /[\s"'`$!*?()&|<>;]/.test(cliPath) ? `'${cliPath.replace(/'/g, `'\\''`)}'` : cliPath;
+            command = `${quotedPath} ${subcommand}`;
+        }        if (this.isCliDebugLoggingEnabled()) {
             command += ' --debug';
         }
 
@@ -186,20 +197,15 @@ export class AspireTerminalProvider implements vscode.Disposable {
     }
 
 
-    getAspireCliExecutablePath(surroundWithQuotes: boolean = true): string {
+    getAspireCliExecutablePath(): string {
         const aspireCliPath = vscode.workspace.getConfiguration('aspire').get<string>('aspireCliExecutablePath', '');
         if (aspireCliPath && aspireCliPath.trim().length > 0) {
             extensionLogOutputChannel.debug(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
-            const path = shellEscapeSingleQuotes(aspireCliPath.trim());
-            return surroundWithQuotes ? `'${path}'` : path;
+            return aspireCliPath.trim();
         }
 
         extensionLogOutputChannel.debug('No user-configured Aspire CLI path found');
         return "aspire";
-
-        function shellEscapeSingleQuotes(str: string): string {
-            return str.replace(/'/g, `'\\''`);
-        }
     }
 
     isCliDebugLoggingEnabled(): boolean {
