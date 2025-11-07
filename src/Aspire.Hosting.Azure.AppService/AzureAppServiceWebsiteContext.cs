@@ -34,15 +34,16 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
-    public BicepValue<string> HostName => environmentContext.Environment.IsDeploymentSlot ?
-        BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{environmentContext.Environment.DeploymentSlot}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60) :
-        _webSiteHostName;
+    private BicepValue<string> HostName => BicepFunction.Take(
+        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
-    private BicepValue<string> _webSiteHostName => BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
+    public BicepValue<string> GetSlotHostName(string deploymentSlot)
+    {
+        return BicepFunction.Take(
+        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}-{BicepFunction.ToLower(deploymentSlot)}"), 60);
+    }
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
@@ -114,6 +115,21 @@ internal sealed class AzureAppServiceWebsiteContext(
             _ => null
         };
 
+        string deploymentSlot = string.Empty;
+        if (environmentContext.Environment.DeploymentSlotParameter is not null)
+        {
+            deploymentSlot = environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(Infra).Value.ToString();
+        }
+        else if (environmentContext.Environment.DeploymentSlot is not null)
+        {
+            deploymentSlot = environmentContext.Environment.DeploymentSlot;
+        }
+
+        if (deploymentSlot.Equals("production", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Deployment slot name 'production' is not allowed as it is a reserved name in Azure App Service.");
+        }
+
         foreach (var endpoint in endpoints)
         {
             if (!endpoint.IsExternal)
@@ -124,7 +140,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             // For App Service, we ignore port mappings since ports are handled by the platform
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
-                Host: HostName,
+                Host: string.IsNullOrWhiteSpace(deploymentSlot) ? HostName : GetSlotHostName(deploymentSlot),
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
                 TargetPort: endpoint.TargetPort ?? fallbackTargetPort,
                 IsHttpIngress: true,
@@ -245,14 +261,13 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         _infrastructure = infra;
 
-        string deploymentSlot;
-
-        if(environmentContext.Environment.DeploymentSlotParameter is not null)
+        if(environmentContext.Environment.IsSlotDeployment)
         {
-            deploymentSlot = environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra).Value.ToString();
-            if (!deploymentSlot.Equals("production", StringComparison.OrdinalIgnoreCase))
+            string? deploymentSlot = environmentContext.Environment.DeploymentSlot;
+
+            if (deploymentSlot is not null)
             {
-                BuildWebSiteSlot();
+                BuildWebSiteSlot(deploymentSlot);
                 return;
             }
         }
@@ -511,7 +526,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     #region DeploymentSlot
 
-    private void BuildWebSiteSlot()//string deploymentSlot)
+    private void BuildWebSiteSlot(string deploymentSlot)
     {
         // We need to reference the container registry URL so that it exists in the manifest
         var containerRegistryUrl = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(Infra);
@@ -521,14 +536,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
 
         var webSite = WebSite.FromExisting("webapp");
-        webSite.Name = _webSiteHostName;
+        webSite.Name = HostName;
 
         Infra.Add(webSite);
 
         var webSiteSlot = new WebSiteSlot("webappslot")
         {
             Parent = webSite,
-            //Name = deploymentSlot,
+            Name = deploymentSlot,
             AppServicePlanId = appServicePlanParameter,
             // Creating the app service with new sidecar configuration
             SiteConfig = new SiteConfigProperties()

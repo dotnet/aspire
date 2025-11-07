@@ -159,7 +159,7 @@ internal static class AzureAppServiceEnvironmentUtility
         var dashboardSlot = new WebSiteSlot("dashboardSlot")
         {
             // Use the host name as the name of the web app
-            //Name = GetDashboardHostName(infra.AspireResource.Name),
+            Name = deploymentSlot,
             Parent = dashboard,
             AppServicePlanId = appServicePlanId,
             // Aspire dashboards are created with a new kind aspiredashboard

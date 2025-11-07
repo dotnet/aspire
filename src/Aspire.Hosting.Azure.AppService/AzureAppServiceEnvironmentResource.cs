@@ -200,7 +200,10 @@ public class AzureAppServiceEnvironmentResource :
     /// </summary>
     internal string? DeploymentSlot { get; set; }
 
-    internal bool IsDeploymentSlot { get; set; }
+    /// <summary>
+    /// Indicates whether this is a slot deployment.
+    /// </summary>
+    internal bool IsSlotDeployment { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.
