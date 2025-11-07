@@ -189,7 +189,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
         public void AppendFormatted(ReferenceExpression valueProvider, string format)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.");
         }
 
         /// <summary>
@@ -341,7 +341,7 @@ public class ReferenceExpressionBuilder
     [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
     public void AppendFormatted(ReferenceExpression valueProvider, string format)
     {
-        throw new NotImplementedException();
+        throw new InvalidOperationException("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.");
     }
 
     /// <summary>
