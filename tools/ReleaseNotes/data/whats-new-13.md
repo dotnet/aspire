@@ -422,7 +422,7 @@ This pattern works for all supported databases (PostgreSQL, SQL Server, Oracle, 
 
 #### Certificate Trust Across Languages
 
-Aspire 13.0 automatically configures certificate trust for Python, Node.js, and containerized applications without any additional configuration:
+Aspire 13.0 automatically configures ASP.NET Development Certificate trust for Python, Node.js, and containerized applications without any additional configuration:
 
 ```csharp
 // Python applications automatically trust development certificates
