@@ -29,8 +29,14 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     public string? CacheMount { get; } = cacheMount;
 
     /// <summary>
-    /// Gets the file patterns for package dependency files. The first item in the tuple is the source pattern,
-    /// and the second item is the destination pattern.
+    /// Gets the file patterns for package dependency files.
     /// </summary>
-    public List<(string Source, string Destination)> PackageFilesPatterns { get; } = [];
+    public List<PackageFilePattern> PackageFilesPatterns { get; } = [];
 }
+
+/// <summary>
+/// Represents a package file pattern for copying dependency files in a Dockerfile.
+/// </summary>
+/// <param name="Source">The source pattern for files to copy (e.g., "package*.json").</param>
+/// <param name="Destination">The destination path where files should be copied (e.g., "./").</param>
+public sealed record PackageFilePattern(string Source, string Destination);
