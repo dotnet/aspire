@@ -997,9 +997,31 @@ public static class JavaScriptHostingExtensions
         return builder.WithDebuggerProperties<ViteAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
     }
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+    /// <summary>
+    /// Adds a browser debugger resource to the JavaScript application resource builder.
+    /// </summary>
+    /// <typeparam name="T">The type of JavaScript application resource being configured.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="browser">The browser to use for debugging (e.g., "chrome", "edge").</param>
+    /// <param name="webRoot">The web root directory relative to the working directory.</param>
+    /// <param name="url">The URL to launch the browser debugger against.</param>
+    /// <param name="configureDebuggerProperties">An optional callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds a browser debugger resource to the JavaScript application resource, enabling debugging
+    /// of client-side code in the specified browser. The debugger properties can be customized via the
+    /// provided callback action.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a Chrome browser debugger to a JavaScript app:
+    /// <code lang="csharp">
+    /// var app = builder.AddJavaScriptApp("frontend", "../frontend")
+    ///     .WithBrowserDebugger("chrome", "dist", "http://localhost:3000");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithBrowserDebugger<T>(
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
         this IResourceBuilder<T> builder,
         string browser,
         string webRoot,
