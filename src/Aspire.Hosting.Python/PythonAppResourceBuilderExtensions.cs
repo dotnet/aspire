@@ -495,6 +495,13 @@ public static class PythonAppResourceBuilderExtensions
         // Validate Python environment before resource starts
         resourceBuilder.OnBeforeResourceStarted(static async (pythonResource, e, ct) =>
         {
+            // Only validate in run mode
+            var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+            if (!executionContext.IsRunMode)
+            {
+                return;
+            }
+
             // Check if the resource uses uv
             var usesUv = pythonResource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager) && 
                          packageManager.ExecutableName == "uv";
