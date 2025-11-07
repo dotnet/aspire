@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Utils;
 /// Subsequent callers while the operation is in-flight coalesce onto the same task. When the
 /// operation completes (success, fault, or cancellation) a future caller will start a new execution.
 /// </summary>
-public abstract class CoalescingAsyncOperation : IDisposable
+internal abstract class CoalescingAsyncOperation : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private Task? _runningTask;

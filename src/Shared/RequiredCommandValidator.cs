@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 // Suppress experimental interaction API warnings locally.
 #pragma warning disable ASPIREINTERACTION001
-public abstract class RequiredCommandValidator(IInteractionService interactionService, ILogger logger) : CoalescingAsyncOperation
+internal abstract class RequiredCommandValidator(IInteractionService interactionService, ILogger logger) : CoalescingAsyncOperation
 {
     private readonly IInteractionService _interactionService = interactionService;
     private readonly ILogger _logger = logger;
@@ -33,6 +33,33 @@ public abstract class RequiredCommandValidator(IInteractionService interactionSe
     /// Returns the command string (file name or path) that should be validated.
     /// </summary>
     protected abstract string GetCommandPath();
+
+    /// <summary>
+    /// Gets the message to display when the command is not found and there is no help link.
+    /// Default: "Required command '{0}' was not found on PATH or at a specified location."
+    /// </summary>
+    /// <param name="command">The command name.</param>
+    /// <returns>The formatted message.</returns>
+    protected virtual string GetCommandNotFoundMessage(string command) =>
+        string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at a specified location.", command);
+
+    /// <summary>
+    /// Gets the message to display when the command is not found and there is a help link.
+    /// Default: "Required command '{0}' was not found. See installation instructions for more details."
+    /// </summary>
+    /// <param name="command">The command name.</param>
+    /// <returns>The formatted message.</returns>
+    protected virtual string GetCommandNotFoundWithLinkMessage(string command) =>
+        string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found. See installation instructions for more details.", command);
+
+    /// <summary>
+    /// Gets the message to display when the command is found but validation failed.
+    /// Default: "{0} See installation instructions for more details."
+    /// </summary>
+    /// <param name="validationMessage">The validation failure message.</param>
+    /// <returns>The formatted message.</returns>
+    protected virtual string GetValidationFailedMessage(string validationMessage) =>
+        string.Format(CultureInfo.CurrentCulture, "{0} See installation instructions for more details.", validationMessage);
 
     /// <summary>
     /// Called after the command has been successfully resolved to a full path.
@@ -80,9 +107,9 @@ public abstract class RequiredCommandValidator(IInteractionService interactionSe
             var message = (link, validationMessage) switch
             {
                 (null, not null) => validationMessage,
-                (not null, not null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithValidation, validationMessage),
-                (not null, null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithLink, command),
-                _ => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotification, command)
+                (not null, not null) => GetValidationFailedMessage(validationMessage),
+                (not null, null) => GetCommandNotFoundWithLinkMessage(command),
+                _ => GetCommandNotFoundMessage(command)
             };
 
             _logger.LogWarning("{Message}", message);
@@ -130,7 +157,7 @@ public abstract class RequiredCommandValidator(IInteractionService interactionSe
     /// </summary>
     /// <param name="command">The command string.</param>
     /// <returns>Full path if resolved; otherwise null.</returns>
-    public static string? ResolveCommand(string command)
+    protected internal static string? ResolveCommand(string command)
     {
         // If the command includes any directory separator, treat it as a path (relative or absolute)
         if (command.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
