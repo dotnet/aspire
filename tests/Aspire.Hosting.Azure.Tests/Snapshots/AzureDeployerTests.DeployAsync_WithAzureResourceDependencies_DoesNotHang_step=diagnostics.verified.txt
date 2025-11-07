@@ -73,7 +73,7 @@ Step: diagnostics
     Dependencies: none
 
 Step: login-to-acr-env
-    Dependencies: ✓ provision-env
+    Dependencies: none
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: acr-login
 
@@ -183,30 +183,28 @@ If targeting 'deploy':
   Direct dependencies: build-api, create-provisioning-context, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
   Total steps: 15
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env | provision-api-roles-kv (parallel)
-    [5] push-api
-    [6] provision-api-website
-    [7] provision-azure-bicep-resources
-    [8] print-dashboard-url-env
-    [9] deploy
+    [4] provision-api-roles-kv | push-api (parallel)
+    [5] provision-api-website
+    [6] provision-azure-bicep-resources
+    [7] print-dashboard-url-env
+    [8] deploy
 
 If targeting 'deploy-api':
   Direct dependencies: print-api-summary
   Total steps: 13
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env
-    [5] push-api
-    [6] provision-api-website
-    [7] print-api-summary
-    [8] deploy-api
+    [4] push-api
+    [5] provision-api-website
+    [6] print-api-summary
+    [7] deploy-api
 
 If targeting 'deploy-prereq':
   Direct dependencies: none
@@ -221,41 +219,35 @@ If targeting 'diagnostics':
     [0] diagnostics
 
 If targeting 'login-to-acr-env':
-  Direct dependencies: provision-env
-  Total steps: 5
+  Direct dependencies: none
+  Total steps: 1
   Execution order:
-    [0] deploy-prereq
-    [1] validate-azure-login
-    [2] create-provisioning-context
-    [3] provision-env
-    [4] login-to-acr-env
+    [0] login-to-acr-env
 
 If targeting 'print-api-summary':
   Direct dependencies: provision-api-website
   Total steps: 12
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env
-    [5] push-api
-    [6] provision-api-website
-    [7] print-api-summary
+    [4] push-api
+    [5] provision-api-website
+    [6] print-api-summary
 
 If targeting 'print-dashboard-url-env':
   Direct dependencies: provision-azure-bicep-resources, provision-env
   Total steps: 14
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env | provision-api-roles-kv (parallel)
-    [5] push-api
-    [6] provision-api-website
-    [7] provision-azure-bicep-resources
-    [8] print-dashboard-url-env
+    [4] provision-api-roles-kv | push-api (parallel)
+    [5] provision-api-website
+    [6] provision-azure-bicep-resources
+    [7] print-dashboard-url-env
 
 If targeting 'provision-api-identity':
   Direct dependencies: create-provisioning-context
@@ -280,26 +272,24 @@ If targeting 'provision-api-website':
   Direct dependencies: create-provisioning-context, provision-api-identity, provision-env, provision-kv, push-api
   Total steps: 11
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env
-    [5] push-api
-    [6] provision-api-website
+    [4] push-api
+    [5] provision-api-website
 
 If targeting 'provision-azure-bicep-resources':
   Direct dependencies: create-provisioning-context, deploy-prereq, provision-api-identity, provision-api-roles-kv, provision-api-website, provision-env, provision-kv
   Total steps: 13
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env | provision-api-roles-kv (parallel)
-    [5] push-api
-    [6] provision-api-website
-    [7] provision-azure-bicep-resources
+    [4] provision-api-roles-kv | push-api (parallel)
+    [5] provision-api-website
+    [6] provision-azure-bicep-resources
 
 If targeting 'provision-env':
   Direct dependencies: create-provisioning-context
@@ -350,12 +340,11 @@ If targeting 'push-api':
   Direct dependencies: build-api, login-to-acr-env, provision-env
   Total steps: 8
   Execution order:
-    [0] build-prereq | deploy-prereq (parallel)
+    [0] build-prereq | deploy-prereq | login-to-acr-env (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-env
-    [4] login-to-acr-env
-    [5] push-api
+    [4] push-api
 
 If targeting 'validate-azure-login':
   Direct dependencies: deploy-prereq
