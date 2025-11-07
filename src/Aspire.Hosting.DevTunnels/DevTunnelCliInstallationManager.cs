@@ -61,7 +61,7 @@ internal sealed class DevTunnelCliInstallationManager : RequiredCommandValidator
 
     protected override string GetCommandPath() => DevTunnelCli.GetCliPath(_configuration);
 
-    protected internal override async Task<(bool IsValid, string? ValidationMessage)> OnResolvedAsync(string resolvedCommandPath, CancellationToken cancellationToken)
+    protected override async Task<(bool IsValid, string? ValidationMessage)> OnResolvedAsync(string resolvedCommandPath, CancellationToken cancellationToken)
     {
         // Verify the version is supported
         var version = await _devTunnelClient.GetVersionAsync(_logger, cancellationToken).ConfigureAwait(false);
