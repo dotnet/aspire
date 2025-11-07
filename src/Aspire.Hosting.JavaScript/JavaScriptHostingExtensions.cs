@@ -312,12 +312,39 @@ public static class JavaScriptHostingExtensions
 
                         var dockerBuilder = dockerfileContext.Builder
                             .From(baseImage)
-                            .WorkDir("/app")
-                            .Copy(".", ".");
+                            .WorkDir("/app");
+
+                        // Copy package files first for better layer caching
+                        if (packageManager.PackageFilesPatterns.Count > 0)
+                        {
+                            foreach (var packageFilePattern in packageManager.PackageFilesPatterns)
+                            {
+                                dockerBuilder.Copy(packageFilePattern.Source, packageFilePattern.Destination);
+                            }
+                        }
+                        else
+                        {
+                            dockerBuilder.Copy(".", ".");
+                        }
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            dockerBuilder.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
+                            // Use BuildKit cache mount for npm cache if available
+                            var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
+                            if (!string.IsNullOrEmpty(packageManager.CacheMount))
+                            {
+                                dockerBuilder.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
+                            }
+                            else
+                            {
+                                dockerBuilder.Run(installCmd);
+                            }
+                        }
+
+                        if (packageManager.PackageFilesPatterns.Count > 0)
+                        {
+                            // Copy application source code after dependencies are installed
+                            dockerBuilder.Copy(".", ".");
                         }
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
