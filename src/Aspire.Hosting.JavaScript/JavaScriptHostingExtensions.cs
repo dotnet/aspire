@@ -461,10 +461,12 @@ public static class JavaScriptHostingExtensions
         var hasYarnLock = File.Exists(Path.Combine(workingDirectory, "yarn.lock"));
         var hasYarnrc = File.Exists(Path.Combine(workingDirectory, ".yarnrc.yml"));
         var hasYarnBerryDir = Directory.Exists(Path.Combine(workingDirectory, ".yarn"));
+        var hasYarnBerry = hasYarnrc || hasYarnBerryDir;
 
-        installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnrc, hasYarnBerryDir);
+        installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
 
-        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount: "/usr/local/share/.cache/yarn");
+        var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
         var packageFilesSourcePattern = "package.json";
         if (hasYarnLock)
         {
@@ -492,8 +494,7 @@ public static class JavaScriptHostingExtensions
     private static string[] GetDefaultYarnInstallArgs(
         IResourceBuilder<JavaScriptAppResource> resource,
         bool hasYarnLock,
-        bool hasYarnrc,
-        bool hasYarnBerryDir)
+        bool hasYarnBerry)
     {
         if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
             !hasYarnLock)
@@ -502,7 +503,6 @@ public static class JavaScriptHostingExtensions
             return [];
         }
 
-        var hasYarnBerry = hasYarnrc || hasYarnBerryDir;
         if (hasYarnBerry)
         {
             // Yarn 2+ detected, --frozen-lockfile is deprecated in v2+, use --immutable instead
