@@ -10,6 +10,7 @@ using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -365,10 +366,10 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private string GetDockerComposeProjectName(PipelineStepContext context)
     {
         // Get the AppHost:PathSha256 from configuration to disambiguate projects
-        var configuration = context.Services.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var configuration = context.Services.GetService<IConfiguration>();
         var appHostSha = configuration?["AppHost:PathSha256"];
 
-        if (!string.IsNullOrEmpty(appHostSha))
+        if (!string.IsNullOrEmpty(appHostSha) && appHostSha.Length >= 8)
         {
             // Use first 8 characters of the hash for readability
             // Format: aspire-{environmentName}-{sha8}
