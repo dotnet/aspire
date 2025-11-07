@@ -370,7 +370,14 @@ public static class JavaScriptHostingExtensions
             runScriptName,
             argsCallback: c =>
             {
-                c.Args.Add("--");
+                // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
+                // npm and yarn both strip the -- separator before passing arguments to the script.
+                // Only add the separator for npm and yarn.
+                if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager) &&
+                    packageManager.ExecutableName != "pnpm")
+                {
+                    c.Args.Add("--");
+                }
 
                 var targetEndpoint = resource.GetEndpoint("https");
                 if (!targetEndpoint.Exists)
