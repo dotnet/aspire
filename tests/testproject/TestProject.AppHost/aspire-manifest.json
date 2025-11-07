@@ -244,7 +244,7 @@
     },
     "rabbitmq": {
       "type": "container.v0",
-      "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
+      "connectionString": "amqp://guest:{rabbitmq-password-uri-encoded.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
       "image": "docker.io/library/rabbitmq:3",
       "env": {
         "RABBITMQ_DEFAULT_USER": "guest",
