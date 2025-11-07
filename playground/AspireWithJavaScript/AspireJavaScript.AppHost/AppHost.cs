@@ -14,15 +14,15 @@ builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "s
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
-    .WithHttpEndpoint(env: "PORT")
+    .WithHttpEndpoint(env: "PORT", port: 3000)
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile()
-    .WithJavaScriptDebuggerProperties(props =>
+    .WithBrowserDebugger("msedge", "./", "http://localhost:3000", props =>
     {
-        // Configure msedge debugger to stop on entry
-        props.StopOnEntry = true;
-        props.Trace = true;
-        //props.Type = "msedge";
+        props.SourceMapPathOverrides = new Dictionary<string, string>
+        {
+            { "webpack://react-weather/./src/*", "${webRoot}/src/*" },
+        };
     });
 
 builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
@@ -46,7 +46,6 @@ builder.AddNodeApp("node", "../AspireJavaScript.NodeApp", "app.js")
     .PublishAsDockerFile()
     .WithJavaScriptDebuggerProperties(props =>
     {
-        props.StopOnEntry = true;
         props.Trace = true;
     });
 

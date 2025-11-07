@@ -56,19 +56,19 @@ public sealed class JavaScriptDebuggerProperties : DebuggerProperties
     /// Provides the fully qualified path to the Node.js runtime executable.
     /// </summary>
     [JsonPropertyName("runtimeExecutable")]
-    public string? RuntimeExecutable { get; init; }
+    public string? RuntimeExecutable { get; set; }
 
     /// <summary>
     /// Optional arguments passed to the runtime executable.
     /// </summary>
     [JsonPropertyName("runtimeArgs")]
-    public string[]? RuntimeArgs { get; init; }
+    public string[]? RuntimeArgs { get; set; }
 
     /// <summary>
     /// Specifies the version of the runtime to use.
     /// </summary>
     [JsonPropertyName("runtimeVersion")]
-    public string? RuntimeVersion { get; init; }
+    public string? RuntimeVersion { get; set; }
 
     /// <summary>
     /// Specifies whether to stop at the entry point of the program.
@@ -87,6 +87,18 @@ public sealed class JavaScriptDebuggerProperties : DebuggerProperties
     /// </summary>
     [JsonPropertyName("outFiles")]
     public string[]? OutFiles { get; set; }
+
+    /// <summary>
+    /// A mapping of source file paths to generated file paths for use in source mapping.
+    /// </summary>
+    [JsonPropertyName("sourceMapPathOverrides")]
+    public Dictionary<string, string>? SourceMapPathOverrides { get; set; }
+
+    /// <summary>
+    /// Indicates whether source maps should be used to map generated code back to the original source.
+    /// </summary>
+    [JsonPropertyName("sourceMaps")]
+    public bool SourceMaps { get; set; } = true;
 
     /// <summary>
     /// Array of glob patterns for locations where source maps should be parsed.
@@ -129,4 +141,16 @@ public sealed class JavaScriptDebuggerProperties : DebuggerProperties
     /// </summary>
     [JsonPropertyName("trace")]
     public bool? Trace { get; set; }
+
+    /// <summary>
+    /// Provide the URL to open when the debugger starts, if applicable.
+    /// </summary>
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    /// <summary>
+    /// Provide the source root for browser-based debugging, if applicable.
+    /// </summary>
+    [JsonPropertyName("webRoot")]
+    public string? WebRoot { get; set; }
 }

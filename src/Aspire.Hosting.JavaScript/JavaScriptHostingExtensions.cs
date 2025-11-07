@@ -975,4 +975,39 @@ public static class JavaScriptHostingExtensions
     {
         return builder.WithDebuggerProperties<ViteAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
     }
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+    public static IResourceBuilder<T> WithBrowserDebugger<T>(
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+        this IResourceBuilder<T> builder,
+        string browser,
+        string webRoot,
+        string url,
+        Action<JavaScriptDebuggerProperties>? configureDebuggerProperties = null)
+        where T : JavaScriptAppResource
+    {
+        var debuggerResource = new BrowserDebuggerResource(
+            $"{builder.Resource.Name}-browser",
+            browser,
+            Path.Join(builder.Resource.WorkingDirectory, webRoot),
+            builder.Resource.WorkingDirectory,
+            url,
+            configureDebuggerProperties);
+
+        builder.ApplicationBuilder.AddResource(debuggerResource)
+            .WithParentRelationship(builder.Resource)
+            .WithDebugSupport(
+                options =>
+                {
+                    return new JavaScriptLaunchConfiguration
+                    {
+                        Program = string.Empty,
+                        DebuggerProperties = debuggerResource.DebuggerProperties
+                    };
+                },
+                "node");
+
+        return builder;
+    }
+
 }
