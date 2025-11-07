@@ -25,7 +25,7 @@ internal static partial class DockerComposePublisherLoggerExtensions
     [LoggerMessage(LogLevel.Information, "No resources found in the model.")]
     internal static partial void EmptyModel(this ILogger logger);
 
-    [LoggerMessage(LogLevel.Information, "Successfully generated Compose output in '{OutputPath}'")]
+    [LoggerMessage(LogLevel.Debug, "Successfully generated Compose output in '{OutputPath}'")]
     internal static partial void FinishGeneratingDockerCompose(this ILogger logger, string outputPath);
 
     [LoggerMessage(LogLevel.Warning, "Failed to get container image for resource '{ResourceName}', it will be skipped in the output.")]

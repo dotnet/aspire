@@ -98,8 +98,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 },
                 Kind = "Linux",
                 IsReserved = true,
-                // Enable per-site scaling so each app service can scale independently
-                IsPerSiteScaling = true
+                // Enable perSiteScaling or automatic scaling so each app service can scale independently
+                IsPerSiteScaling = !resource.EnableAutomaticScaling,
+                IsElasticScaleEnabled = resource.EnableAutomaticScaling,
+                // Capping the automatic scaling limit to 10 as per best practices
+                MaximumElasticWorkerCount = 10
             };
 
             infra.Add(plan);
@@ -231,9 +234,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <summary>
     /// Configures whether the Aspire dashboard should be included in the Azure App Service environment.
     /// </summary>
-    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
     /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
-    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration."/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
     {
         builder.Resource.EnableDashboard = enable;
@@ -244,13 +247,23 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
-    /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string? applicationInsightsLocation = null)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-
         builder.Resource.EnableApplicationInsights = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string applicationInsightsLocation)
+    {
+        builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsLocation = applicationInsightsLocation;
         return builder;
     }
@@ -263,8 +276,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> applicationInsightsLocation)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        builder.Resource.EnableApplicationInsights = true;
+        builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
         return builder;
     }
@@ -277,8 +289,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<AzureApplicationInsightsResource> applicationInsightsBuilder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        builder.Resource.EnableApplicationInsights = true;
+        builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
         return builder;
     }
@@ -297,6 +308,17 @@ public static partial class AzureAppServiceEnvironmentExtensions
         {
             builder.Resource.DeploymentSlot = deploymentSlot;
         }
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
+    {
+        builder.Resource.EnableAutomaticScaling = true;
         return builder;
     }
 

@@ -186,6 +186,11 @@ public class AzureAppServiceEnvironmentResource :
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
     /// <summary>
+    /// Enables or disables automatic scaling for the App Service Plan.
+    /// </summary>
+    internal bool EnableAutomaticScaling { get; set; }
+
+    /// <summary>
     /// Deployment slot parameter resource for the App Service Environment.
     /// </summary>
     internal ParameterResource? DeploymentSlotParameter { get; set; }

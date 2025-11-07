@@ -13,12 +13,12 @@ public sealed class ContainerCertificatePathsAnnotation : IResourceAnnotation
     /// <summary>
     /// The default destination path in the container under which custom certificates will be placed.
     /// </summary>
-    public const string DefaultCustomCertificatesDestination = "/usr/lib/ssl/aspire";
+    internal const string DefaultCustomCertificatesDestination = "/usr/lib/ssl/aspire";
 
     /// <summary>
     /// Default paths to default certificate bundle files in a container.
     /// </summary>
-    public static ImmutableList<string> DefaultCertificateBundlePaths = ImmutableList.Create(
+    internal static ImmutableList<string> DefaultCertificateBundlePaths { get; } = ImmutableList.Create(
         // Debian/Ubuntu/Gentoo etc.
         "/etc/ssl/certs/ca-certificates.crt",
         // Fedora/RHEL 6
@@ -35,7 +35,7 @@ public sealed class ContainerCertificatePathsAnnotation : IResourceAnnotation
     /// <summary>
     /// Default paths to default directories containing individual CA certificates in a container.
     /// </summary>
-    public static ImmutableList<string> DefaultCertificateDirectoriesPaths = ImmutableList.Create(
+    internal static ImmutableList<string> DefaultCertificateDirectoriesPaths { get; } = ImmutableList.Create(
         "/etc/ssl/certs",
         "/usr/local/share/ca-certificates",
         "/etc/pki/tls/certs");

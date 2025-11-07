@@ -126,6 +126,6 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
     private static bool IsRuntimeOnlyCommand(BaseCommand command)
     {
         var commandName = command.Name;
-        return commandName is "run" or "publish" or "deploy";
+        return commandName is "run" or "publish" or "deploy" or "do";
     }
 }

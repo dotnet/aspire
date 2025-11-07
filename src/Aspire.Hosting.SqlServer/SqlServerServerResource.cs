@@ -56,6 +56,15 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </remarks>
     public ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
+    /// <summary>
+    /// Gets the connection URI expression for the SQL Server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mssql://{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"mssql://{Host}:{Port}");
+
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
@@ -63,19 +72,14 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         builder.Append($"{Host}");
         builder.AppendLiteral(":");
         builder.Append($"{Port}");
-        builder.AppendLiteral(";user=");
-        builder.Append($"{UserNameReference:uri}");
-        builder.AppendLiteral(";password=");
-        builder.Append($"{PasswordParameter:uri}");
+        builder.AppendLiteral(";trustServerCertificate=true");
 
         if (!string.IsNullOrEmpty(databaseName))
         {
             var databaseNameReference = ReferenceExpression.Create($"{databaseName:uri}");
             builder.AppendLiteral(";databaseName=");
-            builder.Append($"{databaseNameReference:uri}");
+            builder.Append($"{databaseNameReference}");
         }
-
-        builder.AppendLiteral(";trustServerCertificate=true");
 
         return builder.Build();
     }
@@ -84,7 +88,8 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Gets the JDBC connection string for the SQL Server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true</c>.
+    /// <para>Format: <c>jdbc:sqlserver://{host}:{port};trustServerCertificate=true</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 
@@ -148,6 +153,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
         yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }

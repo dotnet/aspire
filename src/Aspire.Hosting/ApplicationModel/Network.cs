@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A network identifier used to specify the network context for resources within an Aspire application model.
 /// </summary>
-public readonly record struct NetworkIdentifier(string Value);
+public record NetworkIdentifier(string Value);
 
 /// <summary>
 /// Provides known network identifiers for use within the Aspire application model API.

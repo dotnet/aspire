@@ -1285,14 +1285,14 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Configures the resource to copy container files from the specified source resource during publishing.
     /// </summary>
-    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IResource"/>.</typeparam>
+    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IContainerFilesDestinationResource"/>.</typeparam>
     /// <param name="builder">The resource builder to which container files will be copied to.</param>
     /// <param name="source">The resource which contains the container files to be copied.</param>
     /// <param name="destinationPath">The destination path within the resource's container where the files will be copied.</param>
     public static IResourceBuilder<T> PublishWithContainerFiles<T>(
          this IResourceBuilder<T> builder,
          IResourceBuilder<IResourceWithContainerFiles> source,
-         string destinationPath) where T : IResource
+         string destinationPath) where T : IContainerFilesDestinationResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
@@ -1308,6 +1308,46 @@ public static class ResourceBuilderExtensions
             Source = source.Resource,
             DestinationPath = destinationPath
         });
+    }
+
+    /// <summary>
+    /// Adds a container files source annotation to the resource being built, specifying the path to the container files
+    /// source.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
+    /// <param name="builder">The resource builder to which the container files source annotation will be added. Cannot be null.</param>
+    /// <param name="sourcePath">The path to the container files source to associate with the resource. Cannot be null.</param>
+    /// <returns>The resource builder instance with the container files source annotation applied.</returns>
+    public static IResourceBuilder<T> WithContainerFilesSource<T>(
+         this IResourceBuilder<T> builder,
+         string sourcePath) where T : IResourceWithContainerFiles
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        return builder.WithAnnotation(new ContainerFilesSourceAnnotation()
+        {
+            SourcePath = sourcePath
+        });
+    }
+
+    /// <summary>
+    /// Removes any container files source annotation from the resource being built.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that supports container files and is being built.</typeparam>
+    /// <param name="builder">The resource builder to which the container files source annotations should be removed. Cannot be null.</param>
+    /// <returns>The resource builder instance with the container files source annotation applied.</returns>
+    public static IResourceBuilder<T> ClearContainerFilesSources<T>(
+         this IResourceBuilder<T> builder) where T : IResourceWithContainerFiles
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Annotations
+                .OfType<ContainerFilesSourceAnnotation>()
+                .ToList()
+                .ForEach(w => builder.Resource.Annotations.Remove(w));
+
+        return builder;
     }
 
     /// <summary>
@@ -2875,5 +2915,18 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(probeAnnotation);
+    }
+
+    /// <summary>
+    /// Exclude the resource from MCP operations using the Aspire MCP server. The resource is excluded from results that return resources, console logs and telemetry.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> ExcludeFromMcp<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
 }

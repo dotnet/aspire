@@ -24,6 +24,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IProjectUpdater _projectUpdater;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
+    private readonly ICliUpdateNotifier _updateNotifier;
 
     public UpdateCommand(
         IProjectLocator projectLocator, 
@@ -41,12 +42,14 @@ internal sealed class UpdateCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(projectUpdater);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(updateNotifier);
 
         _projectLocator = projectLocator;
         _packagingService = packagingService;
         _projectUpdater = projectUpdater;
         _logger = logger;
         _cliDownloader = cliDownloader;
+        _updateNotifier = updateNotifier;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = UpdateCommandStrings.ProjectArgumentDescription;
@@ -116,6 +119,21 @@ internal sealed class UpdateCommand : BaseCommand
                 cancellationToken);
 
             await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
+            
+            // After successful project update, check if CLI update is available and prompt
+            if (_cliDownloader is not null && _updateNotifier.IsUpdateAvailable())
+            {
+                var shouldUpdateCli = await InteractionService.ConfirmAsync(
+                    UpdateCommandStrings.UpdateCliAfterProjectUpdatePrompt,
+                    defaultValue: true,
+                    cancellationToken);
+                
+                if (shouldUpdateCli)
+                {
+                    // Use the same channel that was selected for the project update
+                    return await ExecuteSelfUpdateAsync(parseResult, cancellationToken, channel.Name);
+                }
+            }
         }
         catch (ProjectUpdaterException ex)
         {
@@ -125,15 +143,33 @@ internal sealed class UpdateCommand : BaseCommand
         }
         catch (ProjectLocatorException ex)
         {
+            // Check if this is a "no project found" error and prompt for self-update
+            if (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
+            {
+                // Only prompt for self-update if not running as dotnet tool and downloader is available
+                if (_cliDownloader is not null)
+                {
+                    var shouldUpdateCli = await InteractionService.ConfirmAsync(
+                        UpdateCommandStrings.NoAppHostFoundUpdateCliPrompt,
+                        defaultValue: true,
+                        cancellationToken);
+                    
+                    if (shouldUpdateCli)
+                    {
+                        return await ExecuteSelfUpdateAsync(parseResult, cancellationToken);
+                    }
+                }
+            }
+            
             return HandleProjectLocatorException(ex, InteractionService);
         }
 
         return 0;
     }
 
-    private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken, string? selectedQuality = null)
     {
-        var quality = parseResult.GetValue<string?>("--quality");
+        var quality = selectedQuality ?? parseResult.GetValue<string?>("--quality");
 
         // If quality is not specified, prompt the user
         if (string.IsNullOrEmpty(quality))

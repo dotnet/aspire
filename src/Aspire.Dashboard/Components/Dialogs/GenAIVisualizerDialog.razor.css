@@ -145,10 +145,14 @@
     word-break: break-word;
 }
 
-::deep .tab-container img {
+::deep .tab-container img, ::deep .tab-container video {
     /* don't exceed available space and keep aspect ratio */
     max-width: 100%;
     height: auto;
+}
+
+::deep .tab-container audio {
+    flex: 0 0 auto; /* prevent shrinking */
 }
 
 ::deep .section-container {
