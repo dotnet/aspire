@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../MessageStrings.resx">
     <body>
-      <trans-unit id="UvNotFoundWhenRequired">
-        <source>The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/</source>
-        <target state="new">The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/</target>
-        <note />
-      </trans-unit>
 </body>
   </file>
 </xliff>
