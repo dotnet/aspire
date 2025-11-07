@@ -47,6 +47,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
     - [Simplified Service URL Environment Variables](#simplified-service-url-environment-variables)
 - [CLI and Tooling](#🛠️-cli-and-tooling)
   - [aspire init command](#aspire-init-command)
+  - [aspire new command](#aspire-new-command)
   - [aspire update improvements](#aspire-update-improvements)
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation-preview)
@@ -500,6 +501,34 @@ The init command simplifies the initial project setup through an interactive wor
 
 > [!NOTE]
 > The `aspire init` command sets up the Aspire project structure and configuration, but does not automatically add resources (databases, caches, message queues, etc.) to your AppHost. You'll need to manually add resource definitions to your AppHost code using methods like `AddPostgres`, `AddRedis`, `AddRabbitMQ`, etc.
+
+### aspire new: Curated starter templates
+
+Aspire 13.0 refocuses `aspire new` around curated starter templates that demonstrate different application patterns. The command now provides an interactive experience designed to help you get started quickly with ready-to-run examples.
+
+```bash
+aspire new
+```
+
+When you run the command, you'll see an interactive menu to select a starter template:
+
+```
+Select a template:
+
+> Blazor & Minimal API starter
+  React (Vite) & FastAPI starter
+  Empty AppHost
+
+(Type to search)
+```
+
+**Available starter templates:**
+
+- **Blazor & Minimal API starter**: Full-stack .NET application with Blazor frontend and ASP.NET Core API
+- **React (Vite) & FastAPI starter**: Polyglot application demonstrating Python and JavaScript integration
+- **Empty AppHost**: Minimal single-file AppHost for custom applications
+
+The starter template collection is designed to be extensible and will grow over time to showcase different architectural patterns and technology combinations. This approach makes it easier to explore Aspire's capabilities and learn from working examples.
 
 ### aspire update improvements
 
