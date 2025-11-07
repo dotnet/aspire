@@ -33,4 +33,3 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     /// </summary>
     public List<CopyFilePattern> PackageFilesPatterns { get; } = [];
 }
-

@@ -109,6 +109,7 @@ public static class JavaScriptHostingExtensions
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
+                        var copiedAllSource = false;
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
                             // Copy package files first for better layer caching
@@ -122,21 +123,13 @@ public static class JavaScriptHostingExtensions
                             else
                             {
                                 builderStage.Copy(".", ".");
+                                copiedAllSource = true;
                             }
 
-                            // Use BuildKit cache mount for npm cache if available
-                            var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
-                            if (!string.IsNullOrEmpty(packageManager.CacheMount))
-                            {
-                                builderStage.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
-                            }
-                            else
-                            {
-                                builderStage.Run(installCmd);
-                            }
+                            builderStage.AddInstallCommand(packageManager, installCommand);
                         }
 
-                        if (packageManager.PackageFilesPatterns.Count > 0)
+                        if (!copiedAllSource)
                         {
                             // Copy application source code after dependencies are installed
                             builderStage.Copy(".", ".");
@@ -263,6 +256,20 @@ public static class JavaScriptHostingExtensions
         return builder.CreateDefaultJavaScriptAppBuilder(resource, appDirectory, runScriptName);
     }
 
+    private static void AddInstallCommand(this DockerfileStage builderStage, JavaScriptPackageManagerAnnotation packageManager, JavaScriptInstallCommandAnnotation installCommand)
+    {
+        // Use BuildKit cache mount for package manager cache if available
+        var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
+        if (!string.IsNullOrEmpty(packageManager.CacheMount))
+        {
+            builderStage.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
+        }
+        else
+        {
+            builderStage.Run(installCmd);
+        }
+    }
+
     private static IResourceBuilder<TResource> CreateDefaultJavaScriptAppBuilder<TResource>(
         this IDistributedApplicationBuilder builder,
         TResource resource,
@@ -314,6 +321,8 @@ public static class JavaScriptHostingExtensions
                             .From(baseImage)
                             .WorkDir("/app");
 
+                        var copiedAllSource = false;
+
                         // Copy package files first for better layer caching
                         if (packageManager.PackageFilesPatterns.Count > 0)
                         {
@@ -325,23 +334,15 @@ public static class JavaScriptHostingExtensions
                         else
                         {
                             dockerBuilder.Copy(".", ".");
+                            copiedAllSource = true;
                         }
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            // Use BuildKit cache mount for npm cache if available
-                            var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
-                            if (!string.IsNullOrEmpty(packageManager.CacheMount))
-                            {
-                                dockerBuilder.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
-                            }
-                            else
-                            {
-                                dockerBuilder.Run(installCmd);
-                            }
+                            dockerBuilder.AddInstallCommand(packageManager, installCommand);
                         }
 
-                        if (packageManager.PackageFilesPatterns.Count > 0)
+                        if (!copiedAllSource)
                         {
                             // Copy application source code after dependencies are installed
                             dockerBuilder.Copy(".", ".");
