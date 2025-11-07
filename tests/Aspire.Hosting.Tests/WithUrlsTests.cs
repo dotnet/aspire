@@ -394,6 +394,9 @@ public class WithUrlsTests
 
         await app.StartAsync();
 
+        // Wait for the resource to reach running state to ensure URLs have been published
+        await app.ResourceNotifications.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
@@ -429,6 +432,9 @@ public class WithUrlsTests
         });
 
         await app.StartAsync();
+
+        // Wait for the resource to reach running state to ensure URLs have been published
+        await app.ResourceNotifications.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
