@@ -22,16 +22,6 @@ internal sealed class PythonInstallationManager : RequiredCommandValidator
     }
 
     /// <summary>
-    /// Gets the resolved full path to the Python executable after a successful validation, otherwise <c>null</c>.
-    /// </summary>
-    public string? ResolvedCommandPath => _resolvedCommandPath;
-
-    /// <summary>
-    /// Gets a value indicating whether Python was found (after calling <see cref="EnsureInstalledAsync"/>).
-    /// </summary>
-    public bool IsInstalled => _resolvedCommandPath is not null;
-
-    /// <summary>
     /// Ensures Python is installed/available. This method is safe for concurrent callers;
     /// only one validation will run at a time.
     /// </summary>

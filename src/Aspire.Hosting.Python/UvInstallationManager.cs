@@ -22,16 +22,6 @@ internal sealed class UvInstallationManager : RequiredCommandValidator
     }
 
     /// <summary>
-    /// Gets the resolved full path to the uv executable after a successful validation, otherwise <c>null</c>.
-    /// </summary>
-    public string? ResolvedCommandPath => _resolvedCommandPath;
-
-    /// <summary>
-    /// Gets a value indicating whether uv was found (after calling <see cref="EnsureInstalledAsync"/>).
-    /// </summary>
-    public bool IsInstalled => _resolvedCommandPath is not null;
-
-    /// <summary>
     /// Ensures uv is installed/available. This method is safe for concurrent callers;
     /// only one validation will run at a time.
     /// </summary>
