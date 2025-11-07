@@ -57,20 +57,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
     }
 
     sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true) {
-        const cliPath = this.getAspireCliExecutablePath();
-
-        // On Windows, use & to execute paths, especially those with special characters
-        // On Unix, just use the path directly
-        let command: string;
-        if (process.platform === 'win32') {
-            // Use & call operator with quoted path for Windows
-            command = `& "${cliPath}" ${subcommand}`;
-        } else {
-            // For Unix-like systems, quote only if needed
-            const quotedPath = /[\s"'`$!*?()&|<>;]/.test(cliPath) ? `'${cliPath.replace(/'/g, `'\"'\"'`)}'` : cliPath;
-            command = `${quotedPath} ${subcommand}`;
-        }
-
+        let command = `${this.getAspireCliExecutablePath()} ${subcommand}`;
         if (this.isCliDebugLoggingEnabled()) {
             command += ' --debug';
         }
@@ -199,15 +186,20 @@ export class AspireTerminalProvider implements vscode.Disposable {
     }
 
 
-    getAspireCliExecutablePath(): string {
+    getAspireCliExecutablePath(surroundWithQuotes: boolean = true): string {
         const aspireCliPath = vscode.workspace.getConfiguration('aspire').get<string>('aspireCliExecutablePath', '');
         if (aspireCliPath && aspireCliPath.trim().length > 0) {
             extensionLogOutputChannel.debug(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
-            return aspireCliPath.trim();
+            const path = shellEscapeSingleQuotes(aspireCliPath.trim());
+            return surroundWithQuotes ? `'${path}'` : path;
         }
 
         extensionLogOutputChannel.debug('No user-configured Aspire CLI path found');
         return "aspire";
+
+        function shellEscapeSingleQuotes(str: string): string {
+            return str.replace(/'/g, `'\\''`);
+        }
     }
 
     isCliDebugLoggingEnabled(): boolean {

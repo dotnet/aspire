@@ -10,9 +10,6 @@
     <trans-unit id="aspire-vscode.strings.aspireCliVersion">
       <source xml:lang="en">Aspire CLI Version: {0}.</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.cliNotAvailable">
-      <source xml:lang="en">Aspire CLI is not available on PATH. Please install it and restart VS Code.</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireOutputChannelName">
       <source xml:lang="en">Aspire Extension</source>
     </trans-unit>
@@ -87,9 +84,6 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.dismissLabel">
-      <source xml:lang="en">Dismiss</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.doYouWantToSelectDefaultApphost">
       <source xml:lang="en">Do you want to select the default apphost for this workspace?</source>
@@ -246,9 +240,6 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.runProject">
       <source xml:lang="en">Run {0}</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.openCliInstallInstructions">
-      <source xml:lang="en">See CLI installation instructions</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
