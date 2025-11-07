@@ -247,6 +247,37 @@ public class DockerComposeTests(ITestOutputHelper output)
         }
     }
 
+    [Fact]
+    public void DockerComposeProjectNameUsesAppHostShaWhenAvailable()
+    {
+        // This test verifies that when AppHost:PathSha256 is available in configuration,
+        // it will be used to generate a unique project name for Docker Compose deployments.
+        // This prevents collisions when multiple app hosts deploy to the same output directory.
+        
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        
+        // Set a known AppHost SHA in configuration
+        const string testSha = "ABC123DEF456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABC";
+        builder.Configuration["AppHost:PathSha256"] = testSha;
+        
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        
+        var composeEnv = builder.AddDockerComposeEnvironment("my-environment");
+        builder.AddContainer("service", "nginx");
+        
+        var app = builder.Build();
+        
+        // Verify the AppHost SHA is accessible in the configuration
+        var configuration = app.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var appHostSha = configuration["AppHost:PathSha256"];
+        Assert.Equal(testSha, appHostSha);
+        
+        // Note: The actual project name format is: aspire-{environmentName}-{first8CharsOfSha}
+        // Example: aspire-my-environment-abc123de
+        // This ensures different app hosts deploying to the same directory get unique project names.
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

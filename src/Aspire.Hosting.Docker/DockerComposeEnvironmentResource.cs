@@ -211,7 +211,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         {
             try
             {
-                var arguments = $"compose -f \"{dockerComposeFilePath}\"";
+                var projectName = GetDockerComposeProjectName(context);
+                var arguments = $"compose -f \"{dockerComposeFilePath}\" --project-name \"{projectName}\"";
 
                 if (File.Exists(envFilePath))
                 {
@@ -278,7 +279,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         {
             try
             {
-                var arguments = $"compose -f \"{dockerComposeFilePath}\"";
+                var projectName = GetDockerComposeProjectName(context);
+                var arguments = $"compose -f \"{dockerComposeFilePath}\" --project-name \"{projectName}\"";
 
                 if (File.Exists(envFilePath))
                 {
@@ -358,6 +360,23 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         CapturedEnvironmentVariables[name] = (description, defaultValue, source);
 
         return $"${{{name}}}";
+    }
+
+    private string GetDockerComposeProjectName(PipelineStepContext context)
+    {
+        // Get the AppHost:PathSha256 from configuration to disambiguate projects
+        var configuration = context.Services.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var appHostSha = configuration?["AppHost:PathSha256"];
+
+        if (!string.IsNullOrEmpty(appHostSha))
+        {
+            // Use first 8 characters of the hash for readability
+            // Format: aspire-{environmentName}-{sha8}
+            return $"aspire-{Name.ToLowerInvariant()}-{appHostSha[..8].ToLowerInvariant()}";
+        }
+
+        // Fallback to just using the environment name if PathSha256 is not available
+        return $"aspire-{Name.ToLowerInvariant()}";
     }
 
     private string GetEnvFilePath(PipelineStepContext context)
