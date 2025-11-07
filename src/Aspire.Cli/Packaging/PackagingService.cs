@@ -78,7 +78,9 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             return null;
         }
 
-        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, new[]
+        var stagingQuality = GetStagingQuality();
+
+        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", stagingQuality, new[]
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
@@ -125,5 +127,22 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         var truncatedHash = commitHash.Length >= 8 ? commitHash[..8] : commitHash;
         
         return $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{truncatedHash}/nuget/v3/index.json";
+    }
+
+    private PackageChannelQuality GetStagingQuality()
+    {
+        // Check for configuration override
+        var overrideQuality = configuration["overrideStagingQuality"];
+        if (!string.IsNullOrEmpty(overrideQuality))
+        {
+            // Try to parse the quality value (case-insensitive)
+            if (Enum.TryParse<PackageChannelQuality>(overrideQuality, ignoreCase: true, out var quality))
+            {
+                return quality;
+            }
+        }
+
+        // Default to Stable if not specified or invalid
+        return PackageChannelQuality.Stable;
     }
 }
