@@ -59,14 +59,5 @@ namespace Aspire.Hosting.Python.Resources {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/.
-        /// </summary>
-        internal static string UvNotFoundWhenRequired {
-            get {
-                return ResourceManager.GetString("UvNotFoundWhenRequired", resourceCulture);
-            }
-        }
     }
 }

@@ -27,21 +27,6 @@
         <target state="translated">Uygulamayı çalıştırmak için Aspire.Hosting.AppHost paketinin daha yeni bir sürümü gereklidir. En az '{0}' sürümüne referans verdiğinizden emin olun.</target>
         <note />
       </trans-unit>
-      <trans-unit id="RequiredCommandNotification">
-        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
-        <target state="new">Required command '{0}' was not found on PATH or at a specified location.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="RequiredCommandNotificationWithLink">
-        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
-        <target state="new">Required command '{0}' was not found. See installation instructions for more details.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="RequiredCommandNotificationWithValidation">
-        <source>{0} See installation instructions for more details.</source>
-        <target state="new">{0} See installation instructions for more details.</target>
-        <note />
-      </trans-unit>
-    </body>
+</body>
   </file>
 </xliff>
