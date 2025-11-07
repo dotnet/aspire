@@ -72,15 +72,15 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
 
     private PackageChannel? CreateStagingChannel()
     {
-        var commitHash = GetCommitHashForStagingChannel();
-        if (commitHash is null)
+        var stagingFeedUrl = GetStagingFeedUrl();
+        if (stagingFeedUrl is null)
         {
             return null;
         }
 
-        var stagingFeedUrl = $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json";
+        var stagingQuality = GetStagingQuality();
 
-        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, new[]
+        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", stagingQuality, new[]
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
@@ -89,16 +89,23 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         return stagingChannel;
     }
 
-    private string? GetCommitHashForStagingChannel()
+    private string? GetStagingFeedUrl()
     {
-        // Check for test override first
-        var overrideHash = configuration["overrideStagingHash"];
-        if (!string.IsNullOrEmpty(overrideHash))
+        // Check for configuration override first
+        var overrideFeed = configuration["overrideStagingFeed"];
+        if (!string.IsNullOrEmpty(overrideFeed))
         {
-            return overrideHash.Length >= 8 ? overrideHash[..8] : overrideHash;
+            // Validate that the override URL is well-formed
+            if (Uri.TryCreate(overrideFeed, UriKind.Absolute, out var uri) && 
+                (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            {
+                return overrideFeed;
+            }
+            // Invalid URL, fall through to default behavior
         }
 
-        // Extract from assembly version
+        // Extract commit hash from assembly version to build staging feed URL
+        // Staging feed URL template: https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json
         var assembly = Assembly.GetExecutingAssembly();
         var informationalVersion = assembly
             .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false)
@@ -117,6 +124,25 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         }
 
         var commitHash = informationalVersion[(plusIndex + 1)..];
-        return commitHash.Length >= 8 ? commitHash[..8] : commitHash;
+        var truncatedHash = commitHash.Length >= 8 ? commitHash[..8] : commitHash;
+        
+        return $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{truncatedHash}/nuget/v3/index.json";
+    }
+
+    private PackageChannelQuality GetStagingQuality()
+    {
+        // Check for configuration override
+        var overrideQuality = configuration["overrideStagingQuality"];
+        if (!string.IsNullOrEmpty(overrideQuality))
+        {
+            // Try to parse the quality value (case-insensitive)
+            if (Enum.TryParse<PackageChannelQuality>(overrideQuality, ignoreCase: true, out var quality))
+            {
+                return quality;
+            }
+        }
+
+        // Default to Stable if not specified or invalid
+        return PackageChannelQuality.Stable;
     }
 }
