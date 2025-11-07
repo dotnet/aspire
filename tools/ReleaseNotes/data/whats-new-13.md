@@ -208,14 +208,21 @@ When using `WithPip()`, Aspire:
 - Detects virtual environments (`.venv`) by walking up parent directories
 - Creates a virtual environment if one doesn't exist
 
-**Using an existing virtual environment:**
+**Configuring virtual environment path:**
 
-If you already have a virtual environment set up and don't want dependency installation, use `WithVirtualEnvironment()`:
+By default, Aspire uses `.venv` in the app directory as the virtual environment path. Use `WithVirtualEnvironment()` to specify a custom path or control automatic creation:
 
 ```csharp
+// Use a custom venv path
 builder.AddPythonApp("api", "./api", "main.py")
-    .WithVirtualEnvironment();  // Use existing .venv without installing dependencies
+    .WithVirtualEnvironment("myenv");
+
+// Use existing venv without auto-creation
+builder.AddPythonApp("worker", "./worker", "worker.py")
+    .WithVirtualEnvironment(".venv", createIfNotExists: false);
 ```
+
+By default, `createIfNotExists` is `true`, so Aspire will create the virtual environment if it doesn't exist. Set it to `false` to require the virtual environment to already exist.
 
 #### VS Code Debugging Support
 
