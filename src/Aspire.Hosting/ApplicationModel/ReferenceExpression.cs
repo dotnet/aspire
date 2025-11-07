@@ -185,7 +185,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// </summary>
         /// <param name="valueProvider">A reference expression that supplies the value to be formatted and appended.</param>
         /// <param name="format">A composite format string that specifies how the value should be formatted, or null to use the default format.</param>
-        /// <remarks>This method is marked obsolete only to prevent usages of this type explicitely.</remarks>
+        /// <remarks>This method is marked obsolete only to prevent usages of this type explicitly.</remarks>
         [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
         public void AppendFormatted(ReferenceExpression valueProvider, string format)
         {
