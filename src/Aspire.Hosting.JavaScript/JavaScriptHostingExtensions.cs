@@ -556,8 +556,17 @@ public static class JavaScriptHostingExtensions
 
         installArgs ??= GetDefaultPnpmInstallArgs(resource, hasPnpmLock);
 
+        var packageFilesSourcePattern = "package.json";
+        if (hasPnpmLock)
+        {
+            packageFilesSourcePattern += " pnpm-lock.yaml";
+        }
+
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/pnpm/store")
+            {
+                PackageFilesPatterns = { (packageFilesSourcePattern, "./") }
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
