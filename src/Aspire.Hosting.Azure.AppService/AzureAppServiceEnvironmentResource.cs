@@ -131,6 +131,8 @@ public class AzureAppServiceEnvironmentResource :
             var printSummarySteps = context.GetSteps(this, "print-summary");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
             printSummarySteps.DependsOn(provisionSteps);
+
+            acrLoginSteps.DependsOn(provisionSteps);
         }));
     }
 
