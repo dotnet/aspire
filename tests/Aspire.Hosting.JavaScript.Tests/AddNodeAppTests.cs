@@ -164,7 +164,7 @@ public class AddNodeAppTests
         var nodeApp = builder.AddNodeApp("js", appDir, "app.js")
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null, cacheMount: null)
             {
-                PackageFilesPatterns = { ("package*.json", "./") }
+                PackageFilesPatterns = { new PackageFilePattern("package*.json", "./") }
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["myinstall"]))
             .WithBuildScript("mybuild");
