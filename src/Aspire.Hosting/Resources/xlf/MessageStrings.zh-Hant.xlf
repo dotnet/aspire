@@ -27,6 +27,21 @@
         <target state="translated">執行應用程式需要較新版本的 Aspire.Hosting.AppHost 套件。請確保您參考的版本至少為 '{0}'。</target>
         <note />
       </trans-unit>
-</body>
+      <trans-unit id="RequiredCommandNotification">
+        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
+        <target state="new">Required command '{0}' was not found on PATH or at a specified location.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithLink">
+        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
+        <target state="new">Required command '{0}' was not found. See installation instructions for more details.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithValidation">
+        <source>{0} See installation instructions for more details.</source>
+        <target state="new">{0} See installation instructions for more details.</target>
+        <note />
+      </trans-unit>
+    </body>
   </file>
 </xliff>
