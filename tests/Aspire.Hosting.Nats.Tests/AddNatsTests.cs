@@ -55,7 +55,7 @@ public class AddNatsTests
 #pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"nats://nats:{natsResource.PasswordParameter?.Value}@localhost:4222", connectionString);
 #pragma warning restore CS0618 // Type or member is obsolete
-        Assert.Equal("nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("nats://nats:{nats-password-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

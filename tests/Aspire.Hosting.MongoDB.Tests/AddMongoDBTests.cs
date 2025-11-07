@@ -90,11 +90,11 @@ public class AddMongoDBTests
 #pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", await serverResource.GetConnectionStringAsync());
 #pragma warning restore CS0618 // Type or member is obsolete
-        Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin&authMechanism=SCRAM-SHA-256", serverResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongodb-password-uri-encoded.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin&authMechanism=SCRAM-SHA-256", serverResource.ConnectionStringExpression.ValueExpression);
 #pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionString);
 #pragma warning restore CS0618 // Type or member is obsolete
-        Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongodb-password-uri-encoded.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -265,8 +265,8 @@ public class AddMongoDBTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/customers1?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/customers2?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo1-password-uri-encoded.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/customers1?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo1-password-uri-encoded.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/customers2?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -283,8 +283,8 @@ public class AddMongoDBTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("mongodb://admin:{mongo2-password.value}@{mongo2.bindings.tcp.host}:{mongo2.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo1-password-uri-encoded.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo2-password-uri-encoded.value}@{mongo2.bindings.tcp.host}:{mongo2.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
