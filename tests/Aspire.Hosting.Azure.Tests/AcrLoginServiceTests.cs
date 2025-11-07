@@ -3,8 +3,10 @@
 
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 #pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -26,12 +28,12 @@ public class AcrLoginServiceTests
         // Act
         await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
 
-        // Assert - Token should be cached
-        var section = await stateManager.AcquireSectionAsync("AcrTokens", CancellationToken.None);
+        // Assert - Token should be cached in a section named after the registry
+        var section = await stateManager.AcquireSectionAsync("AcrTokens:myregistry_azurecr_io", CancellationToken.None);
         Assert.NotNull(section);
-        Assert.True(section.Data.ContainsKey("myregistry.azurecr.io_tenant-id"));
+        Assert.True(section.Data.ContainsKey("tenant-id"));
         
-        var tokenNode = section.Data["myregistry.azurecr.io_tenant-id"];
+        var tokenNode = section.Data["tenant-id"];
         Assert.NotNull(tokenNode);
         
         var refreshToken = tokenNode["refresh_token"]?.GetValue<string>();
@@ -107,10 +109,12 @@ public class AcrLoginServiceTests
         await service.LoginAsync("registry1.azurecr.io", "tenant-id", credential, CancellationToken.None);
         await service.LoginAsync("registry2.azurecr.io", "tenant-id", credential, CancellationToken.None);
 
-        // Assert - Both tokens should be cached
-        var section = await stateManager.AcquireSectionAsync("AcrTokens", CancellationToken.None);
-        Assert.True(section.Data.ContainsKey("registry1.azurecr.io_tenant-id"));
-        Assert.True(section.Data.ContainsKey("registry2.azurecr.io_tenant-id"));
+        // Assert - Both tokens should be cached in separate sections
+        var section1 = await stateManager.AcquireSectionAsync("AcrTokens:registry1_azurecr_io", CancellationToken.None);
+        Assert.True(section1.Data.ContainsKey("tenant-id"));
+        
+        var section2 = await stateManager.AcquireSectionAsync("AcrTokens:registry2_azurecr_io", CancellationToken.None);
+        Assert.True(section2.Data.ContainsKey("tenant-id"));
     }
 
     [Fact]
@@ -128,10 +132,37 @@ public class AcrLoginServiceTests
         await service.LoginAsync("myregistry.azurecr.io", "tenant-1", credential, CancellationToken.None);
         await service.LoginAsync("myregistry.azurecr.io", "tenant-2", credential, CancellationToken.None);
 
-        // Assert - Both tokens should be cached
-        var section = await stateManager.AcquireSectionAsync("AcrTokens", CancellationToken.None);
-        Assert.True(section.Data.ContainsKey("myregistry.azurecr.io_tenant-1"));
-        Assert.True(section.Data.ContainsKey("myregistry.azurecr.io_tenant-2"));
+        // Assert - Both tokens should be cached in the same section with different keys
+        var section = await stateManager.AcquireSectionAsync("AcrTokens:myregistry_azurecr_io", CancellationToken.None);
+        Assert.True(section.Data.ContainsKey("tenant-1"));
+        Assert.True(section.Data.ContainsKey("tenant-2"));
+    }
+
+    [Fact]
+    public async Task LoginAsync_RetriesWithFreshTokenOn401()
+    {
+        // Arrange
+        var containerRuntime = new UnauthorizedOnFirstLoginContainerRuntime();
+        var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
+        var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+        var logger = NullLogger<AcrLoginService>.Instance;
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var credential = new TestTokenCredential();
+
+        // First login to cache a token
+        await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
+        var firstLoginCount = httpClientFactory.LoginCallCount;
+
+        // Reset the runtime to fail on the next cached token attempt
+        containerRuntime.FailNextLogin = true;
+
+        // Act - Second login should retry with fresh token when cached token gets 401
+        await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
+
+        // Assert - HTTP client should be called again to get fresh token
+        Assert.Equal(firstLoginCount + 1, httpClientFactory.LoginCallCount);
+        // Container runtime should have been called three times: first login, failed cached attempt, successful retry
+        Assert.Equal(3, containerRuntime.LoginCallCount);
     }
 
     [Fact]
@@ -149,8 +180,8 @@ public class AcrLoginServiceTests
         await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
 
         // Assert - Token should be cached with 3-hour expiration (10800 seconds)
-        var section = await stateManager.AcquireSectionAsync("AcrTokens", CancellationToken.None);
-        var tokenNode = section.Data["myregistry.azurecr.io_tenant-id"];
+        var section = await stateManager.AcquireSectionAsync("AcrTokens:myregistry_azurecr_io", CancellationToken.None);
+        var tokenNode = section.Data["tenant-id"];
         var expiresAtUtc = tokenNode!["expires_at_utc"]?.GetValue<DateTime>();
         
         Assert.NotNull(expiresAtUtc);
@@ -217,6 +248,34 @@ public class AcrLoginServiceTests
                 return Task.FromResult(response);
             }
         }
+    }
+
+    private sealed class UnauthorizedOnFirstLoginContainerRuntime : IContainerRuntime
+    {
+        public string Name => "fake-runtime";
+        public int LoginCallCount { get; private set; }
+        public bool FailNextLogin { get; set; }
+
+        public Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken = default)
+        {
+            LoginCallCount++;
+            
+            if (FailNextLogin)
+            {
+                FailNextLogin = false; // Only fail once
+                throw new HttpRequestException("Login failed", null, System.Net.HttpStatusCode.Unauthorized);
+            }
+            
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task RemoveImageAsync(string imageName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public static Task<bool> InspectImageAsync(string _, CancellationToken __ = default) => Task.FromResult(true);
+        public static Task PullImageAsync(string _, CancellationToken __ = default) => Task.CompletedTask;
     }
 
     private sealed class ThrowingDeploymentStateManager : IDeploymentStateManager
