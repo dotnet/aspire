@@ -24,7 +24,7 @@ public class BrowserDebuggerResource : ExecutableResource
         DebuggerProperties = new JavaScriptDebuggerProperties
         {
             Type = browser,
-            Name = $"{name} Debugger",
+            Name = name,
             WebRoot = webRoot,
             Url = url,
             WorkingDirectory = workingDirectory

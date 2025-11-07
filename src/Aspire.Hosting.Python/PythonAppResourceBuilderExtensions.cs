@@ -1217,7 +1217,7 @@ public static class PythonAppResourceBuilderExtensions
         return builder;
     }
 
-/// <summary>
+    /// <summary>
     /// Configures custom debugger properties for a Python resource.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
@@ -1236,7 +1236,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Configure Python debugger to stop on entry:
     /// <code lang="csharp">
     /// var api = builder.AddPythonScript("script", "../app", "main.py")
-    ///     .WithDebuggerProperties(props =>
+    ///     .WithPythonDebuggerProperties(props =>
     ///     {
     ///         props.StopOnEntry = true;  // Stop execution at entrypoint
     ///     })
@@ -1246,7 +1246,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Enable automatic reload for faster development:
     /// <code lang="csharp">
     /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
-    ///     .WithDebuggerProperties(props =>
+    ///     .WithPythonDebuggerProperties(props =>
     ///     {
     ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
     ///     })
@@ -1256,7 +1256,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Pass custom arguments to the Python interpreter:
     /// <code lang="csharp">
     /// var app = builder.AddPythonModule("app", "../app", "myapp")
-    ///     .WithDebuggerProperties(props =>
+    ///     .WithPythonDebuggerProperties(props =>
     ///     {
     ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
     ///     })

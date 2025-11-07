@@ -104,7 +104,7 @@ public sealed class PythonDebuggerProperties : DebuggerProperties
     /// Specifies the current working directory for the debugger, which is the base folder for any relative paths used in code.
     /// </summary>
     [JsonPropertyName("cwd")]
-    public override required string WorkingDirectory { get; set; }
+    public override required string WorkingDirectory { get; init; }
 
     /// <summary>
     /// Specifies how program output is displayed.

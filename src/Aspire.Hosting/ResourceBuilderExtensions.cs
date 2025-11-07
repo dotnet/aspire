@@ -2948,36 +2948,6 @@ public static class ResourceBuilderExtensions
     /// to customize the debugging experience.
     /// </para>
     /// </remarks>
-    /// <example>
-    /// Configure Python debugger to stop on entry:
-    /// <code lang="csharp">
-    /// var api = builder.AddPythonScript("script", "../app", "main.py")
-    ///     .WithDebuggerProperties(props =>
-    ///     {
-    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
-    ///     })
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Enable automatic reload for faster development:
-    /// <code lang="csharp">
-    /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
-    ///     .WithDebuggerProperties(props =>
-    ///     {
-    ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
-    ///     })
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Pass custom arguments to the Python interpreter:
-    /// <code lang="csharp">
-    /// var app = builder.AddPythonModule("app", "../app", "myapp")
-    ///     .WithDebuggerProperties(props =>
-    ///     {
-    ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
-    ///     })
-    /// </code>
-    /// </example>
     public static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
         this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
         where T : IResource
