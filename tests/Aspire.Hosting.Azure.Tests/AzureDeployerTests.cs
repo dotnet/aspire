@@ -897,6 +897,78 @@ public class AzureDeployerTests
             imageName.Contains("aspire-deploy-"));
     }
 
+    [Theory]
+    [InlineData("deploy-api")]
+    [InlineData("diagnostics")]
+    public async Task DeployAsync_WithAzureResourceDependencies_DoesNotHang(string step)
+    {
+        // Arrange - Recreate scenario similar to the issue where a compute resource references a KeyVault secret
+        // This tests that Bicep resources properly depend on referenced Azure resources to avoid hangs during deployment
+        var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
+        var mockActivityReporter = new TestPublishingActivityReporter();
+        var armClientProvider = new TestArmClientProvider(deploymentName =>
+        {
+            return deploymentName switch
+            {
+                string name when name.StartsWith("env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                    ["planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/testplan" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "test-client-id" }
+                },
+                string name when name.StartsWith("kv") => new Dictionary<string, object>
+                {
+                    ["vaultUri"] = new { type = "String", value = "https://testkv.vault.azure.net/" }
+                },
+                _ => []
+            };
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+
+        // Set up the scenario from the issue: AppService environment with a compute resource that references a KeyVault secret
+        builder.AddAzureAppServiceEnvironment("env");
+        
+        var keyVault = builder.AddAzureKeyVault("kv");
+        var secret = keyVault.GetSecret("test-secret");
+        
+        // Add a compute resource that references the KeyVault secret
+        // This creates a dependency: api -> secret -> keyVault
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("SECRET_VALUE", secret);
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.StopAsync();
+
+        if (step == "diagnostics")
+        {
+            // In diagnostics mode, verify the deployment graph shows correct dependencies
+            var logs = mockActivityReporter.LoggedMessages
+                            .Where(s => s.StepTitle == "diagnostics")
+                            .Select(s => s.Message)
+                            .ToList();
+
+            // Verify that diagnostics complete without hanging (test will timeout if there's a hang)
+            Assert.NotEmpty(logs);
+            
+            // Use Verify to snapshot the diagnostic output showing the dependency graph
+            await Verify(logs);
+            return;
+        }
+
+        // In deploy mode, verify that deployment completes without hanging
+        // The key verification is that the provision-api-website step depends on provision-kv
+        // which is shown in the diagnostics output above (line 101 in the snapshot)
+        // Just verify the test completed without timing out, which proves no hang occurred
+    }
+
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
