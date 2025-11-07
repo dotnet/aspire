@@ -13,7 +13,6 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
-    <Compile Include="$(SharedDir)CoalescingAsyncOperation.cs" Link="Utils\CoalescingAsyncOperation.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
     <Compile Include="$(SharedDir)CustomResourceSnapshotExtensions.cs" Link="CustomResourceSnapshotExtensions.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
@@ -24,7 +23,6 @@
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
-    <Compile Include="$(SharedDir)RequiredCommandValidator.cs" Link="Utils\RequiredCommandValidator.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)ResourceNameComparer.cs" Link="Utils\ResourceNameComparer.cs" />
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
