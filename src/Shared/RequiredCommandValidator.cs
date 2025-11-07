@@ -68,7 +68,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// <remarks>
     /// Overrides can perform additional validation to verify the command is usable.
     /// </remarks>
-    protected virtual Task<(bool IsValid, string? ValidationMessage)> OnResolvedAsync(string resolvedCommandPath, CancellationToken cancellationToken) => Task.FromResult((true, (string?)null));
+    protected internal virtual Task<(bool IsValid, string? ValidationMessage)> OnResolvedAsync(string resolvedCommandPath, CancellationToken cancellationToken) => Task.FromResult((true, (string?)null));
 
     /// <summary>
     /// Called after the command has been successfully validated and resolved to a full path.
