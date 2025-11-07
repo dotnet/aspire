@@ -9,6 +9,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -18,11 +19,12 @@ public class AcrLoginServiceTests
     public async Task LoginAsync_CachesTokenOnFirstLogin()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // Act
@@ -41,18 +43,19 @@ public class AcrLoginServiceTests
         
         var expiresAtUtc = tokenNode["expires_at_utc"]?.GetValue<DateTime>();
         Assert.NotNull(expiresAtUtc);
-        Assert.True(expiresAtUtc > DateTime.UtcNow);
+        Assert.True(expiresAtUtc > timeProvider.GetUtcNow());
     }
 
     [Fact]
     public async Task LoginAsync_UsesCachedTokenWhenValid()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // First login to cache the token
@@ -69,23 +72,24 @@ public class AcrLoginServiceTests
         Assert.Equal(firstContainerLoginCount + 1, containerRuntime.LoginToRegistryCalls.Count);
     }
 
-    [Fact(Skip = "Test requires 6 minute delay - run manually if needed")]
+    [Fact]
     public async Task LoginAsync_RefreshesTokenWhenExpired()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
-        var httpClientFactory = new FakeHttpClientFactory(expiresIn: 1); // Token expires in 1 second
+        var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600); // Token expires in 1 hour
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // First login to cache the token
         await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
         var firstLoginCount = httpClientFactory.LoginCallCount;
 
-        // Wait for token to expire (plus safety margin)
-        await Task.Delay(TimeSpan.FromMinutes(6)); // Safety margin is 5 minutes
+        // Advance time past token expiration (1 hour + 5 minute safety margin + 1 minute)
+        timeProvider.Advance(TimeSpan.FromMinutes(66));
 
         // Act - Second login should get a fresh token
         await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
@@ -98,11 +102,12 @@ public class AcrLoginServiceTests
     public async Task LoginAsync_CachesDifferentTokensForDifferentRegistries()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // Act - Login to two different registries
@@ -121,11 +126,12 @@ public class AcrLoginServiceTests
     public async Task LoginAsync_CachesDifferentTokensForDifferentTenants()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // Act - Login to same registry with different tenants
@@ -142,11 +148,12 @@ public class AcrLoginServiceTests
     public async Task LoginAsync_RetriesWithFreshTokenOn401()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new UnauthorizedOnFirstLoginContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // First login to cache a token
@@ -169,11 +176,12 @@ public class AcrLoginServiceTests
     public async Task LoginAsync_DefaultsToThreeHoursWhenExpiresInNotProvided()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: null); // No expires_in
         var stateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // Act
@@ -185,20 +193,20 @@ public class AcrLoginServiceTests
         var expiresAtUtc = tokenNode!["expires_at_utc"]?.GetValue<DateTime>();
         
         Assert.NotNull(expiresAtUtc);
-        var expectedExpiration = DateTime.UtcNow.AddSeconds(10800);
-        // Allow 10 second tolerance for test execution time
-        Assert.True(Math.Abs((expiresAtUtc.Value - expectedExpiration).TotalSeconds) < 10);
+        var expectedExpiration = timeProvider.GetUtcNow().AddSeconds(10800);
+        Assert.Equal(expectedExpiration.DateTime, expiresAtUtc.Value);
     }
 
     [Fact]
     public async Task LoginAsync_ContinuesWhenCachingFails()
     {
         // Arrange
+        var timeProvider = new FakeTimeProvider();
         var containerRuntime = new FakeContainerRuntime();
         var httpClientFactory = new FakeHttpClientFactory(expiresIn: 3600);
         var stateManager = new ThrowingDeploymentStateManager(); // Throws on save
         var logger = NullLogger<AcrLoginService>.Instance;
-        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, logger);
+        var service = new AcrLoginService(httpClientFactory, containerRuntime, stateManager, timeProvider, logger);
         var credential = new TestTokenCredential();
 
         // Act - Should not throw even though caching fails

@@ -32,6 +32,7 @@ internal sealed class AcrLoginService : IAcrLoginService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IContainerRuntime _containerRuntime;
     private readonly IDeploymentStateManager _deploymentStateManager;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<AcrLoginService> _logger;
 
     private sealed class AcrRefreshTokenResponse
@@ -50,6 +51,15 @@ internal sealed class AcrLoginService : IAcrLoginService
 
         [JsonPropertyName("expires_at_utc")]
         public DateTime ExpiresAtUtc { get; set; }
+
+        public System.Text.Json.Nodes.JsonNode ToJsonNode()
+        {
+            return new System.Text.Json.Nodes.JsonObject
+            {
+                ["refresh_token"] = RefreshToken,
+                ["expires_at_utc"] = ExpiresAtUtc
+            };
+        }
     }
 
     /// <summary>
@@ -58,16 +68,19 @@ internal sealed class AcrLoginService : IAcrLoginService
     /// <param name="httpClientFactory">The HTTP client factory for making OAuth2 exchange requests.</param>
     /// <param name="containerRuntime">The container runtime for performing registry login.</param>
     /// <param name="deploymentStateManager">The deployment state manager for caching tokens.</param>
+    /// <param name="timeProvider">The time provider for determining token expiration.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
     public AcrLoginService(
         IHttpClientFactory httpClientFactory,
         IContainerRuntime containerRuntime,
         IDeploymentStateManager deploymentStateManager,
+        TimeProvider timeProvider,
         ILogger<AcrLoginService> logger)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _containerRuntime = containerRuntime ?? throw new ArgumentNullException(nameof(containerRuntime));
         _deploymentStateManager = deploymentStateManager ?? throw new ArgumentNullException(nameof(deploymentStateManager));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -97,7 +110,7 @@ internal sealed class AcrLoginService : IAcrLoginService
 
                 if (cachedToken != null &&
                     !string.IsNullOrEmpty(cachedToken.RefreshToken) &&
-                    cachedToken.ExpiresAtUtc > DateTime.UtcNow.Add(s_tokenExpirationSafetyMargin))
+                    cachedToken.ExpiresAtUtc > _timeProvider.GetUtcNow().Add(s_tokenExpirationSafetyMargin))
                 {
                     _logger.LogDebug("Using cached ACR refresh token for registry: {RegistryEndpoint}, tenant: {TenantId}", 
                         registryEndpoint, tenantId);
@@ -164,11 +177,10 @@ internal sealed class AcrLoginService : IAcrLoginService
             var newCachedToken = new CachedToken
             {
                 RefreshToken = refreshToken,
-                ExpiresAtUtc = DateTime.UtcNow.AddSeconds(expiresIn)
+                ExpiresAtUtc = _timeProvider.GetUtcNow().AddSeconds(expiresIn).UtcDateTime
             };
 
-            var tokenJson = JsonSerializer.Serialize(newCachedToken, s_jsonOptions);
-            section.Data[tenantId] = System.Text.Json.Nodes.JsonNode.Parse(tokenJson);
+            section.Data[tenantId] = newCachedToken.ToJsonNode();
 
             await _deploymentStateManager.SaveSectionAsync(section, cancellationToken).ConfigureAwait(false);
 
