@@ -372,11 +372,11 @@ public static class JavaScriptHostingExtensions
             {
                 // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
                 // npm and yarn both strip the -- separator before passing arguments to the script.
-                // Only add the separator for npm and yarn.
+                // Only add the separator for when necessary.
                 if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager) &&
-                    packageManager.ExecutableName != "pnpm")
+                    packageManager.CommandSeparator is string separator)
                 {
-                    c.Args.Add("--");
+                    c.Args.Add(separator);
                 }
 
                 var targetEndpoint = resource.GetEndpoint("https");
@@ -478,7 +478,11 @@ public static class JavaScriptHostingExtensions
         installArgs ??= GetDefaultPnpmInstallArgs(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run")
+            {
+                // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
+                CommandSeparator = null
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
