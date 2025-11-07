@@ -61,15 +61,6 @@ namespace Aspire.Hosting.Python.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Python virtual environment not found at '{0}'. Create a virtual environment by running 'python -m venv {1}' in the application directory, or use 'uv' for faster environment setup with 'uv venv' (requires uv to be installed)..
-        /// </summary>
-        internal static string VirtualEnvironmentNotFound {
-            get {
-                return ResourceManager.GetString("VirtualEnvironmentNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/.
         /// </summary>
         internal static string UvNotFoundWhenRequired {
