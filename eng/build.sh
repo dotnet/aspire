@@ -38,6 +38,7 @@ usage()
   echo "                             This assumes --build has been run already."
   echo "  --rebuild                  Rebuild all source projects."
   echo "  --restore (-r)             Restore dependencies."
+  echo "  --mauirestore              Restore dependencies and install MAUI workload (only on macOS)."
   echo "  --sign                     Sign build outputs."
   echo "  --test (-t)                Incrementally builds and runs tests."
   echo "                             Use in conjunction with --testnobuild to only run tests."
@@ -46,7 +47,6 @@ usage()
   echo "Libraries settings:"
   echo "  --testnobuild              Skip building tests when invoking -test."
   echo "  --build-extension          Build the VS Code extension."
-  echo "  --restore-maui             Restore the MAUI workload after restore (only on macOS)."
   echo ""
 
   echo "Command line arguments starting with '/p:' are passed through to MSBuild."
@@ -56,7 +56,6 @@ usage()
 
 arguments=''
 extraargs=''
-restore_maui=false
 
 # Check if an action is passed in
 declare -a actions=("b" "build" "r" "restore" "rebuild" "testnobuild" "sign" "publish" "clean" "t" "test" "build-extension")
@@ -144,8 +143,8 @@ while [[ $# > 0 ]]; do
       shift 1
       ;;
 
-     -restore-maui)
-      restore_maui=true
+     -mauirestore)
+      extraargs="$extraargs -restoreMaui"
       shift 1
       ;;
 
@@ -166,35 +165,5 @@ fi
 
 arguments="$arguments $extraargs"
 "$scriptroot/common/build.sh" $arguments
-buildExitCode=$?
 
-# Install MAUI workload after restore if --restore-maui was passed
-# Only on macOS (MAUI doesn't support Linux, Windows uses .cmd)
-if [ "$restore_maui" = true ] && [ $buildExitCode -eq 0 ]; then
-  # Check if we're on macOS
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    echo ""
-    echo "Installing MAUI workload into local .dotnet..."
-    
-    repo_root="$(cd "$scriptroot/.." && pwd)"
-    dotnet_root="$repo_root/.dotnet"
-    dotnet_exe="$dotnet_root/dotnet"
-    
-    if [ -f "$dotnet_exe" ]; then
-      export DOTNET_ROOT="$dotnet_root"
-      export PATH="$dotnet_root:$PATH"
-      
-      if "$dotnet_exe" workload install maui; then
-        echo "MAUI workload installed successfully."
-      else
-        echo ""
-        echo "WARNING: Failed to install MAUI workload. You may need to run this command manually:"
-        echo "  $dotnet_exe workload install maui"
-        echo ""
-        echo "The MAUI playground may not work without the MAUI workload installed."
-      fi
-    fi
-  fi
-fi
-
-exit $buildExitCode
+exit $?

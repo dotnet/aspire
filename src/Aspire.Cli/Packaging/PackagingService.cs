@@ -51,9 +51,9 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             }
         }
 
-        var channels = new List<PackageChannel>([defaultChannel, stableChannel, dailyChannel, ..prPackageChannels]);
+        var channels = new List<PackageChannel>([defaultChannel, stableChannel]);
 
-        // Add staging channel if feature is enabled
+        // Add staging channel if feature is enabled (after stable, before daily)
         if (features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false))
         {
             var stagingChannel = CreateStagingChannel();
@@ -62,6 +62,10 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
                 channels.Add(stagingChannel);
             }
         }
+
+        // Add daily and PR channels after staging
+        channels.Add(dailyChannel);
+        channels.AddRange(prPackageChannels);
 
         return Task.FromResult<IEnumerable<PackageChannel>>(channels);
     }

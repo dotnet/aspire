@@ -365,8 +365,8 @@ public static class PythonAppResourceBuilderExtensions
         });
 
         // Configure required environment variables for custom certificate trust when running as an executable.
-        // TODO: Make CertificateTrustScope.System the default once we're able to validate that certificates are valid for OpenSSL. Otherwise we potentially add invalid certificates to the bundle which causes OpenSSL to error.
         resourceBuilder
+            .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
@@ -550,10 +550,13 @@ public static class PythonAppResourceBuilderExtensions
                     "type=cache,target=/root/.cache/uv");
         }
 
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
         var runtimeBuilder = context.Builder
             .From(runtimeImage, "app")
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app")
+            .AddContainerFiles(context.Resource, "/app", logger)
             .Comment("------------------------------")
             .Comment("🚀 Runtime stage")
             .Comment("------------------------------")
@@ -603,10 +606,13 @@ public static class PythonAppResourceBuilderExtensions
         var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
         var hasRequirementsTxt = File.Exists(requirementsTxtPath);
 
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
         var stage = context.Builder
             .From(runtimeImage)
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app")
+            .AddContainerFiles(context.Resource, "/app", logger)
             .Comment("------------------------------")
             .Comment("🚀 Python Application")
             .Comment("------------------------------")
@@ -663,35 +669,6 @@ public static class PythonAppResourceBuilderExtensions
                 stage.Entrypoint([entrypoint]);
                 break;
         }
-    }
-
-    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
-    {
-        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
-        {
-            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
-            {
-                // get image name
-                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
-                {
-                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
-                }
-
-                var destinationPath = containerFileDestination.DestinationPath;
-                if (!destinationPath.StartsWith('/'))
-                {
-                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
-                }
-
-                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                {
-                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
-                }
-            }
-
-            stage.EmptyLine();
-        }
-        return stage;
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)

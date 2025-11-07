@@ -136,9 +136,6 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             builder.Append($"{databaseNameExpression:uri}");
         }
 
-        builder.Append($"?user={UserNameReference:uri}");
-        builder.Append($"&password={PasswordParameter:uri}");
-
         return builder.Build();
     }
 
@@ -146,7 +143,8 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// Gets the JDBC connection string for the PostgreSQL server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}</c>.
+    /// <para>Format: <c>jdbc:postgresql://{host}:{port}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 

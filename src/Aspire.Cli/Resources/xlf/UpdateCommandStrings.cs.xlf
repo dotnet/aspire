@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
-        <target state="new">No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</target>
+        <target state="translated">Nenašel se žádný projekt Aspire AppHost. Chcete místo toho aktualizovat rozhraní CLI Aspire?</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
         <source>An update is available for the Aspire CLI. Would you like to update it now?</source>
-        <target state="new">An update is available for the Aspire CLI. Would you like to update it now?</target>
+        <target state="translated">Pro Aspire CLI je k dispozici aktualizace. Chcete aktualizaci provést nyní?</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">
