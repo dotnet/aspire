@@ -24,6 +24,12 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     public string? ScriptCommand { get; } = runScriptCommand;
 
     /// <summary>
+    /// Gets the string used to separate individual commands in a command sequence, or <see langword="null"/> if one shouldn't be used.
+    /// Defaults to "--".
+    /// </summary>
+    public string? CommandSeparator { get; init; } = "--";
+
+    /// <summary>
     /// Gets the BuildKit cache mount path for the package manager, or null if not supported.
     /// </summary>
     public string? CacheMount { get; } = cacheMount;
