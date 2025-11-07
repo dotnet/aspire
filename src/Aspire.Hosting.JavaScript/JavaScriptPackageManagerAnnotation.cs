@@ -21,4 +21,10 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     /// Gets the command used to run a script with the JavaScript package manager.
     /// </summary>
     public string? ScriptCommand { get; } = runScriptCommand;
+
+    /// <summary>
+    /// Gets the string used to separate individual commands in a command sequence, or <see langword="null"/> if one shouldn't be used.
+    /// Defaults to "--".
+    /// </summary>
+    public string? CommandSeparator { get; init; } = "--";
 }
