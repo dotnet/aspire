@@ -1417,7 +1417,19 @@ Aspire 13.0 introduces a major architectural change to enable universal containe
 
 **Migration:**
 
-Most applications won't need changes as endpoint resolution happens automatically. However, if you have custom code that creates or processes endpoints:
+The universal container-to-host communication is currently an experimental feature and needs to be enabled via configuration. For example:
+
+```jsonc
+// appsettings.json content
+{
+  "DcpPublisher": {
+    "EnableAspireContainerTunnel": true
+  },
+  // (other settings such as Logging etc)
+}
+```
+
+Most applications won't need changes as endpoint resolution happens automatically. However, if you have custom code that creates or processes `AllocatedEndpoint` objects, you will need to use the new constructor:
 
 ```csharp
 // Before (9.x)
