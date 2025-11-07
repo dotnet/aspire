@@ -16,7 +16,14 @@ builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "s
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .PublishAsDockerFile();
+    .PublishAsDockerFile()
+    .WithJavaScriptDebuggerProperties(props =>
+    {
+        // Configure msedge debugger to stop on entry
+        props.StopOnEntry = true;
+        props.Trace = true;
+        //props.Type = "msedge";
+    });
 
 builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
     .WithRunScript("start")
@@ -36,7 +43,12 @@ builder.AddNodeApp("node", "../AspireJavaScript.NodeApp", "app.js")
     .WithRunScript("dev") // Use 'npm run dev' for development
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .PublishAsDockerFile();
+    .PublishAsDockerFile()
+    .WithJavaScriptDebuggerProperties(props =>
+    {
+        props.StopOnEntry = true;
+        props.Trace = true;
+    });
 
 weatherApi.PublishWithContainerFiles(reactvite, "./wwwroot");
 

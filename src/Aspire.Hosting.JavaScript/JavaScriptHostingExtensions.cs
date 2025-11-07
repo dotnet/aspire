@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Globalization;
 using System.Text.Json;
@@ -164,6 +165,8 @@ public static class JavaScriptHostingExtensions
             });
         }
 
+        resourceBuilder.WithNodeDebugSupport(Path.Join(appDirectory, scriptPath));
+
         return resourceBuilder;
     }
 
@@ -208,7 +211,8 @@ public static class JavaScriptHostingExtensions
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new JavaScriptAppResource(name, "npm", appDirectory);
 
-        return builder.CreateDefaultJavaScriptAppBuilder(resource, appDirectory, runScriptName);
+        return builder.CreateDefaultJavaScriptAppBuilder(resource, appDirectory, runScriptName)
+            .WithJavaScriptDebugSupport();
     }
 
     private static IResourceBuilder<TResource> CreateDefaultJavaScriptAppBuilder<TResource>(
@@ -360,7 +364,8 @@ public static class JavaScriptHostingExtensions
                 c.Args.Add("--port");
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
             })
-            .WithHttpEndpoint(env: "PORT");
+            .WithHttpEndpoint(env: "PORT")
+            .WithViteDebugSupport();
     }
 
     /// <summary>
@@ -690,5 +695,284 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
+    }
+
+    private static IResourceBuilder<NodeAppResource> WithNodeDebugSupport(
+        this IResourceBuilder<NodeAppResource> builder,
+        string programPath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(programPath);
+
+        builder.WithDebugSupport<NodeAppResource, JavaScriptLaunchConfiguration>(
+            options =>
+            {
+                string? runtimeExecutable = "npm";
+                string[]? runtimeArgs = null;
+
+                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    runtimeExecutable = packageManager.ExecutableName;
+                }
+
+                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScript))
+                {
+                    var args = new List<string>();
+                    if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pm) &&
+                        !string.IsNullOrEmpty(pm.ScriptCommand))
+                    {
+                        args.Add(pm.ScriptCommand);
+                    }
+                    args.Add(runScript.ScriptName);
+                    runtimeArgs = args.ToArray();
+                }
+
+                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+                var debuggerProperties = new JavaScriptDebuggerProperties
+                {
+                    Name = $"{modeText} Node.js: {Path.GetRelativePath(Environment.CurrentDirectory, programPath)}",
+                    WorkingDirectory = builder.Resource.WorkingDirectory,
+                    RuntimeExecutable = runtimeExecutable,
+                    RuntimeArgs = runtimeArgs
+                };
+
+                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<JavaScriptDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+                {
+                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                }
+
+                return new JavaScriptLaunchConfiguration
+                {
+                    Program = programPath,
+                    Mode = options.Mode,
+                    RuntimeExecutable = runtimeExecutable,
+                    RuntimeArgs = runtimeArgs,
+                    DebuggerProperties = debuggerProperties
+                };
+            },
+            "node",
+            static ctx =>
+            {
+                // Remove the script path argument when debugging, as VS Code will handle it
+                if (ctx.Args is [string arg0, ..] &&
+                    !arg0.StartsWith('-') &&
+                    arg0.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Args.RemoveAt(0);
+                }
+            });
+
+        return builder;
+    }
+
+    private static IResourceBuilder<JavaScriptAppResource> WithJavaScriptDebugSupport(
+        this IResourceBuilder<JavaScriptAppResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var workingDirectory = builder.Resource.WorkingDirectory;
+
+        builder.WithDebugSupport<JavaScriptAppResource, JavaScriptLaunchConfiguration>(
+            options =>
+            {
+                // Get runtime args from annotations if available
+                string? runtimeExecutable = "npm";
+                string[]? runtimeArgs = null;
+
+                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    runtimeExecutable = packageManager.ExecutableName;
+                }
+
+                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScript))
+                {
+                    var args = new List<string>();
+                    if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pm) &&
+                        !string.IsNullOrEmpty(pm.ScriptCommand))
+                    {
+                        args.Add(pm.ScriptCommand);
+                    }
+                    args.Add(runScript.ScriptName);
+                    runtimeArgs = args.ToArray();
+                }
+
+                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+                var debuggerProperties = new JavaScriptDebuggerProperties
+                {
+                    Name = $"{modeText} JavaScript: {builder.Resource.Name}",
+                    WorkingDirectory = workingDirectory,
+                    RuntimeExecutable = runtimeExecutable,
+                    RuntimeArgs = runtimeArgs
+                };
+
+                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<JavaScriptDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+                {
+                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                }
+
+                return new JavaScriptLaunchConfiguration
+                {
+                    Program = workingDirectory,
+                    Mode = options.Mode,
+                    RuntimeExecutable = runtimeExecutable,
+                    RuntimeArgs = runtimeArgs,
+                    DebuggerProperties = debuggerProperties
+                };
+            },
+            "node");
+
+        return builder;
+    }
+
+    private static IResourceBuilder<ViteAppResource> WithViteDebugSupport(
+        this IResourceBuilder<ViteAppResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var workingDirectory = builder.Resource.WorkingDirectory;
+
+        builder.WithDebugSupport<ViteAppResource, JavaScriptLaunchConfiguration>(
+            options =>
+            {
+                // Get runtime args from annotations if available
+                string? runtimeExecutable = "npm";
+                string[]? runtimeArgs = null;
+
+                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    runtimeExecutable = packageManager.ExecutableName;
+                }
+
+                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScript))
+                {
+                    var args = new List<string>();
+                    if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pm) &&
+                        !string.IsNullOrEmpty(pm.ScriptCommand))
+                    {
+                        args.Add(pm.ScriptCommand);
+                    }
+                    args.Add(runScript.ScriptName);
+                    runtimeArgs = args.ToArray();
+                }
+
+                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+                var debuggerProperties = new JavaScriptDebuggerProperties
+                {
+                    Name = $"{modeText} Vite: {builder.Resource.Name}",
+                    WorkingDirectory = workingDirectory,
+                    RuntimeExecutable = runtimeExecutable,
+                    RuntimeArgs = runtimeArgs
+                };
+
+                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<JavaScriptDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+                {
+                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                }
+
+                return new JavaScriptLaunchConfiguration
+                {
+                    Program = workingDirectory,
+                    Mode = options.Mode,
+                    RuntimeExecutable = runtimeExecutable,
+                    RuntimeArgs = runtimeArgs,
+                    DebuggerProperties = debuggerProperties
+                };
+            },
+            "node");
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures custom debugger properties for a Node.js application resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the Node.js debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object that is pre-populated with default values based on the
+    /// resource's configuration. You can modify any properties to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure Node.js debugger to stop on entry:
+    /// <code lang="csharp">
+    /// var app = builder.AddNodeApp("myapp", "../app", "app.js")
+    ///     .WithJavaScriptDebuggerProperties(props =>
+    ///     {
+    ///         props.StopOnEntry = true;
+    ///         props.Trace = true;
+    ///     });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<NodeAppResource> WithJavaScriptDebuggerProperties(
+        this IResourceBuilder<NodeAppResource> builder,
+        Action<JavaScriptDebuggerProperties> configureDebuggerProperties)
+    {
+        return builder.WithDebuggerProperties<NodeAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
+    }
+
+    /// <summary>
+    /// Configures custom debugger properties for a JavaScript application resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the Node.js debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object that is pre-populated with default values based on the
+    /// resource's configuration. You can modify any properties to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure JavaScript app debugger with custom settings:
+    /// <code lang="csharp">
+    /// var app = builder.AddJavaScriptApp("frontend", "../frontend")
+    ///     .WithJavaScriptDebuggerProperties(props =>
+    ///     {
+    ///         props.SkipFiles = ["node_modules/**"];
+    ///         props.SmartStep = true;
+    ///     });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<JavaScriptAppResource> WithJavaScriptDebuggerProperties(
+        this IResourceBuilder<JavaScriptAppResource> builder,
+        Action<JavaScriptDebuggerProperties> configureDebuggerProperties)
+    {
+        return builder.WithDebuggerProperties<JavaScriptAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
+    }
+
+    /// <summary>
+    /// Configures custom debugger properties for a Vite application resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the Node.js debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object that is pre-populated with default values based on the
+    /// resource's configuration. You can modify any properties to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure Vite app debugger with source map support:
+    /// <code lang="csharp">
+    /// var app = builder.AddViteApp("frontend", "../frontend")
+    ///     .WithJavaScriptDebuggerProperties(props =>
+    ///     {
+    ///         props.OutFiles = ["${workspaceFolder}/dist/**/*.js"];
+    ///         props.ResolveSourceMapLocations = ["${workspaceFolder}/**"];
+    ///     });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ViteAppResource> WithJavaScriptDebuggerProperties(
+        this IResourceBuilder<ViteAppResource> builder,
+        Action<JavaScriptDebuggerProperties> configureDebuggerProperties)
+    {
+        return builder.WithDebuggerProperties<ViteAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
     }
 }

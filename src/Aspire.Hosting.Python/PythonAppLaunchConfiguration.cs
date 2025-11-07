@@ -44,19 +44,19 @@ public sealed class PythonDebuggerProperties : DebuggerProperties
     /// Identifies the type of debugger to use.
     /// </summary>
     [JsonPropertyName("type")]
-    public override string Type { get; init; } = "debugpy";
+    public override string Type { get; set; } = "debugpy";
 
     /// <summary>
     /// Provides the name for the debug configuration that appears in the VS Code dropdown list.
     /// </summary>
     [JsonPropertyName("name")]
-    public override required string Name { get; init; }
+    public override required string Name { get; set; }
 
     /// <summary>
     /// Provides the fully qualified path to the python interpreter to be used to launch the application.
     /// </summary>
     [JsonPropertyName("python")]
-    public required string InterpreterPath { get; set; }
+    public required string InterpreterPath { get; init; }
 
     /// <summary>
     /// Specifies arguments to pass to the Python interpreter.
@@ -77,7 +77,7 @@ public sealed class PythonDebuggerProperties : DebuggerProperties
     /// </remarks>
     /// </summary>
     [JsonPropertyName("program")]
-    public string? ProgramPath { get; set; }
+    public string? ProgramPath { get; init; }
 
     /// <summary>
     /// Provides the ability to specify the name of a module to be debugged, similarly to the -m argument when run at the command line.
@@ -86,7 +86,7 @@ public sealed class PythonDebuggerProperties : DebuggerProperties
     /// </remarks>
     /// </summary>
     [JsonPropertyName("module")]
-    public string? Module { get; set; }
+    public string? Module { get; init; }
 
     /// <summary>
     /// When set to true, breaks the debugger at the first line of the program being debugged. If omitted (the default) or set to false, the debugger runs the program to the first breakpoint.
@@ -104,7 +104,7 @@ public sealed class PythonDebuggerProperties : DebuggerProperties
     /// Specifies the current working directory for the debugger, which is the base folder for any relative paths used in code.
     /// </summary>
     [JsonPropertyName("cwd")]
-    public override required string WorkingDirectory { get; init; }
+    public override required string WorkingDirectory { get; set; }
 
     /// <summary>
     /// Specifies how program output is displayed.

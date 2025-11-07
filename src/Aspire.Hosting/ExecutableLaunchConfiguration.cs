@@ -88,19 +88,19 @@ public abstract class DebuggerProperties
     /// The type of debugger to use for this launch configuration.
     /// </summary>
     [JsonPropertyName("type")]
-    public abstract string Type { get; init; }
+    public abstract string Type { get; set; }
 
     /// <summary>
     /// The request type of this launch configuration. Currently, launch and attach are supported. Defaults to launch.
     /// </summary>
     [JsonPropertyName("request")]
-    public virtual string Request { get; init; } = "launch";
+    public virtual string Request { get; set; } = "launch";
 
     /// <summary>
     /// The user-friendly name to appear in the Debug launch configuration dropdown.
     /// </summary>
     [JsonPropertyName("name")]
-    public abstract string Name { get; init; }
+    public abstract string Name { get; set; }
 
     /// <summary>
     /// The working directory for the program being debugged.
@@ -112,38 +112,38 @@ public abstract class DebuggerProperties
     /// Controls how the debug configuration is displayed in the UI.
     /// </summary>
     [JsonPropertyName("presentation")]
-    public PresentationOptions? Presentation { get; init; }
+    public PresentationOptions? Presentation { get; set; }
 
     /// <summary>
     /// The label of a task to launch before the start of a debug session. Can be set to ${defaultBuildTask} to use the default build task.
     /// </summary>
     [JsonPropertyName("preLaunchTask")]
-    public string? PreLaunchTask { get; init; }
+    public string? PreLaunchTask { get; set; }
 
     /// <summary>
     /// The name of a task to launch at the very end of a debug session.
     /// </summary>
     [JsonPropertyName("postDebugTask")]
-    public string? PostDebugTask { get; init; }
+    public string? PostDebugTask { get; set; }
 
     /// <summary>
     /// Controls the visibility of the Debug console panel during a debugging session.
     /// Possible values: "neverOpen", "openOnSessionStart", "openOnFirstSessionStart".
     /// </summary>
     [JsonPropertyName("internalConsoleOptions")]
-    public string? InternalConsoleOptions { get; init; }
+    public string? InternalConsoleOptions { get; set; }
 
     /// <summary>
     /// Allows you to connect to a specified port instead of launching the debug adapter.
     /// </summary>
     [JsonPropertyName("debugServer")]
-    public int? DebugServer { get; init; }
+    public int? DebugServer { get; set; }
 
     /// <summary>
     /// Specifies an action to take when the program outputs a specific message (e.g., opening a URL in a web browser).
     /// </summary>
     [JsonPropertyName("serverReadyAction")]
-    public ServerReadyAction? ServerReadyAction { get; init; }
+    public ServerReadyAction? ServerReadyAction { get; set; }
 }
 
 /// <summary>
