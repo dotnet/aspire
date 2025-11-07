@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -316,6 +317,10 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
+        // Register Python environment validation services (once per builder)
+        builder.Services.TryAddSingleton<PythonInstallationManager>();
+        builder.Services.TryAddSingleton<UvInstallationManager>();
+
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -486,6 +491,49 @@ public static class PythonAppResourceBuilderExtensions
                 CreateVenvCreatorIfNeeded(resourceBuilder);
             }
         }
+
+        // Validate Python environment before resource starts
+        resourceBuilder.OnBeforeResourceStarted(static async (pythonResource, e, ct) =>
+        {
+            var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(pythonResource);
+            
+            // Check if the resource uses uv
+            var usesUv = pythonResource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) && pythonEnv.Uv;
+            
+            if (usesUv)
+            {
+                // Validate that uv is installed
+                var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                logger.LogInformation("Ensuring uv is installed");
+                await uvInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+            }
+            else
+            {
+                // Validate that Python is installed
+                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
+                logger.LogInformation("Ensuring Python is installed");
+                await pythonInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+                
+                // Check if the virtual environment exists
+                if (pythonResource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var envAnnotation) &&
+                    envAnnotation.VirtualEnvironment is not null)
+                {
+                    var venvPath = envAnnotation.VirtualEnvironment.VirtualEnvironmentPath;
+                    if (!Directory.Exists(venvPath))
+                    {
+                        var venvName = Path.GetFileName(venvPath);
+                        var message = string.Format(
+                            System.Globalization.CultureInfo.CurrentCulture,
+                            Python.Resources.MessageStrings.VirtualEnvironmentNotFound,
+                            venvPath,
+                            venvName);
+                        
+                        logger.LogWarning("{Message}", message);
+                        throw new DistributedApplicationException(message);
+                    }
+                }
+            }
+        });
 
         return resourceBuilder;
     }

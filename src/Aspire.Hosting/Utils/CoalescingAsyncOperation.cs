@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.DevTunnels;
+namespace Aspire.Hosting.Utils;
 
 /// <summary>
 /// Provides a reusable pattern for running an asynchronous operation ensuring that only one

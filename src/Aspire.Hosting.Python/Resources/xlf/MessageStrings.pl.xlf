@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../MessageStrings.resx">
+    <body>
+      <trans-unit id="UvNotFoundWhenRequired">
+        <source>The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/</source>
+        <target state="new">The 'uv' command was not found, but is required for this Python application. Install uv by following the instructions at https://docs.astral.sh/uv/getting-started/installation/</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VirtualEnvironmentNotFound">
+        <source>Python virtual environment not found at '{0}'. Create a virtual environment by running 'python -m venv {1}' in the application directory, or use 'uv' for faster environment setup with 'uv venv' (requires uv to be installed).</source>
+        <target state="new">Python virtual environment not found at '{0}'. Create a virtual environment by running 'python -m venv {1}' in the application directory, or use 'uv' for faster environment setup with 'uv venv' (requires uv to be installed).</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
