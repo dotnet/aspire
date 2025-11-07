@@ -323,6 +323,24 @@ public class ReferenceExpressionBuilder
     }
 
     /// <summary>
+    /// Appends a formatted value to the expression.
+    /// </summary>
+    /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+    /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+    public void AppendFormatted(string? value, string? format = null)
+    {
+        if (value is not null)
+        {
+            if (format is not null)
+            {
+                value = FormattingHelpers.FormatValue(value, format);
+            }
+
+            _builder.Append(value);
+        }
+    }
+
+    /// <summary>
     /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
     /// </summary>
     /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
@@ -394,6 +412,28 @@ public class ReferenceExpressionBuilder
         public readonly void AppendFormatted(string? value)
         {
             builder.AppendFormatted(value);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression.
+        /// </summary>
+        /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        public void AppendFormatted(string? value, string? format = null)
+        {
+            builder.AppendFormatted(value, format);
+        }
+
+        /// <summary>
+        /// Appends the formatted value provided by the specified reference expression to the output.
+        /// </summary>
+        /// <param name="valueProvider">A reference expression that supplies the value to be formatted and appended.</param>
+        /// <param name="format">A composite format string that specifies how the value should be formatted, or null to use the default format.</param>
+        /// <remarks>This method is marked obsolete only to prevent usages of this type explicitly.</remarks>
+        [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
+        public void AppendFormatted(ReferenceExpression valueProvider, string format)
+        {
+            throw new InvalidOperationException("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.");
         }
 
         /// <summary>

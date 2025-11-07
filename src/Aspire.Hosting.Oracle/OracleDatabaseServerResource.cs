@@ -71,13 +71,11 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     {
         var builder = new ReferenceExpressionBuilder();
         builder.AppendLiteral("oracle://");
-        builder.Append($"{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+        builder.Append($"{DefaultUserName:uri}:{PasswordParameter:uri}@{Host}:{Port}");
 
         if (databaseName is not null)
         {
-            var databaseExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.AppendLiteral("/");
-            builder.Append($"{databaseExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         return builder.Build();
@@ -93,8 +91,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
 
         if (!string.IsNullOrEmpty(databaseName))
         {
-            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.Append($"/{databaseNameExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         return builder.Build();
