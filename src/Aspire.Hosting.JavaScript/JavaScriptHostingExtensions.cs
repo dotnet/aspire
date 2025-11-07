@@ -459,7 +459,7 @@ public static class JavaScriptHostingExtensions
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm")
             {
-                PackageFilesPatterns = { new PackageFilePattern("package*.json", "./") }
+                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
@@ -503,11 +503,11 @@ public static class JavaScriptHostingExtensions
         {
             packageFilesSourcePattern += " .yarnrc.yml";
         }
-        packageManager.PackageFilesPatterns.Add(new PackageFilePattern(packageFilesSourcePattern, "./"));
+        packageManager.PackageFilesPatterns.Add(new CopyFilePattern(packageFilesSourcePattern, "./"));
 
         if (hasYarnBerryDir)
         {
-            packageManager.PackageFilesPatterns.Add(new PackageFilePattern(".yarn", "./.yarn"));
+            packageManager.PackageFilesPatterns.Add(new CopyFilePattern(".yarn", "./.yarn"));
         }
 
         resource
@@ -565,7 +565,7 @@ public static class JavaScriptHostingExtensions
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/pnpm/store")
             {
-                PackageFilesPatterns = { new PackageFilePattern(packageFilesSourcePattern, "./") }
+                PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") }
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 

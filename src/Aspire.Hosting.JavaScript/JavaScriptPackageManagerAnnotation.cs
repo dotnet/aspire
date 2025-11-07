@@ -31,12 +31,6 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     /// <summary>
     /// Gets the file patterns for package dependency files.
     /// </summary>
-    public List<PackageFilePattern> PackageFilesPatterns { get; } = [];
+    public List<CopyFilePattern> PackageFilesPatterns { get; } = [];
 }
 
-/// <summary>
-/// Represents a package file pattern for copying dependency files in a Dockerfile.
-/// </summary>
-/// <param name="Source">The source pattern for files to copy (e.g., "package*.json").</param>
-/// <param name="Destination">The destination path where files should be copied (e.g., "./").</param>
-public sealed record PackageFilePattern(string Source, string Destination);
