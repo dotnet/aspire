@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.DevTunnels;
+namespace Aspire.Hosting.Utils;
 
 /// <summary>
 /// Base class that extends <see cref="CoalescingAsyncOperation"/> with validation logic
@@ -28,11 +28,39 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
 
     private Task? _notificationTask;
     private string? _notificationMessage;
+    private bool _throwOnFailure = true;
 
     /// <summary>
     /// Returns the command string (file name or path) that should be validated.
     /// </summary>
     protected abstract string GetCommandPath();
+
+    /// <summary>
+    /// Gets the message to display when the command is not found and there is no help link.
+    /// Default: "Required command '{0}' was not found on PATH or at a specified location."
+    /// </summary>
+    /// <param name="command">The command name.</param>
+    /// <returns>The formatted message.</returns>
+    protected virtual string GetCommandNotFoundMessage(string command) =>
+        string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at a specified location.", command);
+
+    /// <summary>
+    /// Gets the message to display when the command is not found and there is a help link.
+    /// Default: "Required command '{0}' was not found. See installation instructions for more details."
+    /// </summary>
+    /// <param name="command">The command name.</param>
+    /// <returns>The formatted message.</returns>
+    protected virtual string GetCommandNotFoundWithLinkMessage(string command) =>
+        string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found. See installation instructions for more details.", command);
+
+    /// <summary>
+    /// Gets the message to display when the command is found but validation failed.
+    /// Default: "{0} See installation instructions for more details."
+    /// </summary>
+    /// <param name="validationMessage">The validation failure message.</param>
+    /// <returns>The formatted message.</returns>
+    protected virtual string GetValidationFailedMessage(string validationMessage) =>
+        string.Format(CultureInfo.CurrentCulture, "{0} See installation instructions for more details.", validationMessage);
 
     /// <summary>
     /// Called after the command has been successfully resolved to a full path.
@@ -59,8 +87,12 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
         var notificationTask = _notificationTask;
         if (notificationTask is { IsCompleted: false })
         {
-            // Failure notification is still being shown so just throw again.
-            throw new DistributedApplicationException(_notificationMessage ?? $"Required command '{command}' was not found on PATH, at the specified location, or failed validation.");
+            // Failure notification is still being shown so just throw again if configured to throw.
+            if (_throwOnFailure)
+            {
+                throw new DistributedApplicationException(_notificationMessage ?? $"Required command '{command}' was not found on PATH, at the specified location, or failed validation.");
+            }
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(command))
@@ -80,9 +112,9 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
             var message = (link, validationMessage) switch
             {
                 (null, not null) => validationMessage,
-                (not null, not null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithValidation, validationMessage),
-                (not null, null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithLink, command),
-                _ => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotification, command)
+                (not null, not null) => GetValidationFailedMessage(validationMessage),
+                (not null, null) => GetCommandNotFoundWithLinkMessage(command),
+                _ => GetCommandNotFoundMessage(command)
             };
 
             _logger.LogWarning("{Message}", message);
@@ -113,11 +145,25 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
                     _logger.LogDebug(ex, "Failed to show missing command notification");
                 }
             }
-            throw new DistributedApplicationException(message);
+            
+            if (_throwOnFailure)
+            {
+                throw new DistributedApplicationException(message);
+            }
+            return;
         }
 
         _notificationMessage = null;
         await OnValidatedAsync(resolved, cancellationToken).ConfigureAwait(false);
+    }
+    
+    /// <summary>
+    /// Sets whether to throw an exception when validation fails.
+    /// </summary>
+    /// <param name="throwOnFailure">True to throw on failure, false to just show notification and log.</param>
+    protected void SetThrowOnFailure(bool throwOnFailure)
+    {
+        _throwOnFailure = throwOnFailure;
     }
 
     /// <summary>
@@ -130,7 +176,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// </summary>
     /// <param name="command">The command string.</param>
     /// <returns>Full path if resolved; otherwise null.</returns>
-    protected static string? ResolveCommand(string command)
+    protected internal static string? ResolveCommand(string command)
     {
         // If the command includes any directory separator, treat it as a path (relative or absolute)
         if (command.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
