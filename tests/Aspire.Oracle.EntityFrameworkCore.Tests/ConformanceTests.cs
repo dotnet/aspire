@@ -180,5 +180,5 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     }
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
-    => test(new ConformanceTests(null, null) { ConnectionString = connectionString });
+    => test(new ConformanceTests(null, null!) { ConnectionString = connectionString });
 }

@@ -637,21 +637,28 @@ public abstract class ConformanceTests<TService, TOptions>
 
     /// <summary>
     /// Creates a host builder for testing. When ITestOutputHelper is provided to the constructor,
-    /// this method automatically configures xUnit logging to capture all diagnostic logs at Debug level,
-    /// ensuring that test output includes comprehensive logging information for debugging failures.
+    /// derived classes should configure xUnit logging in their overrides to capture diagnostic logs.
     /// </summary>
+    /// <remarks>
+    /// To enable xUnit logging output, call <c>builder.Logging.AddXunit(Output)</c> after calling
+    /// this base method and before building the host. Example:
+    /// <code>
+    /// protected override HostApplicationBuilder CreateHostBuilder(...)
+    /// {
+    ///     var builder = base.CreateHostBuilder(...);
+    ///     if (Output != null)
+    ///     {
+    ///         builder.Logging.AddXunit(Output);
+    ///     }
+    ///     return builder;
+    /// }
+    /// </code>
+    /// </remarks>
     protected HostApplicationBuilder CreateHostBuilder(HostApplicationBuilderSettings? hostSettings = null, string? key = null)
     {
         HostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(hostSettings);
 
         PopulateConfiguration(builder.Configuration, key);
-
-        // Wire up xUnit logging when ITestOutputHelper is available.
-        // This ensures all logs are captured in test output for debugging.
-        if (Output is not null)
-        {
-            builder.Logging.AddXunit(Output, LogLevel.Debug);
-        }
 
         return builder;
     }

@@ -141,5 +141,5 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
                                  ConnectionString).Dispose();
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
-        => test(new ConformanceTests(null) { ConnectionString = connectionString });
+        => test(new ConformanceTests(null, null!) { ConnectionString = connectionString });
 }

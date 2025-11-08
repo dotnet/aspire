@@ -11,11 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../Shared/Logging/XunitLoggerProvider.cs" />
-    <Compile Include="../Shared/Logging/XunitLoggerFactoryExtensions.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="JsonSchema.Net" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
