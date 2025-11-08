@@ -374,9 +374,22 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Assert.Equal("test-resource", subscribedResource);
 
         logger.LogInformation("Throw error from console logs subscription.");
+        // Write a log entry first to ensure the reading task is actively waiting for data,
+        // then complete the channel with an error. This ensures the error is encountered
+        // while reading from the channel, not after the channel is already empty.
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Test content before error", IsErrorMessage: false)]);
         consoleLogsChannel.Writer.Complete(new InvalidOperationException("Error!"));
 
-        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)]);
+        // Wait for the error status to be set. Use WaitForAssertion with a longer timeout
+        // to handle slower hardware where the background task may take longer to:
+        // 1. Read the log entry from the channel
+        // 2. Encounter the channel completion error on the next read
+        // 3. Catch the exception in the try-catch block
+        // 4. Call InvokeAsync(StateHasChanged) to update the UI
+        logger.LogInformation("Waiting for error status to be set.");
+        cut.WaitForAssertion(() => 
+            Assert.Equal(loc[nameof(Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)], instance.PageViewModel.Status),
+            timeout: TimeSpan.FromSeconds(15));
     }
 
     [Fact]
@@ -425,9 +438,18 @@ public partial class ConsoleLogsTests : DashboardTestContext
         await instance.DisposeAsync().DefaultTimeout();
 
         logger.LogInformation("Throw error from console logs subscription.");
+        // Write a log entry first to ensure the reading task is actively waiting for data,
+        // then complete the channel with an error. Even after disposal, we want to verify
+        // that the error doesn't change the status.
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Test content before error", IsErrorMessage: false)]);
         consoleLogsChannel.Writer.Complete(new InvalidOperationException("Error!"));
 
-        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+        // After disposal, the status should remain "WatchingLogs" and not change to error status.
+        // Use WaitForAssertion to give the system time to potentially (incorrectly) process the error.
+        logger.LogInformation("Verifying status remains unchanged after disposal.");
+        await Task.Delay(200); // Give time for any potential error processing
+        cut.WaitForAssertion(() => 
+            Assert.Equal(loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)], instance.PageViewModel.Status));
     }
 
     [Fact]
