@@ -15,12 +15,16 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>, IClassFixture<SqlServerContainerFixture>
 {
-    public ConformanceTests(ITestOutputHelper output) : base(output)
-    {
-    }
-
     private readonly SqlServerContainerFixture? _containerFixture;
     protected string ConnectionString { get; private set; }
+
+    public ConformanceTests(SqlServerContainerFixture? fixture, ITestOutputHelper output) : base(output)
+    {
+        _containerFixture = fixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    }
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
@@ -65,14 +69,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
-
-    public ConformanceTests(SqlServerContainerFixture? fixture)
-    {
-        _containerFixture = fixture;
-        ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
-                                        ? _containerFixture.GetConnectionString()
-                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
-    }
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]

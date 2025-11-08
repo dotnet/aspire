@@ -17,10 +17,6 @@ namespace Aspire.StackExchange.Redis.OutputCaching.Tests;
 
 public class OutputCacheConformanceTests : ConformanceTests
 {
-    public OutputCacheConformanceTests(ITestOutputHelper output) : base(output)
-    {
-    }
-
     // Schema only references Aspire.StackExchange.Redis' schema so nothing
     // specific to check here
     protected override (string json, string error)[] InvalidJsonToErrorMessage => Array.Empty<(string json, string error)>();
@@ -37,7 +33,7 @@ public class OutputCacheConformanceTests : ConformanceTests
         }
     }
 
-    public OutputCacheConformanceTests(RedisContainerFixture containerFixture) : base(containerFixture)
+    public OutputCacheConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper output) : base(containerFixture, output)
     {
     }
 

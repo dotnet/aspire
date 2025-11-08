@@ -64,11 +64,6 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
             ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "HeartbeatInterval": "3S"}}}}}""", "The string value is not a match for the indicated regular expression")
         };
 
-    public ConformanceTests(RedisContainerFixture containerFixture)
-    {
-        _containerFixture = containerFixture;
-    }
-
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
         string connectionString = RequiresDockerAttribute.IsSupported
