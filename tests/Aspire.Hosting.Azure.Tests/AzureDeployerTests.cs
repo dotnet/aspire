@@ -1117,9 +1117,9 @@ public class AzureDeployerTests
         await File.WriteAllTextAsync(deploymentStatePath, cachedState.ToJsonString());
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
