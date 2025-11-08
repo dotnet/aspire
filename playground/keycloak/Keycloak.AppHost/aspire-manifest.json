@@ -3,7 +3,7 @@
   "resources": {
     "keycloak": {
       "type": "container.v0",
-      "image": "quay.io/keycloak/keycloak:26.3",
+      "image": "quay.io/keycloak/keycloak:26.4",
       "args": [
         "start",
         "--import-realm"
