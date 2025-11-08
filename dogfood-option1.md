@@ -165,34 +165,27 @@ You should see the Aspire templates including `aspire`, `aspire-starter`, `aspir
 
 ---
 
-## Step 4: Verify Installation
+## Step 4: Create Aspire Application
 
-Create a test Aspire application to verify everything is working correctly:
+### Authentication Workaround for `aspire new`
 
-```bash
-# Create a new Aspire starter app
-dotnet new aspire-starter -n AspireDogfoodTest
-cd AspireDogfoodTest
+When you first try to create a new Aspire application using `aspire new`, it may fail because the CLI attempts to download the 13.0 templates from internal feeds without passing an authentication token.
 
-# Restore packages (this will test feed authentication)
-dotnet restore
+**Workaround:** Use the `-s` flag to point to your local template cache where the templates were already installed in Step 3:
 
-# Build the application
-dotnet build
+**Windows (PowerShell):**
 
-# Run the application
-dotnet run --project AspireDogfoodTest.AppHost
+```powershell
+aspire new -s $env:USERPROFILE\.templateengine\packages\
 ```
 
-### Expected Results
+**Linux/macOS (bash):**
 
-If everything is configured correctly:
-1. ✅ Package restore should succeed without errors
-2. ✅ The application should build successfully
-3. ✅ The Aspire dashboard should open in your browser
-4. ✅ You should see the application resources in the dashboard
+```bash
+aspire new -s ~/.templateengine/packages/
+```
 
-If you encounter authentication errors during restore, ensure you've completed the [authentication steps](#authenticate-to-azure-devops-feeds) above.
+This tells the Aspire CLI to use the templates you already installed with `dotnet new install` instead of trying to download them again from the internal feeds.
 
 ---
 

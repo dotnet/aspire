@@ -60,4 +60,3 @@ If you encounter issues during dogfooding:
 - [Aspire Documentation](https://learn.microsoft.com/dotnet/aspire/)
 - [.NET 10 Release Information](https://github.com/dotnet/core/tree/main/release-notes/10.0)
 - [Contributing Guide](./docs/contributing.md)
-

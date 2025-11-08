@@ -66,33 +66,6 @@ When prompted, select the **staging** option. This will:
 
 ---
 
-## Step 4: Verify Installation
-
-Navigate to your newly created application and verify everything works:
-
-```bash
-cd <your-app-name>
-
-# Restore packages
-dotnet restore
-
-# Build the application
-dotnet build
-
-# Run the application
-dotnet run --project <your-app-name>.AppHost
-```
-
-### Expected Results
-
-If everything is configured correctly:
-1. ✅ Package restore should succeed without authentication errors
-2. ✅ The application should build successfully
-3. ✅ The Aspire dashboard should open in your browser
-4. ✅ You should see the application resources in the dashboard
-
----
-
 ## Creating Additional Applications
 
 After the initial setup, you can create more staging applications by simply running:
