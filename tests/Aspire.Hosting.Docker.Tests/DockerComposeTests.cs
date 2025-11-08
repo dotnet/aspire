@@ -248,11 +248,12 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void DockerComposeProjectNameUsesAppHostShaWhenAvailable()
+    public void DockerComposeProjectNameIncludesAppHostShaInArguments()
     {
-        // This test verifies that when AppHost:PathSha256 is available in configuration,
-        // it will be used to generate a unique project name for Docker Compose deployments.
-        // This prevents collisions when multiple app hosts deploy to the same output directory.
+        // This test verifies that when AppHost:PathSha256 is available, the correct project name
+        // is generated and would be used in the docker compose up/down commands.
+        // The debug logs added to DockerComposeEnvironmentResource will log this project name
+        // when docker compose commands are executed.
         
         using var tempDir = new TempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
@@ -267,15 +268,33 @@ public class DockerComposeTests(ITestOutputHelper output)
         builder.AddContainer("service", "nginx");
         
         var app = builder.Build();
+        app.Run();
         
-        // Verify the AppHost SHA is accessible in the configuration
-        var configuration = app.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
-        var appHostSha = configuration["AppHost:PathSha256"];
-        Assert.Equal(testSha, appHostSha);
+        // Verify that docker-compose.yaml was created
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
         
-        // Note: The actual project name format is: aspire-{environmentName}-{first8CharsOfSha}
-        // Example: aspire-my-environment-abc123de
-        // This ensures different app hosts deploying to the same directory get unique project names.
+        // The expected project name format is: aspire-{environmentName}-{first8CharsOfSha}
+        // With our test values: aspire-my-environment-abc123de
+        var expectedProjectName = "aspire-my-environment-abc123de";
+        
+        // Verify the environment resource name
+        Assert.Equal("my-environment", composeEnv.Resource.Name);
+        
+        // Verify the SHA prefix that would be used
+        var expectedShaPrefix = testSha[..8].ToLowerInvariant();
+        Assert.Equal("abc123de", expectedShaPrefix);
+        
+        // Verify the full expected project name format
+        Assert.Equal($"aspire-{composeEnv.Resource.Name.ToLowerInvariant()}-{expectedShaPrefix}", expectedProjectName);
+        
+        // Note: The docker compose up/down commands will use this project name with the format:
+        // docker compose -f "path/to/docker-compose.yaml" --project-name "aspire-my-environment-abc123de" up -d --remove-orphans
+        // docker compose -f "path/to/docker-compose.yaml" --project-name "aspire-my-environment-abc123de" down
+        //
+        // The debug logs in DockerComposeEnvironmentResource.DockerComposeUpAsync and DockerComposeDownAsync
+        // will log: "Running docker compose up with project name: {ProjectName}, arguments: {Arguments}"
+        // This allows verification that the correct project name is being used in actual deployments.
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

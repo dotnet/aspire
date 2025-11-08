@@ -222,6 +222,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
                 arguments += " up -d --remove-orphans";
 
+                context.Logger.LogDebug("Running docker compose up with project name: {ProjectName}, arguments: {Arguments}", projectName, arguments);
+
                 var spec = new ProcessSpec("docker")
                 {
                     Arguments = arguments,
@@ -289,6 +291,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 }
 
                 arguments += " down";
+
+                context.Logger.LogDebug("Running docker compose down with project name: {ProjectName}, arguments: {Arguments}", projectName, arguments);
 
                 var spec = new ProcessSpec("docker")
                 {
