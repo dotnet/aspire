@@ -69,7 +69,6 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Network identifiers](#network-identifiers)
   - [Dynamic input system](#dynamic-input-system-experimental)
   - [Reference and connection improvements](#reference-and-connection-improvements)
-  - [Event system](#event-system)
   - [Other app model improvements](#other-app-model-improvements)
 - [Deployment Improvements](#🚀-deployment-improvements)
   - [Deployment pipeline reimplementation](#deployment-pipeline-reimplementation)
@@ -1062,32 +1061,6 @@ API_URL=http://api:8080
 
 This enables proper service-to-service communication whether the consumer is running on the host or in a container.
 
-### Event system
-
-Aspire 13.0 replaces lifecycle hooks with a new eventing system for better composability and testability.
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var database = builder.AddPostgres("postgres")
-    .OnResourceStopped(async (resource, evt, cancellationToken) =>
-    {
-        // Handle resource stopped event
-        Console.WriteLine($"Database {resource.Name} stopped");
-        await CleanupAsync(cancellationToken);
-    });
-
-await builder.Build().RunAsync();
-```
-
-Event system features:
-
-- **IDistributedApplicationEventingSubscriber**: Subscribe to application events
-- **ResourceStoppedEvent**: Triggered when resources stop
-- **ResourceEndpointsAllocatedEvent**: Triggered when endpoints are allocated
-- **Composable subscriptions**: Register multiple subscribers for the same event
-- **Cancellation support**: Properly handle cancellation during event processing
-
 ### Other app model improvements
 
 **Compute environment support (graduated from experimental)**:
@@ -1309,9 +1282,6 @@ The following APIs have been removed in Aspire 13.0:
 - `PublishingOptions` class
 - `CompletionState` enum
 
-**Lifecycle hooks** (replaced by eventing system):
-- `IDistributedApplicationLifecycleHook` interface
-
 **Debugging APIs** (replaced with new flexible API):
 - Old `WithDebugSupport` overload with `debugAdapterId` and `requiredExtensionId` parameters
 - `SupportsDebuggingAnnotation` (replaced with new debug support annotation)
@@ -1326,6 +1296,9 @@ The following APIs have been removed in Aspire 13.0:
 ### Obsolete APIs
 
 The following APIs are marked as obsolete in Aspire 13.0 and will be removed in a future release:
+
+**Lifecycle hooks** (use IDistributedApplicationEventingSubscriber instead):
+- `IDistributedApplicationLifecycleHook` interface
 
 **Lifecycle hook extension methods** (use eventing subscriber extensions instead):
 - `AddLifecycleHook<T>()` - Use `AddEventingSubscriber<T>()` instead
@@ -1514,7 +1487,7 @@ public class MyLifecycleHook : IDistributedApplicationLifecycleHook
     }
 }
 
-builder.Services.AddLifecycleHook<MyLifecycleHook>();
+builder.Services.TryAddLifecycleHook<MyLifecycleHook>();
 ```
 
 **After (13.0)**:
@@ -1538,7 +1511,7 @@ public class MyEventSubscriber : IDistributedApplicationEventingSubscriber
     }
 }
 
-builder.Services.AddSingleton<IDistributedApplicationEventingSubscriber, MyEventSubscriber>();
+builder.Services.TryAddEventingSubscriber<MyEventSubscriber>();
 ```
 
 ### Experimental features
