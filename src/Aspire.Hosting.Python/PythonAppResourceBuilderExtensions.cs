@@ -319,7 +319,6 @@ public static class PythonAppResourceBuilderExtensions
 
         // Register Python environment validation services (once per builder)
         builder.Services.TryAddSingleton<PythonInstallationManager>();
-
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
