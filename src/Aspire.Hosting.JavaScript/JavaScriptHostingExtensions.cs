@@ -12,6 +12,7 @@ using Aspire.Hosting.JavaScript;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -56,6 +57,9 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
+
+        // Register Node environment validation services (once per builder)
+        builder.Services.TryAddSingleton<NodeInstallationManager>();
 
         appDirectory = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
         var resource = new NodeAppResource(name, "node", appDirectory);
@@ -226,6 +230,9 @@ public static class JavaScriptHostingExtensions
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(runScriptName);
 
+        // Register Node environment validation services (once per builder)
+        builder.Services.TryAddSingleton<NodeInstallationManager>();
+
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new JavaScriptAppResource(name, "npm", appDirectory);
 
@@ -361,6 +368,9 @@ public static class JavaScriptHostingExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
 
+        // Register Node environment validation services (once per builder)
+        builder.Services.TryAddSingleton<NodeInstallationManager>();
+
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new ViteAppResource(name, "npm", appDirectory);
 
@@ -403,6 +413,9 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
+        // Register npm validation service
+        resource.ApplicationBuilder.Services.TryAddSingleton<NpmInstallationManager>();
+
         installCommand ??= GetDefaultNpmInstallCommand(resource);
 
         resource
@@ -429,6 +442,9 @@ public static class JavaScriptHostingExtensions
     public static IResourceBuilder<TResource> WithYarn<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(resource);
+
+        // Register yarn validation service
+        resource.ApplicationBuilder.Services.TryAddSingleton<YarnInstallationManager>();
 
         installArgs ??= GetDefaultYarnInstallArgs(resource);
 
@@ -474,6 +490,9 @@ public static class JavaScriptHostingExtensions
     public static IResourceBuilder<TResource> WithPnpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(resource);
+
+        // Register pnpm validation service
+        resource.ApplicationBuilder.Services.TryAddSingleton<PnpmInstallationManager>();
 
         installArgs ??= GetDefaultPnpmInstallArgs(resource);
 
@@ -571,6 +590,14 @@ public static class JavaScriptHostingExtensions
                 .WithParentRelationship(resource.Resource)
                 .ExcludeFromManifest();
 
+            // Add validation for the installer command (node and package manager)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Validate that Node is installed before running any package manager
+                var nodeInstallationManager = e.Services.GetRequiredService<NodeInstallationManager>();
+                await nodeInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
+
             resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // set the installer's working directory to match the resource's working directory
@@ -585,6 +612,28 @@ public static class JavaScriptHostingExtensions
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(resource.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
+
+                // Add a second validation hook for the specific package manager after the command is set
+                installerBuilder.OnBeforeResourceStarted(async (installerResource, e, ct) =>
+                {
+                    // Check which package manager is being used and validate it
+                    var executableName = packageManager.ExecutableName.ToLowerInvariant();
+                    switch (executableName)
+                    {
+                        case "npm":
+                            var npmInstallationManager = e.Services.GetRequiredService<NpmInstallationManager>();
+                            await npmInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                            break;
+                        case "yarn":
+                            var yarnInstallationManager = e.Services.GetRequiredService<YarnInstallationManager>();
+                            await yarnInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                            break;
+                        case "pnpm":
+                            var pnpmInstallationManager = e.Services.GetRequiredService<PnpmInstallationManager>();
+                            await pnpmInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                            break;
+                    }
+                });
 
                 return Task.CompletedTask;
             });

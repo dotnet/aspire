@@ -10,7 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)CoalescingAsyncOperation.cs" Link="Utils\CoalescingAsyncOperation.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
+    <Compile Include="$(SharedDir)RequiredCommandValidator.cs" Link="Utils\RequiredCommandValidator.cs" />
   </ItemGroup>
 
   <ItemGroup>
