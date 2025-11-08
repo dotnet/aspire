@@ -19,6 +19,8 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
+        config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
+        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
         var result = validator.Validate(null, options);
