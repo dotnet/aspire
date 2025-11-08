@@ -1,42 +1,31 @@
 targetScope = 'resourceGroup'
 
-@description('The name of the Static Web App')
-param staticWebAppName string = 'aspire-static-web-app'
-
-@description('The location for the Static Web App')
+@description('The location for all resources')
 param location string = resourceGroup().location
 
-@description('The SKU name for the Static Web App')
+@description('The repository URL for the Static Web Apps')
+param repositoryUrl string = 'https://github.com/dotnet/aspire'
+
+@description('The repository branch for the Static Web Apps')
+param repositoryBranch string = 'main'
+
+@description('The SKU name for the Static Web Apps')
 @allowed([
   'Free'
   'Standard'
 ])
 param skuName string = 'Free'
 
-@description('The repository URL for the Static Web App')
-param repositoryUrl string = 'https://github.com/dotnet/aspire'
-
-@description('The repository branch for the Static Web App')
-param repositoryBranch string = 'main'
-
-resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
-  name: staticWebAppName
-  location: location
-  sku: {
-    name: skuName
-    tier: skuName
-  }
-  properties: {
+module withaspiredev 'withaspire.dev.bicep' = {
+  name: 'withaspire-dev-deployment'
+  params: {
+    location: location
     repositoryUrl: repositoryUrl
-    branch: repositoryBranch
-    buildProperties: {
-      appLocation: '/'
-      apiLocation: ''
-      outputLocation: ''
-    }
+    repositoryBranch: repositoryBranch
+    skuName: skuName
   }
 }
 
-output staticWebAppId string = staticWebApp.id
-output staticWebAppDefaultHostname string = staticWebApp.properties.defaultHostname
-output staticWebAppName string = staticWebApp.name
+output withaspiredev_staticWebAppId string = withaspiredev.outputs.staticWebAppId
+output withaspiredev_staticWebAppDefaultHostname string = withaspiredev.outputs.staticWebAppDefaultHostname
+output withaspiredev_staticWebAppName string = withaspiredev.outputs.staticWebAppName
