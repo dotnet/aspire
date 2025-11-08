@@ -1188,6 +1188,9 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Register UV validation service
+        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
