@@ -636,11 +636,13 @@ Aspire 13.0 introduces `aspire do` - a comprehensive system for coordinating bui
 The `aspire do` system replaces the previous publishing infrastructure with a more flexible, extensible model that allows resource-specific deployment logic to be decentralized and composed into larger workflows.
 
 > [!IMPORTANT]
-> 🧪 **Early Preview**: The pipeline APIs are in early preview and marked as experimental. While these APIs may evolve based on feedback, we're confident this is the right direction as it enables much more flexible modeling of arbitrary build, publish, and deployment steps. The pipeline system provides the foundation for advanced deployment scenarios that weren't possible with the previous publishing model.
+> 🧪 **Early Preview**: The pipeline APIs are in early preview and marked as experimental.
 
 For basic CLI commands and tooling, see [CLI and tooling](#cli-and-tooling), which covers [aspire init](#aspire-init-command), [aspire update](#aspire-update-improvements), and [non-interactive mode](#non-interactive-mode-for-cicd).
 
 **Example: Custom pipeline step**
+
+The Aspire AppHost defines a global `DistributedApplicationPipeline` instance on the `DistributedApplicationBuilder` that can be used to register steps in the pipeline at the top-level.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -650,10 +652,10 @@ builder.Pipeline.AddStep("validate", (context) =>
     context.Logger.LogInformation("Running validation checks...");
     // Your custom validation logic
     return Task.CompletedTask;
-}, requiredBy: "build");
+}, requiredBy: WellKnownPipelineSteps.Build);
 ```
 
-Run the step using the CLI:
+Steps registered in the pipeline can be run via the CLI:
 
 ```bash
 aspire do validate
@@ -671,8 +673,6 @@ aspire do publish --output-path ./artifacts   # Custom output path
 aspire do deploy --environment Production     # Target specific environment
 aspire do deploy --log-level debug            # Verbose logging for troubleshooting
 ```
-
-For more details, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
 
 ### Container Files as Build Artifacts
 
@@ -1093,7 +1093,7 @@ Execute individual deployment phases using `aspire do`:
 
 ```bash
 aspire do build                           # Build all containers
-aspire do provision-azure-bicep-resources # Provision infrastructure
+aspire do provision-azure-bicep-resources # Provision infrastructure when Azure resoruces exist
 aspire deploy                              # Complete deployment
 aspire do deploy --log-level debug        # Deploy with verbose logging
 ```
@@ -1119,18 +1119,20 @@ Aspire 13.0 introduces deployment state management that automatically persists d
 - **Azure configuration**: Subscription, resource group, location, and tenant selections
 - **Parameter values**: Input values from previous deployments
 - **Deployed resources**: Track what's been deployed and where
-- **Deployment context**: Maintain context across multiple deployment runs
 
 **User experience:**
 
 ```bash
-# First deployment - you're prompted for configuration
+# First deployment - you're prompted for configuration, assumes "Production" environment
 aspire deploy
 # Select Azure subscription, resource group, location, tenant...
 
 # Subsequent deployments - no prompts, uses saved state
 aspire deploy
 # Uses previous selections automatically
+
+# First deployment to a different environment -- prompted again
+aspire deploy --environment staging
 ```
 
 This eliminates repetitive prompts and makes iterative deployments faster. Your deployment configuration is stored locally (not in source control), so each developer can have their own Azure configuration without conflicts.
