@@ -539,7 +539,6 @@ add_to_shell_profile() {
 
     # Get the appropriate shell config file
     local config_file
-    local config_file_created=false
 
     # Find the first existing config file
     for file in $config_files; do
@@ -577,7 +576,6 @@ add_to_shell_profile() {
         
         if [[ "$DRY_RUN" == true ]]; then
             say_info "[DRY RUN] Would create config file: $config_file"
-            config_file_created=true
         else
             # Create parent directory if needed (for fish config)
             local config_dir
@@ -602,7 +600,6 @@ add_to_shell_profile() {
             
             # Create the config file
             if touch "$config_file" 2>/dev/null; then
-                config_file_created=true
                 say_info "Created new shell config file: $config_file"
             else
                 say_error "Failed to create config file: $config_file"
