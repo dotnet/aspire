@@ -316,7 +316,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         // Set a custom resource group name (new resource group)
@@ -328,7 +328,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
@@ -479,7 +479,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         // Set a custom resource group name
@@ -491,7 +491,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         // Trigger dynamic update of locations based on subscription.
