@@ -46,22 +46,32 @@ public static class YarpResourceExtensions
         {
             builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
             {
-                if (resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var _))
-                {
-                    // Certificate key pair already configured, skip adding developer certificate
-                    return Task.CompletedTask;
-                }
-
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 if (developerCertificateService.SupportsTlsTermination)
                 {
-                    // If a developer certificate is available, override the endpoint to use HTTPS instead of HTTP
-                    yarpBuilder
-                        .WithHttpsEndpoint(targetPort: HttpsPort)
-                        .WithDeveloperCertificateKeyPair()
-                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
-                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+                    bool addHttps = false;
+                    if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        yarpBuilder.WithDeveloperCertificateKeyPair();
+                        addHttps = true;
+                    }
+                    else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
+                    {
+                        addHttps = true;
+                    }
+
+                    if (addHttps)
+                    {
+                        // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                        // configure the environment variables to use it.
+                        yarpBuilder
+                            .WithHttpsEndpoint(targetPort: HttpsPort)
+                            .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                            .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+                    }
                 }
 
                 return Task.CompletedTask;
