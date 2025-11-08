@@ -295,28 +295,40 @@ public class ProvisioningContextProviderTests
             },
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
 
-        // Trigger dynamic update of locations based on subscription.
+        // Trigger dynamic update of resource groups based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Set a custom resource group name (new resource group)
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "test-new-rg";
+
+        // Trigger dynamic update of locations based on subscription and resource group.
         await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
         {
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            Services = new ServiceCollection().BuildServiceProvider()
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
@@ -448,18 +460,39 @@ public class ProvisioningContextProviderTests
             },
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
+
+        // Trigger dynamic update of resource groups based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Set a custom resource group name
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "test-new-rg";
+
+        // Trigger dynamic update of locations based on subscription and resource group.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
 
         // Trigger dynamic update of locations based on subscription.
         await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
@@ -524,5 +557,27 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
         Assert.Equal("westus2", context.Location.Name);
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceGroupsAsync_ReturnsResourceGroups()
+    {
+        // Arrange
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var credential = tokenCredentialProvider.TokenCredential;
+        var armClient = armClientProvider.GetArmClient(credential);
+        var subscriptionId = "12345678-1234-1234-1234-123456789012";
+
+        // Act
+        var resourceGroups = await armClient.GetAvailableResourceGroupsAsync(subscriptionId, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(resourceGroups);
+        var resourceGroupList = resourceGroups.ToList();
+        Assert.NotEmpty(resourceGroupList);
+        Assert.Contains("rg-test-1", resourceGroupList);
+        Assert.Contains("rg-test-2", resourceGroupList);
+        Assert.Contains("rg-aspire-dev", resourceGroupList);
     }
 }
