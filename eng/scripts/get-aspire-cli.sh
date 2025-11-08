@@ -539,6 +539,7 @@ add_to_shell_profile() {
 
     # Get the appropriate shell config file
     local config_file
+    local config_file_created=false
 
     # Find the first existing config file
     for file in $config_files; do
@@ -548,9 +549,75 @@ add_to_shell_profile() {
         fi
     done
 
-    if [[ -z $config_file ]]; then
-        say_error "No config file found for $shell_name. Checked files: $config_files"
-        exit 1
+    # If no config file exists, create the default one for the detected shell
+    if [[ -z "${config_file:-}" ]]; then
+        say_verbose "No config file found for $shell_name. Checked files: $config_files"
+        
+        # Determine the default config file to create based on shell
+        case "$shell_name" in
+            bash)
+                config_file="$HOME/.bashrc"
+                ;;
+            zsh)
+                config_file="$HOME/.zshrc"
+                ;;
+            fish)
+                config_file="$HOME/.config/fish/config.fish"
+                ;;
+            sh)
+                config_file="$HOME/.profile"
+                ;;
+            *)
+                # For unknown shells, default to bash config
+                config_file="$HOME/.bashrc"
+                ;;
+        esac
+        
+        say_verbose "Attempting to create config file: $config_file"
+        
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would create config file: $config_file"
+            config_file_created=true
+        else
+            # Create parent directory if needed (for fish config)
+            local config_dir
+            config_dir=$(dirname "$config_file")
+            if [[ ! -d "$config_dir" ]]; then
+                if mkdir -p "$config_dir" 2>/dev/null; then
+                    say_verbose "Created directory: $config_dir"
+                else
+                    say_error "Failed to create directory: $config_dir"
+                    say_info "Please manually create the file $config_file and add the following line:"
+                    case "$shell_name" in
+                        fish)
+                            say_info "  fish_add_path $bin_path_unexpanded"
+                            ;;
+                        *)
+                            say_info "  export PATH=\"$bin_path_unexpanded:\$PATH\""
+                            ;;
+                    esac
+                    exit 1
+                fi
+            fi
+            
+            # Create the config file
+            if touch "$config_file" 2>/dev/null; then
+                config_file_created=true
+                say_info "Created new shell config file: $config_file"
+            else
+                say_error "Failed to create config file: $config_file"
+                say_info "Please manually create the file $config_file and add the following line:"
+                case "$shell_name" in
+                    fish)
+                        say_info "  fish_add_path $bin_path_unexpanded"
+                        ;;
+                    *)
+                        say_info "  export PATH=\"$bin_path_unexpanded:\$PATH\""
+                        ;;
+                esac
+                exit 1
+            fi
+        fi
     fi
 
     case "$shell_name" in
