@@ -609,223 +609,151 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_Works()
     {
+        using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        var projectPath = Path.Combine(tempDir, "TestFunctions.csproj");
+        var projectPath = Path.Combine(tempDir.Path, "TestFunctions.csproj");
         File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        try
-        {
-            var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath);
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath);
 
-            // Assert that default storage resource is configured
-            Assert.Contains(builder.Resources, resource =>
-                resource is AzureStorageResource && resource.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
-            // Assert that custom project resource type is configured
-            Assert.Contains(builder.Resources, resource =>
-                resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
+        // Assert that default storage resource is configured
+        Assert.Contains(builder.Resources, resource =>
+            resource is AzureStorageResource && resource.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        // Assert that custom project resource type is configured
+        Assert.Contains(builder.Resources, resource =>
+            resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
 
-            // Verify that the project metadata annotation is added
-            Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
-            Assert.NotNull(projectMetadata);
-            Assert.Contains("TestFunctions.csproj", projectMetadata.ProjectPath);
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-        }
+        // Verify that the project metadata annotation is added
+        Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
+        Assert.NotNull(projectMetadata);
+        Assert.Contains("TestFunctions.csproj", projectMetadata.ProjectPath);
     }
 
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
     {
+        using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        var projectPath = Path.Combine(tempDir, "MyFunctions.csproj");
+        var projectPath = Path.Combine(tempDir.Path, "MyFunctions.csproj");
         File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        try
-        {
-            // Use a relative path from the builder's directory
-            var relativePath = Path.GetRelativePath(builder.AppHostDirectory, projectPath);
-            var funcApp = builder.AddAzureFunctionsProject("funcapp", relativePath);
+        // Use a relative path from the builder's directory
+        var relativePath = Path.GetRelativePath(builder.AppHostDirectory, projectPath);
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", relativePath);
 
-            // Verify that the project metadata annotation is added with normalized path
-            Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
-            Assert.NotNull(projectMetadata);
+        // Verify that the project metadata annotation is added with normalized path
+        Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
+        Assert.NotNull(projectMetadata);
 
-            // The path should be normalized to an absolute path
-            Assert.True(Path.IsPathRooted(projectMetadata.ProjectPath));
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-        }
+        // The path should be normalized to an absolute path
+        Assert.True(Path.IsPathRooted(projectMetadata.ProjectPath));
     }
 
     [Fact]
     public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
     {
+        using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        var projectPath = Path.Combine(tempDir, "TestFunctions.csproj");
+        var projectPath = Path.Combine(tempDir.Path, "TestFunctions.csproj");
         File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        try
+        builder.AddAzureFunctionsProject("funcapp", projectPath);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        Assert.True(functionsResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
+
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext);
+        foreach (var envAnnotation in envAnnotations)
         {
-            builder.AddAzureFunctionsProject("funcapp", projectPath);
-
-            using var app = builder.Build();
-
-            await ExecuteBeforeStartHooksAsync(app, default);
-
-            var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
-            Assert.True(functionsResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
-
-            var context = new EnvironmentCallbackContext(builder.ExecutionContext);
-            foreach (var envAnnotation in envAnnotations)
-            {
-                await envAnnotation.Callback(context);
-            }
-
-            // Verify common environment variables are set
-            Assert.True(context.EnvironmentVariables.ContainsKey("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"));
-            Assert.True(context.EnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"));
-            Assert.True(context.EnvironmentVariables.ContainsKey("AzureFunctionsJobHost__telemetryMode"));
+            await envAnnotation.Callback(context);
         }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-        }
+
+        // Verify common environment variables are set
+        Assert.True(context.EnvironmentVariables.ContainsKey("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"));
+        Assert.True(context.EnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"));
+        Assert.True(context.EnvironmentVariables.ContainsKey("AzureFunctionsJobHost__telemetryMode"));
     }
 
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
     {
+        using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create temporary project files
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        var projectPath1 = Path.Combine(tempDir, "Functions1.csproj");
-        var projectPath2 = Path.Combine(tempDir, "Functions2.csproj");
+        var projectPath1 = Path.Combine(tempDir.Path, "Functions1.csproj");
+        var projectPath2 = Path.Combine(tempDir.Path, "Functions2.csproj");
         File.WriteAllText(projectPath1, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
         File.WriteAllText(projectPath2, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        try
-        {
-            builder.AddAzureFunctionsProject("funcapp1", projectPath1);
-            builder.AddAzureFunctionsProject("funcapp2", projectPath2);
+        builder.AddAzureFunctionsProject("funcapp1", projectPath1);
+        builder.AddAzureFunctionsProject("funcapp2", projectPath2);
 
-            // Assert that only one default storage resource exists and is shared
-            var storageResources = builder.Resources.OfType<AzureStorageResource>()
-                .Where(r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName))
-                .ToList();
-            Assert.Single(storageResources);
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-        }
+        // Assert that only one default storage resource exists and is shared
+        var storageResources = builder.Resources.OfType<AzureStorageResource>()
+            .Where(r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName))
+            .ToList();
+        Assert.Single(storageResources);
     }
 
     [Fact]
     [RequiresDocker]
     public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
     {
+        using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        var projectPath = Path.Combine(tempDir, "Functions.csproj");
+        var projectPath = Path.Combine(tempDir.Path, "Functions.csproj");
         File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        try
-        {
-            var customStorage = builder.AddAzureStorage("my-custom-storage").RunAsEmulator();
-            var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath)
-                .WithHostStorage(customStorage);
+        var customStorage = builder.AddAzureStorage("my-custom-storage").RunAsEmulator();
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath)
+            .WithHostStorage(customStorage);
 
-            using var host = builder.Build();
-            await host.StartAsync();
+        using var host = builder.Build();
+        await host.StartAsync();
 
-            // Assert that the custom storage is used and default storage is not present
-            var model = host.Services.GetRequiredService<DistributedApplicationModel>();
-            Assert.DoesNotContain(model.Resources.OfType<AzureStorageResource>(),
-                r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
-            var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
-            Assert.Equal("my-custom-storage", storageResource.Name);
+        // Assert that the custom storage is used and default storage is not present
+        var model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.DoesNotContain(model.Resources.OfType<AzureStorageResource>(),
+            r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
+        Assert.Equal("my-custom-storage", storageResource.Name);
 
-            Assert.True(funcApp.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relAnnotations));
-            var rel = Assert.Single(relAnnotations);
-            Assert.Equal("Reference", rel.Type);
-            Assert.Equal(customStorage.Resource, rel.Resource);
+        Assert.True(funcApp.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relAnnotations));
+        var rel = Assert.Single(relAnnotations);
+        Assert.Equal("Reference", rel.Type);
+        Assert.Equal(customStorage.Resource, rel.Resource);
 
-            await host.StopAsync();
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-        }
+        await host.StopAsync();
     }
 
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
     {
+        using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        var projectPath = Path.Combine(tempDir, "Functions.csproj");
+        var projectPath = Path.Combine(tempDir.Path, "Functions.csproj");
         File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        try
-        {
-            builder.AddAzureFunctionsProject("funcapp", projectPath);
+        builder.AddAzureFunctionsProject("funcapp", projectPath);
 
-            var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
 
-            // Verify that AzureFunctionsAnnotation is added
-            Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-        }
+        // Verify that AzureFunctionsAnnotation is added
+        Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
     }
 }
