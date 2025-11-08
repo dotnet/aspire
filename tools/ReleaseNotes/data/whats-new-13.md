@@ -753,8 +753,8 @@ var certs = builder.AddCertificateAuthorityCollection("custom-certs")
     .WithCertificatesFromFile("./certs/my-ca.pem")
     .WithCertificatesFromStore(StoreName.CertificateAuthority, StoreLocation.LocalMachine);
 
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(certs)
+var gateway = builder.AddYarp("gateway")
+    .WithCertificateAuthorityCollection(certs)
     .WithDeveloperCertificateTrust(trust: true);
 ```
 
