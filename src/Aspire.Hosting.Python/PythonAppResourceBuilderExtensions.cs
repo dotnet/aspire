@@ -492,34 +492,6 @@ public static class PythonAppResourceBuilderExtensions
             }
         }
 
-        // Validate Python environment before resource starts
-        resourceBuilder.OnBeforeResourceStarted(static async (pythonResource, e, ct) =>
-        {
-            // Only validate in run mode
-            var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-            if (!executionContext.IsRunMode)
-            {
-                return;
-            }
-
-            // Check if the resource uses uv
-            var usesUv = pythonResource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager) && 
-                         packageManager.ExecutableName == "uv";
-            
-            if (usesUv)
-            {
-                // Validate that uv is installed
-                var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
-                await uvInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
-            }
-            else
-            {
-                // Validate that Python is installed
-                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
-                await pythonInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
-            }
-        });
-
         return resourceBuilder;
     }
 
@@ -1304,6 +1276,27 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder.Resource)
                 .ExcludeFromManifest();
 
+            // Add validation for the installer command (uv or python)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Only validate in run mode
+                var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+                if (!executionContext.IsRunMode)
+                {
+                    return;
+                }
+
+                // Check which command this installer is using (set by BeforeStartEvent)
+                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
+                    executable.Command == "uv")
+                {
+                    // Validate that uv is installed
+                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                    await uvInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
+            });
+
             builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // Set the installer's working directory to match the resource's working directory
@@ -1377,7 +1370,20 @@ public static class PythonAppResourceBuilderExtensions
             .WithArgs(["-m", "venv", venvPath])
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
-            .ExcludeFromManifest();
+            .ExcludeFromManifest()
+            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
+            {
+                // Only validate in run mode
+                var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+                if (!executionContext.IsRunMode)
+                {
+                    return;
+                }
+
+                // Validate that Python is installed before creating venv
+                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
+                await pythonInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+            });
 
         // Wait relationships will be set up dynamically in SetupDependencies
     }
