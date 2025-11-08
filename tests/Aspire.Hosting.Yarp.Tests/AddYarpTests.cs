@@ -39,6 +39,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public async Task VerifyRunEnvVariablesAreSet(bool containerCertificateSupport)
     {
+        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         // Report that developer certificates won't support container scenarios
@@ -67,6 +68,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             var value = Assert.Contains("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
             Assert.Equal("true", value);
         }
+        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
@@ -88,6 +90,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task VerifyWithStaticFilesAddsEnvironmentVariable()
     {
+        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
@@ -105,11 +108,13 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
         Assert.Equal("true", value);
+        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
     public async Task VerifyWithStaticFilesWorksInPublishOperation()
     {
+        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
@@ -126,11 +131,13 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
         Assert.Equal("true", value);
+        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
     public async Task VerifyWithStaticFilesBindMountAddsEnvironmentVariable()
     {
+        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
@@ -150,6 +157,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
         Assert.Equal("true", value);
+        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]

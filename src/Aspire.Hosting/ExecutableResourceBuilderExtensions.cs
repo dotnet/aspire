@@ -125,6 +125,10 @@ public static class ExecutableResourceBuilderExtensions
         // This makes the method idempotent - multiple calls won't cause errors.
         if (builder.ApplicationBuilder.TryCreateResourceBuilder<ExecutableContainerResource>(builder.Resource.Name, out var existingBuilder))
         {
+            // Arguments to the executable often contain physical paths that are not valid in the container
+            // Clear them out so that the container can be set up with the correct arguments
+            existingBuilder.WithArgs(c => c.Args.Clear());
+
             // Resource has already been converted, just invoke the configure callback if provided
             configure?.Invoke(existingBuilder);
             return builder;

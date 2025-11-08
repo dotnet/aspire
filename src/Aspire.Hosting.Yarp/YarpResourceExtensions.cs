@@ -1,9 +1,11 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIRECERTIFICATES001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,7 +18,6 @@ namespace Aspire.Hosting;
 public static class YarpResourceExtensions
 {
     private const int Port = 5000;
-    private const int HttpsPort = 5001;
 
     /// <summary>
     /// Adds a YARP container to the application model.
@@ -42,20 +43,23 @@ public static class YarpResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            yarpBuilder.WithHttpsEndpoint(name: "https", targetPort: HttpsPort);
             yarpBuilder.OnInitializeResource((_, @event, cancellationToken) =>
             {
+                if (resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var _))
+                {
+                    // Certificate key pair already configured, skip adding developer certificate
+                    return Task.CompletedTask;
+                }
+
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 if (developerCertificateService.SupportsTlsTermination)
                 {
-#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                    // If a developer certificate is available
+                    // If a developer certificate is available, override the endpoint to use HTTPS instead of HTTP
                     yarpBuilder
                         .WithDeveloperCertificateKeyPair()
-                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https", KnownNetworkIdentifiers.LocalhostNetwork).Property(EndpointProperty.Port)}")
-                        .WithEnvironment("ASPNETCORE_URLS", $"http://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)};https://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)}");
-#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                        .WithEndpoint("http", ep => ep.UriScheme = "https")
+                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
                 }
 
                 return Task.CompletedTask;
@@ -63,9 +67,8 @@ public static class YarpResourceExtensions
 
             yarpBuilder.WithEnvironment(ctx =>
             {
-                var developerCertificateService = @ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-
-                if (!developerCertificateService.SupportsContainerTrust)
+                var options = ctx.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationOptions>();
+                if (options.AllowUnsecuredTransport)
                 {
                     ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
                 }
@@ -196,27 +199,14 @@ public static class YarpResourceExtensions
 
         return builder.WithDockerfileBuilder(".", ctx =>
         {
-            var logger = ctx.Services.GetRequiredService<ILogger<YarpResource>>();
+            var logger = ctx.Services.GetService<ILogger<YarpResource>>();
             var imageName = GetYarpImageName(ctx.Resource);
-            var stage = ctx.Builder.From(imageName).WorkDir("/app");
 
-            if (ctx.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
-            {
-                foreach (var containerFileDestination in containerFilesDestinationAnnotations)
-                {
-                    var source = containerFileDestination.Source;
-                    if (!source.TryGetContainerImageName(out var sourceImageName))
-                    {
-                        logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
-                        return;
-                    }
+            ctx.Builder.AddContainerFilesStages(ctx.Resource, logger);
 
-                    foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                    {
-                        stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, "/app/wwwroot");
-                    }
-                }
-            }
+            ctx.Builder.From(imageName)
+                .WorkDir("/app")
+                .AddContainerFiles(ctx.Resource, "/app/wwwroot", logger);
         });
     }
 

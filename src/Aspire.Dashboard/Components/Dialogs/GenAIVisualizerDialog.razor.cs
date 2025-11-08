@@ -9,6 +9,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -184,31 +185,79 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         };
     }
 
-    private static bool IsImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageContent)
+    private record DataInfo(string Url, string MimeType, string FileName);
+
+    private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)
     {
-        // Image part is a generic part with type "image" and content in additional properties.
-        // An image part isn't in the GenAI semantic conventions. This code follows what MEAI does and will need to change to support a future standard.
-        // See https://github.com/dotnet/extensions/pull/6809.
-        if (itemPart.MessagePart?.Type == "image")
+        switch (itemPart.MessagePart?.Type)
         {
-            var contentType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content");
-            imageContent = contentType?.Value;
-            return !string.IsNullOrEmpty(imageContent);
+            case "blob":
+                {
+                    if (MatchMimeType(itemPart, matchingMimeTypes, out var mimeType))
+                    {
+                        if (itemPart.TryGetPropertyValue("content", out var content))
+                        {
+                            dataInfo = new DataInfo(
+                                Url: $"data:{mimeType};base64,{content}",
+                                MimeType: mimeType,
+                                FileName: CalculateFileName(currentFileName: null, mimeType));
+                            return true;
+                        }
+                    }
+                    break;
+                }
+            case "uri":
+                {
+                    if (MatchMimeType(itemPart, matchingMimeTypes, out var mimeType))
+                    {
+                        if (itemPart.TryGetPropertyValue("uri", out var uri))
+                        {
+                            // Only attempt to display image if it is an http/https address.
+                            if (Uri.TryCreate(uri, UriKind.Absolute, out var result) && result.Scheme.ToLowerInvariant() is "http" or "https")
+                            {
+                                dataInfo = new DataInfo(
+                                    Url: uri,
+                                    MimeType: mimeType,
+                                    FileName: CalculateFileName(Path.GetFileName(result.LocalPath), mimeType));
+                                return true;
+                            }
+                        }
+                    }
+                    break;
+                }
         }
 
-        imageContent = null;
+        dataInfo = null;
         return false;
-    }
 
-    private static bool IsSupportedImageScheme(string imageContent)
-    {
-        if (Uri.TryCreate(imageContent, UriKind.Absolute, out var result))
+        static bool MatchMimeType(GenAIItemPartViewModel viewModel, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out string? mimeType)
         {
-            // Only attempt to display image if it is an http/https address, or an inline data image.
-            return result.Scheme.ToLowerInvariant() is "http" or "https" or "data";
+            if (viewModel.TryGetPropertyValue("mime_type", out mimeType))
+            {
+                return matchingMimeTypes == null || matchingMimeTypes.Contains(mimeType);
+            }
+
+            return false;
         }
 
-        return false;
+        static string CalculateFileName(string? currentFileName, string mimeType)
+        {
+            if (!string.IsNullOrEmpty(currentFileName))
+            {
+                return currentFileName;
+            }
+
+            if (MimeTypeHelpers.MimeToExtension.TryGetValue(mimeType, out var extension))
+            {
+                return $"download{extension}";
+            }
+            else
+            {
+                // The part didn't include a name (probably a blob) and we don't know the mime type.
+                // We have to give a download file name without an extension.
+                return "download";
+            }
+        }
     }
 
     public void Dispose()

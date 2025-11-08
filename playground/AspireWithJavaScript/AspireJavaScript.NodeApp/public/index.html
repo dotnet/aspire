@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AspireJavaScript Node.js App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 0.5rem;
+        }
+        .api-section {
+            margin: 2rem 0;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            border-left: 4px solid #007acc;
+        }
+        .method {
+            background: #28a745;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.25rem;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        #output {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AspireJavaScript Node.js App</h1>
+        
+        <p>Welcome to the default Node.js application! This app provides a simple REST API with the following endpoints:</p>
+        
+        <div class="api-section">
+            <h2>Available Endpoints</h2>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <strong>/api/welcome</strong> - Welcome message with timestamp
+                <br>
+                <button onclick="fetchData('/api/welcome')">Test Endpoint</button>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <strong>/api/health</strong> - Health check endpoint
+                <br>
+                <button onclick="fetchData('/api/health')">Test Endpoint</button>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <strong>/api/weather</strong> - Mock weather data
+                <br>
+                <button onclick="fetchData('/api/weather')">Test Endpoint</button>
+            </div>
+        </div>
+        
+        <h3>Response Output:</h3>
+        <div id="output">Click any "Test Endpoint" button above to see the API response...</div>
+    </div>
+
+    <script>
+        async function fetchData(endpoint) {
+            const output = document.getElementById('output');
+            
+            try {
+                output.textContent = 'Loading...';
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

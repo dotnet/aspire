@@ -21,7 +21,7 @@ public class EnvFileTests
         // Load and try to add the same key with onlyIfMissing=true
         var envFile = EnvFile.Load(envFilePath);
         envFile.Add("KEY1", "value2", "New comment", onlyIfMissing: true);
-        envFile.Save(envFilePath);
+        envFile.Save();
 
         var lines = File.ReadAllLines(envFilePath);
         var keyLines = lines.Where(l => l.StartsWith("KEY1=")).ToArray();
@@ -47,7 +47,7 @@ public class EnvFileTests
         // Load and try to add the same key with onlyIfMissing=false
         var envFile = EnvFile.Load(envFilePath);
         envFile.Add("KEY1", "value2", "New comment", onlyIfMissing: false);
-        envFile.Save(envFilePath);
+        envFile.Save();
 
         var lines = File.ReadAllLines(envFilePath);
         var keyLines = lines.Where(l => l.StartsWith("KEY1=")).ToArray();
@@ -82,7 +82,7 @@ public class EnvFileTests
         // Add IMAGE with onlyIfMissing=false (should update the existing value)
         envFile.Add("PROJECT1_IMAGE", "project1:1.0.0", "Container image name for project1", onlyIfMissing: false);
 
-        envFile.Save(envFilePath);
+        envFile.Save();
 
         var lines = File.ReadAllLines(envFilePath);
         var imageLines = lines.Where(l => l.StartsWith("PROJECT1_IMAGE=")).ToArray();
@@ -113,7 +113,7 @@ public class EnvFileTests
         // Load and add a new key
         var envFile = EnvFile.Load(envFilePath);
         envFile.Add("KEY2", "value2", "Comment for KEY2", onlyIfMissing: true);
-        envFile.Save(envFilePath);
+        envFile.Save();
 
         var lines = File.ReadAllLines(envFilePath);
 
@@ -133,7 +133,7 @@ public class EnvFileTests
 
         var envFile = EnvFile.Load(envFilePath);
         envFile.Add("KEY1", "value1", "Comment");
-        envFile.Save(envFilePath);
+        envFile.Save();
 
         var lines = File.ReadAllLines(envFilePath);
         Assert.Contains("KEY1=value1", lines);
@@ -148,7 +148,7 @@ public class EnvFileTests
         // Don't create the file
         var envFile = EnvFile.Load(envFilePath);
         envFile.Add("KEY1", "value1", "Comment");
-        envFile.Save(envFilePath);
+        envFile.Save();
 
         Assert.True(File.Exists(envFilePath));
         var lines = File.ReadAllLines(envFilePath);

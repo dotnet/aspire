@@ -72,7 +72,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
     private readonly Locations _locations;
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private readonly IDeveloperCertificateService _developerCertificateService;
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
@@ -107,7 +109,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpNameGenerator nameGenerator,
                        DcpExecutorEvents executorEvents,
                        Locations locations,
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                        IDeveloperCertificateService developerCertificateService)
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -2486,18 +2490,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                 // used by common Linux distributions to make it easier to ensure applications pick it up.
-                foreach (var bundlePath in bundlePaths!)
+                // Group by common directory to avoid creating multiple file system entries for the same root directory.
+                foreach (var bundlePath in bundlePaths!.Select(bp =>
+                {
+                    var filename = Path.GetFileName(bp);
+                    var dir = bp.Substring(0, bp.Length - filename.Length);
+                    return (dir, filename);
+                }).GroupBy(parts => parts.dir))
                 {
                     createFiles.Add(new ContainerCreateFileSystem
                     {
-                        Destination = bundlePath,
-                        Entries = [
+                        Destination = bundlePath.Key,
+                        Entries = bundlePath.Select(bp =>
                             new ContainerFileSystemEntry
                             {
-                                Name = Path.GetFileName(bundlePath),
+                                Name = bp.filename,
                                 Contents = caBundleBuilder.ToString(),
-                            },
-                        ],
+                            }).ToList(),
                     });
                 }
             }

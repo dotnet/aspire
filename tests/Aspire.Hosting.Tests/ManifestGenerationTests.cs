@@ -441,7 +441,7 @@ public class ManifestGenerationTests
                   "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                    "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                    "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
                     "POSTGRES_USER": "postgres",
                     "POSTGRES_PASSWORD": "{postgres-password.value}",
                     "POSTGRES_DB": "postgresdb"
@@ -551,6 +551,148 @@ public class ManifestGenerationTests
 
         var manifest = await ManifestUtils.GetManifest(param.Resource).DefaultTimeout();
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task ContainerFilesAreWrittenToManifest()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = GetManifestArgs()
+        });
+
+        // Create a source container with ContainerFilesSourceAnnotation
+        var sourceContainer = builder.AddContainer("source", "node:22")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        // Create a destination container with ContainerFilesDestinationAnnotation
+        var destContainer = builder.AddContainer("dest", "nginx:alpine")
+            .WithAnnotation(new ContainerFilesDestinationAnnotation 
+            { 
+                Source = sourceContainer.Resource, 
+                DestinationPath = "/usr/share/nginx/html" 
+            });
+
+        builder.Build().Run();
+
+        var destManifest = await ManifestUtils.GetManifest(destContainer.Resource).DefaultTimeout();
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "nginx:alpine",
+              "containerFiles": {
+                "source": {
+                  "destination": "/usr/share/nginx/html",
+                  "sources": [
+                    "/app/dist"
+                  ]
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, destManifest.ToString());
+    }
+
+    [Fact]
+    public async Task ContainerFilesWithMultipleSourcesAreWrittenToManifest()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = GetManifestArgs()
+        });
+
+        // Create a source container with multiple ContainerFilesSourceAnnotations
+        var sourceContainer = builder.AddContainer("source", "node:22")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets" });
+
+        // Create a destination container with ContainerFilesDestinationAnnotation
+        var destContainer = builder.AddContainer("dest", "nginx:alpine")
+            .WithAnnotation(new ContainerFilesDestinationAnnotation 
+            { 
+                Source = sourceContainer.Resource, 
+                DestinationPath = "/usr/share/nginx/html" 
+            });
+
+        builder.Build().Run();
+
+        var destManifest = await ManifestUtils.GetManifest(destContainer.Resource).DefaultTimeout();
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "nginx:alpine",
+              "containerFiles": {
+                "source": {
+                  "destination": "/usr/share/nginx/html",
+                  "sources": [
+                    "/app/dist",
+                    "/app/assets"
+                  ]
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, destManifest.ToString());
+    }
+
+    [Fact]
+    public async Task ContainerFilesWithMultipleDestinationsAreWrittenToManifest()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = GetManifestArgs()
+        });
+
+        // Create two source containers
+        var source1 = builder.AddContainer("source1", "node:22")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var source2 = builder.AddContainer("source2", "node:22")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets" });
+
+        // Create a destination container with multiple ContainerFilesDestinationAnnotations
+        var destContainer = builder.AddContainer("dest", "nginx:alpine")
+            .WithAnnotation(new ContainerFilesDestinationAnnotation 
+            { 
+                Source = source1.Resource, 
+                DestinationPath = "/usr/share/nginx/html" 
+            })
+            .WithAnnotation(new ContainerFilesDestinationAnnotation 
+            { 
+                Source = source2.Resource, 
+                DestinationPath = "/usr/share/nginx/assets" 
+            });
+
+        builder.Build().Run();
+
+        var destManifest = await ManifestUtils.GetManifest(destContainer.Resource).DefaultTimeout();
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "nginx:alpine",
+              "containerFiles": {
+                "source1": {
+                  "destination": "/usr/share/nginx/html",
+                  "sources": [
+                    "/app/dist"
+                  ]
+                },
+                "source2": {
+                  "destination": "/usr/share/nginx/assets",
+                  "sources": [
+                    "/app/assets"
+                  ]
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, destManifest.ToString());
     }
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)

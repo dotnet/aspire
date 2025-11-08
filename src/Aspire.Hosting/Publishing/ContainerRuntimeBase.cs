@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
@@ -74,6 +75,49 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             $"{Name} push failed with exit code {{0}}.",
             cancellationToken,
             imageName).ConfigureAwait(false);
+    }
+
+    public virtual async Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
+    {
+        // Escape quotes in arguments to prevent command injection
+        var escapedRegistryServer = registryServer.Replace("\"", "\\\"");
+        var escapedUsername = username.Replace("\"", "\\\"");
+        var arguments = $"login \"{escapedRegistryServer}\" --username \"{escapedUsername}\" --password-stdin";
+        
+        var spec = new ProcessSpec(RuntimeExecutable)
+        {
+            Arguments = arguments,
+            StandardInputContent = password,
+            OnOutputData = output =>
+            {
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+            },
+            OnErrorData = error =>
+            {
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+        
+        _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, arguments);
+        _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                _logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", Name, registryServer, processResult.ExitCode);
+                throw new DistributedApplicationException($"{Name} login failed with exit code {processResult.ExitCode}.");
+            }
+
+            _logger.LogInformation("{RuntimeName} login to {RegistryServer} succeeded.", Name, registryServer);
+        }
     }
 
     /// <summary>
