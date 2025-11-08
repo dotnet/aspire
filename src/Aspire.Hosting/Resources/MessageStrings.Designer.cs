@@ -104,32 +104,5 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("DcpVersionCheckTooLowMessage", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Required command '{0}' was not found on PATH or at a specified location..
-        /// </summary>
-        internal static string RequiredCommandNotification {
-            get {
-                return ResourceManager.GetString("RequiredCommandNotification", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Required command '{0}' was not found. See installation instructions for more details..
-        /// </summary>
-        internal static string RequiredCommandNotificationWithLink {
-            get {
-                return ResourceManager.GetString("RequiredCommandNotificationWithLink", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to {0} See installation instructions for more details..
-        /// </summary>
-        internal static string RequiredCommandNotificationWithValidation {
-            get {
-                return ResourceManager.GetString("RequiredCommandNotificationWithValidation", resourceCulture);
-            }
-        }
     }
 }
