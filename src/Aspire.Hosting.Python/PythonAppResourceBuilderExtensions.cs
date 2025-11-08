@@ -1279,20 +1279,13 @@ public static class PythonAppResourceBuilderExtensions
             // Add validation for the installer command (uv or python)
             installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
             {
-                // Only validate in run mode
-                var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-                if (!executionContext.IsRunMode)
-                {
-                    return;
-                }
-
                 // Check which command this installer is using (set by BeforeStartEvent)
                 if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
                     executable.Command == "uv")
                 {
-                    // Validate that uv is installed
+                    // Validate that uv is installed - don't throw so the app fails as it normally would
                     var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
-                    await uvInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
                 }
                 // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
             });
@@ -1373,16 +1366,9 @@ public static class PythonAppResourceBuilderExtensions
             .ExcludeFromManifest()
             .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
             {
-                // Only validate in run mode
-                var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-                if (!executionContext.IsRunMode)
-                {
-                    return;
-                }
-
-                // Validate that Python is installed before creating venv
+                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
                 var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
-                await pythonInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
             });
 
         // Wait relationships will be set up dynamically in SetupDependencies
