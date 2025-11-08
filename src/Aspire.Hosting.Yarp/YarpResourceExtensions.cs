@@ -18,6 +18,7 @@ namespace Aspire.Hosting;
 public static class YarpResourceExtensions
 {
     private const int Port = 5000;
+    private const int HttpsPort = 5001;
 
     /// <summary>
     /// Adds a YARP container to the application model.
@@ -43,7 +44,7 @@ public static class YarpResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            yarpBuilder.OnInitializeResource((_, @event, cancellationToken) =>
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
             {
                 if (resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var _))
                 {
@@ -57,9 +58,10 @@ public static class YarpResourceExtensions
                 {
                     // If a developer certificate is available, override the endpoint to use HTTPS instead of HTTP
                     yarpBuilder
+                        .WithHttpsEndpoint(targetPort: HttpsPort)
                         .WithDeveloperCertificateKeyPair()
-                        .WithEndpoint("http", ep => ep.UriScheme = "https")
-                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
                 }
 
                 return Task.CompletedTask;
