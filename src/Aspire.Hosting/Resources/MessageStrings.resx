@@ -132,13 +132,4 @@
   <data name="DcpVersionCheckTooLowMessage" xml:space="preserve">
     <value>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</value>
   </data>
-  <data name="RequiredCommandNotification" xml:space="preserve">
-    <value>Required command '{0}' was not found on PATH or at a specified location.</value>
-  </data>
-  <data name="RequiredCommandNotificationWithLink" xml:space="preserve">
-    <value>Required command '{0}' was not found. See installation instructions for more details.</value>
-  </data>
-  <data name="RequiredCommandNotificationWithValidation" xml:space="preserve">
-    <value>{0} See installation instructions for more details.</value>
-  </data>
 </root>
