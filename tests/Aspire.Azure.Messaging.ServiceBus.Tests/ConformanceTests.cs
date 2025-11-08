@@ -12,6 +12,10 @@ namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
 public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, AzureMessagingServiceBusSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Roles: Azure Service Bus Data Owner
     public const string FullyQualifiedNamespace = "aspireservicebustests.servicebus.windows.net";
     // Fake connection string for cases when credentials are unavailable and need to switch to raw connection string

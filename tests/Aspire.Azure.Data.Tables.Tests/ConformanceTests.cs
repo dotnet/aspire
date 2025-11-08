@@ -14,6 +14,10 @@ namespace Aspire.Azure.Data.Tables.Tests;
 
 public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTablesSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Authentication method: Azure AD User Account
     // Roles: Storage Table Data Reader, Storage Table Data Contributor
     public const string ServiceUri = "https://aspirestoragetests.table.core.windows.net/";

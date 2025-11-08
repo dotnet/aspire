@@ -72,7 +72,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
             ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "DisableMetrics": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    public ConformanceTests(MySqlContainerFixture? containerFixture)
+    public ConformanceTests(MySqlContainerFixture? containerFixture, ITestOutputHelper output) : base(output))
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

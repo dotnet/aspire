@@ -11,6 +11,10 @@ namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
 public class ConformanceTests_Topic : ConformanceTests
 {
+    public ConformanceTests_Topic(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // A pre-existing topic and subscription
     private const string HealthCheckTopicName = "testTopic";
     private const string SubscriptionName = "testSubscription";

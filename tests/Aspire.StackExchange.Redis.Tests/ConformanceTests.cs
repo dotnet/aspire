@@ -15,6 +15,11 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 {
     private readonly RedisContainerFixture _containerFixture;
 
+    public ConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper output) : base(output)
+    {
+        _containerFixture = containerFixture;
+    }
+
     protected string ConnectionString => _containerFixture.GetConnectionString();
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;

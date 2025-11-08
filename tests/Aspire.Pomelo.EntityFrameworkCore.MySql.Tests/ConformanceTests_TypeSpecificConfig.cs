@@ -9,7 +9,7 @@ namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
-    public ConformanceTests_TypeSpecificConfig(MySqlContainerFixture containerFixture) : base(containerFixture)
+    public ConformanceTests_TypeSpecificConfig(MySqlContainerFixture containerFixture, ITestOutputHelper output) : base(output)containerFixture)
     {
     }
 

@@ -11,6 +11,10 @@ using Xunit;
 namespace Aspire.Confluent.Kafka.Tests;
 public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, string>, KafkaConsumerSettings>
 {
+    public ConsumerConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string ActivitySourceName => throw new NotImplementedException();

@@ -14,6 +14,10 @@ namespace Aspire.Azure.Security.KeyVault.Tests;
 
 public class SecretClientConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyVaultSettings>
 {
+    public SecretClientConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Roles: Key Vault Secrets User
     private const string VaultUri = ConformanceConstants.VaultUri;
 

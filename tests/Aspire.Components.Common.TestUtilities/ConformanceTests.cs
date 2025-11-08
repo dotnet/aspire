@@ -16,11 +16,54 @@ using Xunit;
 
 namespace Aspire.Components.ConformanceTests;
 
+/// <summary>
+/// Base class for component conformance tests. Provides infrastructure for testing
+/// component integrations with consistent patterns for health checks, tracing, metrics,
+/// and logging.
+/// </summary>
+/// <remarks>
+/// <para>
+/// To enable diagnostic logging output to xUnit test results, derived test classes should
+/// accept an ITestOutputHelper parameter in their constructor and pass it to this base class.
+/// This ensures that all logs generated during test execution are visible in test output,
+/// making failures easier to debug.
+/// </para>
+/// <para>
+/// Example:
+/// <code>
+/// public class MyConformanceTests : ConformanceTests&lt;MyService, MySettings&gt;
+/// {
+///     public MyConformanceTests(ITestOutputHelper output) : base(output)
+///     {
+///     }
+/// }
+/// </code>
+/// </para>
+/// </remarks>
 public abstract class ConformanceTests<TService, TOptions>
     where TService : class
     where TOptions : class, new()
 {
     protected static readonly EvaluationOptions DefaultEvaluationOptions = new() { RequireFormatValidation = true, OutputFormat = OutputFormat.List };
+
+    /// <summary>
+    /// Optional ITestOutputHelper for capturing diagnostic logs during test execution.
+    /// When provided, all logs will be output to xUnit test results for easier debugging.
+    /// </summary>
+    protected ITestOutputHelper? Output { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the ConformanceTests base class.
+    /// </summary>
+    /// <param name="output">
+    /// Optional ITestOutputHelper for capturing diagnostic logs. When provided,
+    /// all logs from components under test will be written to xUnit output,
+    /// making test failures easier to diagnose.
+    /// </param>
+    protected ConformanceTests(ITestOutputHelper? output = null)
+    {
+        Output = output;
+    }
 
     protected abstract ServiceLifetime ServiceLifetime { get; }
 
@@ -303,6 +346,35 @@ public abstract class ConformanceTests<TService, TOptions>
         }
         catch (Exception) { }
 
+        // Output diagnostic information about which categories were actually logged
+        // to help debug failures when expected categories are not found.
+        if (Output is not null)
+        {
+            Output.WriteLine("=== Logged Categories ===");
+            foreach (var category in loggerFactory.Categories.OrderBy(c => c))
+            {
+                Output.WriteLine($"  - {category}");
+            }
+            Output.WriteLine("");
+            Output.WriteLine("=== Required Categories ===");
+            foreach (var category in RequiredLogCategories.OrderBy(c => c))
+            {
+                var found = loggerFactory.Categories.Contains(category);
+                Output.WriteLine($"  {(found ? "✓" : "✗")} {category}");
+            }
+            if (NotAcceptableLogCategories.Length > 0)
+            {
+                Output.WriteLine("");
+                Output.WriteLine("=== Not Acceptable Categories (should not be present) ===");
+                foreach (var category in NotAcceptableLogCategories.OrderBy(c => c))
+                {
+                    var found = loggerFactory.Categories.Contains(category);
+                    Output.WriteLine($"  {(found ? "✗ FOUND" : "✓ Not found")} {category}");
+                }
+            }
+            Output.WriteLine("");
+        }
+
         foreach (string logCategory in RequiredLogCategories)
         {
             Assert.Contains(logCategory, loggerFactory.Categories);
@@ -563,11 +635,23 @@ public abstract class ConformanceTests<TService, TOptions>
         }
     }
 
+    /// <summary>
+    /// Creates a host builder for testing. When ITestOutputHelper is provided to the constructor,
+    /// this method automatically configures xUnit logging to capture all diagnostic logs at Debug level,
+    /// ensuring that test output includes comprehensive logging information for debugging failures.
+    /// </summary>
     protected HostApplicationBuilder CreateHostBuilder(HostApplicationBuilderSettings? hostSettings = null, string? key = null)
     {
         HostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(hostSettings);
 
         PopulateConfiguration(builder.Configuration, key);
+
+        // Wire up xUnit logging when ITestOutputHelper is available.
+        // This ensures all logs are captured in test output for debugging.
+        if (Output is not null)
+        {
+            builder.Logging.AddXunit(Output, LogLevel.Debug);
+        }
 
         return builder;
     }

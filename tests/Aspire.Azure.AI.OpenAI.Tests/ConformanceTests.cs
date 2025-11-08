@@ -15,6 +15,10 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<IChatClient, AzureOpenAISettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     protected const string Endpoint = "https://aspireopenaitests.openai.azure.com/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;

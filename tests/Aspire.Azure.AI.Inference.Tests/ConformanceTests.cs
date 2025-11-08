@@ -12,6 +12,10 @@ namespace Aspire.Azure.AI.Inference.Tests;
 
 public class ConformanceTests : ConformanceTests<IChatClient, ChatCompletionsClientSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     private const string Endpoint = "https://fakeendpoint";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;

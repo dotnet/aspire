@@ -53,7 +53,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSe
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => [];
 
-    public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
+    public ConformanceTests(PostgreSQLContainerFixture? containerFixture, ITestOutputHelper output) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

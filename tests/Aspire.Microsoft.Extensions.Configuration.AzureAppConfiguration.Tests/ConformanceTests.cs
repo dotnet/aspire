@@ -15,6 +15,10 @@ namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests;
 
 public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider, AzureAppConfigurationSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     public const string Endpoint = "https://aspiretests.azconfig.io/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;

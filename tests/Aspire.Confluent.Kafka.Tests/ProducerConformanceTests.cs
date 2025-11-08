@@ -12,6 +12,10 @@ namespace Aspire.Confluent.Kafka.Tests;
 
 public class ProducerConformanceTests : ConformanceTests<IProducer<string, string>, KafkaProducerSettings>
 {
+    public ProducerConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string ActivitySourceName => throw new NotImplementedException();

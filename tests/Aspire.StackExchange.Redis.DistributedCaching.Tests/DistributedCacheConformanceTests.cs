@@ -17,6 +17,10 @@ namespace Aspire.StackExchange.Redis.DistributedCaching.Tests;
 
 public class DistributedCacheConformanceTests : ConformanceTests
 {
+    public DistributedCacheConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Schema only references Aspire.StackExchange.Redis' schema so nothing
     // specific to check here
     protected override (string json, string error)[] InvalidJsonToErrorMessage => Array.Empty<(string json, string error)>();

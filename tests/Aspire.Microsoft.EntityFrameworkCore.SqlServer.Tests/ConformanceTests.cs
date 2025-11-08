@@ -15,6 +15,10 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>, IClassFixture<SqlServerContainerFixture>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     private readonly SqlServerContainerFixture? _containerFixture;
     protected string ConnectionString { get; private set; }
 

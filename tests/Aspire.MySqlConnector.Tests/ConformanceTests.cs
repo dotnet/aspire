@@ -15,6 +15,10 @@ namespace Aspire.MySqlConnector.Tests;
 
 public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>, IClassFixture<MySqlContainerFixture>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     private readonly MySqlContainerFixture? _containerFixture;
     private string ConnectionString { get; set; }
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;

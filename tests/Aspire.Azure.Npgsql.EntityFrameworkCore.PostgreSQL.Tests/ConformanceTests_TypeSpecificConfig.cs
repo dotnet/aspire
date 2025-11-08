@@ -9,7 +9,7 @@ namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
-    public ConformanceTests_TypeSpecificConfig(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
+    public ConformanceTests_TypeSpecificConfig(PostgreSQLContainerFixture containerFixture, ITestOutputHelper output) : base(output)containerFixture)
     {
     }
 

@@ -14,6 +14,10 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string ActivitySourceName => "Azure.Cosmos.Operation";

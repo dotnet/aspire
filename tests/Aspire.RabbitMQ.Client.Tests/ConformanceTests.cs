@@ -15,7 +15,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 {
     private readonly RabbitMQContainerFixture _containerFixture;
 
-    public ConformanceTests(RabbitMQContainerFixture containerFixture)
+    public ConformanceTests(RabbitMQContainerFixture containerFixture, ITestOutputHelper output) : base(output)
     {
         _containerFixture = containerFixture;
     }

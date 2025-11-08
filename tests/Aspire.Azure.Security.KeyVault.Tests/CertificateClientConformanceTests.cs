@@ -13,6 +13,10 @@ using Xunit;
 namespace Aspire.Azure.Security.KeyVault.Tests;
 public class CertificateClientConformanceTests : ConformanceTests<CertificateClient, AzureSecurityKeyVaultSettings>
 {
+    public CertificateClientConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Roles: Key Vault Certificate User (pending)
     private const string VaultUri = ConformanceConstants.VaultUri;
 

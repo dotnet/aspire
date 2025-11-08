@@ -14,6 +14,10 @@ namespace Aspire.Azure.Storage.Blobs.Tests;
 
 public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorageBlobsSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Authentication method: Azure AD User Account
     // Roles: Storage Blob Data Reader, Storage Blob Data Contributor
     public const string ServiceUri = "https://aspirestoragetests.blob.core.windows.net/";

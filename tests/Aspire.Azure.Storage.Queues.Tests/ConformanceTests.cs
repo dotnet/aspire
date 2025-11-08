@@ -14,6 +14,10 @@ namespace Aspire.Azure.Storage.Queues.Tests;
 
 public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorageQueuesSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // Authentication method: Azure AD User Account
     // Roles: Storage Queue Data Contributor
     public const string ServiceUri = "https://aspirestoragetests.queue.core.windows.net";

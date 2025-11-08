@@ -11,6 +11,10 @@ namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
 public class ConformanceTests_Queue : ConformanceTests
 {
+    public ConformanceTests_Queue(ITestOutputHelper output) : base(output)
+    {
+    }
+
     // A pre-existing queue
     private const string HealthCheckQueueName = "test";
 

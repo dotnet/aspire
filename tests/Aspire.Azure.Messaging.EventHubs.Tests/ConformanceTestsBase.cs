@@ -15,6 +15,10 @@ using Xunit;
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTests<TService, TOptions>
+    protected ConformanceTestsBase(ITestOutputHelper output) : base(output)
+    {
+    }
+
     where TService : class
     where TOptions : class, new()
 {

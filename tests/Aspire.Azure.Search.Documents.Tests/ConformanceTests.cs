@@ -14,6 +14,10 @@ namespace Aspire.Azure.Search.Documents.Tests;
 
 public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchSettings>
 {
+    public ConformanceTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     protected const string Endpoint = "https://aspireazuresearchtests.search.windows.net/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;

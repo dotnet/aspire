@@ -11,6 +11,10 @@ using Xunit;
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_EventHubProducerClient : ConformanceTestsBase<EventHubProducerClient, AzureMessagingEventHubsProducerSettings>
+    public ConformanceTests_EventHubProducerClient(ITestOutputHelper output) : base(output)
+    {
+    }
+
 {
     protected override void SetHealthCheck(AzureMessagingEventHubsProducerSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;

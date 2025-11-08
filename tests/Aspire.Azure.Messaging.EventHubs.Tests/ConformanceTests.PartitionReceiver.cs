@@ -9,6 +9,10 @@ using Microsoft.Extensions.Hosting;
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_PartitionReceiver : ConformanceTestsBase<PartitionReceiver, AzureMessagingEventHubsPartitionReceiverSettings>
+    public ConformanceTests_PartitionReceiver(ITestOutputHelper output) : base(output)
+    {
+    }
+
 {
     protected override void SetHealthCheck(AzureMessagingEventHubsPartitionReceiverSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;

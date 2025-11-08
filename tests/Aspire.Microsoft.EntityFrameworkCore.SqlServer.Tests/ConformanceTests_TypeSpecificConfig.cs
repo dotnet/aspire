@@ -9,8 +9,8 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
-    public ConformanceTests_TypeSpecificConfig(SqlServerContainerFixture containerFixture)
-        : base(containerFixture)
+    public ConformanceTests_TypeSpecificConfig(SqlServerContainerFixture containerFixture, ITestOutputHelper output)
+        : base(output)containerFixture)
     {
     }
 
