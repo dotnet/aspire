@@ -109,6 +109,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         var stopSignalChannel = Channel.CreateUnbounded<bool>();
         var processRunningChannel = Channel.CreateUnbounded<int>();
+        var timerWaitChannel = Channel.CreateUnbounded<bool>();
 
         var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
         var detector = new CliOrphanDetector(configuration, lifetime, fakeTimeProvider);
@@ -119,16 +120,27 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
             return processRunningCallCounter < 3; // Process dies after 3 checks
         };
 
+        // Synchronization hook: signal when the detector is about to wait on the timer
+        detector.OnBeforeTimerWaitAsync = async () =>
+        {
+            // Signal that we're about to wait
+            await timerWaitChannel.Writer.WriteAsync(true);
+        };
+
         await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
 
         // Verify process is checked first time
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
-        // Small delay to ensure the background task reaches WaitForNextTickAsync before advancing time
+        // Wait for signal that timer is about to wait
+        Assert.True(await timerWaitChannel.Reader.WaitToReadAsync());
+        // Small delay to ensure the timer actually enters WaitForNextTickAsync
         await Task.Delay(10);
+        // Now advance time
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         // Second check
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.True(await timerWaitChannel.Reader.WaitToReadAsync());
         await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
@@ -178,6 +190,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         var stopSignalChannel = Channel.CreateUnbounded<bool>();
         var processRunningChannel = Channel.CreateUnbounded<int>();
+        var timerWaitChannel = Channel.CreateUnbounded<bool>();
 
         var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
         var detector = new CliOrphanDetector(configuration, lifetime, fakeTimeProvider);
@@ -188,23 +201,32 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
             return processRunningCallCounter < 5;
         };
 
-        // The detector should complete after about 5 seconds
+        // Synchronization hook: signal when the detector is about to wait on the timer
+        detector.OnBeforeTimerWaitAsync = async () =>
+        {
+            // Signal that we're about to wait
+            await timerWaitChannel.Writer.WriteAsync(true);
+        };
 
         await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.True(await timerWaitChannel.Reader.WaitToReadAsync());
         await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.True(await timerWaitChannel.Reader.WaitToReadAsync());
         await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.True(await timerWaitChannel.Reader.WaitToReadAsync());
         await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.True(await timerWaitChannel.Reader.WaitToReadAsync());
         await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
