@@ -1,0 +1,12 @@
+{
+  "globalHeaders": {
+    "content-security-policy": "default-src https: 'unsafe-eval' 'unsafe-inline'; object-src 'none'"
+  },
+  "routes": [
+    {
+      "route": "/*",
+      "redirect": "https://mitchdenny.dev",
+      "statusCode": 302
+    }
+  ]
+}
