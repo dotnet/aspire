@@ -24,7 +24,7 @@ declare -a FEED_NAMES=(
 )
 
 declare -a FEED_URLS=(
-    "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspire-5a3a9c6e/nuget/v3/index.json"
+    "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspire-d3b7add8/nuget/v3/index.json"
     "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-dotnet-b0f34d51-1/nuget/v3/index.json"
     "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspnetcore-ee417479/nuget/v3/index.json"
     "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspnetcore-d3aba8fe/nuget/v3/index.json"
