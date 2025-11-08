@@ -123,10 +123,13 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // Verify process is checked first time
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        // Small delay to ensure the background task reaches WaitForNextTickAsync before advancing time
+        await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         // Second check
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         // Third check (process dies)
@@ -190,15 +193,19 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        await Task.Delay(10);
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
