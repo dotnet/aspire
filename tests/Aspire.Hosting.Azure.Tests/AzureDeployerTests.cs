@@ -976,14 +976,12 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         MockProcessRunner? processRunner = null,
         IPipelineActivityReporter? activityReporter = null,
         IContainerRuntime? containerRuntime = null,
-        bool setDefaultProvisioningOptions = true,
-        ITestOutputHelper? testOutput = null)
+        bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         
-        testOutput ??= testOutputHelper;
-        builder.WithTestAndResourceLogging(testOutput);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         
         armClientProvider ??= ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
