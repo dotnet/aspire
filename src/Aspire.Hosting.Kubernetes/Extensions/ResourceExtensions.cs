@@ -203,7 +203,7 @@ internal static class ResourceExtensions
                     var existingAnnotations = context.TargetResource.TryGetAnnotationsOfType<KubernetesProvisioningPolicyAnnotation>(out var annotations);
                     var shouldDynamicallyProvision = existingAnnotations
                         ? annotations!.First().ShouldDynamicallyProvision
-                        : context.Parent.ShouldDynamicallyProvision;
+                        : context.Parent.DefaultShouldDynamicallyProvision;
 
                     if (!shouldDynamicallyProvision)
                     {
