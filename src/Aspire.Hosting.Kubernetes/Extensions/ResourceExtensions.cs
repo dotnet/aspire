@@ -200,7 +200,15 @@ internal static class ResourceExtensions
                     break;
 
                 case "pvc":
-                    _ = CreatePersistentVolume(context, volume);
+                    var existingAnnotations = context.TargetResource.TryGetAnnotationsOfType<KubernetesProvisioningPolicyAnnotation>(out var annotations);
+                    var shouldDynamicallyProvision = existingAnnotations
+                        ? annotations!.First().ShouldDynamicallyProvision
+                        : context.Parent.ShouldDynamicallyProvision;
+
+                    if (!shouldDynamicallyProvision)
+                    {
+                        _ = CreatePersistentVolume(context, volume);
+                    }
                     var pvc = CreatePersistentVolumeClaim(context, volume);
                     podVolume.PersistentVolumeClaim = new()
                     {
