@@ -164,6 +164,7 @@ public class ResourceDetailsTests : DashboardTestContext
         cut.SetParametersAndRender(builder =>
         {
             builder.Add(p => p.Resource, resource2);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel> (resource2.Name, resource2)]));
         });
 
         Assert.Collection(cut.Instance.FilteredEnvironmentVariables,
@@ -332,6 +333,7 @@ public class ResourceDetailsTests : DashboardTestContext
         cut.SetParametersAndRender(builder =>
         {
             builder.Add(p => p.Resource, resource2);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel> (resource2.Name, resource2)]));
         });
 
         Assert.Collection(cut.Instance.FilteredEnvironmentVariables,
