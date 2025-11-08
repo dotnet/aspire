@@ -338,9 +338,9 @@ public static class PythonAppResourceBuilderExtensions
                         resourceBuilder
                             .WithEndpoint("http", ep => ep.UriScheme = "https");
                     }
-
-                    return Task.CompletedTask;
                 }
+
+                return Task.CompletedTask;
             });
         }
 
