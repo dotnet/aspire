@@ -42,8 +42,8 @@
     <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25509.1</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>10.0.0</MicrosoftExtensionsAIVersion>
-    <MicrosoftExtensionsAIOpenAIVersion>10.0.0-preview.1.25555.8</MicrosoftExtensionsAIOpenAIVersion>
-    <MicrosoftExtensionsAIAzureAIInferenceVersion>10.0.0-preview.1.25555.8</MicrosoftExtensionsAIAzureAIInferenceVersion>
+    <MicrosoftExtensionsAIOpenAIVersion>10.0.0-preview.1.25558.1</MicrosoftExtensionsAIOpenAIVersion>
+    <MicrosoftExtensionsAIAzureAIInferenceVersion>10.0.0-preview.1.25558.1</MicrosoftExtensionsAIAzureAIInferenceVersion>
     <MicrosoftExtensionsHttpResilienceVersion>10.0.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>10.0.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>10.0.0</MicrosoftExtensionsDiagnosticsTestingVersion>
