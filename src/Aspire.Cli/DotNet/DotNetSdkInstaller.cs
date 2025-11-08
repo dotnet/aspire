@@ -19,7 +19,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
     /// </summary>
-    public const string MinimumSdkVersion = "10.0.100-rtm.25523.104";
+    public const string MinimumSdkVersion = "10.0.100";
 
     /// <inheritdoc />
     public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
@@ -409,7 +409,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         // Special handling for .NET 10 RTM requirement - allow any .NET 10.x version
         if (requiredVersionString == MinimumSdkVersion)
         {
-            // If we require 10.0.100-rtm.25523.104, accept any version that is >= 10.0.0
+            // If we require 10.0.100, accept any version that is >= 10.0.0
             return installedVersion.Major >= 10;
         }
 
