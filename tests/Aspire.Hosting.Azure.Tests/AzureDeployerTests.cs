@@ -982,8 +982,9 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         
-        // Use XunitLogger if testOutput is provided, otherwise use NullLogger
         testOutput ??= testOutputHelper;
+        builder.WithTestAndResourceLogging(testOutput);
+        
         armClientProvider ??= ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
@@ -991,14 +992,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         builder.Services.AddSingleton(userPrincipalProvider);
         builder.Services.AddSingleton(tokenCredentialProvider);
         builder.Services.AddSingleton(environment);
-        
-        // Add XunitLogger for better test output
-        builder.Services.AddSingleton<ILoggerFactory>(sp => LoggerFactory.Create(loggingBuilder =>
-        {
-            loggingBuilder.AddXunit(testOutput, LogLevel.Trace);
-        }));
-        builder.Services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-        
         builder.Services.AddSingleton(options);
         if (interactionService is not null)
         {
