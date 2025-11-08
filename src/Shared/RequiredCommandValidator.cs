@@ -28,6 +28,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
 
     private Task? _notificationTask;
     private string? _notificationMessage;
+    private bool _throwOnFailure = true;
 
     /// <summary>
     /// Returns the command string (file name or path) that should be validated.
@@ -86,8 +87,12 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
         var notificationTask = _notificationTask;
         if (notificationTask is { IsCompleted: false })
         {
-            // Failure notification is still being shown so just throw again.
-            throw new DistributedApplicationException(_notificationMessage ?? $"Required command '{command}' was not found on PATH, at the specified location, or failed validation.");
+            // Failure notification is still being shown so just throw again if configured to throw.
+            if (_throwOnFailure)
+            {
+                throw new DistributedApplicationException(_notificationMessage ?? $"Required command '{command}' was not found on PATH, at the specified location, or failed validation.");
+            }
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(command))
@@ -140,11 +145,25 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
                     _logger.LogDebug(ex, "Failed to show missing command notification");
                 }
             }
-            throw new DistributedApplicationException(message);
+            
+            if (_throwOnFailure)
+            {
+                throw new DistributedApplicationException(message);
+            }
+            return;
         }
 
         _notificationMessage = null;
         await OnValidatedAsync(resolved, cancellationToken).ConfigureAwait(false);
+    }
+    
+    /// <summary>
+    /// Sets whether to throw an exception when validation fails.
+    /// </summary>
+    /// <param name="throwOnFailure">True to throw on failure, false to just show notification and log.</param>
+    protected void SetThrowOnFailure(bool throwOnFailure)
+    {
+        _throwOnFailure = throwOnFailure;
     }
 
     /// <summary>

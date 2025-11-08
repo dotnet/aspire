@@ -25,7 +25,13 @@ internal sealed class UvInstallationManager : RequiredCommandValidator
     /// Ensures uv is installed/available. This method is safe for concurrent callers;
     /// only one validation will run at a time.
     /// </summary>
-    public Task EnsureInstalledAsync(CancellationToken cancellationToken = default) => RunAsync(cancellationToken);
+    /// <param name="throwOnFailure">Whether to throw an exception if uv is not found. Default is true.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public Task EnsureInstalledAsync(bool throwOnFailure = true, CancellationToken cancellationToken = default)
+    {
+        SetThrowOnFailure(throwOnFailure);
+        return RunAsync(cancellationToken);
+    }
 
     protected override string GetCommandPath() => "uv";
 
