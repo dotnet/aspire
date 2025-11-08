@@ -20,11 +20,18 @@
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- Allow users to disable the automatic treatment of ProjectReference items as Aspire resources.
+         This defaults to true for backward compatibility but can be set to false to disable the behavior.
+         This is particularly useful in file-based apps where metadata cannot be set on individual ProjectReference items. -->
+    <TreatProjectReferencesAsResources Condition="'$(TreatProjectReferencesAsResources)' == ''">true</TreatProjectReferencesAsResources>
+  </PropertyGroup>
+
   <!--
   Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
-  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(TreatProjectReferencesAsResources)' == 'true'">
 
     <ProjectReference Update="@(ProjectReference)">
       <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
