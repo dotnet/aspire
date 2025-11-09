@@ -860,22 +860,29 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     {
         try
         {
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Starting unsecured transport check");
+            
             // Only check in run mode, not in publish mode
             if (executionContext.IsPublishMode)
             {
+                distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Skipping check - in publish mode");
                 return;
             }
 
             // If there are no warnings, nothing to do
             if (!unsecuredTransportWarning.HasWarnings)
             {
+                distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: No warnings detected");
                 return;
             }
 
+            distributedApplicationLogger.LogInformation("Unsecured transport warnings detected. Waiting for dashboard to be ready before showing modal.");
+            
             // If the interaction service is not available (e.g., dashboard disabled), 
             // log warnings and exit the process
             if (!interactionService.IsAvailable)
             {
+                distributedApplicationLogger.LogWarning("Interaction service is not available. Logging warnings and exiting.");
                 foreach (var warning in unsecuredTransportWarning.Warnings)
                 {
                     distributedApplicationLogger.LogError("Unsecured transport detected: {Warning}", warning);
@@ -889,7 +896,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             }
 
             // Wait for the dashboard to be ready before showing the modal
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Waiting for dashboard to be ready");
             await _dashboardReadyTcs.Task.ConfigureAwait(false);
+            distributedApplicationLogger.LogInformation("Dashboard is ready. Showing unsecured transport modal dialog.");
 
             // Show a blocking modal dialog to the user
             var title = "Unsecured Transport Detected";
@@ -934,6 +943,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 LinkUrl = "https://aka.ms/dotnet/aspire/allowunsecuredtransport"
             };
 
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Showing notification banner");
             // Fire and forget - don't wait for the notification to be dismissed
             _ = interactionService.PromptNotificationAsync(notificationTitle, notificationMessage, notificationOptions, CancellationToken.None);
         }
@@ -941,9 +951,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         {
             // Always signal completion so resources can start
             _unsecuredTransportInteractionTcs.TrySetResult();
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Completed");
         }
     }
-#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {
