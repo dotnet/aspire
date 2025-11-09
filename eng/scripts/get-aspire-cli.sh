@@ -585,7 +585,7 @@ add_to_shell_profile() {
                     say_verbose "Created directory: $config_dir"
                 else
                     say_error "Failed to create directory: $config_dir"
-                    show_manual_path_instructions "$shell_name" "$bin_path_unexpanded" "$config_file"
+                    show_manual_path_instructions "$shell_name" "$bin_path_unexpanded" ""
                     return 1
                 fi
             fi
