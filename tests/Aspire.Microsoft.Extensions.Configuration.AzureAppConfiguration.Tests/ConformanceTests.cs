@@ -15,7 +15,7 @@ namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests;
 
 public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider, AzureAppConfigurationSettings>
 {
-    public ConformanceTests(ITestOutputHelper output) : base(output)
+    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 

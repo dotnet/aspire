@@ -13,7 +13,7 @@ namespace Aspire.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<IChatClient, OpenAISettings>
 {
-    public ConformanceTests(ITestOutputHelper output) : base(output)
+    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 

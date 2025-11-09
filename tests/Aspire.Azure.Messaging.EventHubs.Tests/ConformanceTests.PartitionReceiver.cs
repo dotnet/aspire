@@ -11,7 +11,7 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_PartitionReceiver : ConformanceTestsBase<PartitionReceiver, AzureMessagingEventHubsPartitionReceiverSettings>
 {
-    public ConformanceTests_PartitionReceiver(ITestOutputHelper output) : base(output)
+    public ConformanceTests_PartitionReceiver(ITestOutputHelper output = null!) : base(output)
     {
     }
 

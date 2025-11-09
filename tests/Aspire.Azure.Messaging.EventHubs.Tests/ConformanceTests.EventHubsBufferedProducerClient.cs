@@ -11,7 +11,7 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_EventHubsBufferedProducerClient : ConformanceTestsBase<EventHubBufferedProducerClient, AzureMessagingEventHubsBufferedProducerSettings>
 {
-    public ConformanceTests_EventHubsBufferedProducerClient(ITestOutputHelper output) : base(output)
+    public ConformanceTests_EventHubsBufferedProducerClient(ITestOutputHelper output = null!) : base(output)
     {
     }
 

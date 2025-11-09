@@ -49,7 +49,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
             ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
-    public ConformanceTests(SqlServerContainerFixture? containerFixture, ITestOutputHelper output) : base(output)
+    public ConformanceTests(SqlServerContainerFixture? containerFixture, ITestOutputHelper output = null!) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

@@ -14,7 +14,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosSettings>
 {
-    public ConformanceTests(ITestOutputHelper output) : base(output)
+    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 

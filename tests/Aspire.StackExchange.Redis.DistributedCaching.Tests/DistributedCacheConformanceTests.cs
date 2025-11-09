@@ -33,7 +33,7 @@ public class DistributedCacheConformanceTests : ConformanceTests
         }
     }
 
-    public DistributedCacheConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper output) : base(containerFixture, output)
+    public DistributedCacheConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper output = null!) : base(containerFixture, output)
     {
     }
 

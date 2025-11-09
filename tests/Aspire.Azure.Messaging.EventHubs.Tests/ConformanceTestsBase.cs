@@ -18,7 +18,7 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
     where TService : class
     where TOptions : class, new()
 {
-    protected ConformanceTestsBase(ITestOutputHelper output) : base(output)
+    protected ConformanceTestsBase(ITestOutputHelper output = null!) : base(output)
     {
     }
 

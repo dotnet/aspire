@@ -14,7 +14,7 @@ namespace Aspire.Azure.Security.KeyVault.Tests;
 
 public class KeyClientConformanceTests : ConformanceTests<KeyClient, AzureSecurityKeyVaultSettings>
 {
-    public KeyClientConformanceTests(ITestOutputHelper output) : base(output)
+    public KeyClientConformanceTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 

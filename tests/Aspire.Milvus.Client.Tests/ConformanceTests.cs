@@ -16,7 +16,7 @@ public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSetti
     private readonly MilvusContainerFixture? _containerFixture;
     private string ConnectionString { get; set; }
 
-    public ConformanceTests(MilvusContainerFixture? containerFixture, ITestOutputHelper output) : base(output)
+    public ConformanceTests(MilvusContainerFixture? containerFixture, ITestOutputHelper output = null!) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

@@ -15,7 +15,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 {
     private readonly RedisContainerFixture _containerFixture;
 
-    public ConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper output) : base(output)
+    public ConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper output = null!) : base(output)
     {
         _containerFixture = containerFixture;
     }

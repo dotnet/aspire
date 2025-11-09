@@ -13,7 +13,7 @@ namespace Aspire.Azure.Messaging.WebPubSub.Tests;
 
 public class ConformanceTests : ConformanceTests<WebPubSubServiceClient, AzureMessagingWebPubSubSettings>
 {
-    public ConformanceTests(ITestOutputHelper output) : base(output)
+    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 

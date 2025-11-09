@@ -15,7 +15,7 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<IChatClient, AzureOpenAISettings>
 {
-    public ConformanceTests(ITestOutputHelper output) : base(output)
+    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 

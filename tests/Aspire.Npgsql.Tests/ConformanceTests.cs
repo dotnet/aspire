@@ -57,7 +57,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
             ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
-    public ConformanceTests(PostgreSQLContainerFixture? containerFixture, ITestOutputHelper output) : base(output)
+    public ConformanceTests(PostgreSQLContainerFixture? containerFixture, ITestOutputHelper output = null!) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

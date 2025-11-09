@@ -18,7 +18,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
     private readonly MySqlContainerFixture? _containerFixture;
     private string ConnectionString { get; set; }
 
-    public ConformanceTests(MySqlContainerFixture? containerFixture, ITestOutputHelper output) : base(output)
+    public ConformanceTests(MySqlContainerFixture? containerFixture, ITestOutputHelper output = null!) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

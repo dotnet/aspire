@@ -14,7 +14,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class EnrichCosmosDbTests : ConformanceTests
 {
-    public EnrichCosmosDbTests(ITestOutputHelper output) : base(output)
+    public EnrichCosmosDbTests(ITestOutputHelper output = null!) : base(output)
     {
     }
 
