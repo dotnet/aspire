@@ -116,6 +116,72 @@ The easiest way to upgrade to Aspire 13.0 is using the `aspire update` command:
 > [!NOTE]
 > If you're upgrading from Aspire 8.x, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md) first to upgrade to 9.x, then upgrade to 13.0.
 
+## AppHost Template Updates
+
+Aspire 13.0 introduces a simplified AppHost project template structure. The SDK now encapsulates the `Aspire.Hosting.AppHost` package, resulting in cleaner project files.
+
+**Before (9.x):**
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.2" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>1bf2ca25-7be4-4963-8782-c53a74e10ad9</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyApp.ApiService\MyApp.ApiService.csproj" />
+    <ProjectReference Include="..\MyApp.Web\MyApp.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.2" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="9.5.2" />
+  </ItemGroup>
+
+</Project>
+```
+
+**After (13.0):**
+
+```xml
+<Project Sdk="Aspire.AppHost.Sdk/13.0.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>5a8591de-21db-4b83-9c62-bbbe4c5745c2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyApp.ApiService\MyApp.ApiService.csproj" />
+    <ProjectReference Include="..\MyApp.Web\MyApp.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.0.0" />
+  </ItemGroup>
+
+</Project>
+```
+
+**Key changes:**
+
+- **Simplified SDK declaration**: The SDK is now specified directly in the `<Project>` tag with its version: `Sdk="Aspire.AppHost.Sdk/13.0.0"`
+- **No explicit `Aspire.Hosting.AppHost` reference**: The SDK now automatically includes this package, reducing boilerplate
+- **Cleaner structure**: Removed the separate `<Sdk Name="..." />` element and the `Microsoft.NET.Sdk` base SDK
+- **Target framework**: Updated from `net9.0` to `net10.0`
+
+The `aspire update` command automatically handles this migration when upgrading from 9.x to 13.0.
+
 ## 🌐 Aspire as a Polyglot Platform
 
 Aspire 13.0 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
