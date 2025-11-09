@@ -382,7 +382,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         {
             // Signal that the dashboard is ready for unsecured transport interaction
             _dashboardReadyTcs.TrySetResult();
-            
+
             var browserToken = options.DashboardToken;
 
             if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
@@ -845,14 +845,35 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
     private async Task OnBeforeResourceStartedAsync(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
     {
-        // Don't block the dashboard itself from starting
-        if (StringComparers.ResourceName.Equals(@event.Resource.Name, KnownResourceNames.AspireDashboard))
+        if (!unsecuredTransportWarning.HasWarnings)
         {
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: No warnings detected. Warnings count: {Count}", unsecuredTransportWarning.Warnings.Count);
+            // No warnings, nothing to do
             return;
         }
 
+        // Don't block the dashboard itself from starting
+        if (StringComparers.ResourceName.Equals(@event.Resource.Name, KnownResourceNames.AspireDashboard))
+        {
+            // Start the unsecured transport interaction task asynchronously
+            _ = HandleUnsecuredTransportAsync(cancellationToken);
+            return;
+        }
+
+        await resourceNotificationService.PublishUpdateAsync(@event.Resource, s =>
+        {
+            return s with { State = KnownResourceStates.Waiting };
+        })
+        .ConfigureAwait(false);
+
+        var logger = resourceLoggerService.GetLogger(@event.Resource);
+
+        logger.LogInformation("Delaying start of resource until unsecured transport interaction is complete.");
+
         // Block all other resources until the interaction is complete
         await _unsecuredTransportInteractionTcs.Task.ConfigureAwait(false);
+
+        logger.LogInformation("Unsecured transport interaction complete. Continuing resource start.");
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -860,29 +881,14 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     {
         try
         {
-            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Starting unsecured transport check");
-            
-            // Only check in run mode, not in publish mode
-            if (executionContext.IsPublishMode)
-            {
-                distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Skipping check - in publish mode");
-                return;
-            }
-
-            // If there are no warnings, nothing to do
-            if (!unsecuredTransportWarning.HasWarnings)
-            {
-                distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: No warnings detected. Warnings count: {Count}", unsecuredTransportWarning.Warnings.Count);
-                return;
-            }
-
             distributedApplicationLogger.LogInformation("Unsecured transport warnings detected ({Count} warnings). Waiting for dashboard to be ready before showing notification.", unsecuredTransportWarning.Warnings.Count);
+
             foreach (var warning in unsecuredTransportWarning.Warnings)
             {
                 distributedApplicationLogger.LogDebug("Unsecured transport warning: {Warning}", warning);
             }
-            
-            // If the interaction service is not available (e.g., dashboard disabled), 
+
+            // If the interaction service is not available (e.g., dashboard disabled),
             // log warnings and exit the process
             if (!interactionService.IsAvailable)
             {
@@ -891,11 +897,10 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 {
                     distributedApplicationLogger.LogError("Unsecured transport detected: {Warning}", warning);
                 }
-                distributedApplicationLogger.LogError("The application is configured to use unsecured transport (HTTP) but the '{EnvVar}' environment variable is not set. Either enable HTTPS or set {EnvVar}=true to allow unsecured transport. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.", 
+                distributedApplicationLogger.LogError("The application is configured to use unsecured transport (HTTP) but the '{EnvVar}' environment variable is not set. Either enable HTTPS or set {EnvVar}=true to allow unsecured transport. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.",
                     KnownConfigNames.AllowUnsecuredTransport, KnownConfigNames.AllowUnsecuredTransport);
-                
-                // Exit the process with an error code
-                Environment.Exit(1);
+
+                _unsecuredTransportInteractionTcs.TrySetException(new InvalidOperationException("Unsecured transport detected."));
                 return;
             }
 
@@ -907,32 +912,19 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             // Show a notification with action buttons for the user to respond
             var title = "Unsecured Transport Detected";
             var message = "The application is configured to use unsecured transport (HTTP). Sensitive data may be transmitted without encryption. " +
-                         $"Either enable HTTPS in your launch profile settings, or set the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable to 'true' to allow unsecured transport. " +
-                         "Click Continue to proceed or Quit to exit.";
+                         $"Either enable HTTPS in your launch profile settings, or set the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable to 'true' to allow unsecured transport.";
 
             var options = new NotificationInteractionOptions
             {
                 Intent = MessageIntent.Warning,
                 LinkText = "Learn more",
-                LinkUrl = "https://aka.ms/dotnet/aspire/allowunsecuredtransport"
+                LinkUrl = "https://aka.ms/dotnet/aspire/allowunsecuredtransport",
+                PrimaryButtonText = "Continue",
+                EnableMessageMarkdown = true,
+                ShowDismiss = false
             };
 
-            // Show notification and wait for user response
-            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Calling PromptNotificationAsync");
-            var result = await interactionService.PromptNotificationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
-            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Notification result - Canceled: {Canceled}, Data: {Data}", result.Canceled, result.Data);
-
-            if (result.Canceled || !result.Data)
-            {
-                // User dismissed or declined the notification
-                distributedApplicationLogger.LogWarning("User declined to continue with unsecured transport. Exiting application.");
-                Environment.Exit(0);
-                return;
-            }
-
-            // User acknowledged the notification and chose to continue
-            distributedApplicationLogger.LogWarning("User accepted running with unsecured transport.");
-            unsecuredTransportWarning.UserAcceptedRisk = true;
+            await interactionService.PromptNotificationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -947,10 +939,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (execContext.IsRunMode)
         {
             eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-            
-            // Start the unsecured transport interaction task asynchronously
-            _ = HandleUnsecuredTransportAsync(cancellationToken);
-            
+
             // Subscribe to BeforeResourceStartedEvent to block non-dashboard resources until modal is handled
             eventing.Subscribe<BeforeResourceStartedEvent>(OnBeforeResourceStartedAsync);
         }
