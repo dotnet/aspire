@@ -4,20 +4,27 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, DistributedApplicationOptions distributedApplicationOptions, UnsecuredTransportWarning unsecuredTransportWarning) : IValidateOptions<TransportOptions>
+internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, DistributedApplicationOptions distributedApplicationOptions, UnsecuredTransportWarning unsecuredTransportWarning, ILogger<TransportOptionsValidator> logger) : IValidateOptions<TransportOptions>
 {
     public ValidateOptionsResult Validate(string? name, TransportOptions transportOptions)
     {
+        logger.LogDebug("TransportOptionsValidator.Validate: Starting validation");
+        
         var effectiveAllowUnsecureTransport = transportOptions.AllowUnsecureTransport || distributedApplicationOptions.DisableDashboard || distributedApplicationOptions.AllowUnsecuredTransport;
 
         if (executionContext.IsPublishMode || effectiveAllowUnsecureTransport)
         {
+            logger.LogDebug("TransportOptionsValidator.Validate: Skipping validation - PublishMode={IsPublishMode}, AllowUnsecureTransport={AllowUnsecureTransport}", 
+                executionContext.IsPublishMode, effectiveAllowUnsecureTransport);
             return ValidateOptionsResult.Success;
         }
+
+        logger.LogDebug("TransportOptionsValidator.Validate: Performing validation checks");
 
         // Validate ASPNETCORE_URLS
         var applicationUrls = configuration[KnownConfigNames.AspNetCoreUrls];

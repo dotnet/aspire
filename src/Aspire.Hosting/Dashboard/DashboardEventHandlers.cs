@@ -872,11 +872,15 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             // If there are no warnings, nothing to do
             if (!unsecuredTransportWarning.HasWarnings)
             {
-                distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: No warnings detected");
+                distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: No warnings detected. Warnings count: {Count}", unsecuredTransportWarning.Warnings.Count);
                 return;
             }
 
-            distributedApplicationLogger.LogInformation("Unsecured transport warnings detected. Waiting for dashboard to be ready before showing modal.");
+            distributedApplicationLogger.LogInformation("Unsecured transport warnings detected ({Count} warnings). Waiting for dashboard to be ready before showing notification.", unsecuredTransportWarning.Warnings.Count);
+            foreach (var warning in unsecuredTransportWarning.Warnings)
+            {
+                distributedApplicationLogger.LogDebug("Unsecured transport warning: {Warning}", warning);
+            }
             
             // If the interaction service is not available (e.g., dashboard disabled), 
             // log warnings and exit the process
@@ -895,57 +899,40 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 return;
             }
 
-            // Wait for the dashboard to be ready before showing the modal
+            // Wait for the dashboard to be ready before showing the notification
             distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Waiting for dashboard to be ready");
             await _dashboardReadyTcs.Task.ConfigureAwait(false);
-            distributedApplicationLogger.LogInformation("Dashboard is ready. Showing unsecured transport modal dialog.");
+            distributedApplicationLogger.LogInformation("Dashboard is ready. Showing unsecured transport notification.");
 
-            // Show a blocking modal dialog to the user
+            // Show a notification with action buttons for the user to respond
             var title = "Unsecured Transport Detected";
-            var message = "The application is configured to use unsecured transport (HTTP). This means that sensitive data may be transmitted without encryption.\n\n" +
-                         "To resolve this issue, you can either:\n" +
-                         "• Enable HTTPS in your launch profile settings\n" +
-                         $"• Set the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable to 'true' to allow unsecured transport\n\n" +
-                         "For more information, visit: https://aka.ms/dotnet/aspire/allowunsecuredtransport\n\n" +
-                         "Do you want to continue running with unsecured transport?";
+            var message = "The application is configured to use unsecured transport (HTTP). Sensitive data may be transmitted without encryption. " +
+                         $"Either enable HTTPS in your launch profile settings, or set the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable to 'true' to allow unsecured transport. " +
+                         "Click Continue to proceed or Quit to exit.";
 
-            var options = new MessageBoxInteractionOptions
-            {
-                Intent = MessageIntent.Warning,
-                ShowSecondaryButton = true,
-                PrimaryButtonText = "Continue",
-                SecondaryButtonText = "Quit",
-                ShowDismiss = false,
-                EnableMessageMarkdown = false
-            };
-
-            var result = await interactionService.PromptConfirmationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
-
-            if (result.Canceled || !result.Data)
-            {
-                // User chose to quit or dismissed the dialog
-                distributedApplicationLogger.LogWarning("User declined to continue with unsecured transport. Exiting application.");
-                Environment.Exit(0);
-                return;
-            }
-
-            // User chose to continue
-            distributedApplicationLogger.LogWarning("User accepted running with unsecured transport.");
-            unsecuredTransportWarning.UserAcceptedRisk = true;
-
-            // Show a notification at the top of the dashboard
-            var notificationTitle = "Running with Unsecured Transport";
-            var notificationMessage = "The application is using unsecured transport (HTTP). Sensitive data may be transmitted without encryption.";
-            var notificationOptions = new NotificationInteractionOptions
+            var options = new NotificationInteractionOptions
             {
                 Intent = MessageIntent.Warning,
                 LinkText = "Learn more",
                 LinkUrl = "https://aka.ms/dotnet/aspire/allowunsecuredtransport"
             };
 
-            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Showing notification banner");
-            // Fire and forget - don't wait for the notification to be dismissed
-            _ = interactionService.PromptNotificationAsync(notificationTitle, notificationMessage, notificationOptions, CancellationToken.None);
+            // Show notification and wait for user response
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Calling PromptNotificationAsync");
+            var result = await interactionService.PromptNotificationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Notification result - Canceled: {Canceled}, Data: {Data}", result.Canceled, result.Data);
+
+            if (result.Canceled || !result.Data)
+            {
+                // User dismissed or declined the notification
+                distributedApplicationLogger.LogWarning("User declined to continue with unsecured transport. Exiting application.");
+                Environment.Exit(0);
+                return;
+            }
+
+            // User acknowledged the notification and chose to continue
+            distributedApplicationLogger.LogWarning("User accepted running with unsecured transport.");
+            unsecuredTransportWarning.UserAcceptedRisk = true;
         }
         finally
         {

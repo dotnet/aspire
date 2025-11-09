@@ -518,7 +518,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
             rewriter,
-            new UnsecuredTransportWarning(),
+            new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance),
             new InteractionService(
                 NullLogger<InteractionService>.Instance,
                 new DistributedApplicationOptions(),

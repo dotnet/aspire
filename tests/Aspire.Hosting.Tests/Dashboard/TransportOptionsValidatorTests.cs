@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
@@ -15,14 +16,14 @@ public class TransportOptionsValidatorTests
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
-        var unsecuredTransportWarning = new UnsecuredTransportWarning();
+        var unsecuredTransportWarning = new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance);
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning, NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         
         // Validation should succeed (not fail) to allow the app to start
@@ -44,7 +45,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -62,7 +63,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -80,7 +81,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -97,7 +98,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = invalidUrl;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -116,7 +117,7 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -136,7 +137,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = string.Empty;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -160,7 +161,7 @@ public class TransportOptionsValidatorTests
         config[resourceServiceEndpointUrlKey] = string.Empty;
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -184,7 +185,7 @@ public class TransportOptionsValidatorTests
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[dashboardOtlpGrpcEndpointUrlKey] = string.Empty;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -209,7 +210,7 @@ public class TransportOptionsValidatorTests
         config[resourceServiceEndpointUrlKey] = invalidUrl;
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -236,7 +237,7 @@ public class TransportOptionsValidatorTests
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[otlpEndpointConfigName] = invalidUrl;
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -254,14 +255,14 @@ public class TransportOptionsValidatorTests
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
-        var unsecuredTransportWarning = new UnsecuredTransportWarning();
+        var unsecuredTransportWarning = new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance);
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
         config[otlpEndpointConfigName] = "http://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning, NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         
         // Validation should succeed (not fail) to allow the app to start
@@ -281,14 +282,14 @@ public class TransportOptionsValidatorTests
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
-        var unsecuredTransportWarning = new UnsecuredTransportWarning();
+        var unsecuredTransportWarning = new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance);
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[resourceServiceEndpointUrlKey] = "http://localhost:1235";
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning);
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, unsecuredTransportWarning, NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         
         // Validation should succeed (not fail) to allow the app to start
@@ -310,7 +311,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -326,7 +327,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -348,7 +349,7 @@ public class TransportOptionsValidatorTests
         config[dashboardOtlpHttpEndpointUrlKey] = "https://localhost:1235";
         config[resourceServiceEndpointUrlKey] = "https://localhost:1236";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -368,7 +369,7 @@ public class TransportOptionsValidatorTests
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1237";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         
         // This should succeed after the fix
@@ -392,7 +393,7 @@ public class TransportOptionsValidatorTests
         config[otlpEndpointConfigName] = grpcBindingAddress;
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1237";
 
-        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning());
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions, new UnsecuredTransportWarning(NullLogger<UnsecuredTransportWarning>.Instance), NullLogger<TransportOptionsValidator>.Instance);
         var result = validator.Validate(null, options);
         
         // This should succeed after the fix
