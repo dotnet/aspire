@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -23,7 +23,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Aspire.TestUtilities;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -1026,7 +1025,6 @@ public class AzureDeployerTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12776")]
     public async Task DeployAsync_WithCachedDeploymentState_LoadsFromCache()
     {
         var appHostSha = "testsha2cache";
