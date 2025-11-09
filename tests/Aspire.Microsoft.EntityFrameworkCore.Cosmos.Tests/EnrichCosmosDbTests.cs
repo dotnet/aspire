@@ -14,6 +14,10 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class EnrichCosmosDbTests : ConformanceTests
 {
+    public EnrichCosmosDbTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     private const string ConnectionString = AspireAzureEfCoreCosmosDBExtensionsTests.ConnectionString;
     private const string DatabaseName = "TestDatabase";
 

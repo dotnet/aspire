@@ -15,13 +15,13 @@ using Xunit;
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTests<TService, TOptions>
+    where TService : class
+    where TOptions : class, new()
+{
     protected ConformanceTestsBase(ITestOutputHelper output) : base(output)
     {
     }
 
-    where TService : class
-    where TOptions : class, new()
-{
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string ActivitySourceName => $"Azure.Messaging.EventHubs.{typeof(TService).Name}";

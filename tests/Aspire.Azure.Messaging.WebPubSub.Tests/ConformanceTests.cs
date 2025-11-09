@@ -7,6 +7,7 @@ using Azure.Messaging.WebPubSub;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.Messaging.WebPubSub.Tests;
 

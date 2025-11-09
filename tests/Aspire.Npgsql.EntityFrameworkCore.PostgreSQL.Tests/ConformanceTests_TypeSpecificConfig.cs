@@ -4,6 +4,7 @@
 using Aspire.TestUtilities;
 using Aspire.Npgsql.Tests;
 using Microsoft.Extensions.Configuration;
+using Xunit;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 

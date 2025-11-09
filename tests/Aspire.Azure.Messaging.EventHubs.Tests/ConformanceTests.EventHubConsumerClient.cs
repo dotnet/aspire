@@ -4,15 +4,16 @@
 using Azure.Identity;
 using Azure.Messaging.EventHubs.Consumer;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_EventHubConsumerClient : ConformanceTestsBase<EventHubConsumerClient, AzureMessagingEventHubsConsumerSettings>
+{
     public ConformanceTests_EventHubConsumerClient(ITestOutputHelper output) : base(output)
     {
     }
 
-{
     protected override void SetHealthCheck(AzureMessagingEventHubsConsumerSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
 

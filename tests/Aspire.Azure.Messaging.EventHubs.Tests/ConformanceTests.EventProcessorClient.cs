@@ -4,6 +4,7 @@
 using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 

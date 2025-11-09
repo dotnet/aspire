@@ -18,7 +18,6 @@ public class KeyClientConformanceTests : ConformanceTests<KeyClient, AzureSecuri
     {
     }
 
-
     // Roles: Key Vault Certificate User (pending)
     private const string VaultUri = ConformanceConstants.VaultUri;
 

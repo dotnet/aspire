@@ -7,6 +7,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
