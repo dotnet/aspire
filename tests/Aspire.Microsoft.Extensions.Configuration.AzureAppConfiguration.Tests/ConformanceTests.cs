@@ -105,7 +105,10 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: null))).Dispose();
+
+    private static void RunTest(Action<ConformanceTests> test)
+        => test(new ConformanceTests(output: null!));
 
     internal sealed class EmptyTokenCredential : TokenCredential
     {

@@ -88,11 +88,11 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
 
     protected override void SetHealthCheck(AzureSearchSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
@@ -105,4 +105,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
 
     protected override void TriggerActivity(SearchIndexClient service)
         => service.GetIndex("my-index");
+
+    private static void RunTest(Action<ConformanceTests> test)
+        => test(new ConformanceTests(output: null!));
 }

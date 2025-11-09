@@ -71,11 +71,14 @@ public class ConformanceTests : ConformanceTests<IChatClient, OpenAISettings>
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+
+    private static void RunTest(Action<ConformanceTests> test)
+        => test(new ConformanceTests(output: null!));
 
     protected override void SetHealthCheck(OpenAISettings options, bool enabled)
         => throw new NotImplementedException();

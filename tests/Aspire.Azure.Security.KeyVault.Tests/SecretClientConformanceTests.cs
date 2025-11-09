@@ -108,11 +108,14 @@ public class SecretClientConformanceTests : ConformanceTests<SecretClient, Azure
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+
+    private static void RunTest(Action<SecretClientConformanceTests> test)
+        => test(new SecretClientConformanceTests(output: null!));
 
     private static bool GetCanConnect()
     {

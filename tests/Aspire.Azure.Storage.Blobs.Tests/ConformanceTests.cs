@@ -120,11 +120,14 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(static () => RunTest(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+
+    private static void RunTest(Action<ConformanceTests> test)
+        => test(new ConformanceTests(output: null!));
 
     private static bool GetCanConnect()
     {
