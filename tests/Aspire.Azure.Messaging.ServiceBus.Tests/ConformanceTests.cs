@@ -13,7 +13,7 @@ namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
 public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, AzureMessagingServiceBusSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper? output) : base(output)
     {
     }
 

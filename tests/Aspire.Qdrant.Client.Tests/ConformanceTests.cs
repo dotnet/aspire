@@ -31,7 +31,7 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSetti
 
     protected override string? ConfigurationSectionName => "Aspire:Qdrant:Client";
 
-    public ConformanceTests(QdrantContainerFixture containerFixture, ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(QdrantContainerFixture containerFixture, ITestOutputHelper? output) : base(output)
     {
         _containerFixture = containerFixture;
         _connectionString = RequiresDockerAttribute.IsSupported ?

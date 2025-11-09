@@ -11,7 +11,7 @@ namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
 public class ConformanceTests_Queue : ConformanceTests
 {
-    public ConformanceTests_Queue(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests_Queue(ITestOutputHelper output) : base(output)
     {
     }
 

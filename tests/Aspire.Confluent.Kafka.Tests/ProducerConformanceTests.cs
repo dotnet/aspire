@@ -12,7 +12,7 @@ namespace Aspire.Confluent.Kafka.Tests;
 
 public class ProducerConformanceTests : ConformanceTests<IProducer<string, string>, KafkaProducerSettings>
 {
-    public ProducerConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ProducerConformanceTests(ITestOutputHelper? output) : base(output)
     {
     }
 

@@ -14,7 +14,7 @@ namespace Aspire.Azure.Data.Tables.Tests;
 
 public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTablesSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper output) : base(output)
     {
     }
 

@@ -79,7 +79,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "DisableMetrics": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    public ConformanceTests(PostgreSQLContainerFixture? containerFixture, ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(PostgreSQLContainerFixture? containerFixture, ITestOutputHelper output) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

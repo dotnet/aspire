@@ -14,7 +14,7 @@ namespace Aspire.Azure.Search.Documents.Tests;
 
 public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper output) : base(output)
     {
     }
 

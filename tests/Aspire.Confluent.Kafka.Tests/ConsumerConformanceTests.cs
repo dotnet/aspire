@@ -11,7 +11,7 @@ using Xunit;
 namespace Aspire.Confluent.Kafka.Tests;
 public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, string>, KafkaConsumerSettings>
 {
-    public ConsumerConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConsumerConformanceTests(ITestOutputHelper? output) : base(output)
     {
     }
 

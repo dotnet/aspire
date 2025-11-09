@@ -19,7 +19,7 @@ namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
-    public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture, ITestOutputHelper output = null!) : base(containerFixture, output)
+    public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture, ITestOutputHelper output) : base(containerFixture, output)
     {
     }
 

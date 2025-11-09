@@ -33,7 +33,7 @@ namespace Aspire.Components.ConformanceTests;
 /// <code>
 /// public class MyConformanceTests : ConformanceTests&lt;MyService, MySettings&gt;
 /// {
-///     public MyConformanceTests(ITestOutputHelper output = null!) : base(output)
+///     public MyConformanceTests(ITestOutputHelper? output) : base(output)
 ///     {
 ///     }
 /// }

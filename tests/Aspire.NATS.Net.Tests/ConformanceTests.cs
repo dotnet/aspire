@@ -15,7 +15,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
 {
     private readonly NatsContainerFixture _containerFixture;
     private readonly string _connectionString;
-    public ConformanceTests(NatsContainerFixture containerFixture, ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(NatsContainerFixture containerFixture, ITestOutputHelper? output) : base(output)
     {
         _containerFixture = containerFixture;
         _connectionString = RequiresDockerAttribute.IsSupported

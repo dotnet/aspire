@@ -18,7 +18,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
     private readonly SqlServerContainerFixture? _containerFixture;
     protected string ConnectionString { get; private set; }
 
-    public ConformanceTests(SqlServerContainerFixture? fixture, ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(SqlServerContainerFixture? fixture, ITestOutputHelper output) : base(output)
     {
         _containerFixture = fixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)

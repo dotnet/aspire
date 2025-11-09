@@ -12,7 +12,7 @@ namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
 public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper? output) : base(output)
     {
     }
 

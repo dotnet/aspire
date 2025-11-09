@@ -10,7 +10,7 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_EventProcessorClient : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsProcessorSettings>
 {
-    public ConformanceTests_EventProcessorClient(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests_EventProcessorClient(ITestOutputHelper? output) : base(output)
     {
     }
 

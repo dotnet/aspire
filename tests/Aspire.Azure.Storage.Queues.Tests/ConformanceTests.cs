@@ -14,7 +14,7 @@ namespace Aspire.Azure.Storage.Queues.Tests;
 
 public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorageQueuesSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper output) : base(output)
     {
     }
 

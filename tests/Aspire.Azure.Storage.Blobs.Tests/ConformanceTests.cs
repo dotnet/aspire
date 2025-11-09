@@ -14,7 +14,7 @@ namespace Aspire.Azure.Storage.Blobs.Tests;
 
 public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorageBlobsSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper output) : base(output)
     {
     }
 

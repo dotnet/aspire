@@ -12,7 +12,7 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_EventHubProducerClient : ConformanceTestsBase<EventHubProducerClient, AzureMessagingEventHubsProducerSettings>
 {
-    public ConformanceTests_EventHubProducerClient(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests_EventHubProducerClient(ITestOutputHelper output) : base(output)
     {
     }
 

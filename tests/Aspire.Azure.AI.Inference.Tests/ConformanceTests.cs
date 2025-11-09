@@ -13,7 +13,7 @@ namespace Aspire.Azure.AI.Inference.Tests;
 
 public class ConformanceTests : ConformanceTests<IChatClient, ChatCompletionsClientSettings>
 {
-    public ConformanceTests(ITestOutputHelper output = null!) : base(output)
+    public ConformanceTests(ITestOutputHelper? output) : base(output)
     {
     }
 
