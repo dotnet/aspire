@@ -13,7 +13,7 @@ This option allows you to test the actual bits that will be shipped, including i
 Download the latest 13.0 CLI build from Azure DevOps (requires authentication):
 
 ```text
-https://dev.azure.com/dnceng/7ea9116e-9fac-403d-b258-b31fcf1bb293/_apis/build/builds/2834054/artifacts?artifactName=BlobArtifacts&api-version=7.1&%24format=zip
+https://dev.azure.com/dnceng/7ea9116e-9fac-403d-b258-b31fcf1bb293/_apis/build/builds/2834470/artifacts?artifactName=BlobArtifacts&api-version=7.1&%24format=zip
 ```
 
 Extract the downloaded zip file to a temporary location (e.g., `C:\Downloads\BlobArtifacts` on Windows or `~/Downloads/BlobArtifacts` on Unix).
