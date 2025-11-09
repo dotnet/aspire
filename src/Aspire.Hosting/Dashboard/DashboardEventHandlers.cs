@@ -62,7 +62,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
     private string? _customRuntimeConfigPath;
-    private readonly TaskCompletionSource _dashboardReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _unsecuredTransportInteractionTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
@@ -381,7 +380,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
         {
             // Signal that the dashboard is ready for unsecured transport interaction
-            _dashboardReadyTcs.TrySetResult();
+            _ = HandleUnsecuredTransportAsync(hostApplicationLifetime.ApplicationStopping);
 
             var browserToken = options.DashboardToken;
 
@@ -855,8 +854,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         // Don't block the dashboard itself from starting
         if (StringComparers.ResourceName.Equals(@event.Resource.Name, KnownResourceNames.AspireDashboard))
         {
-            // Start the unsecured transport interaction task asynchronously
-            _ = HandleUnsecuredTransportAsync(cancellationToken);
             return;
         }
 
@@ -879,6 +876,11 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private async Task HandleUnsecuredTransportAsync(CancellationToken cancellationToken)
     {
+        if (!unsecuredTransportWarning.HasWarnings)
+        {
+            return;
+        }
+
         try
         {
             distributedApplicationLogger.LogInformation("Unsecured transport warnings detected ({Count} warnings). Waiting for dashboard to be ready before showing notification.", unsecuredTransportWarning.Warnings.Count);
@@ -903,11 +905,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 _unsecuredTransportInteractionTcs.TrySetException(new InvalidOperationException("Unsecured transport detected."));
                 return;
             }
-
-            // Wait for the dashboard to be ready before showing the notification
-            distributedApplicationLogger.LogDebug("HandleUnsecuredTransportAsync: Waiting for dashboard to be ready");
-            await _dashboardReadyTcs.Task.ConfigureAwait(false);
-            distributedApplicationLogger.LogInformation("Dashboard is ready. Showing unsecured transport notification.");
 
             // Show a notification with action buttons for the user to respond
             var title = "Unsecured Transport Detected";
