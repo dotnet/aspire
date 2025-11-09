@@ -576,9 +576,9 @@ add_to_shell_profile() {
 
         if [[ "$DRY_RUN" == true ]]; then
             say_info "[DRY RUN] Would create config file: $config_file"
+            return 0
         else
             # Create parent directory if needed (for fish config)
-            local config_dir
             config_dir=$(dirname "$config_file")
             if [[ ! -d "$config_dir" ]]; then
                 if mkdir -p "$config_dir" 2>/dev/null; then
