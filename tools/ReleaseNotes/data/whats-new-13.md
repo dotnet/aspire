@@ -182,6 +182,27 @@ Aspire 13.0 introduces a simplified AppHost project template structure. The SDK 
 
 The `aspire update` command automatically handles this migration when upgrading from 9.x to 13.0.
 
+> [!TIP]
+> For an even simpler setup, Aspire 13.0 also supports [single-file AppHosts](#single-file-apphost-support) that don't require a project file at all. Single-file AppHosts are perfect for quick prototypes and learning scenarios.
+>
+> The same project as a single-file AppHost:
+>
+> ```csharp
+> // apphost.cs
+> #:package Aspire.Hosting.Redis@13.0.0
+> #:sdk Aspire.AppHost.Sdk@13.0.0
+>
+> var builder = DistributedApplication.CreateBuilder(args);
+>
+> var cache = builder.AddRedis("cache");
+> var api = builder.AddProject("apiservice", "../MyApi");
+>                  .WithReference(cache);
+>
+> builder.Build().Run();
+> ```
+>
+> No project file needed - just a single `.cs` file with package references declared using `#:package` directives.
+
 ## 🌐 Aspire as a Polyglot Platform
 
 Aspire 13.0 marks a transformative shift from a .NET-centric orchestration tool to a truly **polyglot application platform**. Python and JavaScript are now first-class citizens alongside .NET, with comprehensive support for development, debugging, and deployment workflows.
