@@ -7,6 +7,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 
@@ -16,6 +17,10 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
     public const string FullyQualifiedNamespace = "aspireservicebustests.servicebus.windows.net";
     // Fake connection string for cases when credentials are unavailable and need to switch to raw connection string
     protected const string ConnectionString = "Endpoint=sb://foo.servicebus.windows.net/;SharedAccessKeyName=fake;SharedAccessKey=fake";
+
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 

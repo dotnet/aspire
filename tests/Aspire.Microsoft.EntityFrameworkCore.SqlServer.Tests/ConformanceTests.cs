@@ -4,7 +4,6 @@
 using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
 using Aspire.Microsoft.Data.SqlClient.Tests;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,7 +61,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    public ConformanceTests(SqlServerContainerFixture? fixture)
+    public ConformanceTests(SqlServerContainerFixture? fixture, ITestOutputHelper? output = null) : base(output)
     {
         _containerFixture = fixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
@@ -117,8 +116,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
     [Fact]
     [RequiresDocker]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
-                                 ConnectionString).Dispose();
+        => RemoteInvokeWithLogging(static connectionStringToUse =>
+            RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+            ConnectionString, Output);
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
         => test(new ConformanceTests(null) { ConnectionString = connectionString });
