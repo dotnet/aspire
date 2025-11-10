@@ -80,25 +80,25 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private async Task UpdateDialogData()
     {
-        await InvokeAsync(() =>
-        {
-            var hasUpdatedTrace = TelemetryRepository.HasUpdatedTrace(Content.Span.Trace);
-            var newContextSpans = Content.GetContextGenAISpans();
+        var hasUpdatedTrace = TelemetryRepository.HasUpdatedTrace(Content.Span.Trace);
+        var newContextSpans = Content.GetContextGenAISpans();
 
-            // Only update dialog data if the current trace has been updated,
-            // or if there are new context spans (for the next/previous buttons).
-            var newData = (hasUpdatedTrace || newContextSpans.Count > _contextSpans.Count);
-            if (newData)
+        // Only update dialog data if the current trace has been updated,
+        // or if there are new context spans (for the next/previous buttons).
+        var newData = (hasUpdatedTrace || newContextSpans.Count > _contextSpans.Count);
+        if (newData)
+        {
+            await InvokeAsync(() =>
             {
                 var span = newContextSpans.Find(s => s.SpanId == Content.Span.SpanId)!;
 
-                _contextSpans = Content.GetContextGenAISpans();
+                _contextSpans = newContextSpans;
                 _currentSpanContextIndex = _contextSpans.IndexOf(span);
 
                 TryUpdateViewedGenAISpan(span);
                 StateHasChanged();
-            }
-        });
+            });
+        }
     }
 
     private void OnViewItem(GenAIItemViewModel viewModel)
