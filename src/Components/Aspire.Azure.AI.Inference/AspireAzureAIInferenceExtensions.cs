@@ -314,7 +314,7 @@ public static class AspireAzureAIInferenceExtensions
             {
                 if (settings.Endpoint is null)
                 {
-                    throw new InvalidOperationException($"A ChatCompletionsClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(ChatCompletionsClientSettings.Endpoint)}' and optionally a '{nameof(ChatCompletionsClientSettings.Key)}' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A EmbeddingsClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(EmbeddingsClientSettings.Endpoint)}' and optionally a '{nameof(EmbeddingsClientSettings.Key)}' in the '{configurationSectionName}' configuration section.");
                 }
                 else
                 {
