@@ -811,7 +811,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureAppServiceEnvironment("env").WithAzureCloudName(AppService.AzureCloudName.AzureChina);
+        builder.AddAzureAppServiceEnvironment("env").WithAzureCloud(AppService.AzureCloudName.AzureChina);
 
         using var app = builder.Build();
 
@@ -832,7 +832,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureAppServiceEnvironment("env").WithAzureCloudName(AppService.AzureCloudName.AzureUSGovernment);
+        builder.AddAzureAppServiceEnvironment("env").WithAzureCloud(AppService.AzureCloudName.AzureUSGovernment);
 
         // Add 2 projects with endpoints
         var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
