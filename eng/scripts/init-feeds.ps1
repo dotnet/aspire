@@ -59,7 +59,7 @@ $Feeds = @(
     @{ Name = "darc-int-dotnet-aspnetcore-2"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspnetcore-d3aba8fe/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-efcore-1"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-efcore-489d66cd/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-efcore-2"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-efcore-f55fe135/nuget/v3/index.json" }
-    @{ Name = "darc-int-dotnet-extensions"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-extensions-05fe7a56/nuget/v3/index.json" }
+    @{ Name = "darc-int-dotnet-extensions"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-extensions-fbd39361/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-runtime-1"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-runtime-a2266c72/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-runtime-2"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-runtime-fa7cdded/nuget/v3/index.json" }
 )
