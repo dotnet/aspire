@@ -856,30 +856,40 @@ Aspire 13.0 introduces new integration packages that expand platform support.
 
 ### .NET MAUI Integration
 
-Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services.
+Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services. For 
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.Api>("api");
 
+// To easily reach your local API project from the emulator/Simulator/physical device, you can use the Dev Tunnels integration
+var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
+    .WithAnonymousAccess()
+    .WithReference(api.GetEndpoint("https"));
+
+// Add the .NET MAUI project resource
+var mauiapp = builder.AddMauiProject("myapp", @"../MyApp/MyApp.csproj");
+
 // Add MAUI app for Windows
-var mauiWindows = builder.AddMauiWindows("myapp-windows", "../MyApp/MyApp.csproj")
-    .WithReference(api);
+mauiapp.AddWindowsDevice()
+    .WithReference(weatherApi);
 
 // Add MAUI app for Mac Catalyst
-var mauiMac = builder.AddMauiMacCatalyst("myapp-mac", "../MyApp/MyApp.csproj")
-    .WithReference(api);
+mauiapp.AddMacCatalystDevice()
+    .WithReference(weatherApi);
 
-// Add MAUI app for Android
-var mauiAndroid = builder.AddMauiAndroid("myapp-android", "../MyApp/MyApp.csproj")
-    .WithReference(api);
+// Add MAUI app for iOS running on the iOS Simulator (starts a random one, or uses the currently started one)
+mauiapp.AddiOSSimulator()
+    .WithOtlpDevTunnel() // Needed to get the OpenTelemetry data to "localhost"
+    .WithReference(weatherApi, publicDevTunnel); // Needs a dev tunnel to reach "localhost"
 
-// Add MAUI app for iOS
-var mauiIos = builder.AddMauiIos("myapp-ios", "../MyApp/MyApp.csproj")
-    .WithReference(api);
+// Add MAUI app for Android running on the emulator with default emulator (uses running or default emulator, needs to be started)
+mauiapp.AddAndroidEmulator()
+    .WithOtlpDevTunnel() // Needed to get the OpenTelemetry data to "localhost"
+    .WithReference(weatherApi, publicDevTunnel); // Needs a dev tunnel to reach "localhost"
 
-await builder.Build().RunAsync();
+builder.Build().Run();
 ```
 
 MAUI integration features:
