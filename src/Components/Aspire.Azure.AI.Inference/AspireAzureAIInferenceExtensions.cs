@@ -230,7 +230,7 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the client to.</param>
     /// <param name="connectionName">The name of the client. This is used to retrieve the connection string from configuration.</param>
-    /// <param name="configureSettings">An optional callback to configure the <see cref="EmbeddingsClientSettings"/>.</param>
+    /// <param name="configureSettings">An optional callback to configure the <see cref="ChatCompletionsClientSettings"/>.</param>
     /// <param name="configureClientBuilder">An optional callback to configure the <see cref="IAzureClientBuilder{TClient, TOptions}"/> for the client.</param>
     /// <returns>An <see cref="AspireEmbeddingsClientBuilder"/> that can be used to further configure the client.</returns>
     /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
@@ -245,7 +245,7 @@ public static class AspireAzureAIInferenceExtensions
     public static AspireEmbeddingsClientBuilder AddAzureEmbeddingsClient(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<EmbeddingsClientSettings>? configureSettings = null,
+        Action<ChatCompletionsClientSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -267,7 +267,7 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the client to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional callback to configure the <see cref="EmbeddingsClientSettings"/>.</param>
+    /// <param name="configureSettings">An optional callback to configure the <see cref="ChatCompletionsClientSettings"/>.</param>
     /// <param name="configureClientBuilder">An optional callback to configure the <see cref="IAzureClientBuilder{TClient, TOptions}"/> for the client.</param>
     /// <returns>An <see cref="AspireEmbeddingsClientBuilder"/> that can be used to further configure the client.</returns>
     /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
@@ -282,7 +282,7 @@ public static class AspireAzureAIInferenceExtensions
     public static AspireEmbeddingsClientBuilder AddKeyedAzureEmbeddingsClient(
         this IHostApplicationBuilder builder,
         string name,
-        Action<EmbeddingsClientSettings>? configureSettings = null,
+        Action<ChatCompletionsClientSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -299,7 +299,7 @@ public static class AspireAzureAIInferenceExtensions
         return new AspireEmbeddingsClientBuilder(builder, serviceKey: name, settings.DeploymentName, settings.DisableTracing, settings.EnableSensitiveTelemetryData);
     }
 
-    private sealed class EmbeddingsClientServiceComponent : AzureComponent<EmbeddingsClientSettings, EmbeddingsClient, AzureAIInferenceClientOptions>
+    private sealed class EmbeddingsClientServiceComponent : AzureComponent<ChatCompletionsClientSettings, EmbeddingsClient, AzureAIInferenceClientOptions>
     {
         // GenAI telemetry isn't stable so MEAI currently has source name of "Experimental.Microsoft.Extensions.AI".
         // Listen to both names to ensure we capture telemetry from both stable and experimental versions.
@@ -307,14 +307,14 @@ public static class AspireAzureAIInferenceExtensions
         protected override string[] ActivitySourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
         protected override string[] MetricSourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
 
-        protected override IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions> AddClient(AzureClientFactoryBuilder azureFactoryBuilder, EmbeddingsClientSettings settings,
+        protected override IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions> AddClient(AzureClientFactoryBuilder azureFactoryBuilder, ChatCompletionsClientSettings settings,
             string connectionName, string configurationSectionName)
         {
             return azureFactoryBuilder.AddClient<EmbeddingsClient, AzureAIInferenceClientOptions>((options, _, _) =>
             {
                 if (settings.Endpoint is null)
                 {
-                    throw new InvalidOperationException($"A EmbeddingsClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(EmbeddingsClientSettings.Endpoint)}' and optionally a '{nameof(EmbeddingsClientSettings.Key)}' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A EmbeddingsClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(ChatCompletionsClientSettings.Endpoint)}' and optionally a '{nameof(ChatCompletionsClientSettings.Key)}' in the '{configurationSectionName}' configuration section.");
                 }
                 else
                 {
@@ -351,22 +351,22 @@ public static class AspireAzureAIInferenceExtensions
 #pragma warning restore IDE0200
         }
 
-        protected override void BindSettingsToConfiguration(EmbeddingsClientSettings settings, IConfiguration configuration)
+        protected override void BindSettingsToConfiguration(ChatCompletionsClientSettings settings, IConfiguration configuration)
             => configuration.Bind(settings);
 
-        protected override IHealthCheck CreateHealthCheck(EmbeddingsClient client, EmbeddingsClientSettings settings)
+        protected override IHealthCheck CreateHealthCheck(EmbeddingsClient client, ChatCompletionsClientSettings settings)
             => throw new NotImplementedException();
 
-        protected override bool GetHealthCheckEnabled(EmbeddingsClientSettings settings)
+        protected override bool GetHealthCheckEnabled(ChatCompletionsClientSettings settings)
             => false;
 
-        protected override bool GetMetricsEnabled(EmbeddingsClientSettings settings)
+        protected override bool GetMetricsEnabled(ChatCompletionsClientSettings settings)
             => !settings.DisableMetrics;
 
-        protected override TokenCredential? GetTokenCredential(EmbeddingsClientSettings settings)
+        protected override TokenCredential? GetTokenCredential(ChatCompletionsClientSettings settings)
             => settings.TokenCredential;
 
-        protected override bool GetTracingEnabled(EmbeddingsClientSettings settings)
+        protected override bool GetTracingEnabled(ChatCompletionsClientSettings settings)
             => !settings.DisableTracing;
     }
 
