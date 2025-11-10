@@ -309,18 +309,13 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         {
             var currentContent = cut.FindComponent<GenAIVisualizerDialog>().Instance.Content;
             Assert.NotSame(originalContent, currentContent);
-        }, timeout: TimeSpan.FromSeconds(5));
+        });
     }
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService)
     {
         FluentUISetupHelpers.SetupDialogInfrastructure(this);
-        
-        // Setup additional FluentUI components needed by GenAIVisualizerDialog
-        var fluentUIVersion = typeof(FluentMain).Assembly.GetName().Version!;
-        var tabModule = JSInterop.SetupModule($"./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js?v={fluentUIVersion}");
-        tabModule.SetupVoid("TabEditable_Changed", _ => true);
-        
+        FluentUISetupHelpers.SetupFluentTab(this);
         FluentUISetupHelpers.SetupFluentOverflow(this);
         
         var cut = FluentUISetupHelpers.RenderDialogProvider(this);
