@@ -319,18 +319,18 @@ public sealed class GenAIVisualizerDialogViewModel
                 currentIndex++;
             }
         }
-    }
 
-    // Extract role from message dictionary with fallback to message.role and default
-    private static string GetMessageRole(Dictionary<string, string> message, string defaultRole)
-    {
-        return message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", defaultRole);
-    }
+        // Extract role from message dictionary with fallback to message.role and default
+        static string GetMessageRole(Dictionary<string, string> message, string defaultRole)
+        {
+            return message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", defaultRole);
+        }
 
-    // Extract content from message dictionary with fallback to message.content
-    private static string? GetMessageContent(Dictionary<string, string> message)
-    {
-        return message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
+        // Extract content from message dictionary with fallback to message.content
+        static string? GetMessageContent(Dictionary<string, string> message)
+        {
+            return message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
+        }
     }
 
     // Extract messages from indexed span attributes like gen_ai.prompt.0.role, gen_ai.prompt.0.content
