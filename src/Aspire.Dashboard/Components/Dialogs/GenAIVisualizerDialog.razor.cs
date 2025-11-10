@@ -82,12 +82,22 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     {
         await InvokeAsync(() =>
         {
-            _contextSpans = Content.GetContextGenAISpans();
-            var span = _contextSpans.Find(s => s.SpanId == Content.Span.SpanId)!;
-            _currentSpanContextIndex = _contextSpans.IndexOf(span);
+            var hasUpdatedTrace = TelemetryRepository.HasUpdatedTrace(Content.Span.Trace);
+            var newContextSpans = Content.GetContextGenAISpans();
 
-            TryUpdateViewedGenAISpan(span);
-            StateHasChanged();
+            // Only update dialog data if the current trace has been updated,
+            // or if there are new context spans (for the next/previous buttons).
+            var newData = (newContextSpans.Count > _contextSpans.Count || hasUpdatedTrace);
+            if (newData)
+            {
+                var span = newContextSpans.Find(s => s.SpanId == Content.Span.SpanId)!;
+
+                _contextSpans = Content.GetContextGenAISpans();
+                _currentSpanContextIndex = _contextSpans.IndexOf(span);
+
+                TryUpdateViewedGenAISpan(span);
+                StateHasChanged();
+            }
         });
     }
 
