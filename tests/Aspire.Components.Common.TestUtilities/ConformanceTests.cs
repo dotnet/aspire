@@ -325,7 +325,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
         // Output diagnostic information about which categories were actually logged
         // to help debug failures when expected categories are not found.
-        // if (Output is not null)
+        if (Output is not null)
         {
             Console.WriteLine("=== Logged Categories ===");
             foreach (var category in loggerFactory.Categories.OrderBy(c => c))
