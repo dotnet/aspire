@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -364,5 +365,36 @@ public class AddMySqlTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
         var connectionString = await connectionStringResource.ConnectionStringExpression.GetValueAsync(default);
         Assert.Equal("Server=localhost;Port=2000;User ID=root;Password=p@ssw0rd1", connectionString);
+    }
+
+    [Fact]
+    public async Task PhpMyAdminEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var mysql = appBuilder.AddMySql("mysql")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3306))
+            .WithPhpMyAdmin();
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var phpMyAdminResource = Assert.Single(appModel.Resources.OfType<PhpMyAdminContainerResource>());
+
+        // Trigger the BeforeResourceStartedEvent to add environment callbacks
+        await appBuilder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(phpMyAdminResource, app.Services),
+            EventDispatchBehavior.BlockingSequential);
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await phpMyAdminResource.GetEnvironmentVariableValuesAsync();
+        var config2 = await phpMyAdminResource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "PMA_HOST");
+        Assert.Contains(config2, kvp => kvp.Key == "PMA_HOST");
+        Assert.Equal(
+            config1.First(kvp => kvp.Key == "PMA_HOST").Value,
+            config2.First(kvp => kvp.Key == "PMA_HOST").Value);
     }
 }

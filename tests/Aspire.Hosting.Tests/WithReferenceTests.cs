@@ -514,7 +514,7 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public async Task NpmAppResourceWithReferenceGetsConnectionStringAndProperties()
+    public async Task JavaScriptAppAppResourceWithReferenceGetsConnectionStringAndProperties()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -524,7 +524,7 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-        var executable = builder.AddNpmApp("NpmApp", ".\\app")
+        var executable = builder.AddJavaScriptApp("NpmApp", ".\\app")
                                 .WithReference(resource);
 
         // Call environment variable callbacks.

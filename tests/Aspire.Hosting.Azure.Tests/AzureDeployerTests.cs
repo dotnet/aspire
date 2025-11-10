@@ -7,6 +7,7 @@
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -14,9 +15,9 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
+using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -158,7 +159,7 @@ public class AzureDeployerTests
     public async Task DeployAsync_WithAzureStorageResourcesWorks()
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -168,7 +169,7 @@ public class AzureDeployerTests
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -183,10 +184,8 @@ public class AzureDeployerTests
         await app.StartAsync();
         await app.WaitForShutdownAsync();
 
-        // Assert that ACR login command was not executed given no compute resources
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert that ACR login was not called given no compute resources
+        Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
 
         // Assert - Verify MockImageBuilder was NOT called when there are no compute resources
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -205,6 +204,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -214,7 +214,7 @@ public class AzureDeployerTests
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -233,10 +233,8 @@ public class AzureDeployerTests
         Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
 
-        // Assert - Verify ACR login command was not called since no image was pushed
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert - Verify ACR login was not called since no image was pushed
+        Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
 
         // Assert - Verify MockImageBuilder tag and push methods were NOT called for existing container image
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -252,6 +250,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -261,7 +260,7 @@ public class AzureDeployerTests
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -280,10 +279,11 @@ public class AzureDeployerTests
         Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
 
-        // Assert - Verify ACR login command was called since Dockerfile image needs to be pushed
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert - Verify ACR login was called using IContainerRuntime
+        Assert.True(fakeContainerRuntime.WasLoginToRegistryCalled);
+        Assert.Contains(fakeContainerRuntime.LoginToRegistryCalls, call =>
+            call.registryServer == "testregistry.azurecr.io" &&
+            call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -308,6 +308,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -317,7 +318,7 @@ public class AzureDeployerTests
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -336,10 +337,11 @@ public class AzureDeployerTests
         Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
 
-        // Assert - Verify ACR login command was called
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert - Verify ACR login was called using IContainerRuntime
+        Assert.True(fakeContainerRuntime.WasLoginToRegistryCalled);
+        Assert.Contains(fakeContainerRuntime.LoginToRegistryCalls, call =>
+            call.registryServer == "testregistry.azurecr.io" &&
+            call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -366,6 +368,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
         var mockActivityReporter = new TestPublishingActivityReporter();
         var armClientProvider = new TestArmClientProvider(deploymentName =>
@@ -391,7 +394,7 @@ public class AzureDeployerTests
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
         var aasEnv = builder.AddAzureAppServiceEnvironment("aas-env");
@@ -437,13 +440,14 @@ public class AzureDeployerTests
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/aasplan", aasEnv.Resource.Outputs["planId"]);
         Assert.Equal("aas-client-id", aasEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"]);
 
-        // Assert ACR login commands were called for both registries
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name acaregistry");
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name aasregistry");
+        // Assert - Verify ACR login was called using IContainerRuntime for both registries
+        Assert.True(fakeContainerRuntime.WasLoginToRegistryCalled);
+        Assert.Contains(fakeContainerRuntime.LoginToRegistryCalls, call =>
+            call.registryServer == "acaregistry.azurecr.io" &&
+            call.username == "00000000-0000-0000-0000-000000000000");
+        Assert.Contains(fakeContainerRuntime.LoginToRegistryCalls, call =>
+            call.registryServer == "aasregistry.azurecr.io" &&
+            call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder tag and push methods were called for multiple registries
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -592,6 +596,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPublishingActivityReporter();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
@@ -630,9 +635,7 @@ public class AzureDeployerTests
         Assert.False(mockImageBuilder.PushImageCalled);
 
         // Assert that ACR login was not called since Redis uses existing container image
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
 
         // Assert that deploying steps executed
         Assert.Contains("provision-cache-containerapp", mockActivityReporter.CreatedSteps);
@@ -643,6 +646,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPublishingActivityReporter();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
@@ -675,10 +679,8 @@ public class AzureDeployerTests
         Assert.False(mockImageBuilder.TagImageCalled);
         Assert.False(mockImageBuilder.PushImageCalled);
 
-        // Assert that ACR login was not called since no compute resources
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert that ACR login was not called since only Azure resources exist
+        Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
 
         // Assert that the completion request was called
         Assert.True(mockActivityReporter.CompletePublishCalled);
@@ -799,6 +801,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
         {
@@ -837,7 +840,7 @@ public class AzureDeployerTests
         };
 
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider(deploymentOutputsProvider);
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -870,10 +873,11 @@ public class AzureDeployerTests
         Assert.Equal("https://testfuncstorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["funcstorage_outputs_blobendpoint"]!).GetValueAsync());
         Assert.Equal("https://testhoststorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["hoststorage_outputs_blobendpoint"]!).GetValueAsync());
 
-        // Assert - Verify ACR login command was called since Functions image needs to be built and pushed
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath.Contains("az") &&
-                   cmd.Arguments == "acr login --name testregistry");
+        // Assert - Verify ACR login was called using IContainerRuntime since Functions image needs to be built and pushed
+        Assert.True(fakeContainerRuntime.WasLoginToRegistryCalled);
+        Assert.Contains(fakeContainerRuntime.LoginToRegistryCalls, call =>
+            call.registryServer == "testregistry.azurecr.io" &&
+            call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
@@ -893,12 +897,85 @@ public class AzureDeployerTests
             imageName.Contains("aspire-deploy-"));
     }
 
+    [Theory]
+    [InlineData("deploy-api")]
+    [InlineData("diagnostics")]
+    public async Task DeployAsync_WithAzureResourceDependencies_DoesNotHang(string step)
+    {
+        // Arrange - Recreate scenario similar to the issue where a compute resource references a KeyVault secret
+        // This tests that Bicep resources properly depend on referenced Azure resources to avoid hangs during deployment
+        var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
+        var mockActivityReporter = new TestPublishingActivityReporter();
+        var armClientProvider = new TestArmClientProvider(deploymentName =>
+        {
+            return deploymentName switch
+            {
+                string name when name.StartsWith("env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                    ["planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/testplan" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "test-client-id" }
+                },
+                string name when name.StartsWith("kv") => new Dictionary<string, object>
+                {
+                    ["vaultUri"] = new { type = "String", value = "https://testkv.vault.azure.net/" }
+                },
+                _ => []
+            };
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+
+        // Set up the scenario from the issue: AppService environment with a compute resource that references a KeyVault secret
+        builder.AddAzureAppServiceEnvironment("env");
+        
+        var keyVault = builder.AddAzureKeyVault("kv");
+        var secret = keyVault.GetSecret("test-secret");
+        
+        // Add a compute resource that references the KeyVault secret
+        // This creates a dependency: api -> secret -> keyVault
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("SECRET_VALUE", secret);
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.StopAsync();
+
+        if (step == "diagnostics")
+        {
+            // In diagnostics mode, verify the deployment graph shows correct dependencies
+            var logs = mockActivityReporter.LoggedMessages
+                            .Where(s => s.StepTitle == "diagnostics")
+                            .Select(s => s.Message)
+                            .ToList();
+
+            // Verify that diagnostics complete without hanging (test will timeout if there's a hang)
+            Assert.NotEmpty(logs);
+            
+            // Use Verify to snapshot the diagnostic output showing the dependency graph
+            await Verify(logs);
+            return;
+        }
+
+        // In deploy mode, verify that deployment completes without hanging
+        // The key verification is that the provision-api-website step depends on provision-kv
+        // which is shown in the diagnostics output above (line 101 in the snapshot)
+        // Just verify the test completed without timing out, which proves no hang occurred
+    }
+
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
         MockProcessRunner? processRunner = null,
         IPipelineActivityReporter? activityReporter = null,
+        IContainerRuntime? containerRuntime = null,
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
@@ -929,6 +1006,8 @@ public class AzureDeployerTests
         }
         builder.Services.AddSingleton<IProcessRunner>(processRunner ?? new MockProcessRunner());
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IContainerRuntime>(containerRuntime ?? new FakeContainerRuntime());
+        builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
     }
 
     private sealed class NoOpDeploymentStateManager : IDeploymentStateManager
@@ -1038,9 +1117,9 @@ public class AzureDeployerTests
         await File.WriteAllTextAsync(deploymentStatePath, cachedState.ToJsonString());
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
@@ -1161,7 +1240,6 @@ public class AzureDeployerTests
         builder.Services.AddSingleton(logger);
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        builder.Services.AddSingleton<IDeploymentStateManager, FileDeploymentStateManager>();
 
         if (bicepProvisioner is not null)
         {
@@ -1170,6 +1248,8 @@ public class AzureDeployerTests
 
         builder.Services.AddSingleton<IProcessRunner>(new MockProcessRunner());
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IContainerRuntime>(new FakeContainerRuntime());
+        builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
     }
 
     private sealed class TestPublishingActivityReporter : IPipelineActivityReporter

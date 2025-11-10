@@ -68,7 +68,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         }
         {
           name: 'database-url'
-          value: 'postgresql://${uriComponent('postgres')}:${uriComponent(pgc_password_value)}@pgc:5432'
+          value: 'postgresql://postgres:${uriComponent(pgc_password_value)}@pgc:5432'
         }
       ]
       activeRevisionsMode: 'Single'

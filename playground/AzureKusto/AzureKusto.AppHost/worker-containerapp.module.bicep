@@ -5,10 +5,6 @@ param infra_outputs_azure_container_apps_environment_default_domain string
 
 param infra_outputs_azure_container_apps_environment_id string
 
-param infra_outputs_azure_container_registry_endpoint string
-
-param infra_outputs_azure_container_registry_managed_identity_id string
-
 param worker_containerimage string
 
 param worker_identity_outputs_id string
@@ -16,6 +12,10 @@ param worker_identity_outputs_id string
 param kusto_outputs_clusteruri string
 
 param worker_identity_outputs_clientid string
+
+param infra_outputs_azure_container_registry_endpoint string
+
+param infra_outputs_azure_container_registry_managed_identity_id string
 
 resource worker 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'worker'

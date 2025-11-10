@@ -18,6 +18,7 @@ internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly bool _isDebugOrTraceLoggingEnabled;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -35,6 +36,9 @@ internal sealed class ConsoleActivityLogger
     private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
     private int _spinnerIndex;
 
+    private string? _finalStatusHeader;
+    private bool _pipelineSucceeded;
+
     // No raw ANSI escape codes; rely on Spectre.Console markup tokens.
 
     private const string SuccessSymbol = "✓";
@@ -43,10 +47,11 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool isDebugOrTraceLoggingEnabled = false, bool? forceColor = null)
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
+        _isDebugOrTraceLoggingEnabled = isDebugOrTraceLoggingEnabled;
 
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
@@ -252,13 +257,20 @@ internal sealed class ConsoleActivityLogger
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
+                
+                // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
+                if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
+                {
+                    var helpMessage = _enableColor
+                        ? "[dim]For more details, add --log-level debug/trace to the command.[/]"
+                        : "For more details, add --log-level debug/trace to the command.";
+                    AnsiConsole.MarkupLine(helpMessage);
+                }
             }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
         }
     }
-
-    private string? _finalStatusHeader;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
@@ -266,6 +278,7 @@ internal sealed class ConsoleActivityLogger
     /// </summary>
     public void SetFinalResult(bool succeeded)
     {
+        _pipelineSucceeded = succeeded;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {

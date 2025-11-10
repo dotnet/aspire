@@ -70,7 +70,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
     private readonly Locations _locations;
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private readonly IDeveloperCertificateService _developerCertificateService;
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
@@ -105,7 +107,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpNameGenerator nameGenerator,
                        DcpExecutorEvents executorEvents,
                        Locations locations,
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                        IDeveloperCertificateService developerCertificateService)
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -131,7 +135,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
 
     private string ContainerHostName => _configuration["AppHost:ContainerHostname"] ??
-        (_options.Value.EnableAspireContainerTunnel ? KnownHostNames.DefaultContainerTunnelHostName : KnownHostNames.DockerDesktopHostBridge);
+        (_options.Value.EnableAspireContainerTunnel ? KnownHostNames.DefaultContainerTunnelHostName : _dcpInfo?.Containers?.HostName ?? KnownHostNames.DockerDesktopHostBridge);
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -846,7 +850,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
         else
         {
-            // Container services are services that "mirror" their primary (host) service counterparts, but expose addresses usable from container network. 
+            // Container services are services that "mirror" their primary (host) service counterparts, but expose addresses usable from container network.
             // We just need to update their ports from primary services, changing the address to container host.
             var containerServices = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (
                 Service: r.DcpResource as Service,
@@ -1186,7 +1190,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 svc.Annotate(CustomResource.ContainerTunnelInstanceName, tunnelProxy?.Metadata?.Name ?? "");
 
                 var svcAppResource = new ServiceAppResource(svc);
-                
                 _appResources.Add(svcAppResource);
 
                 if (useTunnel)
@@ -2266,6 +2269,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var runArgs = new List<string>();
 
         await modelResource.ProcessContainerRuntimeArgValues(
+            _executionContext,
             (a, ex) =>
             {
                 if (ex is not null)
@@ -2338,7 +2342,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             resourceLogger,
             (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
             (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
-            networkContext: null,
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
@@ -2380,9 +2383,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         if (modelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
         {
-            certificatesDestination ??= pathsAnnotation.CustomCertificatesDestination;
-            bundlePaths ??= pathsAnnotation.DefaultCertificateBundles;
-            certificateDirsPaths ??= pathsAnnotation.DefaultCertificateDirectories;
+            certificatesDestination = pathsAnnotation.CustomCertificatesDestination ?? certificatesDestination;
+            bundlePaths = pathsAnnotation.DefaultCertificateBundles ?? bundlePaths;
+            certificateDirsPaths = pathsAnnotation.DefaultCertificateDirectories ?? certificateDirsPaths;
         }
 
         bool failedToApplyConfig = false;
@@ -2390,7 +2393,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var env = new List<EnvVar>();
         var createFiles = new List<ContainerCreateFileSystem>();
 
-        var pathsProvider = new CertificateTrustConfigurationPathsProvider();
         (var scope, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
             (unprocessed, value, ex, isSensitive) =>
@@ -2435,7 +2437,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // Build Linux PATH style colon-separated list of directories
                 return ReferenceExpression.Create($"{string.Join(':', dirs)}");
             },
-            networkContext: null,
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
@@ -2478,18 +2479,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                 // used by common Linux distributions to make it easier to ensure applications pick it up.
-                foreach (var bundlePath in bundlePaths!)
+                // Group by common directory to avoid creating multiple file system entries for the same root directory.
+                foreach (var bundlePath in bundlePaths!.Select(bp =>
+                {
+                    var filename = Path.GetFileName(bp);
+                    var dir = bp.Substring(0, bp.Length - filename.Length);
+                    return (dir, filename);
+                }).GroupBy(parts => parts.dir))
                 {
                     createFiles.Add(new ContainerCreateFileSystem
                     {
-                        Destination = bundlePath,
-                        Entries = [
+                        Destination = bundlePath.Key,
+                        Entries = bundlePath.Select(bp =>
                             new ContainerFileSystemEntry
                             {
-                                Name = Path.GetFileName(bundlePath),
+                                Name = bp.filename,
                                 Contents = caBundleBuilder.ToString(),
-                            },
-                        ],
+                            }).ToList(),
                     });
                 }
             }

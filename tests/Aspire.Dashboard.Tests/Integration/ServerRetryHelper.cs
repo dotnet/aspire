@@ -39,7 +39,15 @@ public static class ServerRetryHelper
                 var port = GetAvailablePort(nextPortAttempt, logger);
                 ports.Add(port);
 
-                nextPortAttempt = port + Random.Shared.Next(100);
+                // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
+                // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
+                // allocate ports in the same range. The random gap further reduces the chance of collision.
+                nextPortAttempt = port + Random.Shared.Next(10, 100);
+            }
+
+            if (ports.Count != ports.Distinct().Count())
+            {
+                throw new InvalidOperationException($"Generated ports list contains duplicate numbers: {string.Join(", ", ports)}");
             }
 
             try

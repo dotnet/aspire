@@ -15,7 +15,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class AspireSqlServerEFCoreSqlClientExtensionsTests
 {
-    private const string ConnectionString = "Data Source=fake;Database=master;Encrypt=True";
+    private const string ConnectionString = "Data Source=fake;Initial Catalog=master;Encrypt=True";
 
     [Fact]
     public void ReadsFromConnectionStringsCorrectly()
@@ -30,7 +30,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
-        Assert.Equal(ConnectionString, context.Database.GetDbConnection().ConnectionString);
+        AssertCorrectConnectionString(ConnectionString, context.Database.GetDbConnection().ConnectionString);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString, actualConnectionString);
+        AssertCorrectConnectionString(ConnectionString, actualConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", actualConnectionString);
     }
@@ -67,7 +67,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString, actualConnectionString);
+        AssertCorrectConnectionString(ConnectionString, actualConnectionString);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", actualConnectionString);
     }
@@ -103,7 +103,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         // ensure the connection string from config was respected
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString, actualConnectionString);
+        AssertCorrectConnectionString(ConnectionString, actualConnectionString);
 
         // ensure the retry strategy is enabled and set to its default value
         Assert.NotNull(extension.ExecutionStrategyFactory);
@@ -147,7 +147,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         // ensure the connection string from config was respected
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString, actualConnectionString);
+        AssertCorrectConnectionString(ConnectionString, actualConnectionString);
 
         // ensure no retry strategy was registered
         Assert.Null(extension.ExecutionStrategyFactory);
@@ -230,7 +230,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
     [Fact]
     public void CanHave2DbContexts()
     {
-        const string connectionString2 = "Data Source=fake2;Database=master2;Encrypt=True";
+        const string connectionString2 = "Data Source=fake2;Initial Catalog=master2;Encrypt=True";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -246,10 +246,10 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var context2 = host.Services.GetRequiredService<TestDbContext2>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString, actualConnectionString);
+        AssertCorrectConnectionString(ConnectionString, actualConnectionString);
 
         actualConnectionString = context2.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(connectionString2, actualConnectionString);
+        AssertCorrectConnectionString(connectionString2, actualConnectionString);
     }
 
     [Theory]
@@ -349,6 +349,16 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         Assert.NotNull(capturedSettings);
         Assert.Equal(120, capturedSettings.CommandTimeout);
+    }
+
+    private static void AssertCorrectConnectionString(string expectedConnectionString, string actualConnectionString)
+    {
+#if NET10_0_OR_GREATER
+        // In .NET 10, the connection string may have additional parameters appended, so we check the start only.
+        Assert.StartsWith(expectedConnectionString, actualConnectionString);
+#else
+        Assert.Equal(expectedConnectionString, actualConnectionString);
+#endif
     }
 
     public class TestDbContext2 : DbContext

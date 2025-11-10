@@ -159,22 +159,22 @@
       </trans-unit>
       <trans-unit id="UseLocalhostTld_Description">
         <source>Configures whether to use *.dev.localhost URLs for local development.</source>
-        <target state="new">Configures whether to use *.dev.localhost URLs for local development.</target>
+        <target state="translated">ローカル開発に *.dev.localhost URL を使用するかどうかを構成します。</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_Prompt">
         <source>Use *.dev.localhost URLs</source>
-        <target state="new">Use *.dev.localhost URLs</target>
+        <target state="translated">*.dev.localhost URL を使用する</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_UnexpectedChoice">
         <source>Unexpected choice for *.dev.localhost option</source>
-        <target state="new">Unexpected choice for *.dev.localhost option</target>
+        <target state="translated">*.dev.localhost オプションの予期しない選択</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_UsingLocalhostTld">
         <source>Using *.dev.localhost URLs for local development.</source>
-        <target state="new">Using *.dev.localhost URLs for local development.</target>
+        <target state="translated">ローカル開発に *.dev.localhost の URL を使用しています。</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">

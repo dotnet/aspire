@@ -34,6 +34,7 @@ internal static class KnownConfigNames
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
     public const string InteractivityEnabled = "ASPIRE_INTERACTIVITY_ENABLED";
+    public const string EnableContainerTunnel = "ASPIRE_ENABLE_CONTAINER_TUNNEL";
 
     public const string LocaleOverride = "ASPIRE_LOCALE_OVERRIDE";
     public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";

@@ -36,7 +36,8 @@
         "DB1_PORT": "{sql1.bindings.tcp.port}",
         "DB1_USERNAME": "sa",
         "DB1_PASSWORD": "{sql1-password.value}",
-        "DB1_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port};user=sa;password={sql1-password-uri-encoded.value};databaseName=db1;trustServerCertificate=true",
+        "DB1_URI": "mssql://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port}/db1",
+        "DB1_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port};trustServerCertificate=true;databaseName=db1",
         "DB1_DATABASE": "db1"
       },
       "bindings": {
@@ -66,7 +67,8 @@
         "DB1_PORT": "{sql1.bindings.tcp.port}",
         "DB1_USERNAME": "sa",
         "DB1_PASSWORD": "{sql1-password.value}",
-        "DB1_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port};user=sa;password={sql1-password-uri-encoded.value};databaseName=db1;trustServerCertificate=true",
+        "DB1_URI": "mssql://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port}/db1",
+        "DB1_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port};trustServerCertificate=true;databaseName=db1",
         "DB1_DATABASE": "db1"
       }
     },
@@ -87,11 +89,6 @@
           }
         }
       }
-    },
-    "sql1-password-uri-encoded": {
-      "type": "annotated.string",
-      "value": "{sql1-password.value}",
-      "filter": "uri"
     }
   }
 }

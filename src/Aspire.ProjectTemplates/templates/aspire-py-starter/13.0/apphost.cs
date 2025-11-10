@@ -1,5 +1,5 @@
 #:sdk Aspire.AppHost.Sdk@!!REPLACE_WITH_LATEST_VERSION!!
-#:package Aspire.Hosting.NodeJs@!!REPLACE_WITH_LATEST_VERSION!!
+#:package Aspire.Hosting.JavaScript@!!REPLACE_WITH_LATEST_VERSION!!
 #:package Aspire.Hosting.Python@!!REPLACE_WITH_LATEST_VERSION!!
 #if UseRedisCache
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!
@@ -11,8 +11,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 #endif
-var app = builder.AddUvicornApp("app", "./app", "app:app")
-    .WithUvEnvironment()
+var app = builder.AddUvicornApp("app", "./app", "main:app")
+    .WithUv()
     .WithExternalHttpEndpoints()
 #if UseRedisCache
     .WithReference(cache)
@@ -21,7 +21,6 @@ var app = builder.AddUvicornApp("app", "./app", "app:app")
     .WithHttpHealthCheck("/health");
 
 var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithNpm(install: true)
     .WithReference(app)
     .WaitFor(app);
 

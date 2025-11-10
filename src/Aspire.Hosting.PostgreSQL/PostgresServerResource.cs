@@ -118,8 +118,29 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <remarks>
     /// Format: <c>postgresql://{user}:{password}@{host}:{port}</c>.
     /// </remarks>
-    public ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+    public ReferenceExpression UriExpression => BuildUri();
+
+    internal ReferenceExpression BuildUri(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("postgresql://");
+        if (UserNameParameter is not null)
+        {
+            builder.Append($"{UserNameParameter:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+        }
+        else
+        {
+            builder.Append($"{DefaultUserName:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+        }
+
+        if (databaseName is not null)
+        {
+            builder.AppendLiteral("/");
+            builder.Append($"{databaseName:uri}");
+        }
+
+        return builder.Build();
+    }
 
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
@@ -131,19 +152,18 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
 
         if (databaseName is not null)
         {
-            builder.AppendLiteral("/");
-            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.Append($"{databaseNameExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         return builder.Build();
     }
-    
+
     /// <summary>
     /// Gets the JDBC connection string for the PostgreSQL server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}</c>.
+    /// <para>Format: <c>jdbc:postgresql://{host}:{port}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 

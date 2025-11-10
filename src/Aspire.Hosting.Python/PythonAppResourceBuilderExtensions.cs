@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -23,79 +24,45 @@ namespace Aspire.Hosting;
 public static class PythonAppResourceBuilderExtensions
 {
     private const string DefaultVirtualEnvFolder = ".venv";
+    private const string DefaultPythonVersion = "3.13";
 
     /// <summary>
-    /// Adds a python application to the application model.
+    /// Adds a Python application to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="appDirectory">The path to the directory containing the python app files.</param>
-    /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method is obsolete. Use one of the more specific methods instead:
-    /// </para>
-    /// <list type="bullet">
-    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
-    /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
-    /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
-    /// </list>
-    /// <para>
-    /// These new methods provide better clarity about how the Python application will be executed.
-    /// You can also use <see cref="WithEntrypoint"/> to change the entrypoint type after creation.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Replace with <see cref="AddPythonScript"/>:
-    /// <code lang="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// builder.AddPythonScript("python-app", "../python-app", "main.py")
-    ///        .WithArgs("arg1", "arg2");
-    ///
-    /// builder.Build().Run();
-    /// </code>
-    /// </example>
-    [Obsolete("Use AddPythonScript, AddPythonModule, or AddPythonExecutable instead for more explicit control over how the Python application is executed.")]
-    [OverloadResolutionPriority(1)]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public static IResourceBuilder<PythonAppResource> AddPythonApp(
-        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
-            .WithDebugging();
-
-    /// <summary>
-    /// Adds a Python script to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="appDirectory">The path to the directory containing the python script.</param>
+    /// <param name="appDirectory">The path to the directory containing the python application.</param>
     /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// This method executes a Python script directly using <c>python script.py</c>.
-    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
+    /// By default, the virtual environment is resolved using the following priority:
+    /// <list type="number">
+    /// <item>If <c>.venv</c> exists in the app directory, use it.</item>
+    /// <item>If <c>.venv</c> exists in the AppHost directory, use it.</item>
+    /// <item>Otherwise, default to <c>.venv</c> in the app directory.</item>
+    /// </list>
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
-    /// Python scripts automatically have debugging support enabled.
+    /// Python applications automatically have debugging support enabled.
     /// </para>
     /// </remarks>
     /// <example>
-    /// Add a FastAPI Python script to the application model:
+    /// Add a FastAPI Python application to the application model:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonScript("fastapi-app", "../api", "main.py")
+    /// builder.AddPythonApp("fastapi-app", "../api", "main.py")
     ///        .WithArgs("arg1", "arg2");
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<PythonAppResource> AddPythonScript(
+    [OverloadResolutionPriority(1)]
+    public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
             .WithDebugging();
@@ -112,7 +79,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs a Python module using <c>python -m &lt;module&gt;</c>.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the module.
     /// </para>
     /// <para>
@@ -147,7 +114,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// This method runs an executable from the virtual environment's bin directory.
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string)"/> to specify a different virtual environment path.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
     /// Use <c>WithArgs</c> to pass arguments to the executable.
     /// </para>
     /// <para>
@@ -186,7 +153,7 @@ public static class PythonAppResourceBuilderExtensions
     /// This overload is obsolete. Use one of the more specific methods instead:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string)"/> - To run a Python script file</description></item>
     /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
     /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
     /// </list>
@@ -227,7 +194,7 @@ public static class PythonAppResourceBuilderExtensions
     /// This overload is obsolete. Use one of the more specific methods instead:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string)"/> - To run a Python script file</description></item>
     /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
     /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
     /// </list>
@@ -284,7 +251,7 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var api = builder.AddUvicornApp("api", "../fastapi-app", "main:app")
-    ///     .WithUvEnvironment()
+    ///     .WithUv()
     ///     .WithExternalHttpEndpoints();
     ///
     /// builder.Build().Run();
@@ -350,6 +317,16 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
+        // Register Python environment validation services (once per builder)
+        builder.Services.TryAddSingleton<PythonInstallationManager>();
+        // When using the default virtual environment path, look for existing virtual environments
+        // in multiple locations: app directory first, then AppHost directory as fallback
+        var resolvedVenvPath = virtualEnvironmentPath;
+        if (virtualEnvironmentPath == DefaultVirtualEnvFolder)
+        {
+            resolvedVenvPath = ResolveDefaultVirtualEnvironmentPath(builder, appDirectory, virtualEnvironmentPath);
+        }
+
         // python will be replaced with the resolved entrypoint based on the virtualEnvironmentPath
         var resource = createResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
 
@@ -362,7 +339,7 @@ public static class PythonAppResourceBuilderExtensions
                 Entrypoint = entrypoint
             })
             // This will resolve the correct python executable based on the virtual environment
-            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithVirtualEnvironment(resolvedVenvPath)
             // This will set up the the entrypoint based on the PythonEntrypointAnnotation
             .WithEntrypoint(entrypointType, entrypoint);
 
@@ -390,9 +367,7 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Configure required environment variables for custom certificate trust when running as an executable
-        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
-        // way to simply append additional certificates to default Python trust stores such as certifi.
+        // Configure required environment variables for custom certificate trust when running as an executable.
         resourceBuilder
             .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
@@ -401,7 +376,7 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
                     var logger = resourceLogger.GetLogger(ctx.Resource);
-                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
+                    logger.LogInformation("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied.");
                 }
                 else
                 {
@@ -432,130 +407,40 @@ public static class PythonAppResourceBuilderExtensions
             c.WithDockerfileBuilder(resource.WorkingDirectory,
                 context =>
                 {
-                    if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
-                        !pythonEnvironmentAnnotation.Uv)
-                    {
-                        // Use the default Dockerfile if not using UV
-                        return;
-                    }
-
                     if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
                     {
                         // No entrypoint annotation found, cannot generate Dockerfile
                         return;
                     }
 
-                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
+                    // Try to get Python environment annotation
+                    context.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation);
 
+                    // Detect Python version
+                    var pythonVersion = pythonEnvironmentAnnotation?.Version;
                     if (pythonVersion is null)
                     {
-                        // Could not detect Python version, skip Dockerfile generation
-                        return;
+                        var virtualEnvironment = pythonEnvironmentAnnotation?.VirtualEnvironment;
+                        pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
                     }
+
+                    // if we could not detect Python version, use the default
+                    pythonVersion ??= DefaultPythonVersion;
 
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
 
-                    // Determine entry command for Dockerfile
-                    string[] entryCommand = entrypointType switch
+                    // Check if using UV by looking at the package manager annotation
+                    var isUsingUv = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
+                                    pkgMgr.ExecutableName == "uv";
+
+                    if (isUsingUv)
                     {
-                        EntrypointType.Script => ["python", entrypoint],
-                        EntrypointType.Module => ["python", "-m", entrypoint],
-                        EntrypointType.Executable => [entrypoint],
-                        _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
-                    };
-
-                    // Check if uv.lock exists in the working directory
-                    var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
-                    var hasUvLock = File.Exists(uvLockPath);
-
-                    var builderStage = context.Builder
-                        .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
-                        .EmptyLine()
-                        .Comment("Enable bytecode compilation and copy mode for the virtual environment")
-                        .Env("UV_COMPILE_BYTECODE", "1")
-                        .Env("UV_LINK_MODE", "copy")
-                        .EmptyLine()
-                        .WorkDir("/app")
-                        .EmptyLine();
-
-                    if (hasUvLock)
-                    {
-                        // If uv.lock exists, use locked mode for reproducible builds
-                        builderStage
-                            .Comment("Install dependencies first for better layer caching")
-                            .Comment("Uses BuildKit cache mounts to speed up repeated builds")
-                            .RunWithMounts(
-                                "uv sync --locked --no-install-project --no-dev",
-                                "type=cache,target=/root/.cache/uv",
-                                "type=bind,source=uv.lock,target=uv.lock",
-                                "type=bind,source=pyproject.toml,target=pyproject.toml")
-                            .EmptyLine()
-                            .Comment("Copy the rest of the application source and install the project")
-                            .Copy(".", "/app")
-                            .RunWithMounts(
-                                "uv sync --locked --no-dev",
-                                "type=cache,target=/root/.cache/uv");
+                        GenerateUvDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
                     else
                     {
-                        // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
-                        builderStage
-                            .Comment("Copy pyproject.toml to install dependencies")
-                            .Copy("pyproject.toml", "/app/")
-                            .EmptyLine()
-                            .Comment("Install dependencies and generate lock file")
-                            .Comment("Uses BuildKit cache mount to speed up repeated builds")
-                            .RunWithMounts(
-                                "uv sync --no-install-project --no-dev",
-                                "type=cache,target=/root/.cache/uv")
-                            .EmptyLine()
-                            .Comment("Copy the rest of the application source and install the project")
-                            .Copy(".", "/app")
-                            .RunWithMounts(
-                                "uv sync --no-dev",
-                                "type=cache,target=/root/.cache/uv");
-                    }
-
-                    var runtimeBuilder = context.Builder
-                        .From($"python:{pythonVersion}-slim-bookworm", "app")
-                        .EmptyLine()
-                        .AddContainerFiles(context.Resource, "/app")
-                        .Comment("------------------------------")
-                        .Comment("🚀 Runtime stage")
-                        .Comment("------------------------------")
-                        .Comment("Create non-root user for security")
-                        .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
-                        .EmptyLine()
-                        .Comment("Copy the application and virtual environment from builder")
-                        .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
-                        .EmptyLine()
-                        .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
-                        .Env("PATH", "/app/.venv/bin:${PATH}")
-                        .Env("VIRTUAL_ENV", "/app/.venv")
-                        .Env("PYTHONDONTWRITEBYTECODE", "1")
-                        .Env("PYTHONUNBUFFERED", "1")
-                        .EmptyLine()
-                        .Comment("Use the non-root user to run the application")
-                        .User("appuser")
-                        .EmptyLine()
-                        .Comment("Set working directory")
-                        .WorkDir("/app")
-                        .EmptyLine()
-                        .Comment("Run the application");
-
-                    // Set the appropriate entrypoint and command based on entrypoint type
-                    switch (entrypointType)
-                    {
-                        case EntrypointType.Script:
-                            runtimeBuilder.Entrypoint(["python", entrypoint]);
-                            break;
-                        case EntrypointType.Module:
-                            runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
-                            break;
-                        case EntrypointType.Executable:
-                            runtimeBuilder.Entrypoint([entrypoint]);
-                            break;
+                        GenerateFallbackDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
                 });
         });
@@ -573,36 +458,220 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            // Subscribe to BeforeStartEvent for this specific resource to wire up dependencies dynamically
+            // This allows methods like WithPip, WithUv, and WithVirtualEnvironment to add/remove resources
+            // and the dependencies will be established based on which resources actually exist
+            // Only do this in run mode since the installer and venv creator only run in run mode
+            var resourceToSetup = resourceBuilder.Resource;
+            builder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+            {
+                // Wire up wait dependencies for this resource based on which child resources exist
+                SetupDependencies(builder, resourceToSetup);
+                return Task.CompletedTask;
+            });
+
+            // Automatically add pip as the package manager if pyproject.toml or requirements.txt exists
+            // Only do this in run mode since the installer resource only runs in run mode
+            // Note: pip supports both pyproject.toml and requirements.txt
+            var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
+
+            if (File.Exists(Path.Combine(appDirectoryFullPath, "pyproject.toml")) ||
+                File.Exists(Path.Combine(appDirectoryFullPath, "requirements.txt")))
+            {
+                resourceBuilder.WithPip();
+            }
+            else
+            {
+                // No package files found, but we should still create venv if it doesn't exist
+                // and createIfNotExists is true (which is the default)
+                CreateVenvCreatorIfNeeded(resourceBuilder);
+            }
+        }
+
         return resourceBuilder;
     }
 
-    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
+    private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
+        string pythonVersion, EntrypointType entrypointType, string entrypoint)
     {
-        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
+        // Check if uv.lock exists in the working directory
+        var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
+        var hasUvLock = File.Exists(uvLockPath);
+
+        // Get custom base images from annotation, if present
+        context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+        var buildImage = baseImageAnnotation?.BuildImage ?? $"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim";
+        var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
+
+        var builderStage = context.Builder
+            .From(buildImage, "builder")
+            .EmptyLine()
+            .Comment("Enable bytecode compilation and copy mode for the virtual environment")
+            .Env("UV_COMPILE_BYTECODE", "1")
+            .Env("UV_LINK_MODE", "copy")
+            .EmptyLine()
+            .WorkDir("/app")
+            .EmptyLine();
+
+        if (hasUvLock)
         {
-            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
-            {
-                // get image name
-                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
-                {
-                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
-                }
-
-                var destinationPath = containerFileDestination.DestinationPath;
-                if (!destinationPath.StartsWith('/'))
-                {
-                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
-                }
-
-                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                {
-                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
-                }
-            }
-
-            stage.EmptyLine();
+            // If uv.lock exists, use locked mode for reproducible builds
+            builderStage
+                .Comment("Install dependencies first for better layer caching")
+                .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                .RunWithMounts(
+                    "uv sync --locked --no-install-project --no-dev",
+                    "type=cache,target=/root/.cache/uv",
+                    "type=bind,source=uv.lock,target=uv.lock",
+                    "type=bind,source=pyproject.toml,target=pyproject.toml")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source and install the project")
+                .Copy(".", "/app")
+                .RunWithMounts(
+                    "uv sync --locked --no-dev",
+                    "type=cache,target=/root/.cache/uv");
         }
-        return stage;
+        else
+        {
+            // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
+            builderStage
+                .Comment("Copy pyproject.toml to install dependencies")
+                .Copy("pyproject.toml", "/app/")
+                .EmptyLine()
+                .Comment("Install dependencies and generate lock file")
+                .Comment("Uses BuildKit cache mount to speed up repeated builds")
+                .RunWithMounts(
+                    "uv sync --no-install-project --no-dev",
+                    "type=cache,target=/root/.cache/uv")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source and install the project")
+                .Copy(".", "/app")
+                .RunWithMounts(
+                    "uv sync --no-dev",
+                    "type=cache,target=/root/.cache/uv");
+        }
+
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
+        var runtimeBuilder = context.Builder
+            .From(runtimeImage, "app")
+            .EmptyLine()
+            .AddContainerFiles(context.Resource, "/app", logger)
+            .Comment("------------------------------")
+            .Comment("🚀 Runtime stage")
+            .Comment("------------------------------")
+            .Comment("Create non-root user for security")
+            .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+            .EmptyLine()
+            .Comment("Copy the application and virtual environment from builder")
+            .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
+            .EmptyLine()
+            .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
+            .Env("PATH", "/app/.venv/bin:${PATH}")
+            .Env("VIRTUAL_ENV", "/app/.venv")
+            .Env("PYTHONDONTWRITEBYTECODE", "1")
+            .Env("PYTHONUNBUFFERED", "1")
+            .EmptyLine()
+            .Comment("Use the non-root user to run the application")
+            .User("appuser")
+            .EmptyLine()
+            .Comment("Set working directory")
+            .WorkDir("/app")
+            .EmptyLine()
+            .Comment("Run the application");
+
+        // Set the appropriate entrypoint and command based on entrypoint type
+        switch (entrypointType)
+        {
+            case EntrypointType.Script:
+                runtimeBuilder.Entrypoint(["python", entrypoint]);
+                break;
+            case EntrypointType.Module:
+                runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
+                break;
+            case EntrypointType.Executable:
+                runtimeBuilder.Entrypoint([entrypoint]);
+                break;
+        }
+    }
+
+    private static void GenerateFallbackDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
+        string pythonVersion, EntrypointType entrypointType, string entrypoint)
+    {
+        // Use the same runtime image as UV workflow for consistency
+        context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+        var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
+
+        // Check if requirements.txt exists
+        var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
+        var hasRequirementsTxt = File.Exists(requirementsTxtPath);
+
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
+        var stage = context.Builder
+            .From(runtimeImage)
+            .EmptyLine()
+            .AddContainerFiles(context.Resource, "/app", logger)
+            .Comment("------------------------------")
+            .Comment("🚀 Python Application")
+            .Comment("------------------------------")
+            .Comment("Create non-root user for security")
+            .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+            .EmptyLine()
+            .Comment("Set working directory")
+            .WorkDir("/app")
+            .EmptyLine();
+
+        if (hasRequirementsTxt)
+        {
+            // Copy requirements.txt first for better layer caching
+            stage
+                .Comment("Copy requirements.txt for dependency installation")
+                .Copy("requirements.txt", "/app/requirements.txt")
+                .EmptyLine()
+                .Comment("Install dependencies using pip")
+                .Run(
+                """
+                apt-get update \
+                  && apt-get install -y --no-install-recommends build-essential \
+                  && pip install --no-cache-dir -r requirements.txt \
+                  && apt-get purge -y --auto-remove build-essential \
+                  && rm -rf /var/lib/apt/lists/*
+                """)
+                .EmptyLine();
+        }
+
+        // Copy the rest of the application
+        stage
+            .Comment("Copy application files")
+            .Copy(".", "/app", "appuser:appuser")
+            .EmptyLine()
+            .Comment("Set environment variables")
+            .Env("PYTHONDONTWRITEBYTECODE", "1")
+            .Env("PYTHONUNBUFFERED", "1")
+            .EmptyLine()
+            .Comment("Use the non-root user to run the application")
+            .User("appuser")
+            .EmptyLine()
+            .Comment("Run the application");
+
+        // Set the appropriate entrypoint based on entrypoint type
+        switch (entrypointType)
+        {
+            case EntrypointType.Script:
+                stage.Entrypoint(["python", entrypoint]);
+                break;
+            case EntrypointType.Module:
+                stage.Entrypoint(["python", "-m", entrypoint]);
+                break;
+            case EntrypointType.Executable:
+                stage.Entrypoint([entrypoint]);
+                break;
+        }
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
@@ -623,6 +692,73 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Resolves the default virtual environment path by checking multiple candidate locations.
+    /// </summary>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="appDirectory">The Python app directory (relative to AppHost).</param>
+    /// <param name="virtualEnvironmentPath">The relative virtual environment path (e.g., ".venv").</param>
+    /// <returns>The resolved virtual environment path.</returns>
+    private static string ResolveDefaultVirtualEnvironmentPath(IDistributedApplicationBuilder builder, string appDirectory, string virtualEnvironmentPath)
+    {
+        var appDirectoryFullPath = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
+
+        // Walk up from the Python app directory looking for the virtual environment
+        // Stop at the AppHost's parent directory to avoid picking up unrelated venvs
+        var appHostParentDirectory = Path.GetDirectoryName(builder.AppHostDirectory);
+
+        // Check if the app directory is under the AppHost's parent directory
+        // If not, only look in the app directory itself
+        if (appHostParentDirectory != null)
+        {
+            var relativePath = Path.GetRelativePath(appHostParentDirectory, appDirectoryFullPath);
+            var isUnderAppHostParent = !relativePath.StartsWith("..", StringComparison.Ordinal) &&
+                                        !Path.IsPathRooted(relativePath);
+
+            if (!isUnderAppHostParent)
+            {
+                // App is not under AppHost's parent, only use the app directory
+                return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
+            }
+        }
+
+        var currentDirectory = appDirectoryFullPath;
+
+        while (currentDirectory != null)
+        {
+            var venvPath = Path.Combine(currentDirectory, virtualEnvironmentPath);
+            if (Directory.Exists(venvPath))
+            {
+                return venvPath;
+            }
+
+            // Stop if we've reached the AppHost's parent directory
+            // Use case-insensitive comparison on Windows, case-sensitive on Unix
+            var reachedBoundary = OperatingSystem.IsWindows()
+                ? string.Equals(currentDirectory, appHostParentDirectory, StringComparison.OrdinalIgnoreCase)
+                : string.Equals(currentDirectory, appHostParentDirectory, StringComparison.Ordinal);
+
+            if (reachedBoundary)
+            {
+                break;
+            }
+
+            // Move up to the parent directory
+            var parentDirectory = Path.GetDirectoryName(currentDirectory);
+
+            // Stop if we can't go up anymore or if we've gone beyond the AppHost's parent
+            if (parentDirectory == null || parentDirectory == currentDirectory)
+            {
+                break;
+            }
+
+            currentDirectory = parentDirectory;
+        }
+
+        // Default: Return app directory path (for cases where the venv will be created later)
+        return Path.Combine(appDirectoryFullPath, virtualEnvironmentPath);
+    }
+
+    /// <summary>
     /// Configures a custom virtual environment path for the Python application.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -631,15 +767,28 @@ public static class PythonAppResourceBuilderExtensions
     /// When relative, it is resolved from the working directory of the Python application.
     /// Common values include ".venv", "venv", or "myenv".
     /// </param>
+    /// <param name="createIfNotExists">
+    /// Whether to automatically create the virtual environment if it doesn't exist. Defaults to <c>true</c>.
+    /// Set to <c>false</c> to disable automatic venv creation (the venv must already exist).
+    /// </param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
     /// This method updates the Python executable path to use the specified virtual environment.
-    /// The virtual environment must already exist and be properly initialized before the application runs.
+    /// </para>
+    /// <para>
+    /// By default (<paramref name="createIfNotExists"/> = <c>true</c>), if the virtual environment doesn't exist,
+    /// it will be automatically created before running the application (when using pip package manager, not uv).
+    /// Set <paramref name="createIfNotExists"/> to <c>false</c> to disable this behavior and require the venv to already exist.
     /// </para>
     /// <para>
     /// Virtual environments allow Python applications to have isolated dependencies separate from
     /// the system Python installation. This is the recommended approach for Python applications.
+    /// </para>
+    /// <para>
+    /// When you explicitly specify a virtual environment path using this method, the path is used verbatim.
+    /// The automatic multi-location lookup (checking both app and AppHost directories) only applies when
+    /// using the default ".venv" path during initial app creation via AddPythonScript, AddPythonModule, or AddPythonExecutable.
     /// </para>
     /// </remarks>
     /// <example>
@@ -647,17 +796,24 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithVirtualEnvironment("myenv");
+    ///
+    /// // Disable automatic venv creation (require venv to exist)
+    /// var python2 = builder.AddPythonApp("api2", "../python-api2", "main.py")
+    ///     .WithVirtualEnvironment("myenv", createIfNotExists: false);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithVirtualEnvironment<T>(
-        this IResourceBuilder<T> builder, string virtualEnvironmentPath) where T : PythonAppResource
+        this IResourceBuilder<T> builder, string virtualEnvironmentPath, bool createIfNotExists = true) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
 
-        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
+        // Use the provided path verbatim - resolve relative paths against the app working directory
+        var resolvedPath = Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
-            : Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory));
+            : Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+        var virtualEnvironment = new VirtualEnvironment(resolvedPath);
 
         // Get the entrypoint annotation to determine how to update the command
         if (!builder.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
@@ -677,7 +833,14 @@ public static class PythonAppResourceBuilderExtensions
         builder.WithPythonEnvironment(env =>
         {
             env.VirtualEnvironment = virtualEnvironment;
+            env.CreateVenvIfNotExists = createIfNotExists;
         });
+
+        // If createIfNotExists is false, remove venv creator
+        if (!createIfNotExists)
+        {
+            RemoveVenvCreator(builder);
+        }
 
         return builder;
     }
@@ -891,10 +1054,93 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures the Python resource to use pip as the package manager and optionally installs packages before the application starts.
+    /// </summary>
+    /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="installArgs">The command-line arguments passed to pip install command.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method creates a child resource that runs <c>pip install</c> in the working directory of the Python application.
+    /// The Python application will wait for this resource to complete successfully before starting.
+    /// </para>
+    /// <para>
+    /// Pip will automatically detect and use either pyproject.toml or requirements.txt based on which file exists in the application directory.
+    /// If pyproject.toml exists, pip will use it. Otherwise, if requirements.txt exists, pip will use that.
+    /// Calling this method will replace any previously configured package manager (such as uv).
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a Python app with automatic pip package installation:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
+    ///     .WithPip()  // Automatically installs from pyproject.toml or requirements.txt
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    public static IResourceBuilder<T> WithPip<T>(this IResourceBuilder<T> builder, bool install = true, string[]? installArgs = null)
+        where T : PythonAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Ensure virtual environment exists - create default .venv if not configured
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment is null)
+        {
+            // Create default virtual environment if none exists
+            builder.WithVirtualEnvironment(".venv");
+            pythonEnv = builder.Resource.Annotations.OfType<PythonEnvironmentAnnotation>().Last();
+        }
+
+        var virtualEnvironment = pythonEnv.VirtualEnvironment!;
+
+        // Determine install command based on which file exists
+        // Pip supports both pyproject.toml and requirements.txt
+        var workingDirectory = builder.Resource.WorkingDirectory;
+        string[] baseInstallArgs;
+
+        if (File.Exists(Path.Combine(workingDirectory, "pyproject.toml")))
+        {
+            // Use pip install with pyproject.toml (pip will read from pyproject.toml automatically)
+            baseInstallArgs = ["install", "."];
+        }
+        else if (File.Exists(Path.Combine(workingDirectory, "requirements.txt")))
+        {
+            // Use pip install with requirements.txt
+            baseInstallArgs = ["install", "-r", "requirements.txt"];
+        }
+        else
+        {
+            // Default to requirements.txt even if it doesn't exist (will fail at runtime if no file is present)
+            baseInstallArgs = ["install", "-r", "requirements.txt"];
+        }
+
+        builder
+            .WithAnnotation(new PythonPackageManagerAnnotation(virtualEnvironment.GetExecutable("pip")), ResourceAnnotationMutationBehavior.Replace)
+            .WithAnnotation(new PythonInstallCommandAnnotation([.. baseInstallArgs, .. installArgs ?? []]), ResourceAnnotationMutationBehavior.Replace);
+
+        AddInstaller(builder, install);
+
+        // Create venv creator if needed (will check if venv exists)
+        CreateVenvCreatorIfNeeded(builder);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a UV environment setup task to ensure the virtual environment exists before running the Python application.
     /// </summary>
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="install">When true (default), automatically runs uv sync before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="args">Optional custom arguments to pass to the uv command. If not provided, defaults to ["sync"].</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
@@ -904,11 +1150,10 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
     /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual
-    /// environment exists and all dependencies specified in pyproject.toml are installed and synchronized.
+    /// environment exists, Python is installed if needed, and all dependencies specified in pyproject.toml are installed and synchronized.
     /// </para>
     /// <para>
-    /// This method is idempotent - calling it multiple times on the same resource will not create duplicate UV environment resources.
-    /// If a UV environment resource already exists for the Python application, it will be reused.
+    /// Calling this method will replace any previously configured package manager (such as pip).
     /// </para>
     /// </remarks>
     /// <example>
@@ -916,55 +1161,313 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
-    ///     .WithUvEnvironment()  // Automatically runs 'uv sync' before starting the app
+    /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
+    ///     .WithUv()  // Automatically runs 'uv sync' before starting the app
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Add a Python app with custom UV arguments:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
+    ///     .WithUv(args: ["sync", "--python", "3.12", "--no-dev"])  // Custom uv sync args
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
-    /// <exception cref="DistributedApplicationException">
-    /// Thrown when a resource with the UV environment name already exists but is not a <see cref="PythonUvEnvironmentResource"/>.
-    /// </exception>
-    public static IResourceBuilder<T> WithUvEnvironment<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithUv<T>(this IResourceBuilder<T> builder, bool install = true, string[]? args = null)
         where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
+        // Register UV validation service
+        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
 
-        // Check if the UV environment resource already exists
-        var existingResource = builder.ApplicationBuilder.Resources
-            .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
+        // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
+        args ??= ["sync"];
 
-        IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
+        builder
+            .WithAnnotation(new PythonPackageManagerAnnotation("uv"), ResourceAnnotationMutationBehavior.Replace)
+            .WithAnnotation(new PythonInstallCommandAnnotation(args), ResourceAnnotationMutationBehavior.Replace);
 
-        if (existingResource is not null)
+        AddInstaller(builder, install);
+
+        // UV handles venv creation, so remove any existing venv creator
+        RemoveVenvCreator(builder);
+
+        return builder;
+    }
+
+    private static bool IsPythonCommandAvailable(string command)
+    {
+        var pathVariable = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathVariable))
         {
-            // Resource already exists, return a builder for it
-            if (existingResource is not PythonUvEnvironmentResource uvEnvironmentResource)
-            {
-                throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
-            }
+            return false;
+        }
 
-            uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, try both .exe and .cmd extensions
+            foreach (var ext in new[] { ".exe", ".cmd" })
+            {
+                var commandWithExt = command + ext;
+                foreach (var directory in pathVariable.Split(Path.PathSeparator))
+                {
+                    var fullPath = Path.Combine(directory, commandWithExt);
+                    if (File.Exists(fullPath))
+                    {
+                        return true;
+                    }
+                }
+            }
         }
         else
         {
-            // Resource doesn't exist, create it
-            var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
-
-            uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
-                .WithArgs("sync")
-                .WithParentRelationship(builder)
-                .ExcludeFromManifest();
-
-            builder.WaitForCompletion(uvBuilder)
-                   .WithPythonEnvironment(env => env.Uv = true);
+            // On Unix-like systems, no extension needed
+            foreach (var directory in pathVariable.Split(Path.PathSeparator))
+            {
+                var fullPath = Path.Combine(directory, command);
+                if (File.Exists(fullPath))
+                {
+                    return true;
+                }
+            }
         }
 
-        return builder;
+        return false;
+    }
+
+    private static void AddInstaller<T>(IResourceBuilder<T> builder, bool install) where T : PythonAppResource
+    {
+        // Only install packages if in run mode
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Check if the installer resource already exists
+            var installerName = $"{builder.Resource.Name}-installer";
+            builder.ApplicationBuilder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var existingResource);
+
+            if (!install)
+            {
+                if (existingResource != null)
+                {
+                    // Remove existing installer resource if install is false
+                    builder.ApplicationBuilder.Resources.Remove(existingResource.Resource);
+                    builder.Resource.Annotations.OfType<PythonPackageInstallerAnnotation>()
+                        .ToList()
+                        .ForEach(a => builder.Resource.Annotations.Remove(a));
+                }
+                return;
+            }
+
+            if (existingResource is not null)
+            {
+                // Installer already exists, it will be reconfigured via BeforeStartEvent
+                return;
+            }
+
+            var installer = new PythonInstallerResource(installerName, builder.Resource);
+            var installerBuilder = builder.ApplicationBuilder.AddResource(installer)
+                .WithParentRelationship(builder.Resource)
+                .ExcludeFromManifest();
+
+            // Add validation for the installer command (uv or python)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Check which command this installer is using (set by BeforeStartEvent)
+                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
+                    executable.Command == "uv")
+                {
+                    // Validate that uv is installed - don't throw so the app fails as it normally would
+                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
+            });
+
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            {
+                // Set the installer's working directory to match the resource's working directory
+                // and set the install command and args based on the resource's annotations
+                if (!builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager) ||
+                    !builder.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installCommand))
+                {
+                    // No package manager configured - don't fail, just don't run the installer
+                    // This allows venv to be created without requiring a package manager
+                    return Task.CompletedTask;
+                }
+
+                installerBuilder
+                    .WithCommand(packageManager.ExecutableName)
+                    .WithWorkingDirectory(builder.Resource.WorkingDirectory)
+                    .WithArgs(installCommand.Args);
+
+                return Task.CompletedTask;
+            });
+
+            builder.WithAnnotation(new PythonPackageInstallerAnnotation(installer));
+        }
+    }
+
+    private static void CreateVenvCreatorIfNeeded<T>(IResourceBuilder<T> builder) where T : PythonAppResource
+    {
+        // Check if we should create a venv
+        if (!ShouldCreateVenv(builder))
+        {
+            return;
+        }
+
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment == null)
+        {
+            return;
+        }
+
+        var venvPath = Path.IsPathRooted(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath)
+            ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
+            : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+        // Create venv creator as a child resource
+        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
+
+        // Use TryCreateResourceBuilder to check if it already exists
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out _))
+        {
+            // Venv creator already exists, no need to create again
+            return;
+        }
+
+        // Create new venv creator resource
+        var venvCreator = new PythonVenvCreatorResource(venvCreatorName, builder.Resource, venvPath);
+
+        // Determine which Python command to use
+        string pythonCommand;
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, try py launcher first, then python
+            pythonCommand = IsPythonCommandAvailable("py") ? "py" : "python";
+        }
+        else
+        {
+            // On Unix-like systems, try python3 first (more explicit), then python
+            pythonCommand = IsPythonCommandAvailable("python3") ? "python3" : "python";
+        }
+
+        builder.ApplicationBuilder.AddResource(venvCreator)
+            .WithCommand(pythonCommand)
+            .WithArgs(["-m", "venv", venvPath])
+            .WithWorkingDirectory(builder.Resource.WorkingDirectory)
+            .WithParentRelationship(builder.Resource)
+            .ExcludeFromManifest()
+            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
+            {
+                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
+                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
+                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
+
+        // Wait relationships will be set up dynamically in SetupDependencies
+    }
+
+    private static void RemoveVenvCreator<T>(IResourceBuilder<T> builder) where T : PythonAppResource
+    {
+        var venvCreatorName = $"{builder.Resource.Name}-venv-creator";
+
+        // Use TryCreateResourceBuilder to check if venv creator exists
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var venvCreatorBuilder))
+        {
+            builder.ApplicationBuilder.Resources.Remove(venvCreatorBuilder.Resource);
+            // Wait relationships are managed dynamically in SetupDependencies, so no need to clean them up here
+        }
+    }
+
+    private static void SetupDependencies(IDistributedApplicationBuilder builder, PythonAppResource resource)
+    {
+        // This method is called in BeforeStartEvent to dynamically set up dependencies
+        // based on which child resources actually exist after all method calls have been made
+
+        var venvCreatorName = $"{resource.Name}-venv-creator";
+        var installerName = $"{resource.Name}-installer";
+
+        // Try to get the venv creator and installer resources
+        builder.TryCreateResourceBuilder<PythonVenvCreatorResource>(venvCreatorName, out var venvCreatorBuilder);
+        builder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var installerBuilder);
+
+        // Get the Python app resource builder
+        builder.TryCreateResourceBuilder<PythonAppResource>(resource.Name, out var appBuilder);
+
+        if (appBuilder == null)
+        {
+            return; // Resource doesn't exist, nothing to set up
+        }
+
+        // Set up wait dependencies based on what exists:
+        // 1. If both venv creator and installer exist: installer waits for venv creator, app waits for installer
+        // 2. If only installer exists: app waits for installer
+        // 3. If only venv creator exists: app waits for venv creator (no installer needed)
+        // 4. If neither exists: app runs directly (no waits needed)
+
+        if (venvCreatorBuilder != null && installerBuilder != null)
+        {
+            // Both exist: installer waits for venv, app waits for installer
+            installerBuilder.WaitForCompletion(venvCreatorBuilder);
+            appBuilder.WaitForCompletion(installerBuilder);
+        }
+        else if (installerBuilder != null)
+        {
+            // Only installer exists: app waits for installer
+            appBuilder.WaitForCompletion(installerBuilder);
+        }
+        else if (venvCreatorBuilder != null)
+        {
+            // Only venv creator exists: app waits for venv creator
+            appBuilder.WaitForCompletion(venvCreatorBuilder);
+        }
+        // If neither exists, no wait relationships needed
+    }
+
+    private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
+    {
+        // Check if we're using uv (which handles venv creation itself)
+        var isUsingUv = builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
+                        pkgMgr.ExecutableName == "uv";
+
+        if (isUsingUv)
+        {
+            // UV handles venv creation, we don't need to create it
+            return false;
+        }
+
+        // Get the virtual environment path
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment == null)
+        {
+            return false;
+        }
+
+        // Check if automatic venv creation is disabled
+        if (!pythonEnv.CreateVenvIfNotExists)
+        {
+            return false;
+        }
+
+        var venvPath = Path.IsPathRooted(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath)
+            ? pythonEnv.VirtualEnvironment.VirtualEnvironmentPath
+            : Path.GetFullPath(pythonEnv.VirtualEnvironment.VirtualEnvironmentPath, builder.Resource.WorkingDirectory);
+
+        // Check if venv directory exists (simple check, don't verify validity)
+        if (Directory.Exists(venvPath))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     internal static IResourceBuilder<PythonAppResource> WithPythonEnvironment(this IResourceBuilder<PythonAppResource> builder, Action<PythonEnvironmentAnnotation> configure)

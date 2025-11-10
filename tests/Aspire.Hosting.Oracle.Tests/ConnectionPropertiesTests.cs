@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Oracle.Tests;
 
@@ -10,7 +11,7 @@ public class ConnectionPropertiesTests
     [Fact]
     public void OracleDatabaseServerResourceGetConnectionPropertiesReturnsExpectedValues()
     {
-    var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
+        var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
         var resource = new OracleDatabaseServerResource("oracle", password);
 
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
@@ -39,15 +40,20 @@ public class ConnectionPropertiesTests
             },
             property =>
             {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("oracle://system:{password.value}@{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
+            },
+            property =>
+            {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                Assert.Equal("jdbc:oracle:thin:system/{password.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
+                Assert.Equal("jdbc:oracle:thin:@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}", property.Value.ValueExpression);
             });
     }
 
     [Fact]
     public void OracleDatabaseResourceGetConnectionPropertiesIncludesDatabaseSpecificValues()
     {
-    var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
+        var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
         var server = new OracleDatabaseServerResource("oracle", password);
         var resource = new OracleDatabaseResource("oracleDb", "Orders", server);
 
@@ -61,6 +67,27 @@ public class ConnectionPropertiesTests
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&
-                        property.Value.ValueExpression == "jdbc:oracle:thin:system/{password.value}@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/Orders");
+                        property.Value.ValueExpression == "jdbc:oracle:thin:@//{oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}/Orders");
     }
+
+    [Fact]
+    public async Task VerifyManifestWithConnectionProperties()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        const string databaseName = "db#test";
+
+        var server = builder.AddOracle("server");
+        var database = server.AddDatabase("db", databaseName);
+
+        // Force connection properties to be generated
+        var app = builder.AddExecutable("app", "command", ".")
+            .WithReference(server)
+            .WithReference(database);
+
+        var oracleManifest = await ManifestUtils.GetManifest(app.Resource);
+
+        await Verify(oracleManifest.ToString(), "json");
+    }
+
 }

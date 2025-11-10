@@ -17,12 +17,12 @@ Run the following commands from the repository root:
 
 **Windows:**
 ```cmd
-.\restore.cmd -restore-maui
+.\restore.cmd -mauirestore
 ```
 
 **Linux/macOS:**
 ```bash
-./restore.sh --restore-maui
+./restore.sh --mauirestore
 ```
 
 This will:
@@ -34,22 +34,22 @@ This will:
 
 ### Running the Playground
 
-After running the restore script with `-restore-maui`, you can build and run the playground:
+After running the restore script with `-mauirestore`, you can build and run the playground:
 
 **Using Visual Studio:**
-1. Run `.\restore.cmd -restore-maui` from the repository root (Windows)
+1. Run `.\restore.cmd -mauirestore` from the repository root (Windows)
 2. Open `AspireWithMaui.AppHost` project
 3. Set it as the startup project
 4. Press F5 to run
 
 **Using VS Code:**
-1. Run `.\restore.cmd -restore-maui` (Windows) or `./restore.sh --restore-maui` (Linux/macOS) from the repository root
+1. Run `.\restore.cmd -mauirestore` (Windows) or `./restore.sh --mauirestore` (Linux/macOS) from the repository root
 2. From the repository root, run: `./start-code.sh` or `start-code.cmd`
 3. Open the `AspireWithMaui` folder
 4. Use the debugger to run the AppHost
 
 **Using Command Line:**
-1. Run `.\restore.cmd -restore-maui` (Windows) or `./restore.sh --restore-maui` (Linux/macOS) from the repository root
+1. Run `.\restore.cmd -mauirestore` (Windows) or `./restore.sh --mauirestore` (Linux/macOS) from the repository root
 2. Navigate to `playground/AspireWithMaui/AspireWithMaui.AppHost` directory
 3. Run: `dotnet run`
 
@@ -86,13 +86,13 @@ The architecture is designed to support additional platforms (Android, iOS) thro
 
 ### "MAUI workload not detected" Warning
 If you see this warning in the Aspire dashboard:
-1. Make sure you ran `.\restore.cmd -restore-maui` or `./restore.sh --restore-maui` from the repository root
+1. Make sure you ran `.\restore.cmd -mauirestore` or `./restore.sh --mauirestore` from the repository root
 2. The warning indicates the MAUI workload is not installed in the local `.dotnet` folder
-3. Re-run the restore command with the `-restore-maui` or `--restore-maui` flag
+3. Re-run the restore command with the `-mauirestore` or `--mauirestore` flag
 
 ### Build Errors
 If you encounter build errors:
-1. Ensure you ran the restore script with the MAUI flag first: `.\restore.cmd -restore-maui`
+1. Ensure you ran the restore script with the MAUI flag first: `.\restore.cmd -mauirestore`
 2. Make sure you're using .NET 10 RC or later
 3. Try running `dotnet build` from the repository root first
 
