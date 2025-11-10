@@ -856,7 +856,7 @@ Aspire 13.0 introduces new integration packages that expand platform support.
 
 ### .NET MAUI Integration
 
-Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services. For 
+Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services. 
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
