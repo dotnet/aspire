@@ -278,8 +278,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Parse prompt messages (inputs)
         foreach (var (index, message) in promptMessages.OrderBy(kvp => kvp.Key))
         {
-            var role = message.TryGetValue("role", out var r) ? r : "user";
-            var content = message.TryGetValue("content", out var c) ? c : null;
+            var role = message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", "user");
+            var content = message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
 
             if (content != null)
             {
@@ -305,8 +305,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Parse completion messages (outputs)
         foreach (var (index, message) in completionMessages.OrderBy(kvp => kvp.Key))
         {
-            var role = message.TryGetValue("role", out var r) ? r : "assistant";
-            var content = message.TryGetValue("content", out var c) ? c : null;
+            var role = message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", "assistant");
+            var content = message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
 
             if (content != null)
             {
