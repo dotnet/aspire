@@ -211,6 +211,7 @@ public class AzureAppServiceEnvironmentResource :
         { AzureCloudName.AzureChina, "chinacloudsites.cn" },
         { AzureCloudName.AzureGermany, "azurewebsites.de" }
     };
+
     /// <summary>
     /// Enables or disables automatic scaling for the App Service Plan.
     /// </summary>
@@ -253,7 +254,7 @@ public class AzureAppServiceEnvironmentResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.{AzureAppServiceDnsSuffix}");
     }
 
     /// <inheritdoc/>

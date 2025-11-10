@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param env_outputs_azure_container_registry_endpoint string
@@ -9,9 +9,9 @@ param env_outputs_azure_container_registry_managed_identity_id string
 
 param env_outputs_azure_container_registry_managed_identity_client_id string
 
-param project1_containerimage string
+param project2_containerimage string
 
-param project1_containerport string
+param project2_containerport string
 
 param env_outputs_azure_app_service_dashboard_uri string
 
@@ -23,16 +23,16 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
-    image: project1_containerimage
+    image: project2_containerimage
     isMain: true
-    targetPort: project1_containerport
+    targetPort: project2_containerport
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
 }
 
 resource webapp 'Microsoft.Web/sites@2024-11-01' = {
-  name: take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)
+  name: take('${toLower('project2')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
     serverFarmId: env_outputs_planid
@@ -44,7 +44,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       appSettings: [
         {
           name: 'WEBSITES_PORT'
-          value: project1_containerport
+          value: project2_containerport
         }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
@@ -64,7 +64,15 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'HTTP_PORTS'
-          value: project1_containerport
+          value: project2_containerport
+        }
+        {
+          name: 'PROJECT1_HTTP'
+          value: 'http://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.us'
+        }
+        {
+          name: 'services__project1__http__0'
+          value: 'http://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.us'
         }
         {
           name: 'ASPIRE_ENVIRONMENT_NAME'
@@ -72,7 +80,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'OTEL_SERVICE_NAME'
-          value: 'project1'
+          value: 'project2'
         }
         {
           name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
@@ -105,7 +113,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   }
 }
 
-resource project1_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource project2_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: env_outputs_azure_website_contributor_managed_identity_principal_id

@@ -811,7 +811,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureAppServiceEnvironment("env", AppService.AzureCloudName.AzureChina);
+        builder.AddAzureAppServiceEnvironment("env").WithAzureCloudName(AppService.AzureCloudName.AzureChina);
 
         using var app = builder.Build();
 
@@ -832,12 +832,17 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureAppServiceEnvironment("env", AppService.AzureCloudName.AzureChina);
+        builder.AddAzureAppServiceEnvironment("env").WithAzureCloudName(AppService.AzureCloudName.AzureUSGovernment);
 
-        // Add project with endpoints but no target port specified
-        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+        // Add 2 projects with endpoints
+        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
             .WithHttpEndpoint()
             .WithExternalHttpEndpoints();
+
+        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithReference(project1);
 
         using var app = builder.Build();
 
@@ -845,7 +850,7 @@ public class AzureAppServiceTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        project.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
 
@@ -853,7 +858,6 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        // For project resources without explicit target port, should use container port reference
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
     }

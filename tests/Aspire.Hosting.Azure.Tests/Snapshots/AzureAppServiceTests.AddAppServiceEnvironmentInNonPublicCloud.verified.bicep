@@ -34,8 +34,10 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: take('envasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
+    elasticScaleEnabled: false
     perSiteScaling: true
     reserved: true
+    maximumElasticWorkerCount: 10
   }
   kind: 'Linux'
   sku: {
@@ -113,6 +115,8 @@ resource dashboard 'Microsoft.Web/sites@2024-11-01' = {
       alwaysOn: true
       http20Enabled: true
       http20ProxyFlag: 1
+      functionAppScaleLimit: 1
+      elasticWebAppScaleLimit: 1
     }
   }
   identity: {
@@ -142,4 +146,4 @@ output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID string = env_contributor_mi
 
 output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID string = env_contributor_mi.properties.principalId
 
-output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)}.chinacloudsites.cn'

@@ -83,7 +83,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     {
                         hostName = hostName.Substring(0, 60);
                     }
-                    var endpoint = $"https://{hostName}.azurewebsites.net";
+                    var endpoint = $"https://{hostName}.{computerEnv.AzureAppServiceDnsSuffix}";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
                 Tags = ["print-summary"]
