@@ -554,17 +554,15 @@ app.MapGet("/genai-langchain-trace", async () =>
         // Prompt messages
         activity.SetTag("gen_ai.prompt.0.role", "system");
         activity.SetTag("gen_ai.prompt.0.content", "You are a helpful AI assistant that provides accurate and concise information.");
-        
+
         activity.SetTag("gen_ai.prompt.1.role", "user");
         activity.SetTag("gen_ai.prompt.1.content", "What is the capital of France?");
 
-        // Completion messages
-        activity.SetTag("gen_ai.completion.0.role", "assistant");
-        activity.SetTag("gen_ai.completion.0.content", "The capital of France is Paris. It is located in the north-central part of the country and is known for its art, culture, and history.");
+        activity.SetTag("gen_ai.prompt.2.role", "assistant");
+        activity.SetTag("gen_ai.prompt.2.content", "The capital of France is Paris. It is located in the north-central part of the country and is known for its art, culture, and history.");
 
-        // Alternative format with message.role and message.content (fallback format)
-        activity.SetTag("gen_ai.prompt.2.message.role", "user");
-        activity.SetTag("gen_ai.prompt.2.message.content", "What about Germany?");
+        activity.SetTag("gen_ai.prompt.3.message.role", "user");
+        activity.SetTag("gen_ai.prompt.3.message.content", "What about Germany?");
 
         activity.SetTag("gen_ai.completion.1.message.role", "assistant");
         activity.SetTag("gen_ai.completion.1.message.content", "The capital of Germany is Berlin. It is located in the northeastern part of the country and serves as the political and cultural center.");
