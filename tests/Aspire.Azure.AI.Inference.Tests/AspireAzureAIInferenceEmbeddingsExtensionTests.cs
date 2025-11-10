@@ -46,7 +46,7 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference", "Endpoint=https://endpoint;Key=myAccount;DeploymentId=unused")
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding", "Endpoint=https://endpoint;Key=myAccount;DeploymentId=unused")
         ]);
 
         if (useKeyed)
@@ -72,14 +72,14 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference1", ConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:inference2", ConnectionString + "2")
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding1", ConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding2", ConnectionString + "2")
         ]);
-        builder.AddKeyedAzureEmbeddingsClient("inference1");
-        builder.AddKeyedAzureEmbeddingsClient("inference2");
+        builder.AddKeyedAzureEmbeddingsClient("embedding1");
+        builder.AddKeyedAzureEmbeddingsClient("embedding2");
         using var host = builder.Build();
-        var client1 = host.Services.GetKeyedService<EmbeddingsClient>("inference1");
-        var client2 = host.Services.GetKeyedService<EmbeddingsClient>("inference2");
+        var client1 = host.Services.GetKeyedService<EmbeddingsClient>("embedding1");
+        var client2 = host.Services.GetKeyedService<EmbeddingsClient>("embedding2");
         Assert.NotNull(client1);
         Assert.NotNull(client2);
 
@@ -93,7 +93,7 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding", ConnectionString)
         ]);
         if (useKeyed)
         {
@@ -105,8 +105,8 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
         }
         using var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetKeyedService<IChatClient>("embedding") :
-            host.Services.GetService<IChatClient>();
+            host.Services.GetKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("embedding") :
+            host.Services.GetService<IEmbeddingGenerator<string, Embedding<float>>>();
         Assert.NotNull(client);
     }
 
@@ -117,7 +117,7 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding", ConnectionString)
         ]);
         if (useKeyed)
         {
@@ -130,10 +130,10 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
 
         using var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetKeyedService<IChatClient>("embedding") :
-            host.Services.GetService<IChatClient>();
+            host.Services.GetKeyedService<IEmbeddingGenerator>("embedding") :
+            host.Services.GetService<IEmbeddingGenerator>();
 
-        var metadata = client?.GetService<ChatClientMetadata>();
+        var metadata = client?.GetService<EmbeddingGeneratorMetadata>();
 
         Assert.NotNull(metadata);
         Assert.Equal("other", metadata?.DefaultModelId);
@@ -148,7 +148,7 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionString = $"Endpoint=https://fakeendpoint;Key=fakekey;{keyName}=testdeployment";
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference", connectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding", connectionString)
         ]);
 
         builder.AddAzureEmbeddingsClient("embedding");
@@ -168,7 +168,7 @@ public class AspireAzureAIInferenceEmbeddingsExtensionTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionString = $"Endpoint=https://fakeendpoint;Key=fakekey;{key1}=value1;{key2}=value2";
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference", connectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:embedding", connectionString)
         ]);
 
         // The exception should be thrown during this call
