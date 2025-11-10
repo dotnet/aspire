@@ -654,12 +654,15 @@ Aspire 13.0 introduces comprehensive support for single-file app hosts, allowing
 
 ```csharp
 // apphost.cs
+#:sdk Aspire.AppHost.Sdk@13.0.0
+#:package Aspire.Hosting.PostgreSQL@13.0.0
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddProject<Projects.Api>("api");
 var database = builder.AddPostgres("postgres");
 
-api.WithReference(database);
+builder.AddProject<Projects.Api>("api")
+    .WithReference(database);
 
 await builder.Build().RunAsync();
 ```
@@ -669,7 +672,6 @@ Single-file app host support includes:
 - **Template support**: Use the `aspire-apphost-singlefile` template via `aspire new`
 - **Full CLI integration**: Works seamlessly with `aspire run`, `aspire deploy`, `aspire publish`, `aspire add`, `aspire update`
 - **Launch profile support**: Full debugging and launch configuration support
-- **Python integration**: Enhanced Python and JavaScript application support
 
 > [!NOTE]
 > Single-file app hosts require .NET 10.0 SDK or later.
@@ -697,7 +699,6 @@ aspire run
 
 The automatic SDK installation feature provides:
 
-- **Embeds installation scripts**: dotnet-install.sh and dotnet-install.ps1 as resources
 - **Cross-platform support**: Works on Windows, macOS, and Linux
 - **Version detection**: Automatically detects required SDK versions
 - **Fallback support**: Provides alternative installation options if automatic installation fails
@@ -756,7 +757,7 @@ The pipeline system supports global steps, resource-specific steps, dependency c
 Use `aspire do` to execute pipeline steps. The command automatically resolves dependencies and executes steps in the correct order:
 
 ```bash
-aspire do deploy                              # Runs build → publish → deploy
+aspire do deploy                              # Runs all steps necessary to deploy the app
 aspire do publish --output-path ./artifacts   # Custom output path
 aspire do deploy --environment Production     # Target specific environment
 aspire do deploy --log-level debug            # Verbose logging for troubleshooting
@@ -770,7 +771,8 @@ Aspire 13.0 introduces the ability to **extract files from one resource's contai
 var frontend = builder.AddViteApp("frontend", "./frontend");
 var api = builder.AddUvicornApp("api", "./api", "main:app");
 
-// Extract files FROM the frontend container and copy TO the api container
+// Extract files FROM the frontend container and copy TO the 'static' folder
+// in the api container
 api.PublishWithContainerFiles(frontend, "./static");
 ```
 
@@ -791,13 +793,13 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
-# Serve the frontend static files
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
 # API endpoints
 @app.get("/api/data")
 def get_data():
     return {"message": "Hello from API"}
+
+# Serve the frontend static files
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 ```
 
 This pattern works with any resource types (.NET, Python, JavaScript) and integrates seamlessly with `aspire do` for dependency tracking, parallel execution, and incremental builds.
@@ -967,10 +969,10 @@ Aspire 13.0 adds first-class support for C# file-based applications, enabling yo
 
 ```csharp
 // apphost.cs
-#pragma warning disable ASPIRECSHARPAPPS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-#:package Aspire.Hosting.Redis@13.0.0
 #:sdk Aspire.AppHost.Sdk@13.0.0
+#:package Aspire.Hosting.Redis@13.0.0
+
+#pragma warning disable ASPIRECSHARPAPPS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -1181,8 +1183,8 @@ Execute individual deployment phases using `aspire do`:
 
 ```bash
 aspire do build                           # Build all containers
-aspire do provision-azure-bicep-resources # Provision infrastructure when Azure resoruces exist
-aspire deploy                              # Complete deployment
+aspire do provision-azure-bicep-resources # Provision infrastructure when Azure resources exist
+aspire deploy                             # Complete deployment
 aspire do deploy --log-level debug        # Deploy with verbose logging
 ```
 
@@ -1237,8 +1239,8 @@ This eliminates repetitive prompts and makes iterative deployments faster. Your 
 
 The state is stored in your local user profile at:
 
-- **Windows**: `C:\Users\<username>\.aspire\deployments\<project-hash>\<environment>.json`
-- **macOS/Linux**: `/Users/<username>/.aspire/deployments/<project-hash>/<environment>.json`
+- **Windows**: `%USERPROFILE%\.aspire\deployments\<project-hash>\<environment>.json`
+- **macOS/Linux**: `$HOME/.aspire/deployments/<project-hash>/<environment>.json`
 
 The `<project-hash>` is a SHA256 hash of your AppHost project path, allowing different projects to maintain separate state. The `<environment>` corresponds to the deployment environment (e.g., `production`, `development`).
 
@@ -1387,8 +1389,8 @@ The following APIs have been removed in Aspire 13.0:
 
 The following APIs are marked as obsolete in Aspire 13.0 and will be removed in a future release:
 
-**Lifecycle hooks** (use IDistributedApplicationEventingSubscriber instead):
-- `IDistributedApplicationLifecycleHook` interface
+**Lifecycle hooks**:
+- `IDistributedApplicationLifecycleHook` interface - Use `IDistributedApplicationEventingSubscriber` instead
 
 **Lifecycle hook extension methods** (use eventing subscriber extensions instead):
 - `AddLifecycleHook<T>()` - Use `AddEventingSubscriber<T>()` instead
@@ -1403,7 +1405,7 @@ The following APIs are marked as obsolete in Aspire 13.0 and will be removed in 
 **Node.js/JavaScript APIs** (use new JavaScript hosting instead):
 - `AddNpmApp()` - Use `AddJavaScriptApp()` instead for general npm-based apps, or `AddViteApp()` for Vite projects
 
-While these APIs still work in 13.0, they will be removed in the next major version. Update your code to use the recommended replacements.
+While the obsoleted APIs still work in 13.0, they will be removed in the next major version. Update your code to use the recommended replacements.
 
 ### Changed signatures
 
@@ -1551,16 +1553,16 @@ var api = builder.AddProject<Projects.Api>("api")
 
 **After (13.0)**:
 ```csharp
-public class CustomDeployStep : PipelineStep
-{
-    public override async Task ExecuteAsync(PipelineStepContext context, CancellationToken cancellationToken)
+var api = builder.AddProject<Projects.Api>("api")
+    .WithPipelineStepFactory(context =>
     {
-        await CustomDeployAsync(context, cancellationToken);
-    }
-}
-
-var api = builder.AddProject<Projects.Api>("api");
-builder.Services.AddSingleton<CustomDeployStep>();
+        return new PipelineStep()
+        {
+            Name = "CustomDeployStep",
+            Action = CustomDeployAsync,
+            RequiredBySteps = [WellKnownPipelineSteps.Publish]
+        };
+    });
 ```
 
 For more details, see [Deployment pipeline documentation](../deployment/pipeline-architecture.md).
