@@ -105,15 +105,34 @@ public static class JavaScriptHostingExtensions
                     var builderStage = dockerfileContext.Builder
                         .From(baseBuildImage, "build")
                         .EmptyLine()
-                        .WorkDir("/app")
-                        .Copy(".", ".")
-                        .EmptyLine();
+                        .WorkDir("/app");
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
+                        var copiedAllSource = false;
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            builderStage.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
+                            // Copy package files first for better layer caching
+                            if (packageManager.PackageFilesPatterns.Count > 0)
+                            {
+                                foreach (var packageFilePattern in packageManager.PackageFilesPatterns)
+                                {
+                                    builderStage.Copy(packageFilePattern.Source, packageFilePattern.Destination);
+                                }
+                            }
+                            else
+                            {
+                                builderStage.Copy(".", ".");
+                                copiedAllSource = true;
+                            }
+
+                            builderStage.AddInstallCommand(packageManager, installCommand);
+                        }
+
+                        if (!copiedAllSource)
+                        {
+                            // Copy application source code after dependencies are installed
+                            builderStage.Copy(".", ".");
                         }
 
                         if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
@@ -126,8 +145,14 @@ public static class JavaScriptHostingExtensions
                             commandArgs.Add(buildCommand.ScriptName);
                             commandArgs.AddRange(buildCommand.Args);
 
-                            builderStage.Run(string.Join(' ', commandArgs));
+                            builderStage.EmptyLine()
+                                .Run(string.Join(' ', commandArgs));
                         }
+                    }
+                    else
+                    {
+                        // No package manager, just copy everything
+                        builderStage.Copy(".", ".");
                     }
 
                     var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>();
@@ -142,7 +167,6 @@ public static class JavaScriptHostingExtensions
                             .AddContainerFiles(dockerfileContext.Resource, "/app", logger)
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
-                            .Expose(3000)
                             .EmptyLine()
                             .User("node")
                             .EmptyLine()
@@ -232,6 +256,20 @@ public static class JavaScriptHostingExtensions
         return builder.CreateDefaultJavaScriptAppBuilder(resource, appDirectory, runScriptName);
     }
 
+    private static void AddInstallCommand(this DockerfileStage builderStage, JavaScriptPackageManagerAnnotation packageManager, JavaScriptInstallCommandAnnotation installCommand)
+    {
+        // Use BuildKit cache mount for package manager cache if available
+        var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
+        if (!string.IsNullOrEmpty(packageManager.CacheMount))
+        {
+            builderStage.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
+        }
+        else
+        {
+            builderStage.Run(installCmd);
+        }
+    }
+
     private static IResourceBuilder<TResource> CreateDefaultJavaScriptAppBuilder<TResource>(
         this IDistributedApplicationBuilder builder,
         TResource resource,
@@ -281,12 +319,33 @@ public static class JavaScriptHostingExtensions
 
                         var dockerBuilder = dockerfileContext.Builder
                             .From(baseImage)
-                            .WorkDir("/app")
-                            .Copy(".", ".");
+                            .WorkDir("/app");
+
+                        var copiedAllSource = false;
+
+                        // Copy package files first for better layer caching
+                        if (packageManager.PackageFilesPatterns.Count > 0)
+                        {
+                            foreach (var packageFilePattern in packageManager.PackageFilesPatterns)
+                            {
+                                dockerBuilder.Copy(packageFilePattern.Source, packageFilePattern.Destination);
+                            }
+                        }
+                        else
+                        {
+                            dockerBuilder.Copy(".", ".");
+                            copiedAllSource = true;
+                        }
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            dockerBuilder.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
+                            dockerBuilder.AddInstallCommand(packageManager, installCommand);
+                        }
+
+                        if (!copiedAllSource)
+                        {
+                            // Copy application source code after dependencies are installed
+                            dockerBuilder.Copy(".", ".");
                         }
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
@@ -406,7 +465,10 @@ public static class JavaScriptHostingExtensions
         installCommand ??= GetDefaultNpmInstallCommand(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm")
+            {
+                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
         AddInstaller(resource, install);
@@ -430,29 +492,51 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installArgs ??= GetDefaultYarnInstallArgs(resource);
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var hasYarnLock = File.Exists(Path.Combine(workingDirectory, "yarn.lock"));
+        var hasYarnrc = File.Exists(Path.Combine(workingDirectory, ".yarnrc.yml"));
+        var hasYarnBerryDir = Directory.Exists(Path.Combine(workingDirectory, ".yarn"));
+        var hasYarnBerry = hasYarnrc || hasYarnBerryDir;
+
+        installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
+
+        var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
+        var packageFilesSourcePattern = "package.json";
+        if (hasYarnLock)
+        {
+            packageFilesSourcePattern += " yarn.lock";
+        }
+        if (hasYarnrc)
+        {
+            packageFilesSourcePattern += " .yarnrc.yml";
+        }
+        packageManager.PackageFilesPatterns.Add(new CopyFilePattern(packageFilesSourcePattern, "./"));
+
+        if (hasYarnBerryDir)
+        {
+            packageManager.PackageFilesPatterns.Add(new CopyFilePattern(".yarn", "./.yarn"));
+        }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run"))
+            .WithAnnotation(packageManager)
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
+    private static string[] GetDefaultYarnInstallArgs(
+        IResourceBuilder<JavaScriptAppResource> resource,
+        bool hasYarnLock,
+        bool hasYarnBerry)
     {
-        var workingDirectory = resource.Resource.WorkingDirectory;
         if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
-            !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
+            !hasYarnLock)
         {
             // Not publish mode or no yarn.lock, use default install args
             return [];
         }
-
-        var yarnRcYml = Path.Combine(workingDirectory, ".yarnrc.yml");
-        var yarnBerryReleaseDir = Path.Combine(workingDirectory, ".yarn", "releases");
-        var hasYarnBerry = File.Exists(yarnRcYml) || Directory.Exists(yarnBerryReleaseDir);
 
         if (hasYarnBerry)
         {
@@ -475,11 +559,21 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        installArgs ??= GetDefaultPnpmInstallArgs(resource);
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var hasPnpmLock = File.Exists(Path.Combine(workingDirectory, "pnpm-lock.yaml"));
+
+        installArgs ??= GetDefaultPnpmInstallArgs(resource, hasPnpmLock);
+
+        var packageFilesSourcePattern = "package.json";
+        if (hasPnpmLock)
+        {
+            packageFilesSourcePattern += " pnpm-lock.yaml";
+        }
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run")
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/pnpm/store")
             {
+                PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
                 // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
                 CommandSeparator = null
             })
@@ -489,9 +583,8 @@ public static class JavaScriptHostingExtensions
         return resource;
     }
 
-    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
-        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
-            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"))
+    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource, bool hasPnpmLock) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode && hasPnpmLock
             ? ["--frozen-lockfile"]
             : [];
 
