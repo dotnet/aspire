@@ -929,47 +929,38 @@ The MCP server uses streamable HTTP with API key authentication for secure acces
 
 This enables AI assistants to directly interact with your Aspire applications, analyze telemetry in real-time, and provide intelligent insights during development.
 
-### Trace and telemetry improvements
+![MCP dialog](./whats-new-13/mcp-dialog.png "MCP dialog")
 
-#### Trace details enhancements
-- **Collapse/expand all**: Quickly expand or collapse all spans in a trace
-- **Resource column**: See which resource produced each span
-- **Span actions menu**: GenAI link and other actions from span details
-- **Destination display**: Shows span destination information
-- **Performance improvements**: Faster rendering for large traces
+### Interaction services dynamic inputs and comboboxes
 
-#### Span filtering
-- **Span type selector**: Filter spans by type (HTTP, Database, Messaging, etc.)
-- **Cloud type filter**: Filter by cloud provider or service
-- **Filter grouping**: Organized filter labels for better UX
-- **Type classification**: Automatic span type detection
+The interaction service just got a major upgrade:
 
-#### Structured logs
-- **Enhanced display**: Improved structured log entry visualization
-- **Log level filtering**: Quick filter by log level (Error, Warning, Info, etc.)
-- **Filter deduplication**: Cleaner filter lists
+💫 Dropdowns can now accept text — in other words, ComboBox inputs. For more information, see [interaction service custom choice](#interaction-service-custom-options).
+🔄 Supports dynamic data loading for cascading dropdowns. For more information, see [interaction service dynamic inputs](#interaction-service-dynamic-inputs).
 
-### UI and accessibility improvements
+You can see an example of the new interaction service features in the dashboard with the Azure provisioning dialog 🚀
 
-#### Visual enhancements
-- **Updated FluentUI**: FluentUI 4.13.0 with improved components
-- **Accent color refactoring**: Consistent color usage across the dashboard
-- **Mobile/desktop toolbar**: Responsive toolbars that adapt to screen size
-- **Vertical menu overflow**: Better handling of long menu lists
-- **Span name truncation**: Ellipsis for long span names
+![New interaction service feature in the Azure provisioning dialog](./whats-new-13/interaction-service.png "New interaction service feature in the Azure provisioning dialog")
 
-#### Interaction improvements
-- **ComboBox filtering**: Enhanced filtering in dropdown selections
-- **Default values**: Better support for choice input defaults
-- **Parameter descriptions**: Custom input rendering for parameters
-- **Dynamic inputs**: Load inputs based on other input values
-- **Server-side validation**: Validation of interaction inputs
+### Polyglot language icons
 
-#### Health check display
-- **Timestamp display**: Shows when health checks last ran
-- **"Just now" indicator**: Recent health check indication
-- **Tooltip details**: Last run time in tooltips
-- **Unhealthy state display**: Clear visualization of unhealthy resources
+Aspire is going polyglot with strong support for JavaScript ☕ and Python 🐍 apps. The dashboard features new programming language icons for app resources. This includes .NET projects (C#, F#, VB.NET) and JavaScript and Python apps.
+
+![Polyglot langague icons](./whats-new-13/langauge-icons.png "Polyglot langague icons")
+
+### Improved accent colors
+
+Resources in the dashboard have accent colors, which is used to color their icon and telemetry. Accent colors are now more FluentUI-ish (saturation++) with custom tweaks for light and dark themes.
+
+The dark blue accent color is no longer almost invisible on a dark background!
+
+![Accent color tweaks](./whats-new-13/color-tweaks.png "Accent color tweaks")
+
+### Health checks last run time
+
+The dashboard makes it easy to see resource health statuses. New in Aspire 13, the last run time is now displayed next to each resource’s current state. This helps you tell whether an unhealthy resource is still being checked and progressing toward a healthy state.
+
+![Health checks last run time](./whats-new-13/health-checks-last-run.png "Health checks last run time")
 
 ## 🖥️ App Model Enhancements
 
@@ -1019,9 +1010,9 @@ Network identifier features:
 - **AllocatedEndpoint changes**: Endpoints now include their `NetworkID` instead of a container host address
 - **Better container networking**: Improved support for container-to-container communication scenarios
 
-### Dynamic input system (Experimental)
+### Interaction service dynamic inputs
 
-The dynamic input system allows inputs to load options based on other input values, enabling cascading dropdowns and dependent parameter prompting.
+The interaction service has been improved with support for dynamic inputs. This feature allows inputs to load options based on other input values, enabling cascading dropdowns and dependent parameter prompting.
 
 > [!NOTE]
 > This is an experimental feature marked with `[Experimental("ASPIREINTERACTION001")]`.
@@ -1065,6 +1056,23 @@ var inputs = new List<InteractionInput>
 ```
 
 Features include callback-based loading (`LoadCallback`), dependency tracking (`DependsOnInputs`), access to other input values (`context.AllInputs`), and async support for loading from APIs or databases.
+
+### Interaction service custom choices
+
+Choice inputs can be configured to accept custom choices by setting `AllowCustomChoice` to `true`. In the dashboard, these inputs are [displayed as a combobox](https://wikipedia.org/wiki/Combo_box).
+
+```csharp
+var input = new InteractionInput
+{
+    Name = "AllowCustomInput",
+    Label = "Favorite food?",
+    InputType = InputType.Choice,
+    Options = [KeyValuePair.Create("pizza", "Pizza"), KeyValuePair.reate("burger", "Burger")],
+    AllowCustomChoice = true
+};
+
+var result = await interactionService.PromptInputAsync("What is your favorite food?", "Select your favorite food.", input);
+```
 
 ### Reference and connection improvements
 
