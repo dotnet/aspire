@@ -10,7 +10,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Azure.AI.Inference.Tests;
 
-public class ConformanceEmbeddingsTests : ConformanceTests<IEmbeddingGenerator<string, Embedding<float>>, EmbeddingsClientSettings>
+public class ConformanceTests_Embeddings : ConformanceTests<IEmbeddingGenerator<string, Embedding<float>>, EmbeddingsClientSettings>
 {
     private const string Endpoint = "https://fakeendpoint";
 
@@ -20,14 +20,14 @@ public class ConformanceEmbeddingsTests : ConformanceTests<IEmbeddingGenerator<s
 
     protected override string[] RequiredLogCategories => ["Azure.Identity"];
 
-    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:Embedding";
+    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:Inference";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
             "Azure": {
               "AI": {
-                "Embedding": {
+                "Inference": {
                   "Endpoint": "http://YOUR_URI",
                   "Key": "YOUR_KEY",
                   "DeploymentName": "DEPLOYMENT_NAME",
@@ -43,15 +43,15 @@ public class ConformanceEmbeddingsTests : ConformanceTests<IEmbeddingGenerator<s
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new(CreateConfigKey("Aspire:Azure:AI:Embedding", key, "Endpoint"), Endpoint),
-            new(CreateConfigKey("Aspire:Azure:AI:Embedding", key: null, "Deployment"), "DEPLOYMENT_NAME")
+            new(CreateConfigKey("Aspire:Azure:AI:Inference", key, "Endpoint"), Endpoint),
+            new(CreateConfigKey("Aspire:Azure:AI:Inference", key: null, "Deployment"), "DEPLOYMENT_NAME")
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EmbeddingsClientSettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
-            builder.AddAzureEmbeddingsClient("inference", ConfigureCredentials).AddEmbeddingGenerator(deploymentName: "DEPLOYMENT_NAME");
+            builder.AddAzureEmbeddingsClient("embeddings", ConfigureCredentials).AddEmbeddingGenerator(deploymentName: "DEPLOYMENT_NAME");
         }
         else
         {
