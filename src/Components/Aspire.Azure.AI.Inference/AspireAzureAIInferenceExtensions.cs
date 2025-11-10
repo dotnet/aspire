@@ -371,7 +371,7 @@ public static class AspireAzureAIInferenceExtensions
     }
 
     /// <summary>
-    /// Creates a <see cref="IEmbeddingGenerator{string, Embedding}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
+    /// Creates a <see cref="IEmbeddingGenerator{Single, Single}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
@@ -385,7 +385,7 @@ public static class AspireAzureAIInferenceExtensions
     }
 
     /// <summary>
-    /// Creates a <see cref="IEmbeddingGenerator{string, Embedding}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
+    /// Creates a <see cref="IEmbeddingGenerator{Single, Single}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
