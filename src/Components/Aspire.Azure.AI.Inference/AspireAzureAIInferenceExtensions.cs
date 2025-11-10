@@ -224,4 +224,149 @@ public static class AspireAzureAIInferenceExtensions
             EnableSensitiveData = builder.EnableSensitiveTelemetryData
         };
     }
+
+    /// <summary>
+    /// Adds a <see cref="EmbeddingsClient"/> to the application and configures it with the specified settings.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the client to.</param>
+    /// <param name="connectionName">The name of the client. This is used to retrieve the connection string from configuration.</param>
+    /// <param name="configureSettings">An optional callback to configure the <see cref="EmbeddingsClientSettings"/>.</param>
+    /// <param name="configureClientBuilder">An optional callback to configure the <see cref="IAzureClientBuilder{TClient, TOptions}"/> for the client.</param>
+    /// <returns>An <see cref="AspireEmbeddingsClientBuilder"/> that can be used to further configure the client.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
+    /// <remarks>
+    /// <para>
+    /// The client is registered as a singleton with a keyed service.
+    /// </para>
+    /// <para>
+    /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="connectionName"/> parameter.
+    /// </para>
+    /// </remarks>
+    public static AspireEmbeddingsClientBuilder AddAzureEmbeddingsClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<EmbeddingsClientSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        var settings = new EmbeddingsClientServiceComponent().AddClient(
+            builder,
+            DefaultConfigSectionName,
+            configureSettings,
+            configureClientBuilder,
+            connectionName,
+            serviceKey: null);
+
+        return new AspireEmbeddingsClientBuilder(builder, serviceKey: null, settings.DeploymentName, settings.DisableTracing, settings.EnableSensitiveTelemetryData);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="EmbeddingsClient"/> to the application and configures it with the specified settings.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the client to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional callback to configure the <see cref="EmbeddingsClientSettings"/>.</param>
+    /// <param name="configureClientBuilder">An optional callback to configure the <see cref="IAzureClientBuilder{TClient, TOptions}"/> for the client.</param>
+    /// <returns>An <see cref="AspireEmbeddingsClientBuilder"/> that can be used to further configure the client.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
+    /// <remarks>
+    /// <para>
+    /// The client is registered as a singleton with a keyed service.
+    /// </para>
+    /// <para>
+    /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="name"/> parameter.
+    /// </para>
+    /// </remarks>
+    public static AspireEmbeddingsClientBuilder AddKeyedAzureEmbeddingsClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<EmbeddingsClientSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        var settings = new EmbeddingsClientServiceComponent().AddClient(
+            builder,
+            DefaultConfigSectionName,
+            configureSettings,
+            configureClientBuilder,
+            name,
+            serviceKey: name);
+
+        return new AspireEmbeddingsClientBuilder(builder, serviceKey: name, settings.DeploymentName, settings.DisableTracing, settings.EnableSensitiveTelemetryData);
+    }
+
+    private sealed class EmbeddingsClientServiceComponent : AzureComponent<EmbeddingsClientSettings, EmbeddingsClient, AzureAIInferenceClientOptions>
+    {
+        // GenAI telemetry isn't stable so MEAI currently has source name of "Experimental.Microsoft.Extensions.AI".
+        // Listen to both names to ensure we capture telemetry from both stable and experimental versions.
+        // When MEAI removes experimental from the source name, Aspire will continue to work without changes.
+        protected override string[] ActivitySourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
+        protected override string[] MetricSourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
+
+        protected override IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions> AddClient(AzureClientFactoryBuilder azureFactoryBuilder, EmbeddingsClientSettings settings,
+            string connectionName, string configurationSectionName)
+        {
+            return azureFactoryBuilder.AddClient<EmbeddingsClient, AzureAIInferenceClientOptions>((options, _, _) =>
+            {
+                if (settings.Endpoint is null)
+                {
+                    throw new InvalidOperationException($"A ChatCompletionsClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(ChatCompletionsClientSettings.Endpoint)}' and optionally a '{nameof(ChatCompletionsClientSettings.Key)}' in the '{configurationSectionName}' configuration section.");
+                }
+                else
+                {
+                    var endpoint = settings.Endpoint;
+
+                    // Connect to Azure AI Foundry using key auth
+                    if (!string.IsNullOrEmpty(settings.Key))
+                    {
+                        var credential = new AzureKeyCredential(settings.Key);
+                        return new EmbeddingsClient(endpoint, credential, options);
+                    }
+                    else
+                    {
+                        var credential = settings.TokenCredential ?? new DefaultAzureCredential();
+
+                        // Defines the scopes used for authorization when connecting to Azure AI Inference services.
+                        // Use the default one (ml.azure.com) and add the public one required for Azure Foundry AI.
+                        // If users want to use a different scope they can configure the option using the client builder.
+                        // c.f. https://github.com/Azure/azure-sdk-for-net/issues/50872
+
+                        BearerTokenAuthenticationPolicy tokenPolicy = new(credential, ["https://cognitiveservices.azure.com/.default"]);
+                        options.AddPolicy(tokenPolicy, HttpPipelinePosition.PerRetry);
+
+                        return new EmbeddingsClient(endpoint, credential, options);
+                    }
+                }
+            });
+        }
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<EmbeddingsClient, AzureAIInferenceClientOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
+
+        protected override void BindSettingsToConfiguration(EmbeddingsClientSettings settings, IConfiguration configuration)
+            => configuration.Bind(settings);
+
+        protected override IHealthCheck CreateHealthCheck(EmbeddingsClient client, EmbeddingsClientSettings settings)
+            => throw new NotImplementedException();
+
+        protected override bool GetHealthCheckEnabled(EmbeddingsClientSettings settings)
+            => false;
+
+        protected override bool GetMetricsEnabled(EmbeddingsClientSettings settings)
+            => !settings.DisableMetrics;
+
+        protected override TokenCredential? GetTokenCredential(EmbeddingsClientSettings settings)
+            => settings.TokenCredential;
+
+        protected override bool GetTracingEnabled(EmbeddingsClientSettings settings)
+            => !settings.DisableTracing;
+    }
 }
