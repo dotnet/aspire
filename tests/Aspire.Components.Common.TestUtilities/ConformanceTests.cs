@@ -327,29 +327,29 @@ public abstract class ConformanceTests<TService, TOptions>
         // to help debug failures when expected categories are not found.
         if (Output is not null)
         {
-            Console.WriteLine("=== Logged Categories ===");
+            Output.WriteLine("=== Logged Categories ===");
             foreach (var category in loggerFactory.Categories.OrderBy(c => c))
             {
-                Console.WriteLine($"  - {category}");
+                Output.WriteLine($"  - {category}");
             }
-            Console.WriteLine("");
-            Console.WriteLine("=== Required Categories ===");
+            Output.WriteLine("");
+            Output.WriteLine("=== Required Categories ===");
             foreach (var category in RequiredLogCategories.OrderBy(c => c))
             {
                 var found = loggerFactory.Categories.Contains(category);
-                Console.WriteLine($"  {(found ? "✓" : "✗")} {category}");
+                Output.WriteLine($"  {(found ? "✓" : "✗")} {category}");
             }
             if (NotAcceptableLogCategories.Length > 0)
             {
-                Console.WriteLine("");
-                Console.WriteLine("=== Not Acceptable Categories (should not be present) ===");
+                Output.WriteLine("");
+                Output.WriteLine("=== Not Acceptable Categories (should not be present) ===");
                 foreach (var category in NotAcceptableLogCategories.OrderBy(c => c))
                 {
                     var found = loggerFactory.Categories.Contains(category);
-                    Console.WriteLine($"  {(found ? "✗ FOUND" : "✓ Not found")} {category}");
+                    Output.WriteLine($"  {(found ? "✗ FOUND" : "✓ Not found")} {category}");
                 }
             }
-            Console.WriteLine("");
+            Output.WriteLine("");
         }
 
         foreach (string logCategory in RequiredLogCategories)
