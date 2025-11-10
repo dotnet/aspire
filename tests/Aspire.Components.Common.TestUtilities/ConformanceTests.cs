@@ -644,7 +644,7 @@ public abstract class ConformanceTests<TService, TOptions>
         }
 
         handle.Process.Start();
-        // RemoveInvokeHandle Dispose will handle the wait for exit
+        // RemoteInvokeHandle Dispose will handle the wait for exit
         if (testOutput is not null)
         {
             handle.Process.BeginErrorReadLine();
