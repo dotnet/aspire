@@ -235,7 +235,8 @@
     "l10n:import": "gulp localizationBundle",
     "precompile": "yarn l10n:export && yarn l10n:import",
     "prewatch": "yarn l10n:export && yarn l10n:import",
-    "localize": "yarn l10n:export && yarn l10n:import"
+    "localize": "yarn l10n:export && yarn l10n:import",
+    "bumpVersion": "npm version minor --no-git-tag-version"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
