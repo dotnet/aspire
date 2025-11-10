@@ -158,7 +158,7 @@ Aspire 13.0 introduces a simplified AppHost project template structure. The SDK 
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UserSecretsId>5a8591de-21db-4b83-9c62-bbbe4c5745c2</UserSecretsId>
+    <UserSecretsId>1bf2ca25-7be4-4963-8782-c53a74e10ad9</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -189,8 +189,8 @@ The `aspire update` command automatically handles this migration when upgrading 
 >
 > ```csharp
 > // apphost.cs
-> #:package Aspire.Hosting.Redis@13.0.0
 > #:sdk Aspire.AppHost.Sdk@13.0.0
+> #:package Aspire.Hosting.Redis@13.0.0
 >
 > var builder = DistributedApplication.CreateBuilder(args);
 >
@@ -219,13 +219,11 @@ Aspire provides three ways to run Python code, each suited to different use case
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Run a Python script directly
-var etl = builder.AddPythonApp("etl-job", "../etl", "process_data.py")
-    .WithReference(database);
+var etl = builder.AddPythonApp("etl-job", "../etl", "process_data.py");
 
 // Run a Python module (python -m celery)
 var worker = builder.AddPythonModule("celery-worker", "../worker", "celery")
-    .WithArgs("worker", "-A", "tasks", "--loglevel=info")
-    .WithReference(redis);
+    .WithArgs("worker", "-A", "tasks", "--loglevel=info");
 
 // Run an executable from the virtual environment (e.g., gunicorn)
 var api = builder.AddPythonExecutable("api", "../api", "gunicorn")
@@ -238,9 +236,7 @@ For Python web applications using ASGI frameworks like FastAPI, Starlette, or Qu
 
 ```csharp
 var api = builder.AddUvicornApp("api", "./api", "main:app")
-    .WithUv()  // Use uv for fast, modern Python package management
     .WithExternalHttpEndpoints()
-    .WithReference(database)
     .WithHttpHealthCheck("/health");
 ```
 
@@ -366,19 +362,19 @@ aspire new aspire-py-starter
 This template includes:
 - **FastAPI backend**: Python ASGI application using Uvicorn
 - **Vite + React frontend**: Modern JavaScript frontend with TypeScript
-- **OpenTelemetry integration**: Distributed tracing across Python and JavaScript
-- **Redis caching** (optional): Shared cache between services
+- **OpenTelemetry integration**: Distributed tracing, logs, and metrics
+- **Redis caching** (optional): A distributed cache across requests
 - **Container files**: Frontend static files served by the Python backend
 
 The template demonstrates how to build polyglot applications with Python and JavaScript working together seamlessly.
 
 ### JavaScript as a First-Class Citizen
 
-Aspire 13.0 refactors and expands JavaScript support, introducing `AddJavaScriptApp` as the foundational method for all JavaScript applications.
+Aspire 13.0 refactors and expands JavaScript support. In earlier versions, the `Aspire.Hosting.NodeJs` integration enabled JavaScript applications. In Aspire 13.0, the integration was renamed to `Aspire.Hosting.JavaScript` and it introduces `AddJavaScriptApp` as the foundational method for all JavaScript applications.
 
 #### Unified JavaScript Application Model
 
-The new `AddJavaScriptApp` method replaces the older `AddNpmApp` (now obsolete) and provides a consistent way to add JavaScript applications:
+The new `AddJavaScriptApp` method replaces the older `AddNpmApp` (removed) and provides a consistent way to add JavaScript applications:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -395,6 +391,7 @@ By default, `AddJavaScriptApp`:
 - Automatically detects npm from `package.json`
 - Runs the "dev" script during local development
 - Runs the "build" script when publishing to create production assets
+- Automatic Dockerfile generation to build production assets
 
 #### Package Manager Flexibility
 
@@ -409,7 +406,9 @@ Starting in Aspire 13.0, package managers automatically install dependencies by 
 When publishing (production mode), Aspire automatically uses deterministic install commands based on the presence of lockfiles:
 
 - **npm**: Uses `npm ci` if `package-lock.json` exists, otherwise `npm install`
-- **yarn**: Uses `yarn install --immutable` if `yarn.lock` exists, otherwise `yarn install`
+- **yarn**:
+  - Uses `yarn install --immutable` if `yarn.lock` exists and yarn v2+ is detected, otherwise
+  - Uses `yarn install --frozen-lockfile` if `yarn.lock` exists, otherwise `yarn install`
 - **pnpm**: Uses `pnpm install --frozen-lockfile` if `pnpm-lock.yaml` exists, otherwise `pnpm install`
 
 This ensures reproducible builds in CI/CD and production environments while remaining flexible during development.
@@ -469,6 +468,21 @@ The generated Dockerfile:
 
 For information about using JavaScript build artifacts in other containers, see [Container Files as Build Artifacts](#container-files-as-build-artifacts).
 
+#### Node Support
+
+`AddNodeApp` has now been refactored to align with other language integrations.
+
+```csharp
+var app = builder.AddNodeApp("frontend", "./frontend", "app.js")
+    .WithReference(api);
+```
+
+Node.js applications get:
+- Defaults to npm when `package.json` exists
+- Allows for customizing package manager and build/run scripts
+- Automatic Dockerfile generation with multi-stage builds for smaller images
+  - Defaults to `node:22-alpine` if no version is specified
+
 ### Polyglot Infrastructure
 
 Beyond language-specific support, Aspire 13.0 introduces infrastructure features that work across all languages.
@@ -480,7 +494,7 @@ Database resources now expose multiple connection string formats automatically, 
 ```csharp
 var postgres = builder.AddPostgres("db").AddDatabase("mydb");
 
-// .NET app uses service discovery
+// .NET app uses the "ConnectionStrings" configuration section
 var dotnetApi = builder.AddProject<Projects.Api>()
     .WithReference(postgres);
 
@@ -547,21 +561,8 @@ await builder.Build().RunAsync();
 
 Instead of complex service discovery formats, non-.NET apps receive simple environment variables:
 
-- `API=http://localhost:5000` - HTTP endpoint
+- `API_HTTP=http://localhost:5000` - HTTP endpoint
 - `API_HTTPS=https://localhost:5001` - HTTPS endpoint
-
-This can be customized per-resource or per-type using `WithReferenceEnvironment()`:
-
-```csharp
-var api = builder.AddProject<Projects.Api>("api");
-
-var nodeApp = builder.AddJavaScriptApp("frontend", "./frontend")
-    .WithReference(api, env =>
-    {
-        // Customize environment variable generation
-        env.EnvironmentVariables["API_URL"] = api.GetEndpoint("http");
-    });
-```
 
 This feature makes Aspire's service discovery mechanism accessible to any programming language, not just .NET applications with service discovery libraries.
 
