@@ -631,14 +631,14 @@ public abstract class ConformanceTests<TService, TOptions>
             {
                 if (e.Data is not null)
                 {
-                    testOutput.WriteLine(e.Data);
+                    testOutput.WriteLine($"[RemoteExecutor] {e.Data}");
                 }
             };
             handle.Process.ErrorDataReceived += (sender, e) =>
             {
                 if (e.Data is not null)
                 {
-                    testOutput.WriteLine($"ERROR: {e.Data}");
+                    testOutput.WriteLine($"[RemoteExecutor] ERROR: {e.Data}");
                 }
             };
         }
