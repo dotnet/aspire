@@ -15,7 +15,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.FluentUI.AspNetCore.Components;
-using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
@@ -122,14 +121,13 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task Dialog_UpdatesWhenNewTracesAdded()
+    public async Task UpdateTelemetry_DifferentTrace_ContentInstanceUnchanged()
     {
-        // Arrange - Setup dialog infrastructure first
+        // Arrange - Setup dialog infrastructure and repository
         var cut = SetUpDialog(out var dialogService);
         var repository = Services.GetRequiredService<TelemetryRepository>();
-        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
         
-        // Add initial trace to repository
+        // Add initial trace to repository for the dialog to display
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>
         {
@@ -178,18 +176,9 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         );
 
         var instance = cut.FindComponent<GenAIVisualizerDialog>().Instance;
-        var initialItemCount = instance.Content.Items.Count;
+        var originalContent = instance.Content;
 
-        // Act - Add a new span to the same trace with GenAI messages
-        var inputMessages = JsonSerializer.Serialize(new List<ChatMessage>
-        {
-            new ChatMessage
-            {
-                Role = "user",
-                Parts = [new TextPart { Content = "New message!" }]
-            }
-        }, GenAIMessagesContext.Default.ListChatMessage);
-
+        // Act - Add a DIFFERENT trace to the repository
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>
         {
             new ResourceSpans
@@ -202,37 +191,29 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
                         Scope = CreateScope(),
                         Spans =
                         {
-                            CreateSpan(
-                                traceId: "trace1",
-                                spanId: "span2",
-                                startTime: s_testTime.AddSeconds(1),
-                                endTime: s_testTime.AddSeconds(2),
-                                parentSpanId: "span1",
-                                attributes: [KeyValuePair.Create(GenAIHelpers.GenAIInputMessages, inputMessages)])
+                            CreateSpan(traceId: "trace2", spanId: "span2-1", startTime: s_testTime, endTime: s_testTime.AddSeconds(1))
                         }
                     }
                 }
             }
         });
 
-        // Assert - Wait for dialog to update
-        cut.WaitForAssertion(() =>
-        {
-            var updatedInstance = cut.FindComponent<GenAIVisualizerDialog>().Instance;
-            // The dialog should have detected the trace update
-            Assert.True(repository.HasUpdatedTrace(trace));
-        }, timeout: TimeSpan.FromSeconds(5));
+        // Wait a moment for potential subscription callbacks to fire
+        await Task.Delay(100);
+
+        // Assert - Content instance should remain the same since a different trace was updated
+        var currentContent = cut.FindComponent<GenAIVisualizerDialog>().Instance.Content;
+        Assert.Same(originalContent, currentContent);
     }
 
     [Fact]
-    public async Task Dialog_UpdatesWhenNewLogsAdded()
+    public async Task UpdateTelemetry_SameTrace_ContentInstanceChanged()
     {
-        // Arrange - Setup dialog infrastructure first
+        // Arrange - Setup dialog infrastructure and repository
         var cut = SetUpDialog(out var dialogService);
         var repository = Services.GetRequiredService<TelemetryRepository>();
-        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-
-        // Add initial trace to repository
+        
+        // Add initial trace to repository for the dialog to display
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>
         {
@@ -267,7 +248,22 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         var trace = tracesResult.PagedResult.Items[0];
         var span = trace.Spans[0];
 
-        // Open dialog
+        // Create a function that retrieves the current list of spans from the trace
+        List<OtlpSpan> GetContextGenAISpans()
+        {
+            var currentTrace = repository.GetTraces(new GetTracesRequest
+            {
+                ResourceKey = resource.ResourceKey,
+                FilterText = string.Empty,
+                StartIndex = 0,
+                Count = 10,
+                Filters = []
+            }).PagedResult.Items.FirstOrDefault(t => t.TraceId == trace.TraceId);
+            
+            return currentTrace?.Spans.ToList() ?? [];
+        }
+
+        // Open dialog with the function that can retrieve updated spans
         await GenAIVisualizerDialog.OpenDialogAsync(
             viewportInformation: new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false),
             dialogService: dialogService,
@@ -277,39 +273,13 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             telemetryRepository: repository,
             errorRecorder: new TestTelemetryErrorRecorder(),
             resources: resources,
-            getContextGenAISpans: () => []
+            getContextGenAISpans: GetContextGenAISpans
         );
 
         var instance = cut.FindComponent<GenAIVisualizerDialog>().Instance;
+        var originalContent = instance.Content;
 
-        // Act - Add a log entry associated with the span AND add a new span to update the trace
-        // This simulates a realistic scenario where logs and spans are added together
-        var messageContent = JsonSerializer.Serialize(new SystemOrUserEvent { Content = "User message from log" }, GenAIEventsContext.Default.SystemOrUserEvent);
-        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>
-        {
-            new ResourceLogs
-            {
-                Resource = CreateResource(name: "app", instanceId: "instance"),
-                ScopeLogs =
-                {
-                    new ScopeLogs
-                    {
-                        Scope = CreateScope(),
-                        LogRecords =
-                        {
-                            CreateLogRecord(
-                                time: s_testTime.AddMilliseconds(500),
-                                message: messageContent,
-                                traceId: "trace1",
-                                spanId: "span1",
-                                attributes: [KeyValuePair.Create("event.name", "gen_ai.user.message")])
-                        }
-                    }
-                }
-            }
-        });
-
-        // Add a new span to the trace to trigger the trace update
+        // Act - Add a new span to the SAME trace that the dialog is displaying
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>
         {
             new ResourceSpans
@@ -334,11 +304,11 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             }
         });
 
-        // Assert - Wait for dialog to update - the trace should be marked as updated
+        // Assert - Wait for the dialog to update its Content property
         cut.WaitForAssertion(() =>
         {
-            // The dialog should have detected the trace update
-            Assert.True(repository.HasUpdatedTrace(trace));
+            var currentContent = cut.FindComponent<GenAIVisualizerDialog>().Instance.Content;
+            Assert.NotSame(originalContent, currentContent);
         }, timeout: TimeSpan.FromSeconds(5));
     }
 
