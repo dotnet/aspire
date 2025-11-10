@@ -818,6 +818,104 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Null(vm.OutputTokens);
     }
 
+    [Fact]
+    public void Create_LangSmithFormat_WithGapsInIndices_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // LangSmith format with gaps in indices (0, 2, 5 instead of consecutive 0, 1, 2)
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            // Prompt messages with gaps in indices
+            KeyValuePair.Create("gen_ai.prompt.0.role", "system"),
+            KeyValuePair.Create("gen_ai.prompt.0.content", "You are a helpful assistant."),
+            // Skip index 1
+            KeyValuePair.Create("gen_ai.prompt.2.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.2.content", "What is 2+2?"),
+            // Skip indices 3 and 4
+            KeyValuePair.Create("gen_ai.prompt.5.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.5.content", "Follow up question."),
+            // Completion messages with gaps
+            KeyValuePair.Create("gen_ai.completion.0.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.0.content", "The answer is 4."),
+            // Skip index 1
+            KeyValuePair.Create("gen_ai.completion.3.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.3.content", "Follow up answer.")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        // Messages should be parsed in order of their indices (0, 2, 5 for prompts; 0, 3 for completions)
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("You are a helpful assistant.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("What is 2+2?", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Follow up question.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("The answer is 4.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Follow up answer.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.ModelName);
+        Assert.Null(vm.InputTokens);
+        Assert.Null(vm.OutputTokens);
+    }
+
     private static GenAIVisualizerDialogViewModel Create(
         TelemetryRepository repository,
         SpanDetailsViewModel spanDetailsViewModel)
