@@ -87,7 +87,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
             // Only update dialog data if the current trace has been updated,
             // or if there are new context spans (for the next/previous buttons).
-            var newData = (newContextSpans.Count > _contextSpans.Count || hasUpdatedTrace);
+            var newData = (hasUpdatedTrace || newContextSpans.Count > _contextSpans.Count);
             if (newData)
             {
                 var span = newContextSpans.Find(s => s.SpanId == Content.Span.SpanId)!;
