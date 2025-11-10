@@ -152,6 +152,11 @@
         <target state="translated">도구 호출</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolResponse">
+        <source>Tool response</source>
+        <target state="new">Tool response</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIMessageTitleAssistant">
         <source>Assistant</source>
         <target state="translated">도우미</target>
@@ -202,6 +207,11 @@
         <target state="translated">메시지를 찾을 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAINoTools">
+        <source>No tools found.</source>
+        <target state="new">No tools found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIOutputHeaderText">
         <source>Output</source>
         <target state="translated">출력</target>
@@ -230,6 +240,11 @@
       <trans-unit id="GenAITokensLabel">
         <source>Tokens</source>
         <target state="translated">토큰</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolsTabText">
+        <source>Tools</source>
+        <target state="new">Tools</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">

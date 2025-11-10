@@ -331,6 +331,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Tool response.
+        /// </summary>
+        public static string GenAIMessageCategoryToolResponse {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryToolResponse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Assistant.
         /// </summary>
         public static string GenAIMessageTitleAssistant {
@@ -421,6 +430,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No tools found..
+        /// </summary>
+        public static string GenAINoTools {
+            get {
+                return ResourceManager.GetString("GenAINoTools", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Output.
         /// </summary>
         public static string GenAIOutputHeaderText {
@@ -471,6 +489,15 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAITokensLabel {
             get {
                 return ResourceManager.GetString("GenAITokensLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tools.
+        /// </summary>
+        public static string GenAIToolsTabText {
+            get {
+                return ResourceManager.GetString("GenAIToolsTabText", resourceCulture);
             }
         }
         

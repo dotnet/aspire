@@ -152,6 +152,11 @@
         <target state="translated">工具调用</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolResponse">
+        <source>Tool response</source>
+        <target state="new">Tool response</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIMessageTitleAssistant">
         <source>Assistant</source>
         <target state="translated">助手</target>
@@ -202,6 +207,11 @@
         <target state="translated">找不到消息。</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAINoTools">
+        <source>No tools found.</source>
+        <target state="new">No tools found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIOutputHeaderText">
         <source>Output</source>
         <target state="translated">输出</target>
@@ -230,6 +240,11 @@
       <trans-unit id="GenAITokensLabel">
         <source>Tokens</source>
         <target state="translated">词元</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolsTabText">
+        <source>Tools</source>
+        <target state="new">Tools</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">

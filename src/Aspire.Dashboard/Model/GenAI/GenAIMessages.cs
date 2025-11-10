@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Microsoft.OpenApi.Models;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
@@ -81,6 +82,17 @@ public class ChatMessage
     public List<MessagePart> Parts { get; set; } = new();
     // Only set on output message.
     public string? FinishReason { get; set; }
+}
+
+/// <summary>
+/// Represents a tool definition that can be used by the model.
+/// </summary>
+public class ToolDefinition
+{
+    public string Type { get; set; } = "function";
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public OpenApiSchema? Parameters { get; set; }
 }
 
 /// <summary>

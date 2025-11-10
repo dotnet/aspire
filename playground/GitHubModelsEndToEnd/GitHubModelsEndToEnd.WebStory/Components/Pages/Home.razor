@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Microsoft.Extensions.AI
 @using System.Diagnostics
+@using System.ComponentModel
 @inject IChatClient chatClient
 @inject ILogger<Home> logger
 
@@ -31,7 +32,7 @@
         new(ChatRole.System, "You are a story generator. Format stories in Markdown. Use bold and italics for emphasis. Each sentence must include a Markdown formatted link to Wikipedia about a topic in the sentence.")
     };
 
-    public Task<List<string>> GenerateNamesAsync(int number)
+    public Task<List<string>> GenerateNamesAsync([Description("The number of fictional names to generate.")] int number)
     {
         // Note that this could randomly select the same name multiple times.
         var names = Enumerable.Range(1, number)

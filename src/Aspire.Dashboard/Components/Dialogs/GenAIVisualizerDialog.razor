@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Microsoft.OpenApi.Any
 
 @implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
 
@@ -201,6 +202,13 @@
                                            Id="@($"tab-overview-{OverviewViewKind.Details}")"
                                            Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]">
                                 </FluentTab>
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")">
+                                    <Header>
+                                        <span class="tab-text">@Loc[nameof(Dialogs.GenAIToolsTabText)]</span>
+                                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
+                                    </Header>
+                                </FluentTab>
                             </FluentTabs>
                         </div>
                         @if (OverviewActiveView == OverviewViewKind.InputOutput)
@@ -223,11 +231,11 @@
                                             @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAINoMessageContentMoreInformationMessage)], "https://aka.ms/aspire/telemetry-ai-content"))
                                         </div>
                                     }
-                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent)
-                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent)
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent, Content.ToolDefinitions)
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent, Content.ToolDefinitions)
                                     @if (Content.ErrorItem is { } errorItem)
                                     {
-                                        @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent)
+                                        @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent, Content.ToolDefinitions)
                                     }
                                 }
                             </div>
@@ -236,6 +244,81 @@
                         {
                             <div class="tab-container">
                                 <SpanDetails ViewModel="@Content.SpanDetailsViewModel" HideToolbar="true" />
+                            </div>
+                        }
+                        @if (OverviewActiveView == OverviewViewKind.Tools)
+                        {
+                            <div class="tab-container">
+                                @if (Content.ToolDefinitions.Count > 0)
+                                {
+                                    <FluentAccordion Class="tools-list">
+                                        @foreach (var tool in Content.ToolDefinitions.Where(t => t.Type == "function"))
+                                        {
+                                            <FluentAccordionItem title="test 4">
+                                                <HeadingTemplate>
+                                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                                        <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">
+                                                            @tool.Type
+                                                        </FluentBadge>
+                                                        <strong>@tool.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(tool.Description))
+                                                        {
+                                                            <span>@FormatHelpers.TruncateText(tool.Description, maxLength: 100)</span>
+                                                        }
+                                                    </div>
+                                                </HeadingTemplate>
+                                                <ChildContent>
+                                                    @if (tool.Parameters?.Properties.Count > 0)
+                                                    {
+                                                        <table class="tool-parameters-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th class="tool-cell tool-cell-nowrap">Name</th>
+                                                                    <th class="tool-cell tool-cell-nowrap">Type</th>
+                                                                    <th class="tool-cell">Description</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var prop in tool.Parameters.Properties)
+                                                                {
+                                                                    <tr>
+                                                                        <td class="tool-cell tool-cell-nowrap">
+                                                                            <strong>@prop.Key</strong>
+                                                                            @if (tool.Parameters.Required?.Contains(prop.Key) == true)
+                                                                            {
+                                                                                <span style="color: var(--error);"> *</span>
+                                                                            }
+                                                                        </td>
+                                                                        <td class="tool-cell tool-cell-nowrap">
+                                                                            <code>@prop.Value.Type</code>
+                                                                        </td>
+                                                                        <td class="tool-cell">
+                                                                            @prop.Value.Description
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                        @if (tool.Parameters.Required?.Count > 0)
+                                                        {
+                                                            <div>
+                                                                <span style="color: var(--error);">*</span> Required parameter
+                                                            </div>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <p style="font-style: italic; color: var(--neutral-foreground-rest);">No parameters</p>
+                                                    }
+                                                </ChildContent>
+                                            </FluentAccordionItem>
+                                        }
+                                    </FluentAccordion>
+                                }
+                                else
+                                {
+                                    <p>@Loc[nameof(Dialogs.GenAINoTools)]</p>
+                                }
                             </div>
                         }
                     }
@@ -248,7 +331,7 @@
 <FluentDialogFooter Visible="false" />
 
 @{
-    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent)
+    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent, List<ToolDefinition> toolDefinitions)
     {
         return@<div class="section-container">
             <div class="section-title">@title</div>
@@ -275,6 +358,14 @@
                             foreach (var itemPart in itemParts)
                             {
                                 <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+
+                                @if (itemPart.MessagePart is ToolCallRequestPart toolCallPart && !string.IsNullOrEmpty(toolCallPart.Name))
+                                {
+                                    if (toolDefinitions.FirstOrDefault(d => d.Name == toolCallPart.Name) is { } sdf)
+                                    {
+                                        <FluentButton Appearance="Appearance.Outline">View @toolCallPart.Name definition</FluentButton>
+                                    }
+                                }
                             }
                         }
                         else

@@ -386,6 +386,12 @@
   <data name="GenAINoMessages" xml:space="preserve">
     <value>No messages found.</value>
   </data>
+  <data name="GenAINoTools" xml:space="preserve">
+    <value>No tools found.</value>
+  </data>
+  <data name="GenAIToolsTabText" xml:space="preserve">
+    <value>Tools</value>
+  </data>
   <data name="SettingsDialogDotNetRuntimeVersion" xml:space="preserve">
     <value>Runtime: {0}</value>
     <comment>{0} is the .NET runtime version</comment>
@@ -451,5 +457,8 @@
   </data>
   <data name="McpServerDialogConfigurationHeading" xml:space="preserve">
     <value>Aspire MCP configuration</value>
+  </data>
+  <data name="GenAIMessageCategoryToolResponse" xml:space="preserve">
+    <value>Tool response</value>
   </data>
 </root>
