@@ -6,6 +6,7 @@ using Aspire.Azure.AI.Inference;
 using Azure.AI.Inference;
 
 [assembly: ConfigurationSchema("Aspire:Azure:AI:Inference", typeof(ChatCompletionsClientSettings))]
+[assembly: ConfigurationSchema("Aspire:Azure:AI:Inference", typeof(EmbeddingsClientSettings))]
 [assembly: ConfigurationSchema("Aspire:Azure:AI:Inference:ClientOptions", typeof(AzureAIInferenceClientOptions))]
 
 [assembly: LoggingCategories(
