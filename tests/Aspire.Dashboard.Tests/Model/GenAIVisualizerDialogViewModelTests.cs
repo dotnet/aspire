@@ -666,6 +666,82 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.True(vm.NoMessageContent);
     }
 
+    [Fact]
+    public void Create_LangSmithFormat_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // LangSmith uses flattened attributes with indexed format
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            // Prompt messages
+            KeyValuePair.Create("gen_ai.prompt.0.role", "system"),
+            KeyValuePair.Create("gen_ai.prompt.0.content", "You are a helpful assistant."),
+            KeyValuePair.Create("gen_ai.prompt.1.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.1.content", "Hello, how are you?"),
+            // Completion messages
+            KeyValuePair.Create("gen_ai.completion.0.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.0.content", "I'm doing well, thank you!")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("You are a helpful assistant.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Hello, how are you?", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("I'm doing well, thank you!", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.ModelName);
+        Assert.Null(vm.InputTokens);
+        Assert.Null(vm.OutputTokens);
+    }
+
     private static GenAIVisualizerDialogViewModel Create(
         TelemetryRepository repository,
         SpanDetailsViewModel spanDetailsViewModel)
