@@ -53,7 +53,7 @@ $ErrorActionPreference = "Stop"
 
 # Feed configurations
 $Feeds = @(
-    @{ Name = "darc-int-dotnet-aspire"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspire-5440536d/nuget/v3/index.json" }
+    @{ Name = "darc-int-dotnet-aspire"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspire-7512c294/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-dotnet"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-dotnet-b0f34d51-1/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-aspnetcore-1"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspnetcore-ee417479/nuget/v3/index.json" }
     @{ Name = "darc-int-dotnet-aspnetcore-2"; Url = "https://pkgs.dev.azure.com/dnceng/internal/_packaging/darc-int-dotnet-aspnetcore-d3aba8fe/nuget/v3/index.json" }
