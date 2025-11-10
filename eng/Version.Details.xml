@@ -35,27 +35,27 @@
     </Dependency>
     <Dependency Name="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.11">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
@@ -167,15 +167,15 @@
     </Dependency>
     <Dependency Name="Microsoft.Extensions.AI" Version="10.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.AI.OpenAI" Version="10.0.0-preview.1.25558.1">
+    <Dependency Name="Microsoft.Extensions.AI.OpenAI" Version="10.0.0-preview.1.25559.3">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.AI.AzureAIInference" Version="10.0.0-preview.1.25558.1">
+    <Dependency Name="Microsoft.Extensions.AI.AzureAIInference" Version="10.0.0-preview.1.25559.3">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>ea69fdea45ab2f505608ec9218315a092def86b5</Sha>
+      <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
