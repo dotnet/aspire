@@ -278,8 +278,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Parse prompt messages (inputs)
         foreach (var (index, message) in promptMessages.OrderBy(kvp => kvp.Key))
         {
-            var role = message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", "user");
-            var content = message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
+            var role = GetMessageRole(message, defaultRole: "user");
+            var content = GetMessageContent(message);
 
             if (content != null)
             {
@@ -305,8 +305,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Parse completion messages (outputs)
         foreach (var (index, message) in completionMessages.OrderBy(kvp => kvp.Key))
         {
-            var role = message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", "assistant");
-            var content = message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
+            var role = GetMessageRole(message, defaultRole: "assistant");
+            var content = GetMessageContent(message);
 
             if (content != null)
             {
@@ -319,6 +319,18 @@ public sealed class GenAIVisualizerDialogViewModel
                 currentIndex++;
             }
         }
+    }
+
+    // Extract role from message dictionary with fallback to message.role and default
+    private static string GetMessageRole(Dictionary<string, string> message, string defaultRole)
+    {
+        return message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", defaultRole);
+    }
+
+    // Extract content from message dictionary with fallback to message.content
+    private static string? GetMessageContent(Dictionary<string, string> message)
+    {
+        return message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
     }
 
     // Extract messages from indexed span attributes like gen_ai.prompt.0.role, gen_ai.prompt.0.content
