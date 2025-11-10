@@ -62,12 +62,15 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [.NET MAUI Integration](#net-maui-integration)
 - [Dashboard Enhancements](#📊-dashboard-enhancements)
   - [Aspire MCP server](#aspire-mcp-server)
-  - [Trace and telemetry improvements](#trace-and-telemetry-improvements)
-  - [UI and accessibility improvements](#ui-and-accessibility-improvements)
+  - [Interaction services dynamic inputs and comboboxes](#interaction-services-dynamic-inputs-and-comboboxes)
+  - [Polyglot language icons](#polyglot-language-icons)
+  - [Improved accent colors](#improved-accent-colors)
+  - [Health checks last run time](#health-checks-last-run-time)
 - [App Model Enhancements](#🖥️-app-model-enhancements)
   - [C# file-based app support](#c-file-based-app-support)
   - [Network identifiers](#network-identifiers)
-  - [Dynamic input system](#dynamic-input-system-experimental)
+  - [Interaction service dynamic inputs](#interaction-service-dynamic-inputs)
+  - [Interaction service custom choices](#interaction-service-custom-choices)
   - [Reference and connection improvements](#reference-and-connection-improvements)
   - [Other app model improvements](#other-app-model-improvements)
 - [Deployment Improvements](#🚀-deployment-improvements)
@@ -935,8 +938,8 @@ This enables AI assistants to directly interact with your Aspire applications, a
 
 The interaction service just got a major upgrade:
 
-💫 Dropdowns can now accept text — in other words, ComboBox inputs. For more information, see [interaction service custom choice](#interaction-service-custom-options).
-🔄 Supports dynamic data loading for cascading dropdowns. For more information, see [interaction service dynamic inputs](#interaction-service-dynamic-inputs).
+- 💫 Dropdowns can now accept text — in other words, ComboBox inputs. For more information, see [interaction service custom choice](#interaction-service-custom-options).
+- 🔄 Supports dynamic data loading for cascading dropdowns. For more information, see [interaction service dynamic inputs](#interaction-service-dynamic-inputs).
 
 You can see an example of the new interaction service features in the dashboard with the Azure provisioning dialog 🚀
 
