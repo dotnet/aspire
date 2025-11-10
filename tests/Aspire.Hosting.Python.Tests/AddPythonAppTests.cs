@@ -1693,15 +1693,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task FallbackDockerfile_GeneratesDockerfileWithoutUv_WithoutRequirementsTxt()
+    public async Task FallbackDockerfile_GeneratesDockerfileWithPyprojectToml()
     {
         using var sourceDir = new TempDirectory();
         using var outputDir = new TempDirectory();
         var projectDirectory = sourceDir.Path;
 
-        // Create a Python project without UV and without requirements.txt
+        // Create a Python project without UV but with pyproject.toml
         var scriptContent = """
-            print("Hello from non-UV project with no dependencies!")
+            print("Hello from non-UV project with pyproject.toml!")
             """;
 
         var pyprojectContent = """
@@ -1732,11 +1732,53 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.DoesNotContain("uv sync", dockerfileContent);
         Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
 
-        // Verify it doesn't have pip install since there's no requirements.txt
-        Assert.DoesNotContain("pip install", dockerfileContent);
+        // Verify it has pip install . for pyproject.toml
+        Assert.Contains("pip install --no-cache-dir .", dockerfileContent);
+        Assert.Contains("Copy pyproject.toml for dependency installation", dockerfileContent);
 
         // Verify it uses the same runtime image as UV workflow
         Assert.Contains("FROM python:3.11-slim-bookworm", dockerfileContent);
+
+        await Verify(dockerfileContent);
+    }
+
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileWithoutAnyDependencyFiles()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project with NO pyproject.toml and NO requirements.txt
+        var scriptContent = """
+            print("Hello from Python app with no dependencies!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources without UV environment
+        builder.AddPythonApp("script-app", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for Python app");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
+
+        // Verify it's a fallback Dockerfile (single stage, no UV)
+        Assert.DoesNotContain("uv sync", dockerfileContent);
+        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
+
+        // Verify it doesn't have pip install since there are no dependency files
+        Assert.DoesNotContain("pip install", dockerfileContent);
+
+        // Verify it uses the default runtime image
+        Assert.Contains("FROM python:3.13-slim-bookworm", dockerfileContent);
 
         await Verify(dockerfileContent);
     }

@@ -605,9 +605,12 @@ public static class PythonAppResourceBuilderExtensions
         context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
         var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
 
-        // Check if requirements.txt exists
+        // Check if requirements.txt or pyproject.toml exists
         var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
         var hasRequirementsTxt = File.Exists(requirementsTxtPath);
+        
+        var pyprojectTomlPath = Path.Combine(resource.WorkingDirectory, "pyproject.toml");
+        var hasPyprojectToml = File.Exists(pyprojectTomlPath);
 
         var logger = context.Services.GetService<ILogger<PythonAppResource>>();
         context.Builder.AddContainerFilesStages(context.Resource, logger);
@@ -639,6 +642,24 @@ public static class PythonAppResourceBuilderExtensions
                 apt-get update \
                   && apt-get install -y --no-install-recommends build-essential \
                   && pip install --no-cache-dir -r requirements.txt \
+                  && apt-get purge -y --auto-remove build-essential \
+                  && rm -rf /var/lib/apt/lists/*
+                """)
+                .EmptyLine();
+        }
+        else if (hasPyprojectToml)
+        {
+            // Copy pyproject.toml first for better layer caching
+            stage
+                .Comment("Copy pyproject.toml for dependency installation")
+                .Copy("pyproject.toml", "/app/pyproject.toml")
+                .EmptyLine()
+                .Comment("Install dependencies using pip")
+                .Run(
+                """
+                apt-get update \
+                  && apt-get install -y --no-install-recommends build-essential \
+                  && pip install --no-cache-dir . \
                   && apt-get purge -y --auto-remove build-essential \
                   && rm -rf /var/lib/apt/lists/*
                 """)
