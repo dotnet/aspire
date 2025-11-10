@@ -369,4 +369,56 @@ public static class AspireAzureAIInferenceExtensions
         protected override bool GetTracingEnabled(EmbeddingsClientSettings settings)
             => !settings.DisableTracing;
     }
+
+    /// <summary>
+    /// Creates a <see cref="IEmbeddingGenerator{string, Embedding}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
+    /// </summary>
+    /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
+    /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <returns></returns>
+    public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(this AspireEmbeddingsClientBuilder builder, string? deploymentName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.HostBuilder.Services.AddEmbeddingGenerator(
+            services => CreateInnerEmbeddingGenerator(builder, services, deploymentName));
+    }
+
+    /// <summary>
+    /// Creates a <see cref="IEmbeddingGenerator{string, Embedding}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
+    /// </summary>
+    /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
+    /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
+    /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <returns></returns>
+    public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(this AspireEmbeddingsClientBuilder builder, string serviceKey, string? deploymentName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+
+        return builder.HostBuilder.Services.AddKeyedEmbeddingGenerator(
+            serviceKey,
+            services => CreateInnerEmbeddingGenerator(builder, services, deploymentName));
+    }
+
+    private static IEmbeddingGenerator<string, Embedding<float>> CreateInnerEmbeddingGenerator(AspireEmbeddingsClientBuilder builder, IServiceProvider services, string? deploymentName)
+    {
+        var embeddingsClient = string.IsNullOrEmpty(builder.ServiceKey) ?
+            services.GetRequiredService<EmbeddingsClient>() :
+            services.GetRequiredKeyedService<EmbeddingsClient>(builder.ServiceKey);
+
+        var result = embeddingsClient.AsIEmbeddingGenerator(deploymentName ?? builder.DeploymentName);
+
+        if (builder.DisableTracing)
+        {
+            return result;
+        }
+
+        var loggerFactory = services.GetService<ILoggerFactory>();
+        return new OpenTelemetryEmbeddingGenerator<string, Embedding<float>>(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryEmbeddingGenerator<string, Embedding<float>>)))
+        {
+            EnableSensitiveData = builder.EnableSensitiveTelemetryData
+        };
+    }
 }
