@@ -298,7 +298,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
     /// <param name="azureCloudName">The Azure cloud to deploy to. Defaults to <see cref="AzureCloudName.AzurePublic"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureCloud(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, AzureCloudName azureCloudName)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureCloudName(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, AzureCloudName azureCloudName)
     {
         builder.Resource.AzureCloudName = azureCloudName;
         return builder;
