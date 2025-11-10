@@ -1193,7 +1193,6 @@ Execute individual deployment phases using `aspire do`:
 
 ```bash
 aspire do build                           # Build all containers
-aspire do provision-azure-bicep-resources # Provision infrastructure when Azure resources exist
 aspire deploy                             # Complete deployment
 aspire do deploy --log-level debug        # Deploy with verbose logging
 ```
