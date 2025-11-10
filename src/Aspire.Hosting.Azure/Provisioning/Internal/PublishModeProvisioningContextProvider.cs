@@ -393,7 +393,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         // Check if the selected resource group is an existing one
         var existingResourceGroup = resourceGroupOptions?.FirstOrDefault(rg => rg.Name.Equals(selectedResourceGroup, StringComparison.OrdinalIgnoreCase));
 
-        if (existingResourceGroup != null && !string.IsNullOrEmpty(existingResourceGroup.Value.Name))
+        if (existingResourceGroup.HasValue && !string.IsNullOrEmpty(existingResourceGroup.Value.Name))
         {
             // Use the location from the existing resource group
             _options.Location = existingResourceGroup.Value.Location;

@@ -108,19 +108,6 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
             return locations.OrderBy(l => l.DisplayName);
         }
 
-        public async Task<IEnumerable<string>> GetAvailableResourceGroupsAsync(string subscriptionId, CancellationToken cancellationToken = default)
-        {
-            var subscription = await armClient.GetSubscriptions().GetAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
-            var resourceGroups = new List<string>();
-
-            await foreach (var resourceGroup in subscription.Value.GetResourceGroups().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
-            {
-                resourceGroups.Add(resourceGroup.Data.Name);
-            }
-
-            return resourceGroups.OrderBy(rg => rg);
-        }
-
         public async Task<IEnumerable<(string Name, string Location)>> GetAvailableResourceGroupsWithLocationAsync(string subscriptionId, CancellationToken cancellationToken = default)
         {
             var subscription = await armClient.GetSubscriptions().GetAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
