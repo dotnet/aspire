@@ -60,7 +60,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [Certificate Management](#certificate-management)
 - [Integrations](#📦-integrations)
   - [.NET MAUI Integration](#net-maui-integration)
-- [Dashboard Enhancements](#📊-dashboard-enhancements)
+- [Dashboard Enhancements](#-dashboard-enhancements)
   - [Aspire MCP server](#aspire-mcp-server)
   - [Interaction services dynamic inputs and comboboxes](#interaction-services-dynamic-inputs-and-comboboxes)
   - [Polyglot language icons](#polyglot-language-icons)
