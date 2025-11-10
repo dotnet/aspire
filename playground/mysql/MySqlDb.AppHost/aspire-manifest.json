@@ -4,7 +4,7 @@
     "mysql": {
       "type": "container.v0",
       "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-      "image": "docker.io/library/mysql:9.4",
+      "image": "docker.io/library/mysql:9.5",
       "bindMounts": [
         {
           "source": "../MySql.ApiService/data",
@@ -51,7 +51,7 @@
         "CATALOG_PORT": "{mysql.bindings.tcp.port}",
         "CATALOG_USERNAME": "root",
         "CATALOG_PASSWORD": "{mysql-password.value}",
-        "CATALOG_URI": "mysql://root:{mysql-password.value}@{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/catalog",
+        "CATALOG_URI": "mysql://root:{mysql-password-uri-encoded.value}@{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/catalog",
         "CATALOG_JDBCCONNECTIONSTRING": "jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/catalog",
         "CATALOG_DATABASE": "catalog",
         "ConnectionStrings__myTestDb": "{myTestDb.connectionString}",
@@ -59,7 +59,7 @@
         "MYTESTDB_PORT": "{mysql.bindings.tcp.port}",
         "MYTESTDB_USERNAME": "root",
         "MYTESTDB_PASSWORD": "{mysql-password.value}",
-        "MYTESTDB_URI": "mysql://root:{mysql-password.value}@{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/myTestDb",
+        "MYTESTDB_URI": "mysql://root:{mysql-password-uri-encoded.value}@{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/myTestDb",
         "MYTESTDB_JDBCCONNECTIONSTRING": "jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/myTestDb",
         "MYTESTDB_DATABASE": "myTestDb",
         "ConnectionStrings__myTestDb2": "{myTestDb2.connectionString}",
@@ -67,7 +67,7 @@
         "MYTESTDB2_PORT": "{mysql.bindings.tcp.port}",
         "MYTESTDB2_USERNAME": "root",
         "MYTESTDB2_PASSWORD": "{mysql-password.value}",
-        "MYTESTDB2_URI": "mysql://root:{mysql-password.value}@{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/myTestDb2",
+        "MYTESTDB2_URI": "mysql://root:{mysql-password-uri-encoded.value}@{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/myTestDb2",
         "MYTESTDB2_JDBCCONNECTIONSTRING": "jdbc:mysql://{mysql.bindings.tcp.host}:{mysql.bindings.tcp.port}/myTestDb2",
         "MYTESTDB2_DATABASE": "myTestDb2"
       },

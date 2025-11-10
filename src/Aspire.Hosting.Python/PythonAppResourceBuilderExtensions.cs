@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -316,6 +317,8 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
+        // Register Python environment validation services (once per builder)
+        builder.Services.TryAddSingleton<PythonInstallationManager>();
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -365,8 +368,8 @@ public static class PythonAppResourceBuilderExtensions
         });
 
         // Configure required environment variables for custom certificate trust when running as an executable.
-        // TODO: Make CertificateTrustScope.System the default once we're able to validate that certificates are valid for OpenSSL. Otherwise we potentially add invalid certificates to the bundle which causes OpenSSL to error.
         resourceBuilder
+            .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
@@ -793,7 +796,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithVirtualEnvironment("myenv");
-    /// 
+    ///
     /// // Disable automatic venv creation (require venv to exist)
     /// var python2 = builder.AddPythonApp("api2", "../python-api2", "main.py")
     ///     .WithVirtualEnvironment("myenv", createIfNotExists: false);
@@ -1183,6 +1186,9 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Register UV validation service
+        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
@@ -1271,6 +1277,20 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder.Resource)
                 .ExcludeFromManifest();
 
+            // Add validation for the installer command (uv or python)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Check which command this installer is using (set by BeforeStartEvent)
+                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
+                    executable.Command == "uv")
+                {
+                    // Validate that uv is installed - don't throw so the app fails as it normally would
+                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
+            });
+
             builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // Set the installer's working directory to match the resource's working directory
@@ -1344,7 +1364,13 @@ public static class PythonAppResourceBuilderExtensions
             .WithArgs(["-m", "venv", venvPath])
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
-            .ExcludeFromManifest();
+            .ExcludeFromManifest()
+            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
+            {
+                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
+                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
+                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
 
         // Wait relationships will be set up dynamically in SetupDependencies
     }

@@ -397,7 +397,7 @@ public class ManifestGenerationTests
                     "POSTGRESDB_PORT": "{postgres.bindings.tcp.port}",
                     "POSTGRESDB_USERNAME": "postgres",
                     "POSTGRESDB_PASSWORD": "{postgres-password.value}",
-                    "POSTGRESDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/postgresdb",
+                    "POSTGRESDB_URI": "postgresql://postgres:{postgres-password-uri-encoded.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/postgresdb",
                     "POSTGRESDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/postgresdb",
                     "POSTGRESDB_DATABASE": "postgresdb"
                   },
