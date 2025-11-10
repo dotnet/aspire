@@ -95,6 +95,12 @@ internal static class FluentUISetupHelpers
         context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js"));
     }
 
+    public static void SetupFluentTab(TestContext context)
+    {
+        var tabModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js"));
+        tabModule.SetupVoid("TabEditable_Changed", _ => true);
+    }
+
     public static void AddCommonDashboardServices(
         TestContext context,
         ILocalStorage? localStorage = null,
