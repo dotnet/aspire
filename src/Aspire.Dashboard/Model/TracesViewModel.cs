@@ -75,6 +75,27 @@ public class TracesViewModel
         _traces = null;
     }
 
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public PagedResult<OtlpTrace> GetTraces()
+    {
+        return GetTracesAsync().GetAwaiter().GetResult();
+    }
+
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)  
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public bool HasErrors()
+    {
+        return HasErrorsAsync().GetAwaiter().GetResult();
+    }
+
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public PagedResult<OtlpTrace> GetErrorTraces(int count)
+    {
+        return GetErrorTracesAsync(count).GetAwaiter().GetResult();
+    }
+
     public async Task<PagedResult<OtlpTrace>> GetTracesAsync()
     {
         var traces = _traces;
@@ -89,7 +110,7 @@ public class TracesViewModel
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters
-            });
+            }).ConfigureAwait(false);
 
             traces = result.PagedResult;
             MaxDuration = result.MaxDuration;
@@ -121,7 +142,7 @@ public class TracesViewModel
             StartIndex = 0,
             Count = count,
             Filters = filters
-        });
+        }).ConfigureAwait(false);
 
         return errorTraces.PagedResult;
     }

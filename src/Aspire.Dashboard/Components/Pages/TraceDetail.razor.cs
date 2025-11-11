@@ -566,7 +566,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 {
                     genAISpans.Add(vm.Span);
                 }
-                return genAISpans;
+                return Task.FromResult(genAISpans);
             });
     }
 

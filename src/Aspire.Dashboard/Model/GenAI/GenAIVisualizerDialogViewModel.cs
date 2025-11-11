@@ -27,7 +27,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public required string Title { get; init; }
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
     public required long? SelectedLogEntryId { get; init; }
-    public required Func<List<OtlpSpan>> GetContextGenAISpans { get; init; }
+    public required Func<Task<List<OtlpSpan>>> GetContextGenAISpans { get; init; }
     public required string PeerName { get; init; }
     public required string SourceName { get; init; }
 
@@ -50,7 +50,7 @@ public sealed class GenAIVisualizerDialogViewModel
         long? selectedLogEntryId,
         ITelemetryErrorRecorder errorRecorder,
         TelemetryRepository telemetryRepository,
-        Func<List<OtlpSpan>> getContextGenAISpans)
+        Func<Task<List<OtlpSpan>>> getContextGenAISpans)
     {
         var resources = telemetryRepository.GetResources();
 

@@ -127,7 +127,7 @@ public sealed class AssistantChatDataContext
             StartIndex = 0,
             Count = int.MaxValue,
             Filters = []
-        });
+        }).ConfigureAwait(false);
 
         var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
 
@@ -169,7 +169,7 @@ public sealed class AssistantChatDataContext
             Count = int.MaxValue,
             Filters = [],
             FilterText = string.Empty
-        });
+        }).ConfigureAwait(false);
 
         var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers, _dashboardOptions.CurrentValue);
 
@@ -204,7 +204,7 @@ public sealed class AssistantChatDataContext
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [traceIdFilter]
-        });
+        }).ConfigureAwait(false);
 
         await InvokeToolCallbackAsync(nameof(GetTraceStructuredLogsAsync), _loc.GetString(nameof(AIAssistant.ToolNotificationTraceStructuredLogs), OtlpHelpers.ToShortenedId(traceId)), cancellationToken).ConfigureAwait(false);
 

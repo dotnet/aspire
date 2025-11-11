@@ -75,6 +75,27 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public PagedResult<OtlpLogEntry> GetLogs()
+    {
+        return GetLogsAsync().GetAwaiter().GetResult();
+    }
+
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async  
+    public bool HasErrors()
+    {
+        return HasErrorsAsync().GetAwaiter().GetResult();
+    }
+
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public PagedResult<OtlpLogEntry> GetErrorLogs(int count)
+    {
+        return GetErrorLogsAsync(count).GetAwaiter().GetResult();
+    }
+
     public async Task<PagedResult<OtlpLogEntry>> GetLogsAsync()
     {
         var logs = _logs;
@@ -88,7 +109,7 @@ public class StructuredLogsViewModel
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters
-            });
+            }).ConfigureAwait(false);
 
             _currentDataHasErrors = logs.Items.Any(i => i.Severity >= Microsoft.Extensions.Logging.LogLevel.Error);
         }
@@ -127,7 +148,7 @@ public class StructuredLogsViewModel
             StartIndex = 0,
             Count = count,
             Filters = filters
-        });
+        }).ConfigureAwait(false);
 
         return errorLogs;
     }

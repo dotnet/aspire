@@ -163,7 +163,7 @@ internal sealed class AspireTelemetryMcpTools
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [traceIdFilter]
-        });
+        }).ConfigureAwait(false);
 
         var resources = _telemetryRepository.GetResources();
 

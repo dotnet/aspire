@@ -236,11 +236,11 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 var application = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
                 if (application != null)
                 {
-                    builder.StructuredLogs(context, application, ViewModel.GetLogs, await ViewModel.HasErrorsAsync().ConfigureAwait(false), () => await ViewModel.GetErrorLogsAsync(int.MaxValue));
+                    builder.StructuredLogs(context, application, ViewModel.GetLogs, ViewModel.HasErrors(), () => ViewModel.GetErrorLogs(int.MaxValue));
                 }
                 else
                 {
-                    builder.StructuredLogs(context, ViewModel.GetLogs, await ViewModel.HasErrorsAsync().ConfigureAwait(false), () => await ViewModel.GetErrorLogsAsync(int.MaxValue));
+                    builder.StructuredLogs(context, ViewModel.GetLogs, ViewModel.HasErrors(), () => ViewModel.GetErrorLogs(int.MaxValue));
                 }
             };
         });
@@ -344,7 +344,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             promptContext => PromptContextsBuilder.ErrorStructuredLogs(
                 promptContext,
                 AIPromptsLoc[nameof(AIPrompts.PromptErrorsStructuredLogs)],
-                () => await ViewModel.GetErrorLogsAsync(count: int.MaxValue)));
+                () => ViewModel.GetErrorLogs(count: int.MaxValue)));
     }
 
     private async Task OpenFilterAsync(FieldTelemetryFilter? entry)
@@ -565,7 +565,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 TelemetryRepository,
                 ErrorRecorder,
                 _resources,
-                () =>
+                async () =>
                 {
                     // Update the context with all visible log entries with a GenAI system property.
                     var filters = ViewModel.GetFilters();
@@ -582,7 +582,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                         StartIndex = 0,
                         Count = int.MaxValue,
                         Filters = filters
-                    });
+                    }).ConfigureAwait(false);
 
                     return logs.Items
                         .DistinctBy(l => (l.SpanId, l.TraceId))

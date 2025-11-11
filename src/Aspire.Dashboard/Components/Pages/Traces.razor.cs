@@ -410,7 +410,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             promptContext => PromptContextsBuilder.ErrorTraces(
                 promptContext,
                 AIPromptsLoc[nameof(AIPrompts.PromptErrorTraces)],
-                () => await TracesViewModel.GetErrorTracesAsync(count: int.MaxValue)));
+                () => TracesViewModel.GetErrorTraces(count: int.MaxValue)));
     }
 
     private Task ClearTraces(ResourceKey? key)
@@ -439,11 +439,11 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
                 var resource = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
                 if (resource != null)
                 {
-                    builder.Traces(context, resource, TracesViewModel.GetTraces, await TracesViewModel.HasErrorsAsync().ConfigureAwait(false), () => await TracesViewModel.GetErrorTracesAsync(int.MaxValue));
+                    builder.Traces(context, resource, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));
                 }
                 else
                 {
-                    builder.Traces(context, TracesViewModel.GetTraces, await TracesViewModel.HasErrorsAsync().ConfigureAwait(false), () => await TracesViewModel.GetErrorTracesAsync(int.MaxValue));
+                    builder.Traces(context, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));
                 }
             };
         });
