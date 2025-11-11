@@ -488,6 +488,75 @@ public class ProvisioningContextProviderTests
     }
 
     [Fact]
+    public async Task CreateProvisioningContextAsync_SubscriptionIdInput_DisabledUntilTenantSelected()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions(null, null, null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var deploymentStateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            deploymentStateManager,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        var createTask = provider.CreateProvisioningContextAsync(CancellationToken.None);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Verify the subscription input is initially disabled (since no tenant is selected yet)
+        var subscriptionInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName];
+        Assert.True(subscriptionInput.Disabled, "Subscription ID input should be initially disabled when no tenant is selected");
+
+        // Simulate loading subscriptions with an empty tenant ID
+        await subscriptionInput.DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = subscriptionInput,
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Verify the subscription input remains disabled when tenant is empty
+        Assert.True(subscriptionInput.Disabled, "Subscription ID input should remain disabled when tenant ID is empty");
+
+        // Now set a tenant ID and trigger the subscription loading callback
+        var tenantInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.TenantName];
+        tenantInput.Value = "87654321-4321-4321-4321-210987654321";
+
+        await subscriptionInput.DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = subscriptionInput,
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Verify the subscription input is now enabled after tenant is selected
+        Assert.False(subscriptionInput.Disabled, "Subscription ID input should be enabled after a tenant is selected");
+
+        // Complete the test - cancel the dialog
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<InteractionInputCollection>());
+    }
+
+    [Fact]
     public async Task PublishMode_CreateProvisioningContextAsync_ReturnsValidContext()
     {
         // Arrange

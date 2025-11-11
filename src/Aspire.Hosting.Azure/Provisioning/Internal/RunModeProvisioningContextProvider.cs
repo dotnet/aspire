@@ -163,7 +163,7 @@ internal sealed class RunModeProvisioningContextProvider(
                     Required = true,
                     AllowCustomChoice = true,
                     Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                    Disabled = !string.IsNullOrEmpty(_options.SubscriptionId),
+                    Disabled = true,  // Always start disabled - will be enabled by LoadCallback when tenant is selected or when SubscriptionId is already configured
                     Value = _options.SubscriptionId,
                     DynamicLoading = new InputLoadOptions
                     {
@@ -184,7 +184,7 @@ internal sealed class RunModeProvisioningContextProvider(
                             context.Input.Options = fetchSucceeded
                                 ? subscriptionOptions!
                                 : [];
-                            context.Input.Disabled = false;
+                            context.Input.Disabled = string.IsNullOrWhiteSpace(tenantId);
                         },
                         DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [TenantName] : []
                     }
