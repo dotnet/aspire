@@ -288,16 +288,9 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
             debugConfiguration.executablePath = baseProfile?.executablePath;
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
 
-            // Set serverReadyAction if applicable
-            if (launchOptions.isApphost) {
-                // The Aspire dashboard URL will be set as the apphost's application URL. Check if auto-launch is enabled
-                const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
-
-                if (enableDashboardAutoLaunch) {
-                    debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
-                }
-            }
-            else {
+            // The apphost's application URL is the Aspire dashboard URL. We already get the dashboard login URL later on,
+            // so we should just avoid setting up serverReadyAction and manually open the browser ourselves.
+            if (!launchOptions.isApphost) {
                 debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
             }
 
