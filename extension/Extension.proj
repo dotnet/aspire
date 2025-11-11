@@ -28,7 +28,7 @@
     <MakeDir Directories="$(ArtifactsPackagesDir)\vscode" />
 
     <!-- Package extension -->
-    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix"
+    <Exec Command="vsce package --out $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
   </Target>
