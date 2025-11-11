@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+
+    <!-- MEAI has transitive dependencies that pull versions to 10.0 so we need pull our dependency versions for this package as well -->
+    <ForceLatestDotnetVersions>true</ForceLatestDotnetVersions>
   </PropertyGroup>
 
   <ItemGroup>
