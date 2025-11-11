@@ -135,7 +135,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
-        var traces = TracesViewModel.GetTraces();
+        var traces = await TracesViewModel.GetTracesAsync().ConfigureAwait(false);
 
         if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
@@ -158,7 +158,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         _totalItemsCount = traces.TotalItemCount;
         _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
-        _explainErrorsButton?.UpdateHasErrors(TracesViewModel.HasErrors());
+        _explainErrorsButton?.UpdateHasErrors(await TracesViewModel.HasErrorsAsync().ConfigureAwait(false));
         _aiContext?.ContextHasChanged();
 
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
@@ -410,7 +410,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             promptContext => PromptContextsBuilder.ErrorTraces(
                 promptContext,
                 AIPromptsLoc[nameof(AIPrompts.PromptErrorTraces)],
-                () => TracesViewModel.GetErrorTraces(count: int.MaxValue)));
+                () => await TracesViewModel.GetErrorTracesAsync(count: int.MaxValue)));
     }
 
     private Task ClearTraces(ResourceKey? key)
@@ -439,11 +439,11 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
                 var resource = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
                 if (resource != null)
                 {
-                    builder.Traces(context, resource, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));
+                    builder.Traces(context, resource, TracesViewModel.GetTraces, await TracesViewModel.HasErrorsAsync().ConfigureAwait(false), () => await TracesViewModel.GetErrorTracesAsync(int.MaxValue));
                 }
                 else
                 {
-                    builder.Traces(context, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));
+                    builder.Traces(context, TracesViewModel.GetTraces, await TracesViewModel.HasErrorsAsync().ConfigureAwait(false), () => await TracesViewModel.GetErrorTracesAsync(int.MaxValue));
                 }
             };
         });

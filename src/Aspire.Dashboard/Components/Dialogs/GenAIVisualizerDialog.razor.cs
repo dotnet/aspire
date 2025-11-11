@@ -168,12 +168,12 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return span != null;
     }
 
-    private bool TryUpdateViewedGenAISpan(OtlpSpan newSpan)
+    private async Task<bool> TryUpdateViewedGenAISpanAsync(OtlpSpan newSpan)
     {
         var selectedIndex = SelectedItem?.Index;
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, ErrorRecorder, TelemetryRepository, Content.GetContextGenAISpans);
+        var dialogViewModel = await GenAIVisualizerDialogViewModel.CreateAsync(spanDetailsViewModel, selectedLogEntryId: null, ErrorRecorder, TelemetryRepository, Content.GetContextGenAISpans).ConfigureAwait(false);
 
         if (selectedIndex != null)
         {
@@ -299,7 +299,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, errorRecorder, telemetryRepository, getContextGenAISpans);
+        var dialogViewModel = await GenAIVisualizerDialogViewModel.CreateAsync(spanDetailsViewModel, selectedLogEntryId, errorRecorder, telemetryRepository, getContextGenAISpans).ConfigureAwait(false);
 
         await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(dialogViewModel, parameters);
     }

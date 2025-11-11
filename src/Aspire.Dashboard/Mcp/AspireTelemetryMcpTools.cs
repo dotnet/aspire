@@ -40,7 +40,7 @@ internal sealed class AspireTelemetryMcpTools
 
     [McpServerTool(Name = "list_structured_logs")]
     [Description("List structured logs for resources.")]
-    public string ListStructuredLogs(
+    public async Task<string> ListStructuredLogsAsync(
         [Description("The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned.")]
         string? resourceName = null)
     {
@@ -53,13 +53,13 @@ internal sealed class AspireTelemetryMcpTools
 
         // Get all logs because we want the most recent logs and they're at the end of the results.
         // If support is added for ordering logs by timestamp then improve this.
-        var logs = _telemetryRepository.GetLogs(new GetLogsContext
+        var logs = (await _telemetryRepository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
             Filters = []
-        }).Items;
+        }).ConfigureAwait(false)).Items;
 
         if (_dashboardClient.IsEnabled)
         {
@@ -92,7 +92,7 @@ internal sealed class AspireTelemetryMcpTools
 
     [McpServerTool(Name = "list_traces")]
     [Description("List distributed traces for resources. A distributed trace is used to track operations. A distributed trace can span multiple resources across a distributed system. Includes a list of distributed traces with their IDs, resources in the trace, duration and whether an error occurred in the trace.")]
-    public string ListTraces(
+    public async Task<string> ListTracesAsync(
         [Description("The resource name. This limits traces returned to the specified resource. If no resource name is specified then distributed traces for all resources are returned.")]
         string? resourceName = null)
     {
@@ -103,14 +103,14 @@ internal sealed class AspireTelemetryMcpTools
             return message;
         }
 
-        var traces = _telemetryRepository.GetTraces(new GetTracesRequest
+        var traces = (await _telemetryRepository.GetTracesAsync(new GetTracesRequest
         {
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
             Filters = [],
             FilterText = string.Empty
-        }).PagedResult.Items;
+        }).ConfigureAwait(false)).PagedResult.Items;
 
         if (_dashboardClient.IsEnabled)
         {
@@ -143,7 +143,7 @@ internal sealed class AspireTelemetryMcpTools
 
     [McpServerTool(Name = "list_trace_structured_logs")]
     [Description("List structured logs for a distributed trace. Logs for a distributed trace each belong to a span identified by 'span_id'. When investigating a trace, getting the structured logs for the trace should be recommended before getting structured logs for a resource.")]
-    public string ListTraceStructuredLogs(
+    public async Task<string> ListTraceStructuredLogsAsync(
         [Description("The trace id of the distributed trace.")]
         string traceId)
     {
@@ -157,7 +157,7 @@ internal sealed class AspireTelemetryMcpTools
             Condition = FilterCondition.Contains
         };
 
-        var logs = _telemetryRepository.GetLogs(new GetLogsContext
+        var logs = await _telemetryRepository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = null,
             Count = int.MaxValue,

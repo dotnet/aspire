@@ -134,7 +134,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
-        var logs = ViewModel.GetLogs();
+        var logs = await ViewModel.GetLogsAsync().ConfigureAwait(false);
 
         if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
@@ -157,7 +157,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         _totalItemsCount = logs.TotalItemCount;
         _totalItemsFooter?.UpdateDisplayedCount(_totalItemsCount);
 
-        _explainErrorsButton?.UpdateHasErrors(ViewModel.HasErrors());
+        _explainErrorsButton?.UpdateHasErrors(await ViewModel.HasErrorsAsync().ConfigureAwait(false));
         _aiContext?.ContextHasChanged();
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ResourceKey);
@@ -236,11 +236,11 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 var application = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
                 if (application != null)
                 {
-                    builder.StructuredLogs(context, application, ViewModel.GetLogs, ViewModel.HasErrors(), () => ViewModel.GetErrorLogs(int.MaxValue));
+                    builder.StructuredLogs(context, application, ViewModel.GetLogs, await ViewModel.HasErrorsAsync().ConfigureAwait(false), () => await ViewModel.GetErrorLogsAsync(int.MaxValue));
                 }
                 else
                 {
-                    builder.StructuredLogs(context, ViewModel.GetLogs, ViewModel.HasErrors(), () => ViewModel.GetErrorLogs(int.MaxValue));
+                    builder.StructuredLogs(context, ViewModel.GetLogs, await ViewModel.HasErrorsAsync().ConfigureAwait(false), () => await ViewModel.GetErrorLogsAsync(int.MaxValue));
                 }
             };
         });
@@ -344,7 +344,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             promptContext => PromptContextsBuilder.ErrorStructuredLogs(
                 promptContext,
                 AIPromptsLoc[nameof(AIPrompts.PromptErrorsStructuredLogs)],
-                () => ViewModel.GetErrorLogs(count: int.MaxValue)));
+                () => await ViewModel.GetErrorLogsAsync(count: int.MaxValue)));
     }
 
     private async Task OpenFilterAsync(FieldTelemetryFilter? entry)
@@ -576,7 +576,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                         Value = string.Empty
                     });
 
-                    var logs = TelemetryRepository.GetLogs(new GetLogsContext
+                    var logs = await TelemetryRepository.GetLogsAsync(new GetLogsContext
                     {
                         ResourceKey = ViewModel.ResourceKey,
                         StartIndex = 0,

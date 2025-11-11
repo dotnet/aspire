@@ -434,16 +434,14 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
+    public async Task<PagedResult<OtlpLogEntry>> GetLogsAsync(GetLogsContext context)
     {
         // Use external storage as source of truth if configured
         if (_telemetryStorage != null)
         {
             try
             {
-                var storageTask = _telemetryStorage.GetLogsAsync(context);
-                // Wait synchronously for now - could be optimized with async methods
-                var result = storageTask.GetAwaiter().GetResult();
+                var result = await _telemetryStorage.GetLogsAsync(context).ConfigureAwait(false);
                 
                 // If we got results from storage, return them
                 if (result.TotalItemCount > 0 || context.StartIndex > 0)
@@ -568,16 +566,14 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public GetTracesResponse GetTraces(GetTracesRequest context)
+    public async Task<GetTracesResponse> GetTracesAsync(GetTracesRequest context)
     {
         // Use external storage as source of truth if configured
         if (_telemetryStorage != null)
         {
             try
             {
-                var storageTask = _telemetryStorage.GetTracesAsync(context);
-                // Wait synchronously for now - could be optimized with async methods
-                var result = storageTask.GetAwaiter().GetResult();
+                var result = await _telemetryStorage.GetTracesAsync(context).ConfigureAwait(false);
                 
                 // If we got results from storage, return them
                 if (result.PagedResult.TotalItemCount > 0 || context.StartIndex > 0)

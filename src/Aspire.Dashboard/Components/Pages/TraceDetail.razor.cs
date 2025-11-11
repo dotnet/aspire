@@ -118,7 +118,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         {
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
             {
-                UpdateDetailViewData();
+                await UpdateDetailViewDataAsync().ConfigureAwait(false);
                 await InvokeAsync(StateHasChanged);
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
@@ -228,7 +228,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         if (TraceId != _trace?.TraceId)
         {
-            UpdateDetailViewData();
+            await UpdateDetailViewDataAsync().ConfigureAwait(false);
             UpdateSubscription();
 
             // If parameters change after render then the grid is automatically updated.
@@ -280,7 +280,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
     }
 
-    private void UpdateDetailViewData()
+    private async Task UpdateDetailViewDataAsync()
     {
         _resources = TelemetryRepository.GetResources();
 
@@ -316,7 +316,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 Value = _trace.TraceId
             }]
         };
-        var result = TelemetryRepository.GetLogs(logsContext);
+        var result = await TelemetryRepository.GetLogsAsync(logsContext);
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
@@ -373,7 +373,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 // Only update trace if required.
                 if (TelemetryRepository.HasUpdatedTrace(_trace))
                 {
-                    UpdateDetailViewData();
+                    await UpdateDetailViewDataAsync().ConfigureAwait(false);
                     StateHasChanged();
                     await _dataGrid.SafeRefreshDataAsync();
                 }
@@ -425,7 +425,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private async Task RefreshSpanViewAsync()
     {
-        UpdateDetailViewData();
+        await UpdateDetailViewDataAsync().ConfigureAwait(false);
         UpdateTraceActionsMenu();
         await _dataGrid.SafeRefreshDataAsync();
 

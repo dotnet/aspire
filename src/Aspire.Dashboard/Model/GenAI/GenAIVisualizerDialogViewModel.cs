@@ -45,7 +45,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public int? InputTokens { get; set; }
     public int? OutputTokens { get; set; }
 
-    public static GenAIVisualizerDialogViewModel Create(
+    public static async Task<GenAIVisualizerDialogViewModel> CreateAsync(
         SpanDetailsViewModel spanDetailsViewModel,
         long? selectedLogEntryId,
         ITelemetryErrorRecorder errorRecorder,
@@ -73,7 +73,7 @@ public sealed class GenAIVisualizerDialogViewModel
 
         try
         {
-            CreateMessages(viewModel, telemetryRepository);
+            await CreateMessagesAsync(viewModel, telemetryRepository).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -175,7 +175,7 @@ public sealed class GenAIVisualizerDialogViewModel
     // - Span attributes.
     // - Log entry bodies.
     // - Span event attributes.
-    private static void CreateMessages(GenAIVisualizerDialogViewModel viewModel, TelemetryRepository telemetryRepository)
+    private static async Task CreateMessagesAsync(GenAIVisualizerDialogViewModel viewModel, TelemetryRepository telemetryRepository)
     {
         var currentIndex = 0;
 
@@ -204,7 +204,7 @@ public sealed class GenAIVisualizerDialogViewModel
         }
 
         // Attempt to get messages from log entries.
-        var logEntries = GetSpanLogEntries(telemetryRepository, viewModel.Span);
+        var logEntries = await GetSpanLogEntriesAsync(telemetryRepository, viewModel.Span).ConfigureAwait(false);
         foreach (var (item, index) in logEntries.OrderBy(i => i.TimeStamp).Select((l, i) => (l, i)))
         {
             if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
@@ -495,7 +495,7 @@ public sealed class GenAIVisualizerDialogViewModel
         return type != null;
     }
 
-    private static List<OtlpLogEntry> GetSpanLogEntries(TelemetryRepository telemetryRepository, OtlpSpan span)
+    private static async Task<List<OtlpLogEntry>> GetSpanLogEntriesAsync(TelemetryRepository telemetryRepository, OtlpSpan span)
     {
         var logsContext = new GetLogsContext
         {
@@ -511,7 +511,7 @@ public sealed class GenAIVisualizerDialogViewModel
                 }
             ]
         };
-        var logsResult = telemetryRepository.GetLogs(logsContext);
+        var logsResult = await telemetryRepository.GetLogsAsync(logsContext).ConfigureAwait(false);
         return logsResult.Items;
     }
 }

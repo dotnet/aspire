@@ -75,14 +75,14 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs()
+    public async Task<PagedResult<OtlpLogEntry>> GetLogsAsync()
     {
         var logs = _logs;
         if (logs == null)
         {
             var filters = GetFilters();
 
-            logs = _telemetryRepository.GetLogs(new GetLogsContext
+            logs = await _telemetryRepository.GetLogsAsync(new GetLogsContext
             {
                 ResourceKey = ResourceKey,
                 StartIndex = StartIndex,
@@ -113,15 +113,15 @@ public class StructuredLogsViewModel
     }
 
     // First check if there were any errors in already available data. Avoid fetching data again.
-    public bool HasErrors() => _currentDataHasErrors || GetErrorLogs(count: 0).TotalItemCount > 0;
+    public async Task<bool> HasErrorsAsync() => _currentDataHasErrors || (await GetErrorLogsAsync(count: 0).ConfigureAwait(false)).TotalItemCount > 0;
 
-    public PagedResult<OtlpLogEntry> GetErrorLogs(int count)
+    public async Task<PagedResult<OtlpLogEntry>> GetErrorLogsAsync(int count)
     {
         var filters = GetFilters();
         filters.RemoveAll(f => f is FieldTelemetryFilter fieldFilter && fieldFilter.Field == nameof(OtlpLogEntry.Severity));
         filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = Microsoft.Extensions.Logging.LogLevel.Error.ToString() });
 
-        var errorLogs = _telemetryRepository.GetLogs(new GetLogsContext
+        var errorLogs = await _telemetryRepository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = ResourceKey,
             StartIndex = 0,
