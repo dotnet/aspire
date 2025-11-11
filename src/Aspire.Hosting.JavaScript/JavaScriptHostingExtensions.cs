@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Globalization;
@@ -106,34 +105,15 @@ public static class JavaScriptHostingExtensions
                     var builderStage = dockerfileContext.Builder
                         .From(baseBuildImage, "build")
                         .EmptyLine()
-                        .WorkDir("/app");
+                        .WorkDir("/app")
+                        .Copy(".", ".")
+                        .EmptyLine();
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
-                        var copiedAllSource = false;
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            // Copy package files first for better layer caching
-                            if (packageManager.PackageFilesPatterns.Count > 0)
-                            {
-                                foreach (var packageFilePattern in packageManager.PackageFilesPatterns)
-                                {
-                                    builderStage.Copy(packageFilePattern.Source, packageFilePattern.Destination);
-                                }
-                            }
-                            else
-                            {
-                                builderStage.Copy(".", ".");
-                                copiedAllSource = true;
-                            }
-
-                            builderStage.AddInstallCommand(packageManager, installCommand);
-                        }
-
-                        if (!copiedAllSource)
-                        {
-                            // Copy application source code after dependencies are installed
-                            builderStage.Copy(".", ".");
+                            builderStage.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
                         }
 
                         if (resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
@@ -146,14 +126,8 @@ public static class JavaScriptHostingExtensions
                             commandArgs.Add(buildCommand.ScriptName);
                             commandArgs.AddRange(buildCommand.Args);
 
-                            builderStage.EmptyLine()
-                                .Run(string.Join(' ', commandArgs));
+                            builderStage.Run(string.Join(' ', commandArgs));
                         }
-                    }
-                    else
-                    {
-                        // No package manager, just copy everything
-                        builderStage.Copy(".", ".");
                     }
 
                     var logger = dockerfileContext.Services.GetService<ILogger<JavaScriptAppResource>>();
@@ -168,6 +142,7 @@ public static class JavaScriptHostingExtensions
                             .AddContainerFiles(dockerfileContext.Resource, "/app", logger)
                             .EmptyLine()
                             .Env("NODE_ENV", "production")
+                            .Expose(3000)
                             .EmptyLine()
                             .User("node")
                             .EmptyLine()
@@ -209,8 +184,6 @@ public static class JavaScriptHostingExtensions
                 return Task.CompletedTask;
             });
         }
-
-        resourceBuilder.WithNodeDebugSupport(Path.Join(appDirectory, scriptPath));
 
         return resourceBuilder;
     }
@@ -256,22 +229,7 @@ public static class JavaScriptHostingExtensions
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new JavaScriptAppResource(name, "npm", appDirectory);
 
-        return builder.CreateDefaultJavaScriptAppBuilder(resource, appDirectory, runScriptName)
-            .WithJavaScriptDebugSupport();
-    }
-
-    private static void AddInstallCommand(this DockerfileStage builderStage, JavaScriptPackageManagerAnnotation packageManager, JavaScriptInstallCommandAnnotation installCommand)
-    {
-        // Use BuildKit cache mount for package manager cache if available
-        var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
-        if (!string.IsNullOrEmpty(packageManager.CacheMount))
-        {
-            builderStage.Run($"--mount=type=cache,target={packageManager.CacheMount} {installCmd}");
-        }
-        else
-        {
-            builderStage.Run(installCmd);
-        }
+        return builder.CreateDefaultJavaScriptAppBuilder(resource, appDirectory, runScriptName);
     }
 
     private static IResourceBuilder<TResource> CreateDefaultJavaScriptAppBuilder<TResource>(
@@ -323,33 +281,12 @@ public static class JavaScriptHostingExtensions
 
                         var dockerBuilder = dockerfileContext.Builder
                             .From(baseImage)
-                            .WorkDir("/app");
-
-                        var copiedAllSource = false;
-
-                        // Copy package files first for better layer caching
-                        if (packageManager.PackageFilesPatterns.Count > 0)
-                        {
-                            foreach (var packageFilePattern in packageManager.PackageFilesPatterns)
-                            {
-                                dockerBuilder.Copy(packageFilePattern.Source, packageFilePattern.Destination);
-                            }
-                        }
-                        else
-                        {
-                            dockerBuilder.Copy(".", ".");
-                            copiedAllSource = true;
-                        }
+                            .WorkDir("/app")
+                            .Copy(".", ".");
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            dockerBuilder.AddInstallCommand(packageManager, installCommand);
-                        }
-
-                        if (!copiedAllSource)
-                        {
-                            // Copy application source code after dependencies are installed
-                            dockerBuilder.Copy(".", ".");
+                            dockerBuilder.Run($"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}");
                         }
 
                         if (c.Resource.TryGetLastAnnotation<JavaScriptBuildScriptAnnotation>(out var buildCommand))
@@ -433,14 +370,7 @@ public static class JavaScriptHostingExtensions
             runScriptName,
             argsCallback: c =>
             {
-                // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
-                // npm and yarn both strip the -- separator before passing arguments to the script.
-                // Only add the separator for when necessary.
-                if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager) &&
-                    packageManager.CommandSeparator is string separator)
-                {
-                    c.Args.Add(separator);
-                }
+                c.Args.Add("--");
 
                 var targetEndpoint = resource.GetEndpoint("https");
                 if (!targetEndpoint.Exists)
@@ -451,8 +381,7 @@ public static class JavaScriptHostingExtensions
                 c.Args.Add("--port");
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
             })
-            .WithHttpEndpoint(env: "PORT")
-            .WithViteDebugSupport();
+            .WithHttpEndpoint(env: "PORT");
     }
 
     /// <summary>
@@ -470,10 +399,7 @@ public static class JavaScriptHostingExtensions
         installCommand ??= GetDefaultNpmInstallCommand(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm")
-            {
-                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
-            })
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run"))
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
         AddInstaller(resource, install);
@@ -497,51 +423,29 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var workingDirectory = resource.Resource.WorkingDirectory;
-        var hasYarnLock = File.Exists(Path.Combine(workingDirectory, "yarn.lock"));
-        var hasYarnrc = File.Exists(Path.Combine(workingDirectory, ".yarnrc.yml"));
-        var hasYarnBerryDir = Directory.Exists(Path.Combine(workingDirectory, ".yarn"));
-        var hasYarnBerry = hasYarnrc || hasYarnBerryDir;
-
-        installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
-
-        var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
-        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
-        var packageFilesSourcePattern = "package.json";
-        if (hasYarnLock)
-        {
-            packageFilesSourcePattern += " yarn.lock";
-        }
-        if (hasYarnrc)
-        {
-            packageFilesSourcePattern += " .yarnrc.yml";
-        }
-        packageManager.PackageFilesPatterns.Add(new CopyFilePattern(packageFilesSourcePattern, "./"));
-
-        if (hasYarnBerryDir)
-        {
-            packageManager.PackageFilesPatterns.Add(new CopyFilePattern(".yarn", "./.yarn"));
-        }
+        installArgs ??= GetDefaultYarnInstallArgs(resource);
 
         resource
-            .WithAnnotation(packageManager)
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run"))
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string[] GetDefaultYarnInstallArgs(
-        IResourceBuilder<JavaScriptAppResource> resource,
-        bool hasYarnLock,
-        bool hasYarnBerry)
+    private static string[] GetDefaultYarnInstallArgs(IResourceBuilder<JavaScriptAppResource> resource)
     {
+        var workingDirectory = resource.Resource.WorkingDirectory;
         if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode ||
-            !hasYarnLock)
+            !File.Exists(Path.Combine(workingDirectory, "yarn.lock")))
         {
             // Not publish mode or no yarn.lock, use default install args
             return [];
         }
+
+        var yarnRcYml = Path.Combine(workingDirectory, ".yarnrc.yml");
+        var yarnBerryReleaseDir = Path.Combine(workingDirectory, ".yarn", "releases");
+        var hasYarnBerry = File.Exists(yarnRcYml) || Directory.Exists(yarnBerryReleaseDir);
 
         if (hasYarnBerry)
         {
@@ -564,32 +468,19 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var workingDirectory = resource.Resource.WorkingDirectory;
-        var hasPnpmLock = File.Exists(Path.Combine(workingDirectory, "pnpm-lock.yaml"));
-
-        installArgs ??= GetDefaultPnpmInstallArgs(resource, hasPnpmLock);
-
-        var packageFilesSourcePattern = "package.json";
-        if (hasPnpmLock)
-        {
-            packageFilesSourcePattern += " pnpm-lock.yaml";
-        }
+        installArgs ??= GetDefaultPnpmInstallArgs(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run", cacheMount: "/pnpm/store")
-            {
-                PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
-                // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
-                CommandSeparator = null
-            })
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run"))
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
         return resource;
     }
 
-    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource, bool hasPnpmLock) =>
-        resource.ApplicationBuilder.ExecutionContext.IsPublishMode && hasPnpmLock
+    private static string[] GetDefaultPnpmInstallArgs(IResourceBuilder<JavaScriptAppResource> resource) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
+            File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "pnpm-lock.yaml"))
             ? ["--frozen-lockfile"]
             : [];
 
@@ -821,340 +712,4 @@ public static class JavaScriptHostingExtensions
 
         return false;
     }
-
-    private static IResourceBuilder<NodeAppResource> WithNodeDebugSupport(
-        this IResourceBuilder<NodeAppResource> builder,
-        string programPath)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(programPath);
-
-        builder.WithDebugSupport<NodeAppResource, JavaScriptLaunchConfiguration>(
-            options =>
-            {
-                string? runtimeExecutable = "npm";
-                string[]? runtimeArgs = null;
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
-                {
-                    runtimeExecutable = packageManager.ExecutableName;
-                }
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScript))
-                {
-                    var args = new List<string>();
-                    if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pm) &&
-                        !string.IsNullOrEmpty(pm.ScriptCommand))
-                    {
-                        args.Add(pm.ScriptCommand);
-                    }
-                    args.Add(runScript.ScriptName);
-                    runtimeArgs = args.ToArray();
-                }
-
-                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-                var debuggerProperties = new JavaScriptDebuggerProperties
-                {
-                    Name = $"{modeText} Node.js: {Path.GetRelativePath(Environment.CurrentDirectory, programPath)}",
-                    WorkingDirectory = builder.Resource.WorkingDirectory,
-                    RuntimeExecutable = runtimeExecutable,
-                    RuntimeArgs = runtimeArgs
-                };
-
-                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<JavaScriptDebuggerProperties>>(out var debuggerPropertiesAnnotation))
-                {
-                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
-                }
-
-                return new JavaScriptLaunchConfiguration
-                {
-                    Program = programPath,
-                    Mode = options.Mode,
-                    RuntimeExecutable = runtimeExecutable,
-                    RuntimeArgs = runtimeArgs,
-                    DebuggerProperties = debuggerProperties
-                };
-            },
-            "node",
-            static ctx =>
-            {
-                // Remove the script path argument when debugging, as VS Code will handle it
-                if (ctx.Args is [string arg0, ..] &&
-                    !arg0.StartsWith('-') &&
-                    arg0.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
-                {
-                    ctx.Args.RemoveAt(0);
-                }
-            });
-
-        return builder;
-    }
-
-    private static IResourceBuilder<JavaScriptAppResource> WithJavaScriptDebugSupport(
-        this IResourceBuilder<JavaScriptAppResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var workingDirectory = builder.Resource.WorkingDirectory;
-
-        builder.WithDebugSupport<JavaScriptAppResource, JavaScriptLaunchConfiguration>(
-            options =>
-            {
-                // Get runtime args from annotations if available
-                string? runtimeExecutable = "npm";
-                string[]? runtimeArgs = null;
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
-                {
-                    runtimeExecutable = packageManager.ExecutableName;
-                }
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScript))
-                {
-                    var args = new List<string>();
-                    if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pm) &&
-                        !string.IsNullOrEmpty(pm.ScriptCommand))
-                    {
-                        args.Add(pm.ScriptCommand);
-                    }
-                    args.Add(runScript.ScriptName);
-                    runtimeArgs = args.ToArray();
-                }
-
-                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-                var debuggerProperties = new JavaScriptDebuggerProperties
-                {
-                    Name = $"{modeText} JavaScript: {builder.Resource.Name}",
-                    WorkingDirectory = workingDirectory,
-                    RuntimeExecutable = runtimeExecutable,
-                    RuntimeArgs = runtimeArgs
-                };
-
-                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<JavaScriptDebuggerProperties>>(out var debuggerPropertiesAnnotation))
-                {
-                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
-                }
-
-                return new JavaScriptLaunchConfiguration
-                {
-                    Program = workingDirectory,
-                    Mode = options.Mode,
-                    RuntimeExecutable = runtimeExecutable,
-                    RuntimeArgs = runtimeArgs,
-                    DebuggerProperties = debuggerProperties
-                };
-            },
-            "node");
-
-        return builder;
-    }
-
-    private static IResourceBuilder<ViteAppResource> WithViteDebugSupport(
-        this IResourceBuilder<ViteAppResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var workingDirectory = builder.Resource.WorkingDirectory;
-
-        builder.WithDebugSupport<ViteAppResource, JavaScriptLaunchConfiguration>(
-            options =>
-            {
-                // Get runtime args from annotations if available
-                string? runtimeExecutable = "npm";
-                string[]? runtimeArgs = null;
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
-                {
-                    runtimeExecutable = packageManager.ExecutableName;
-                }
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScript))
-                {
-                    var args = new List<string>();
-                    if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pm) &&
-                        !string.IsNullOrEmpty(pm.ScriptCommand))
-                    {
-                        args.Add(pm.ScriptCommand);
-                    }
-                    args.Add(runScript.ScriptName);
-                    runtimeArgs = args.ToArray();
-                }
-
-                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-                var debuggerProperties = new JavaScriptDebuggerProperties
-                {
-                    Name = $"{modeText} Vite: {builder.Resource.Name}",
-                    WorkingDirectory = workingDirectory,
-                    RuntimeExecutable = runtimeExecutable,
-                    RuntimeArgs = runtimeArgs
-                };
-
-                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<JavaScriptDebuggerProperties>>(out var debuggerPropertiesAnnotation))
-                {
-                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
-                }
-
-                return new JavaScriptLaunchConfiguration
-                {
-                    Program = workingDirectory,
-                    Mode = options.Mode,
-                    RuntimeExecutable = runtimeExecutable,
-                    RuntimeArgs = runtimeArgs,
-                    DebuggerProperties = debuggerProperties
-                };
-            },
-            "node");
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures custom debugger properties for a Node.js application resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method allows customization of the Node.js debugger configuration that will be used when debugging the resource
-    /// in VS Code or Visual Studio. The callback receives an object that is pre-populated with default values based on the
-    /// resource's configuration. You can modify any properties to customize the debugging experience.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Configure Node.js debugger to stop on entry:
-    /// <code lang="csharp">
-    /// var app = builder.AddNodeApp("myapp", "../app", "app.js")
-    ///     .WithJavaScriptDebuggerProperties(props =>
-    ///     {
-    ///         props.StopOnEntry = true;
-    ///         props.Trace = true;
-    ///     });
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<NodeAppResource> WithJavaScriptDebuggerProperties(
-        this IResourceBuilder<NodeAppResource> builder,
-        Action<JavaScriptDebuggerProperties> configureDebuggerProperties)
-    {
-        return builder.WithDebuggerProperties<NodeAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
-    }
-
-    /// <summary>
-    /// Configures custom debugger properties for a JavaScript application resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method allows customization of the Node.js debugger configuration that will be used when debugging the resource
-    /// in VS Code or Visual Studio. The callback receives an object that is pre-populated with default values based on the
-    /// resource's configuration. You can modify any properties to customize the debugging experience.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Configure JavaScript app debugger with custom settings:
-    /// <code lang="csharp">
-    /// var app = builder.AddJavaScriptApp("frontend", "../frontend")
-    ///     .WithJavaScriptDebuggerProperties(props =>
-    ///     {
-    ///         props.SkipFiles = ["node_modules/**"];
-    ///         props.SmartStep = true;
-    ///     });
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<JavaScriptAppResource> WithJavaScriptDebuggerProperties(
-        this IResourceBuilder<JavaScriptAppResource> builder,
-        Action<JavaScriptDebuggerProperties> configureDebuggerProperties)
-    {
-        return builder.WithDebuggerProperties<JavaScriptAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
-    }
-
-    /// <summary>
-    /// Configures custom debugger properties for a Vite application resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method allows customization of the Node.js debugger configuration that will be used when debugging the resource
-    /// in VS Code or Visual Studio. The callback receives an object that is pre-populated with default values based on the
-    /// resource's configuration. You can modify any properties to customize the debugging experience.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Configure Vite app debugger with source map support:
-    /// <code lang="csharp">
-    /// var app = builder.AddViteApp("frontend", "../frontend")
-    ///     .WithJavaScriptDebuggerProperties(props =>
-    ///     {
-    ///         props.OutFiles = ["${workspaceFolder}/dist/**/*.js"];
-    ///         props.ResolveSourceMapLocations = ["${workspaceFolder}/**"];
-    ///     });
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<ViteAppResource> WithJavaScriptDebuggerProperties(
-        this IResourceBuilder<ViteAppResource> builder,
-        Action<JavaScriptDebuggerProperties> configureDebuggerProperties)
-    {
-        return builder.WithDebuggerProperties<ViteAppResource, JavaScriptDebuggerProperties>(configureDebuggerProperties);
-    }
-
-    /// <summary>
-    /// Adds a browser debugger resource to the JavaScript application resource builder.
-    /// </summary>
-    /// <typeparam name="T">The type of JavaScript application resource being configured.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="browser">The browser to use for debugging (e.g., "chrome", "edge").</param>
-    /// <param name="webRoot">The web root directory relative to the working directory.</param>
-    /// <param name="url">The URL to launch the browser debugger against.</param>
-    /// <param name="configureDebuggerProperties">An optional callback action to configure the debugger properties.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method adds a browser debugger resource to the JavaScript application resource, enabling debugging
-    /// of client-side code in the specified browser. The debugger properties can be customized via the
-    /// provided callback action.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Add a Chrome browser debugger to a JavaScript app:
-    /// <code lang="csharp">
-    /// var app = builder.AddJavaScriptApp("frontend", "../frontend")
-    ///     .WithBrowserDebugger("chrome", "dist", "http://localhost:3000");
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<T> WithBrowserDebugger<T>(
-        this IResourceBuilder<T> builder,
-        string browser,
-        string webRoot,
-        string url,
-        Action<JavaScriptDebuggerProperties>? configureDebuggerProperties = null)
-        where T : JavaScriptAppResource
-    {
-        var debuggerResource = new BrowserDebuggerResource(
-            $"{builder.Resource.Name}-browser",
-            browser,
-            Path.Join(builder.Resource.WorkingDirectory, webRoot),
-            builder.Resource.WorkingDirectory,
-            url,
-            configureDebuggerProperties);
-
-        builder.ApplicationBuilder.AddResource(debuggerResource)
-            .WithParentRelationship(builder.Resource)
-            .WithDebugSupport(
-                options =>
-                {
-                    return new JavaScriptLaunchConfiguration
-                    {
-                        Program = string.Empty,
-                        DebuggerProperties = debuggerResource.DebuggerProperties
-                    };
-                },
-                "node");
-
-        return builder;
-    }
-
 }
