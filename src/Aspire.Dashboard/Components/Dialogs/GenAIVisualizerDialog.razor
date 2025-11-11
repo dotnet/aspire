@@ -20,11 +20,11 @@
             <div Style="grid-area: dialog-format;">
                 <FluentButton IconStart="new Icons.Regular.Size16.ArrowUp()"
                               Appearance="Appearance.Stealth"
-                              Disabled="@(_currentSpanContextIndex == 0)"
+                              Disabled="@NoPreviousGenAISpan"
                               OnClick="OnPreviousGenAISpan">@Loc[nameof(Dialogs.GenAIPreviousButtonText)]</FluentButton>
                 <FluentButton IconStart="new Icons.Regular.Size16.ArrowDown()"
                               Appearance="Appearance.Stealth"
-                              Disabled="@(_currentSpanContextIndex >= _contextSpans.Count - 1)"
+                              Disabled="@NoNextGenAISpan"
                               OnClick="OnNextGenAISpan">@Loc[nameof(Dialogs.GenAINextButtonText)]</FluentButton>
             </div>
         }

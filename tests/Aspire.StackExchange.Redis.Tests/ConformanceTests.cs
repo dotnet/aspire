@@ -59,7 +59,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
             ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "HeartbeatInterval": "3S"}}}}}""", "The string value is not a match for the indicated regular expression")
         };
 
-    public ConformanceTests(RedisContainerFixture containerFixture)
+    public ConformanceTests(RedisContainerFixture containerFixture, ITestOutputHelper? output = null) : base(output)
     {
         _containerFixture = containerFixture;
     }
