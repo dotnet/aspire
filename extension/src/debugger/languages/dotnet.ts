@@ -312,6 +312,13 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
 
                 debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
             }
+
+            // Set DOTNET_LAUNCH_PROFILE
+            // The apphost uses DOTNET_LAUNCH_PROFILE to determine which launch profile to use for project resources. The dotnet CLI sets this environment
+            // variable (see https://github.com/dotnet/sdk/pull/35029), we need to replicate the behavior by setting it ourselves.
+            if (launchOptions.isApphost && profileName) {
+                debugConfiguration.env['DOTNET_LAUNCH_PROFILE'] = profileName;
+            }
         }
     };
 }
