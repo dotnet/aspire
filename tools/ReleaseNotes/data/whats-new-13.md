@@ -1331,7 +1331,7 @@ The Aspire Dashboard is now included by default when deploying to Azure App Serv
 
 ```csharp
 builder.AddAzureAppServiceEnvironment("env");
-// Dashboard is included by default at https://[prefix]-aspire-dashboard.azurewebsites.net
+// Dashboard is included by default at https://[prefix]-aspiredashboard-[unique string].azurewebsites.net
 ```
 
 The deployed dashboard provides the same experience as local development: view logs, traces, metrics, and application topology for your production environment.
@@ -1366,17 +1366,6 @@ var insights = builder.AddAzureApplicationInsights("insights");
 builder.AddAzureAppServiceEnvironment("env")
     .WithAzureApplicationInsights(insights);
 ```
-
-#### Automatic scaling
-
-Enable automatic scaling for the App Service Plan to improve performance and avoid cold start issues:
-
-```csharp
-builder.AddAzureAppServiceEnvironment("env")
-    .WithAutomaticScaling();
-```
-
-This enables elastic scale on the App Service Plan, capping at 10 workers following Azure best practices. Without automatic scaling, each app service scales independently with per-site scaling.
 
 ## ⚠️ Breaking Changes
 
