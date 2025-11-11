@@ -9,12 +9,13 @@ ms.date: 11/03/2025
 📢 **Aspire 13.0 represents a major milestone in the Aspire product line.** Aspire is no longer ".NET Aspire" - it's now simply **Aspire**, a full **polyglot application platform**. While Aspire continues to provide best-in-class support for .NET applications, version 13.0 elevates **Python and JavaScript to first-class citizens**, with comprehensive support for running, debugging, and deploying applications written in these languages.
 
 This release introduces:
-- **First-class Python support**: Debug Python modules in VS Code, deploy with uvicorn, flexible package management (uv, pip, or venv), and generate production Dockerfiles automatically
+- **First-class Python support**: Support for Python modules, deploy with uvicorn, flexible package management (uv, pip, or venv), and generate production Dockerfiles automatically
 - **First-class JavaScript support**: Vite and npm-based apps with package manager auto-detection, debugging support, and container-based build pipelines
 - **Polyglot infrastructure**: Connection properties work in any language (URI, JDBC, individual properties), certificate trust across languages and containers
 - **Container files as build artifacts**: A new paradigm where build outputs are containers, not folders - enabling reproducible, isolated, and portable builds
 - **aspire do: a new platform for build, publish and deployment pipelines**: enabling parallel execution, dependency tracking, and extensible workflows for building, publishing, and deploying applications
 - **Modern CLI**: `aspire init` to Aspirify existing apps, and improved deployment state management that remembers your configuration across runs
+- **VS Code extension**: Streamlined Aspire development with commands for project creation, integration management, multi-language debugging, and deployment
 
 Along with the rebranding, Aspire now has a new home at **[aspire.dev](https://aspire.dev)** - your central hub for documentation, getting started guides, and community resources.
 
@@ -49,6 +50,7 @@ If you have feedback, questions, or want to contribute to Aspire, collaborate wi
   - [aspire init command](#aspire-init-command)
   - [aspire new command](#aspire-new-command)
   - [aspire update improvements](#aspire-update-improvements)
+  - [Visual Studio Code extension](#visual-studio-code-extension)
   - [Single-file AppHost support](#single-file-apphost-support)
   - [Automatic .NET SDK installation](#automatic-net-sdk-installation-preview)
   - [Non-interactive mode for CI/CD](#non-interactive-mode-for-cicd)
@@ -322,7 +324,7 @@ Python applications can be debugged directly in VS Code with full breakpoint sup
 - **Uvicorn/FastAPI**: Debug ASGI applications with async/await support
 
 > [!NOTE]
-> Debugging is automatically enabled for Python resources. The Aspire IDE extension generates VS Code launch configurations automatically.
+> Debugging is automatically enabled for Python resources. The Aspire VS Code extension generates VS Code launch configurations automatically.
 
 #### Automatic Dockerfile Generation
 
@@ -651,6 +653,31 @@ The `aspire update` command continues to support:
 - Enhanced visual presentation with colorized output
 - Channel awareness (stable, preview, staging)
 
+### Visual Studio Code extension
+
+Aspire 13.0 includes a new Aspire VS Code extension which brings Aspire CLI features to VS Code. It provides commands to create and debug projects, add integrations, configure launch settings, and manage deployments directly from the Command Palette.
+
+> [!NOTE]
+> To use most extension features, the Aspire 13.0 CLI must be installed and available on the user `PATH`. You can verify this by running `aspire --version` in a VS Code terminal. For installation steps, see [Upgrade to Aspire 13.0](#upgrade-to-aspire-130).
+
+**Key features:**
+
+- **Debug Python and C# projects inside VS Code**: Launch your apphost using the Aspire debugger to launch and debug any C# and Python resources in your app
+- **Project creation**: Use `Aspire: New Aspire project` to create new Aspire projects from templates
+- **Integration management**: Use `Aspire: Add an integration` to add Aspire integrations to your AppHost
+- **Launch configuration**: Use `Aspire: Configure launch.json` to automatically set up a VS Code launch configuration
+- **Configuration management**: Use `Aspire: Manage configuration settings` to configure Aspire CLI settings
+- **Publish and deployment**: Use `Aspire: Publish deployment artifacts` and `Aspire: Deploy app` commands (preview)
+
+**Getting started:**
+
+1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=microsoft-aspire.aspire-vscode)
+1. Open the Command Palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>)
+1. Type "Aspire" to see all available commands
+1. Use `Aspire: Configure launch.json` to set up debugging for your AppHost
+
+The extension requires the Aspire CLI to be installed and available on your PATH. All commands are grouped under the **Aspire** category in the Command Palette for easy discovery.
+
 ### Single-file AppHost support
 
 Aspire 13.0 introduces comprehensive support for single-file app hosts, allowing you to define your entire distributed application in a single `.cs` file without a project file.
@@ -859,7 +886,7 @@ Aspire 13.0 introduces new integration packages that expand platform support.
 
 ### .NET MAUI Integration
 
-Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services. 
+Aspire 13.0 introduces a new `Aspire.Hosting.Maui` package that enables orchestrating .NET MAUI mobile applications alongside your cloud services.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
