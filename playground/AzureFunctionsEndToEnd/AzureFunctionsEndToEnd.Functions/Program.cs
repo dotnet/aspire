@@ -14,11 +14,6 @@ builder.AddAzureServiceBusClient("messaging");
 
 builder.ConfigureFunctionsWebApplication();
 
-while (!System.Diagnostics.Debugger.IsAttached)
-{
-    System.Threading.Thread.Sleep(100);
-}
-
 var host = builder.Build();
 
 host.Run();
