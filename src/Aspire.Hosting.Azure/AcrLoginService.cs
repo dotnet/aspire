@@ -166,11 +166,14 @@ internal sealed class AcrLoginService : IAcrLoginService
         var (refreshToken, expiresIn) = await ExchangeAadTokenForAcrRefreshTokenAsync(
             registryEndpoint, tenantId, aadToken.Token, cancellationToken).ConfigureAwait(false);
 
+        // Calculate expiration time immediately after getting the token to minimize time drift
+        var expiresAtUtc = expiresIn.HasValue ? _timeProvider.GetUtcNow().AddSeconds(expiresIn.Value).UtcDateTime : (DateTime?)null;
+
         _logger.LogDebug("ACR refresh token acquired, length: {TokenLength}, expires in: {ExpiresIn} seconds",
             refreshToken.Length, expiresIn?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "not provided");
 
         // Step 3: Cache the token in the section we already acquired (only if we got a fresh token and expiration is provided)
-        if (expiresIn.HasValue)
+        if (expiresAtUtc.HasValue)
         {
             try
             {
@@ -180,7 +183,7 @@ internal sealed class AcrLoginService : IAcrLoginService
                 var newCachedToken = new CachedToken
                 {
                     RefreshToken = refreshToken,
-                    ExpiresAtUtc = _timeProvider.GetUtcNow().AddSeconds(expiresIn.Value).UtcDateTime
+                    ExpiresAtUtc = expiresAtUtc.Value
                 };
 
                 section.Data[tenantId] = newCachedToken.ToJsonNode();
