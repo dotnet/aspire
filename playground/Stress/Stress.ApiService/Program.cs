@@ -537,6 +537,45 @@ app.MapGet("/genai-trace-display-error", async () =>
     return "Created GenAI trace";
 });
 
+app.MapGet("/genai-langchain-trace", async () =>
+{
+    var source = new ActivitySource("Services.Api", "1.0.0");
+
+    var activity = source.StartActivity("langchain llm call", ActivityKind.Client);
+    if (activity != null)
+    {
+        activity.SetTag("gen_ai.system", "langchain");
+        activity.SetTag("gen_ai.provider.name", "openai");
+        activity.SetTag("gen_ai.response.model", "gpt-4");
+        activity.SetTag("gen_ai.usage.input_tokens", 150);
+        activity.SetTag("gen_ai.usage.output_tokens", 75);
+
+        // LangSmith/LangChain format uses flattened indexed attributes
+        // Prompt messages
+        activity.SetTag("gen_ai.prompt.0.role", "system");
+        activity.SetTag("gen_ai.prompt.0.content", "You are a helpful AI assistant that provides accurate and concise information.");
+
+        activity.SetTag("gen_ai.prompt.1.role", "user");
+        activity.SetTag("gen_ai.prompt.1.content", "What is the capital of France?");
+
+        activity.SetTag("gen_ai.prompt.2.role", "assistant");
+        activity.SetTag("gen_ai.prompt.2.content", "The capital of France is Paris. It is located in the north-central part of the country and is known for its art, culture, and history.");
+
+        activity.SetTag("gen_ai.prompt.3.message.role", "user");
+        activity.SetTag("gen_ai.prompt.3.message.content", "What about Germany?");
+
+        activity.SetTag("gen_ai.completion.1.message.role", "assistant");
+        activity.SetTag("gen_ai.completion.1.message.content", "The capital of Germany is Berlin. It is located in the northeastern part of the country and serves as the political and cultural center.");
+    }
+
+    // Avoid zero seconds span.
+    await Task.Delay(100);
+
+    activity?.Stop();
+
+    return "Created LangChain GenAI trace";
+});
+
 async Task SimulateWorkAsync(ActivitySource source, int index, int millisecondsDelay = 2)
 {
     using var activity = source.StartActivity($"WorkIteration{index + 1}");

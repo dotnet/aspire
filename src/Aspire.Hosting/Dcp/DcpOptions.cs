@@ -202,7 +202,7 @@ internal class ConfigureDefaultDcpOptions(
         options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
         options.LogFileNameSuffix = dcpPublisherConfiguration[nameof(options.LogFileNameSuffix)];
-        options.EnableAspireContainerTunnel = dcpPublisherConfiguration.GetValue(nameof(options.EnableAspireContainerTunnel), options.EnableAspireContainerTunnel);
+        options.EnableAspireContainerTunnel = configuration.GetValue(KnownConfigNames.EnableContainerTunnel, options.EnableAspireContainerTunnel);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

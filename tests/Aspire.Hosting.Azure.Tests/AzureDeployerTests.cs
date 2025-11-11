@@ -26,7 +26,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureDeployerTests
+public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task DeployAsync_PromptsViaInteractionService()
@@ -370,7 +370,7 @@ public class AzureDeployerTests
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
-        var mockActivityReporter = new TestPublishingActivityReporter();
+        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -597,7 +597,7 @@ public class AzureDeployerTests
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        var mockActivityReporter = new TestPublishingActivityReporter();
+        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -647,7 +647,7 @@ public class AzureDeployerTests
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        var mockActivityReporter = new TestPublishingActivityReporter();
+        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
@@ -907,7 +907,7 @@ public class AzureDeployerTests
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
-        var mockActivityReporter = new TestPublishingActivityReporter();
+        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -969,7 +969,7 @@ public class AzureDeployerTests
         // Just verify the test completed without timing out, which proves no hang occurred
     }
 
-    private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
+    private void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
@@ -980,7 +980,9 @@ public class AzureDeployerTests
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
         var environment = ProvisioningTestHelpers.CreateEnvironment();
-        var logger = ProvisioningTestHelpers.CreateLogger();
+        
+        builder.WithTestAndResourceLogging(testOutputHelper);
+        
         armClientProvider ??= ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
@@ -988,7 +990,6 @@ public class AzureDeployerTests
         builder.Services.AddSingleton(userPrincipalProvider);
         builder.Services.AddSingleton(tokenCredentialProvider);
         builder.Services.AddSingleton(environment);
-        builder.Services.AddSingleton(logger);
         builder.Services.AddSingleton(options);
         if (interactionService is not null)
         {
@@ -1117,9 +1118,9 @@ public class AzureDeployerTests
         await File.WriteAllTextAsync(deploymentStatePath, cachedState.ToJsonString());
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
@@ -1254,6 +1255,13 @@ public class AzureDeployerTests
 
     private sealed class TestPublishingActivityReporter : IPipelineActivityReporter
     {
+        private readonly ITestOutputHelper? _output;
+
+        public TestPublishingActivityReporter(ITestOutputHelper? output = null)
+        {
+            _output = output;
+        }
+
         public bool CompletePublishCalled { get; private set; }
         public string? CompletionMessage { get; private set; }
         public List<string> CreatedSteps { get; } = [];
@@ -1267,24 +1275,28 @@ public class AzureDeployerTests
         {
             CompletePublishCalled = true;
             CompletionMessage = completionMessage;
+            _output?.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState})");
             return Task.CompletedTask;
         }
 
         public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
         {
             CreatedSteps.Add(title);
-            return Task.FromResult<IReportingStep>(new TestReportingStep(this, title));
+            _output?.WriteLine($"[CreateStep] {title}");
+            return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _output));
         }
 
         private sealed class TestReportingStep : IReportingStep
         {
             private readonly TestPublishingActivityReporter _reporter;
             private readonly string _title;
+            private readonly ITestOutputHelper? _output;
 
-            public TestReportingStep(TestPublishingActivityReporter reporter, string title)
+            public TestReportingStep(TestPublishingActivityReporter reporter, string title, ITestOutputHelper? output)
             {
                 _reporter = reporter;
                 _title = title;
+                _output = output;
             }
 
             public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -1292,18 +1304,21 @@ public class AzureDeployerTests
             public Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
             {
                 _reporter.CompletedSteps.Add((_title, completionText, completionState));
+                _output?.WriteLine($"  [CompleteStep:{_title}] {completionText} (State: {completionState})");
                 return Task.CompletedTask;
             }
 
             public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
             {
                 _reporter.CreatedTasks.Add((_title, statusText));
-                return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
+                _output?.WriteLine($"    [CreateTask:{_title}] {statusText}");
+                return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _output));
             }
 
             public void Log(LogLevel logLevel, string message, bool enableMarkdown)
             {
                 _reporter.LoggedMessages.Add((_title, logLevel, message));
+                _output?.WriteLine($"    [{logLevel}:{_title}] {message}");
             }
         }
 
@@ -1311,11 +1326,13 @@ public class AzureDeployerTests
         {
             private readonly TestPublishingActivityReporter _reporter;
             private readonly string _initialStatusText;
+            private readonly ITestOutputHelper? _output;
 
-            public TestReportingTask(TestPublishingActivityReporter reporter, string initialStatusText)
+            public TestReportingTask(TestPublishingActivityReporter reporter, string initialStatusText, ITestOutputHelper? output)
             {
                 _reporter = reporter;
                 _initialStatusText = initialStatusText;
+                _output = output;
             }
 
             public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -1323,12 +1340,14 @@ public class AzureDeployerTests
             public Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
             {
                 _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
+                _output?.WriteLine($"      [CompleteTask:{_initialStatusText}] {completionMessage} (State: {completionState})");
                 return Task.CompletedTask;
             }
 
             public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
             {
                 _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
+                _output?.WriteLine($"      [UpdateTask:{_initialStatusText}] {statusText}");
                 return Task.CompletedTask;
             }
         }

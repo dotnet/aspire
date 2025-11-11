@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.ConformanceTests;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,13 +64,17 @@ public class ConformanceTests : ConformanceTests<IChatClient, OpenAISettings>
         }
     }
 
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: null), Output);
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: "key"), Output);
 
     protected override void SetHealthCheck(OpenAISettings options, bool enabled)
         => throw new NotImplementedException();
