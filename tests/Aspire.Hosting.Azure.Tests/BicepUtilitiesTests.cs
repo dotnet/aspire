@@ -433,7 +433,6 @@ public class BicepUtilitiesTests
     /// This is important because if these known parameters are overwritten, it means the "roles"
     /// resources will be redeployed every time the app is run.
     /// </summary>
-    /// <returns></returns>
     [Fact]
     public async Task GetCurrentChecksumAsync_DoesNotOverwriteKnownParameters()
     {
@@ -445,8 +444,8 @@ public class BicepUtilitiesTests
 
         var parameters = new JsonObject
         {
-            [AzureBicepResource.KnownParameters.PrincipalType] = "User",
-            [AzureBicepResource.KnownParameters.PrincipalId] = "1234"
+            [AzureBicepResource.KnownParameters.PrincipalType] = new JsonObject { ["value"] = "User" },
+            [AzureBicepResource.KnownParameters.PrincipalId] = new JsonObject { ["value"] = "1234" },
         };
 
         var configurationBuilder = new ConfigurationBuilder();
