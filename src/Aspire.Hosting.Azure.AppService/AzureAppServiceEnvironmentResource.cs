@@ -201,11 +201,6 @@ public class AzureAppServiceEnvironmentResource :
     internal string? DeploymentSlot { get; set; }
 
     /// <summary>
-    /// Indicates whether this is a slot deployment.
-    /// </summary>
-    internal bool IsSlotDeployment { get; set; }
-
-    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);

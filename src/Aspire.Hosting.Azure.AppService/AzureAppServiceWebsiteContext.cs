@@ -262,13 +262,14 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if(environmentContext.Environment.DeploymentSlot != null)
         {
-            string deploymentSlot = environmentContext.Environment.DeploymentSlot;
-            BuildWebSiteSlot(deploymentSlot);
+            BuildWebSiteSlot(environmentContext.Environment.DeploymentSlot);
+            return;
         }
         else if (environmentContext.Environment.DeploymentSlotParameter != null)
         {
             var deploymentSlotParameter = environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra);
             BuildWebSiteSlot(deploymentSlotParameter);
+            return;
         }
 
         // We need to reference the container registry URL so that it exists in the manifest
