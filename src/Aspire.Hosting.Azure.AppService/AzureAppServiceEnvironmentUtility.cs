@@ -21,7 +21,7 @@ internal static class AzureAppServiceEnvironmentUtility
     BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
     }
 
-    public static BicepValue<string> GetDashboardSlotHostName(string aspireResourceName, string deploymentSlot)
+    public static BicepValue<string> GetDashboardSlotHostName(string aspireResourceName, BicepValue<string> deploymentSlot)
     {
         return BicepFunction.Take(
     BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}-{BicepFunction.ToLower(deploymentSlot)}"), 60);
@@ -124,7 +124,7 @@ internal static class AzureAppServiceEnvironmentUtility
     public static WebSiteSlot AddDashboardSlot(AzureResourceInfrastructure infra,
         UserAssignedIdentity otelIdentity,
         BicepValue<ResourceIdentifier> appServicePlanId,
-        string deploymentSlot)
+        BicepValue<string> deploymentSlot)
     {
         // This ACR identity is used by the dashboard to authorize the telemetry data
         // coming from the dotnet web apps. This identity is being assigned to every web app

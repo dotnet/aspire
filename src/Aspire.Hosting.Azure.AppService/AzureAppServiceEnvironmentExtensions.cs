@@ -156,11 +156,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 if (deploymentSlotValue is not null)
                 {
                     // Add aspire dashboard website slot
-                    var webSiteSlot = AzureAppServiceEnvironmentUtility.AddDashboardSlot(infra, identity, plan.Id, deploymentSlotValue.Value!);
+                    var webSiteSlot = AzureAppServiceEnvironmentUtility.AddDashboardSlot(infra, identity, plan.Id, deploymentSlotValue);
 
                     infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                     {
-                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardSlotHostName(prefix, deploymentSlotValue.Value!)}.azurewebsites.net")
+                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardSlotHostName(prefix, deploymentSlotValue)}.azurewebsites.net")
                     });
                 }
                 else
