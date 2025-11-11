@@ -9,7 +9,7 @@
     grid-template-rows: auto 1fr auto;
 }
 
-::deep .span-messages-container fluent-button::part(control):not(:hover) {
+::deep .span-messages-container fluent-button.message-copy-button::part(control):not(:hover) {
     background: var(--main-container-background-color);
 }
 
@@ -253,15 +253,40 @@
     --neutral-fill-stealth-rest-on-neutral-fill-layer-rest: var(--property-grid-genai-dialog-background-color);
 }
 
+::deep .tab-container .tool-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-left: 4px;
+}
+
+::deep .tab-container .tool-footer {
+    padding-left: 4px;
+}
+
 ::deep .tab-container .tool-parameters-table {
     width: 100%;
     border-collapse: collapse;
+}
+
+::deep .tab-container .tool-button-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
 }
 
 ::deep .tab-container .tool-cell {
     text-align: left;
     padding: 8px;
     border-bottom: 1px solid var(--neutral-stroke-divider-rest);
+}
+
+::deep .tab-container strong {
+    font-weight: 600;
+}
+
+::deep .tab-container th.tool-cell {
+    font-weight: 600;
 }
 
 ::deep .tab-container .tool-cell-nowrap {

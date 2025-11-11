@@ -38,7 +38,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> InputMessages { get; private set; } = default!;
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
-    public List<ToolDefinition> ToolDefinitions { get; private set; } = new();
+    public List<ToolDefinitionViewModel> ToolDefinitions { get; private set; } = new();
 
     // Used for error message from the dashboard when displaying GenAI telemetry.
     public string? DisplayErrorMessage { get; set; }
@@ -84,7 +84,7 @@ public sealed class GenAIVisualizerDialogViewModel
                 var jsonNode = JsonNode.Parse(toolDefinitionsJson);
                 if (jsonNode is JsonArray array)
                 {
-                    viewModel.ToolDefinitions = new List<ToolDefinition>();
+                    viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
                     foreach (var item in array)
                     {
                         if (item is not JsonObject obj)
@@ -98,14 +98,14 @@ public sealed class GenAIVisualizerDialogViewModel
                             Name = obj["name"]?.GetValue<string>(),
                             Description = obj["description"]?.GetValue<string>()
                         };
-                        
+
                         // Parse parameters if present
                         if (obj["parameters"] is JsonObject paramsObj)
                         {
                             toolDef.Parameters = ParseOpenApiSchema(paramsObj);
                         }
-                        
-                        viewModel.ToolDefinitions.Add(toolDef);
+
+                        viewModel.ToolDefinitions.Add(new ToolDefinitionViewModel { ToolDefinition = toolDef });
                     }
                 }
             }
@@ -113,7 +113,7 @@ public sealed class GenAIVisualizerDialogViewModel
             {
                 // Log error but don't fail the entire view model creation
                 errorRecorder.RecordError($"Error parsing tool definitions for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
-                viewModel.ToolDefinitions = new List<ToolDefinition>();
+                viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
             }
         }
 
@@ -316,7 +316,7 @@ public sealed class GenAIVisualizerDialogViewModel
     private static void ParseLangSmithFormat(GenAIVisualizerDialogViewModel viewModel, ref int currentIndex)
     {
         var attributes = viewModel.Span.Attributes;
-        
+
         // Group attributes by prefix (prompt or completion) and index
         var promptMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAIPromptPrefix);
         var completionMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAICompletionPrefix);
@@ -392,11 +392,11 @@ public sealed class GenAIVisualizerDialogViewModel
                 // Format: gen_ai.prompt.{index}.{field}
                 var remainder = attr.Key.AsSpan(prefix.Length);
                 var dotIndex = remainder.IndexOf('.');
-                
+
                 if (dotIndex > 0 && int.TryParse(remainder.Slice(0, dotIndex), out var messageIndex))
                 {
                     var fieldName = remainder.Slice(dotIndex + 1).ToString();
-                    
+
                     if (!messages.TryGetValue(messageIndex, out var message))
                     {
                         message = new Dictionary<string, string>();

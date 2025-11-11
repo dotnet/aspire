@@ -26,6 +26,18 @@
         "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah",
         "Charles", "Karen"
     };
+    private static readonly string[] s_plotTwists = [
+        "The mentor is actually the villain in disguise.",
+        "The protagonist’s memories were fabricated to hide the truth.",
+        "The supposed enemy has been protecting the hero all along.",
+        "A trusted ally betrays the group for personal gain.",
+        "The artifact everyone seeks never existed — it was a myth to test them.",
+        "The villain is revealed to be a future version of the protagonist.",
+        "The world the characters live in is a simulation.",
+        "The prophecy was mistranslated — the hero is not the savior but the destroyer.",
+        "The character believed dead returns with no memory of their past.",
+        "The conflict was orchestrated by a third unseen force manipulating both sides."
+    ];
 
     private List<ChatMessage> chatMessages = new List<ChatMessage>
     {
@@ -42,11 +54,19 @@
         return Task.FromResult(names);
     }
 
+    public Task<string> GeneratePlotTwist()
+    {
+        return Task.FromResult(s_plotTwists[Random.Shared.Next(0, s_plotTwists.Length)]);
+    }
+
     private async Task GenerateNextParagraph()
     {
         var chatOptions = new ChatOptions
         {
-            Tools = [AIFunctionFactory.Create(GenerateNamesAsync, name: "generate_names", description: "Generates a list of fictional names for the story.")]
+            Tools = [
+                AIFunctionFactory.Create(GenerateNamesAsync, name: "generate_names", description: "Generates a list of fictional names for the story."),
+                AIFunctionFactory.Create(GeneratePlotTwist, name: "generate_plot_twist", description: "Generates a plot twist for the story.")
+            ]
         };
 
         if (chatMessages.Count > 1)

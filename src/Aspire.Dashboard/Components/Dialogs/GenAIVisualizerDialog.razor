@@ -136,6 +136,39 @@
                                         {
                                             <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
                                         }
+
+                                        if (itemPart.MessagePart is ToolCallRequestPart toolCallPart && !string.IsNullOrEmpty(toolCallPart.Name))
+                                        {
+                                            if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallPart.Name) is { } toolVM)
+                                            {
+                                                <div class="tool-button-container">
+                                                    <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                        <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
+                                                        Tool definition
+                                                    </FluentButton>
+                                                </div>
+                                            }
+                                        }
+                                        else if (itemPart.MessagePart is ToolCallResponsePart toolCallResponsePart && !string.IsNullOrEmpty(toolCallResponsePart.Id))
+                                        {
+                                            if (TryGetToolCall(toolCallResponsePart.Id, out var itemVM, out var toolCallRequestPart))
+                                            {
+                                                <div class="tool-button-container">
+                                                    <FluentButton OnClick="@(() => OnViewItem(itemVM))">
+                                                        <FluentIcon Value="@s_toolIcon" Style="vertical-align: sub;" slot="start" />
+                                                        Tool call
+                                                    </FluentButton>
+
+                                                    @if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallRequestPart.Name) is { } toolVM)
+                                                    {
+                                                        <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                            <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
+                                                            Tool definition
+                                                        </FluentButton>
+                                                    }
+                                                </div>
+                                            }
+                                        }
                                     }
                                 }
                             </div>
@@ -231,11 +264,11 @@
                                             @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAINoMessageContentMoreInformationMessage)], "https://aka.ms/aspire/telemetry-ai-content"))
                                         </div>
                                     }
-                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent, Content.ToolDefinitions)
-                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent, Content.ToolDefinitions)
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent)
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent)
                                     @if (Content.ErrorItem is { } errorItem)
                                     {
-                                        @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent, Content.ToolDefinitions)
+                                        @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent)
                                     }
                                 }
                             </div>
@@ -252,23 +285,23 @@
                                 @if (Content.ToolDefinitions.Count > 0)
                                 {
                                     <FluentAccordion Class="tools-list">
-                                        @foreach (var tool in Content.ToolDefinitions.Where(t => t.Type == "function"))
+                                        @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function"))
                                         {
-                                            <FluentAccordionItem title="test 4">
+                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded">
                                                 <HeadingTemplate>
-                                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                                    <div class="tool-heading">
                                                         <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">
-                                                            @tool.Type
+                                                            @toolVM.ToolDefinition.Type
                                                         </FluentBadge>
-                                                        <strong>@tool.Name</strong>
-                                                        @if (!string.IsNullOrEmpty(tool.Description))
+                                                        <strong>@toolVM.ToolDefinition.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
                                                         {
-                                                            <span>@FormatHelpers.TruncateText(tool.Description, maxLength: 100)</span>
+                                                            <span>@FormatHelpers.TruncateText(toolVM.ToolDefinition.Description, maxLength: 100)</span>
                                                         }
                                                     </div>
                                                 </HeadingTemplate>
                                                 <ChildContent>
-                                                    @if (tool.Parameters?.Properties.Count > 0)
+                                                    @if (toolVM.ToolDefinition.Parameters?.Properties.Count > 0)
                                                     {
                                                         <table class="tool-parameters-table">
                                                             <thead>
@@ -279,12 +312,12 @@
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                @foreach (var prop in tool.Parameters.Properties)
+                                                                @foreach (var prop in toolVM.ToolDefinition.Parameters.Properties)
                                                                 {
                                                                     <tr>
                                                                         <td class="tool-cell tool-cell-nowrap">
                                                                             <strong>@prop.Key</strong>
-                                                                            @if (tool.Parameters.Required?.Contains(prop.Key) == true)
+                                                                            @if (toolVM.ToolDefinition.Parameters.Required?.Contains(prop.Key) == true)
                                                                             {
                                                                                 <span style="color: var(--error);"> *</span>
                                                                             }
@@ -299,16 +332,16 @@
                                                                 }
                                                             </tbody>
                                                         </table>
-                                                        @if (tool.Parameters.Required?.Count > 0)
+                                                        @if (toolVM.ToolDefinition.Parameters.Required?.Count > 0)
                                                         {
-                                                            <div>
+                                                            <div class="tool-footer">
                                                                 <span style="color: var(--error);">*</span> Required parameter
                                                             </div>
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        <p style="font-style: italic; color: var(--neutral-foreground-rest);">No parameters</p>
+                                                        <div class="tool-footer">No parameters</div>
                                                     }
                                                 </ChildContent>
                                             </FluentAccordionItem>
@@ -331,7 +364,7 @@
 <FluentDialogFooter Visible="false" />
 
 @{
-    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent, List<ToolDefinition> toolDefinitions)
+    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent)
     {
         return@<div class="section-container">
             <div class="section-title">@title</div>
@@ -358,14 +391,6 @@
                             foreach (var itemPart in itemParts)
                             {
                                 <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
-
-                                @if (itemPart.MessagePart is ToolCallRequestPart toolCallPart && !string.IsNullOrEmpty(toolCallPart.Name))
-                                {
-                                    if (toolDefinitions.FirstOrDefault(d => d.Name == toolCallPart.Name) is { } sdf)
-                                    {
-                                        <FluentButton Appearance="Appearance.Outline">View @toolCallPart.Name definition</FluentButton>
-                                    }
-                                }
                             }
                         }
                         else
