@@ -289,7 +289,18 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             return factory.CreateStorage();
         });
         
-        builder.Services.AddSingleton<TelemetryRepository>();
+        // Register TelemetryRepository with ITelemetryStorage injection
+        builder.Services.AddSingleton<TelemetryRepository>(sp =>
+        {
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>();
+            var pauseManager = sp.GetRequiredService<PauseManager>();
+            var outgoingPeerResolvers = sp.GetRequiredService<IEnumerable<IOutgoingPeerResolver>>();
+            var telemetryStorage = sp.GetRequiredService<Storage.ITelemetryStorage>();
+            
+            return new TelemetryRepository(loggerFactory, dashboardOptions, pauseManager, outgoingPeerResolvers, telemetryStorage);
+        });
+        
         builder.Services.AddTransient<StructuredLogsViewModel>();
 
         builder.Services.AddTransient<OtlpLogsService>();
