@@ -143,28 +143,24 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = identity.ClientId
             });
 
-            if (resource.DeploymentSlotParameter is not null || resource.DeploymentSlot is not null)
-            {
-                resource.IsSlotDeployment = true;
-                if (resource.DeploymentSlotParameter is not null || resource.DeploymentSlot is not null)
-                {
-                    resource.IsSlotDeployment = true;
-                    resource.DeploymentSlot = resource.DeploymentSlotParameter != null
-                        ? resource.DeploymentSlotParameter.AsProvisioningParameter(infra).Value.ToString()!
-                        : resource.DeploymentSlot!;
-                }
-            }
-
             if (resource.EnableDashboard)
             {
-                if (resource.IsSlotDeployment && resource.DeploymentSlot is not null)
+                BicepValue<string>? deploymentSlotValue = null;
+                if (resource.DeploymentSlotParameter is not null || resource.DeploymentSlot is not null)
+                {
+                    deploymentSlotValue = resource.DeploymentSlotParameter != null
+                        ? resource.DeploymentSlotParameter.AsProvisioningParameter(infra)
+                        : resource.DeploymentSlot!;
+                }
+
+                if (deploymentSlotValue is not null)
                 {
                     // Add aspire dashboard website slot
-                    var webSiteSlot = AzureAppServiceEnvironmentUtility.AddDashboardSlot(infra, identity, plan.Id, resource.DeploymentSlot);
+                    var webSiteSlot = AzureAppServiceEnvironmentUtility.AddDashboardSlot(infra, identity, plan.Id, deploymentSlotValue.Value!);
 
                     infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                     {
-                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardSlotHostName(prefix, resource.DeploymentSlot)}.azurewebsites.net")
+                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardSlotHostName(prefix, deploymentSlotValue.Value!)}.azurewebsites.net")
                     });
                 }
                 else
