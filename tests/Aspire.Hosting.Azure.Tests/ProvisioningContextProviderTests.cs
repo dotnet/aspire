@@ -344,7 +344,7 @@ public class ProvisioningContextProviderTests
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
-        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+        Assert.Equal("test-new-rg", context.ResourceGroup.Name);
     }
 
     [Fact]
@@ -515,7 +515,7 @@ public class ProvisioningContextProviderTests
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
-        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+        Assert.Equal("test-new-rg", context.ResourceGroup.Name);
     }
 
     [Fact]
