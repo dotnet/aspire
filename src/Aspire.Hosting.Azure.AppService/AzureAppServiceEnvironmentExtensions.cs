@@ -145,6 +145,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             if (resource.EnableDashboard)
             {
+                // Determine deployment slot if specified. Otherwise, deploy to production slot
                 BicepValue<string>? deploymentSlotValue = null;
                 if (resource.DeploymentSlotParameter is not null || resource.DeploymentSlot is not null)
                 {

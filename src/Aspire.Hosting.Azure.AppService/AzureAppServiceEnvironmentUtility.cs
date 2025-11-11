@@ -103,7 +103,7 @@ internal static class AzureAppServiceEnvironmentUtility
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
         // Added appsetting to identify the resources in a specific aspire environment
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = infra.AspireResource.Name });
-
+        
         infra.Add(dashboard);
 
         // Outputs needed by the app service environment
@@ -202,6 +202,7 @@ internal static class AzureAppServiceEnvironmentUtility
         dashboardSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
         // Added appsetting to identify the resources in a specific aspire environment
         dashboardSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = infra.AspireResource.Name });
+        dashboardSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_DEPLOYMENT_SLOT_NAME", Value = deploymentSlot });
 
         infra.Add(dashboardSlot);
 

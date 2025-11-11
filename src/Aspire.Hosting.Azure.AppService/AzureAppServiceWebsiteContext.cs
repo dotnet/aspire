@@ -245,15 +245,16 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         _infrastructure = infra;
 
-        if (environmentContext.Environment.DeploymentSlot != null)
+        // Check for deployment slot
+        // If specified, build the slot instead of the main web app
+        BicepValue<string>? deploymentSlotValue = null;
+        if (environmentContext.Environment.DeploymentSlotParameter is not null || environmentContext.Environment.DeploymentSlot is not null)
         {
-            BuildWebSiteSlot(environmentContext.Environment.DeploymentSlot);
-            return;
-        }
-        else if (environmentContext.Environment.DeploymentSlotParameter != null)
-        {
-            var deploymentSlotParameter = environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra);
-            BuildWebSiteSlot(deploymentSlotParameter);
+            deploymentSlotValue = environmentContext.Environment.DeploymentSlotParameter != null
+                ? environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra)
+                : environmentContext.Environment.DeploymentSlot!;
+
+            BuildWebSiteSlot(deploymentSlotValue);
             return;
         }
 
