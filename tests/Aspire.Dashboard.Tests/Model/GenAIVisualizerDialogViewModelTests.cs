@@ -985,31 +985,31 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Collection(vm.ToolDefinitions,
             tool =>
             {
-                Assert.Equal("function", tool.Type);
-                Assert.Equal("get_current_weather", tool.Name);
-                Assert.Equal("Get the current weather in a given location", tool.Description);
-                Assert.NotNull(tool.Parameters);
-                Assert.Equal("object", tool.Parameters.Type);
-                Assert.NotNull(tool.Parameters.Properties);
-                Assert.Equal(2, tool.Parameters.Properties.Count);
-                
-                Assert.True(tool.Parameters.Properties.ContainsKey("location"));
-                var locationProp = tool.Parameters.Properties["location"];
+                Assert.Equal("function", tool.ToolDefinition.Type);
+                Assert.Equal("get_current_weather", tool.ToolDefinition.Name);
+                Assert.Equal("Get the current weather in a given location", tool.ToolDefinition.Description);
+                Assert.NotNull(tool.ToolDefinition.Parameters);
+                Assert.Equal("object", tool.ToolDefinition.Parameters.Type);
+                Assert.NotNull(tool.ToolDefinition.Parameters.Properties);
+                Assert.Equal(2, tool.ToolDefinition.Parameters.Properties.Count);
+
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("location"));
+                var locationProp = tool.ToolDefinition.Parameters.Properties["location"];
                 Assert.Equal("string", locationProp.Type);
                 Assert.Equal("The city and state, e.g. San Francisco, CA", locationProp.Description);
-                
-                Assert.True(tool.Parameters.Properties.ContainsKey("unit"));
-                var unitProp = tool.Parameters.Properties["unit"];
+
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("unit"));
+                var unitProp = tool.ToolDefinition.Parameters.Properties["unit"];
                 Assert.Equal("string", unitProp.Type);
                 Assert.NotNull(unitProp.Enum);
                 Assert.Equal(2, unitProp.Enum.Count);
                 Assert.Equal("celsius", ((OpenApiString)unitProp.Enum[0]).Value);
                 Assert.Equal("fahrenheit", ((OpenApiString)unitProp.Enum[1]).Value);
-                
-                Assert.NotNull(tool.Parameters.Required);
-                Assert.Equal(2, tool.Parameters.Required.Count);
-                Assert.Contains("location", tool.Parameters.Required);
-                Assert.Contains("unit", tool.Parameters.Required);
+
+                Assert.NotNull(tool.ToolDefinition.Parameters.Required);
+                Assert.Equal(2, tool.ToolDefinition.Parameters.Required.Count);
+                Assert.Contains("location", tool.ToolDefinition.Parameters.Required);
+                Assert.Contains("unit", tool.ToolDefinition.Parameters.Required);
             });
     }
 
