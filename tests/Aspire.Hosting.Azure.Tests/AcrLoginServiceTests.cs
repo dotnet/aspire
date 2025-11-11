@@ -173,7 +173,7 @@ public class AcrLoginServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_DefaultsToThreeHoursWhenExpiresInNotProvided()
+    public async Task LoginAsync_DoesNotCacheWhenExpiresInNotProvided()
     {
         // Arrange
         var timeProvider = new FakeTimeProvider();
@@ -187,14 +187,12 @@ public class AcrLoginServiceTests
         // Act
         await service.LoginAsync("myregistry.azurecr.io", "tenant-id", credential, CancellationToken.None);
 
-        // Assert - Token should be cached with 3-hour expiration (10800 seconds)
+        // Assert - Token should not be cached when expires_in is not provided
         var section = await stateManager.AcquireSectionAsync("AcrTokens:myregistry_azurecr_io", CancellationToken.None);
-        var tokenNode = section.Data["tenant-id"];
-        var expiresAtUtc = tokenNode!["expires_at_utc"]?.GetValue<DateTime>();
+        Assert.False(section.Data.ContainsKey("tenant-id"), "Token should not be cached when expiration is not provided");
         
-        Assert.NotNull(expiresAtUtc);
-        var expectedExpiration = timeProvider.GetUtcNow().AddSeconds(10800);
-        Assert.Equal(expectedExpiration.DateTime, expiresAtUtc.Value);
+        // Container runtime should still be called to perform the actual login
+        Assert.Single(containerRuntime.LoginToRegistryCalls);
     }
 
     [Fact]
@@ -282,8 +280,10 @@ public class AcrLoginServiceTests
         public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task RemoveImageAsync(string imageName, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public static Task<bool> InspectImageAsync(string _, CancellationToken __ = default) => Task.FromResult(true);
-        public static Task PullImageAsync(string _, CancellationToken __ = default) => Task.CompletedTask;
+#pragma warning disable CA1822 // Member does not access instance data - these are interface methods
+        public Task<bool> InspectImageAsync(string _, CancellationToken __ = default) => Task.FromResult(true);
+        public Task PullImageAsync(string _, CancellationToken __ = default) => Task.CompletedTask;
+#pragma warning restore CA1822
     }
 
     private sealed class ThrowingDeploymentStateManager : IDeploymentStateManager

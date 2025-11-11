@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPIPELINES002
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -52,9 +53,9 @@ internal sealed class AcrLoginService : IAcrLoginService
         [JsonPropertyName("expires_at_utc")]
         public DateTime ExpiresAtUtc { get; set; }
 
-        public System.Text.Json.Nodes.JsonNode ToJsonNode()
+        public JsonNode ToJsonNode()
         {
-            return new System.Text.Json.Nodes.JsonObject
+            return new JsonObject
             {
                 ["refresh_token"] = RefreshToken,
                 ["expires_at_utc"] = ExpiresAtUtc
@@ -166,31 +167,39 @@ internal sealed class AcrLoginService : IAcrLoginService
             registryEndpoint, tenantId, aadToken.Token, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("ACR refresh token acquired, length: {TokenLength}, expires in: {ExpiresIn} seconds",
-            refreshToken.Length, expiresIn);
+            refreshToken.Length, expiresIn?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "not provided");
 
-        // Step 3: Cache the token in the section we already acquired (only if we got a fresh token)
-        try
+        // Step 3: Cache the token in the section we already acquired (only if we got a fresh token and expiration is provided)
+        if (expiresIn.HasValue)
         {
-            // If we failed to acquire the section earlier, try again
-            section ??= await _deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
-
-            var newCachedToken = new CachedToken
+            try
             {
-                RefreshToken = refreshToken,
-                ExpiresAtUtc = _timeProvider.GetUtcNow().AddSeconds(expiresIn).UtcDateTime
-            };
+                // If we failed to acquire the section earlier, try again
+                section ??= await _deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
 
-            section.Data[tenantId] = newCachedToken.ToJsonNode();
+                var newCachedToken = new CachedToken
+                {
+                    RefreshToken = refreshToken,
+                    ExpiresAtUtc = _timeProvider.GetUtcNow().AddSeconds(expiresIn.Value).UtcDateTime
+                };
 
-            await _deploymentStateManager.SaveSectionAsync(section, cancellationToken).ConfigureAwait(false);
+                section.Data[tenantId] = newCachedToken.ToJsonNode();
 
-            _logger.LogDebug("Cached ACR token for registry: {RegistryEndpoint}, tenant: {TenantId}, expires at: {ExpiresAt}", 
-                registryEndpoint, tenantId, newCachedToken.ExpiresAtUtc);
+                await _deploymentStateManager.SaveSectionAsync(section, cancellationToken).ConfigureAwait(false);
+
+                _logger.LogDebug("Cached ACR token for registry: {RegistryEndpoint}, tenant: {TenantId}, expires at: {ExpiresAt}", 
+                    registryEndpoint, tenantId, newCachedToken.ExpiresAtUtc);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail if caching fails - the login already succeeded
+                _logger.LogWarning(ex, "Failed to cache token for registry: {RegistryEndpoint}, tenant: {TenantId}, token caching will be skipped", 
+                    registryEndpoint, tenantId);
+            }
         }
-        catch (Exception ex)
+        else
         {
-            // Log but don't fail if caching fails - the login already succeeded
-            _logger.LogWarning(ex, "Failed to cache token for registry: {RegistryEndpoint}, tenant: {TenantId}, token caching will be skipped", 
+            _logger.LogDebug("ACR token for registry: {RegistryEndpoint}, tenant: {TenantId} not cached because no expiration was provided",
                 registryEndpoint, tenantId);
         }
 
@@ -201,11 +210,11 @@ internal sealed class AcrLoginService : IAcrLoginService
     private static string GetSectionName(string registryEndpoint)
     {
         // Use the registry endpoint as the section name
-        // Replace dots and other characters that might not be suitable for section names
+        // Replace dots with underscores to ensure valid section names
         return $"AcrTokens:{registryEndpoint.Replace('.', '_')}";
     }
 
-    private async Task<(string refreshToken, int expiresIn)> ExchangeAadTokenForAcrRefreshTokenAsync(
+    private async Task<(string refreshToken, int? expiresIn)> ExchangeAadTokenForAcrRefreshTokenAsync(
         string registryEndpoint,
         string tenantId,
         string aadAccessToken,
@@ -254,9 +263,7 @@ internal sealed class AcrLoginService : IAcrLoginService
             throw new InvalidOperationException($"Response missing refresh_token.");
         }
 
-        // Default to 3 hours (10800 seconds) if not provided by ACR
-        var expiresIn = tokenResponse.ExpiresIn ?? 10800;
-
-        return (tokenResponse.RefreshToken, expiresIn);
+        // Return the expiresIn as-is (could be null if not provided by ACR)
+        return (tokenResponse.RefreshToken, tokenResponse.ExpiresIn);
     }
 }
