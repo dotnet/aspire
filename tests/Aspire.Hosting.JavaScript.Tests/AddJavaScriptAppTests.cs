@@ -31,8 +31,9 @@ public class AddJavaScriptAppTests
         var expectedDockerfile = $$"""
             FROM node:22-slim
             WORKDIR /app
+            COPY package.json ./
+            RUN --mount=type=cache,target=/root/.cache/yarn yarn install --immutable
             COPY . .
-            RUN yarn install --immutable
             RUN yarn run do --build
 
             """.Replace("\r\n", "\n");
@@ -45,8 +46,10 @@ public class AddJavaScriptAppTests
         Assert.Equal("/app/dist", containerFilesSource.SourcePath);
     }
 
-    [Fact]
-    public async Task VerifyPnpmDockerfile()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerifyPnpmDockerfile(bool hasLockFile)
     {
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
@@ -54,6 +57,11 @@ public class AddJavaScriptAppTests
         // Create directory to ensure manifest generates correct relative build context path
         var appDir = Path.Combine(tempDir.Path, "js");
         Directory.CreateDirectory(appDir);
+
+        if (hasLockFile)
+        {
+            File.WriteAllText(Path.Combine(appDir, "pnpm-lock.yaml"), string.Empty);
+        }
 
         var pnpmApp = builder.AddJavaScriptApp("js", appDir)
             .WithPnpm(installArgs: ["--prefer-frozen-lockfile"])
@@ -63,15 +71,8 @@ public class AddJavaScriptAppTests
 
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
-        var expectedDockerfile = $$"""
-            FROM node:22-slim
-            WORKDIR /app
-            COPY . .
-            RUN pnpm install --prefer-frozen-lockfile
-            RUN pnpm run mybuild
 
-            """.Replace("\r\n", "\n");
-        Assert.Equal(expectedDockerfile, dockerfileContents);
+        await Verify(dockerfileContents);
     }
 
     [Fact]
