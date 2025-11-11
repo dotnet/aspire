@@ -1,6 +1,6 @@
 import path from "path";
 import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration } from "../dcp/types";
-import { debugProject, runProject } from "../loc/strings";
+import { debugProject, invalidLaunchConfiguration, runProject } from "../loc/strings";
 import { mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
@@ -34,7 +34,12 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
 
     let configuration: AspireResourceExtendedDebugConfiguration;
 
-    if (debuggerExtension && !launchConfig.debugger_properties) {
+    if (!debuggerExtension && !launchConfig.debugger_properties) {
+        // No debugger extension found, and no custom debugger properties specified.
+        throw new Error(invalidLaunchConfiguration(launchConfig.type));
+    }
+
+    if (debuggerExtension) {
         const projectPath = debuggerExtension.getProjectFile(launchConfig);
 
         configuration = {
@@ -49,7 +54,8 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
             ...baseConfig
         };
     }
-    else {
+
+    if (launchConfig.debugger_properties) {
         // Filter out any null debugger properties
         const filteredDebuggerProperties = Object.fromEntries(
             Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== null)
@@ -60,6 +66,8 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
             ...filteredDebuggerProperties
         } as any as AspireResourceExtendedDebugConfiguration;
     }
+
+    configuration = configuration!;
 
     if (debugSessionConfig.debuggers) {
         // 1. Check if this is the apphost
