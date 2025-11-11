@@ -62,6 +62,11 @@
         <target state="translated">Veuillez fournir des valeurs pour les paramètres non résolus. Les paramètres peuvent être enregistrés dans [secrets utilisateur](https://learn.microsoft.com/aspnet/core/security/app-secrets) pour une utilisation future.</target>
         <note>Contains markdown</note>
       </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="translated">Veuillez fournir des valeurs pour les paramètres non résolus.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>
         <target state="translated">Entrez une valeur pour {0}</target>

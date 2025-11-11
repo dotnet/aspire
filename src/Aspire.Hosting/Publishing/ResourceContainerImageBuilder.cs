@@ -1,22 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
 /// Specifies the format for container images.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public enum ContainerImageFormat
 {
     /// <summary>
@@ -33,44 +33,50 @@ public enum ContainerImageFormat
 /// <summary>
 /// Specifies the target platform for container images.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Flags]
 public enum ContainerTargetPlatform
 {
     /// <summary>
     /// Linux AMD64 (linux/amd64).
     /// </summary>
-    LinuxAmd64,
+    LinuxAmd64 = 1,
 
     /// <summary>
     /// Linux ARM64 (linux/arm64).
     /// </summary>
-    LinuxArm64,
+    LinuxArm64 = 2,
 
     /// <summary>
     /// Linux ARM (linux/arm).
     /// </summary>
-    LinuxArm,
+    LinuxArm = 4,
 
     /// <summary>
     /// Linux 386 (linux/386).
     /// </summary>
-    Linux386,
+    Linux386 = 8,
 
     /// <summary>
     /// Windows AMD64 (windows/amd64).
     /// </summary>
-    WindowsAmd64,
+    WindowsAmd64 = 16,
 
     /// <summary>
     /// Windows ARM64 (windows/arm64).
     /// </summary>
-    WindowsArm64
+    WindowsArm64 = 32,
+
+    /// <summary>
+    /// All Linux platforms (AMD64 and ARM64).
+    /// </summary>
+    AllLinux = LinuxAmd64 | LinuxArm64
 }
 
 /// <summary>
 /// Options for building container images.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class ContainerBuildOptions
 {
     /// <summary>
@@ -92,7 +98,7 @@ public class ContainerBuildOptions
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IResourceContainerImageBuilder
 {
     /// <summary>
@@ -130,70 +136,44 @@ public interface IResourceContainerImageBuilder
 
 internal sealed class ResourceContainerImageBuilder(
     ILogger<ResourceContainerImageBuilder> logger,
-    IOptions<DcpOptions> dcpOptions,
-    IServiceProvider serviceProvider,
-    IPublishingActivityReporter activityReporter) : IResourceContainerImageBuilder
+    IContainerRuntime containerRuntime,
+    IServiceProvider serviceProvider) : IResourceContainerImageBuilder
 {
-    private IContainerRuntime? _containerRuntime;
-    private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch
-    {
-        string rt => serviceProvider.GetRequiredKeyedService<IContainerRuntime>(rt),
-        null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
-    };
+    // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
+    private readonly SemaphoreSlim _throttle = new(1);
+
+    private IContainerRuntime ContainerRuntime { get; } = containerRuntime;
 
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var step = await activityReporter.CreateStepAsync(
-            "Building container images for resources",
-            cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Starting to build container images");
 
-        await using (step.ConfigureAwait(false))
+        // Only check container runtime health if there are resources that need it
+        if (ResourcesRequireContainerRuntime(resources, options))
         {
-            // Only check container runtime health if there are resources that need it
-            if (ResourcesRequireContainerRuntime(resources, options))
+            logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
+
+            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!containerRuntimeHealthy)
             {
-                var task = await step.CreateTaskAsync(
-                    $"Checking {ContainerRuntime.Name} health",
-                    cancellationToken).ConfigureAwait(false);
-
-                await using (task.ConfigureAwait(false))
-                {
-                    var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
-
-                    if (!containerRuntimeHealthy)
-                    {
-                        logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
-
-                        await task.FailAsync(
-                            $"{ContainerRuntime.Name} is not running or is unhealthy.",
-                            cancellationToken).ConfigureAwait(false);
-
-                        await step.CompleteAsync("Building container images failed", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
-                        throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
-                    }
-
-                    await task.SucceedAsync(
-                        $"{ContainerRuntime.Name} is healthy.",
-                        cancellationToken).ConfigureAwait(false);
-                }
+                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
+                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
             }
 
-            foreach (var resource in resources)
-            {
-                // TODO: Consider parallelizing this.
-                await BuildImageAsync(step, resource, options, cancellationToken).ConfigureAwait(false);
-            }
-
-            await step.CompleteAsync("Building container images completed", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
         }
+
+        foreach (var resource in resources)
+        {
+            // TODO: Consider parallelizing this.
+            await BuildImageAsync(resource, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        logger.LogDebug("Building container images completed");
     }
 
-    public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        return BuildImageAsync(step: null, resource, options, cancellationToken);
-    }
-
-    private async Task BuildImageAsync(IPublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
@@ -203,25 +183,31 @@ internal sealed class ResourceContainerImageBuilder(
             // using the .NET SDK.
             await BuildProjectContainerImageAsync(
                 resource,
-                step,
                 options,
                 cancellationToken).ConfigureAwait(false);
             return;
         }
-        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
+        else if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
         {
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
+            if (!resource.TryGetContainerImageName(out var imageName))
             {
-                // This is a container resource so we'll use the container runtime to build the image
-                await BuildContainerImageFromDockerfileAsync(
-                    resource.Name,
-                    dockerfileBuildAnnotation,
-                    containerImageAnnotation.Image,
-                    step,
-                    options,
-                    cancellationToken).ConfigureAwait(false);
-                return;
+                throw new InvalidOperationException("Resource image name could not be determined.");
             }
+
+            // This is a container resource so we'll use the container runtime to build the image
+            await BuildContainerImageFromDockerfileAsync(
+                resource,
+                dockerfileBuildAnnotation,
+                imageName,
+                options,
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var _))
+        {
+            // This resource already has a container image associated with it so no build is needed.
+            logger.LogDebug("Resource {ResourceName} already has a container image associated and no build annotation. Skipping build.", resource.Name);
+            return;
         }
         else
         {
@@ -229,34 +215,30 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var publishingTask = await CreateTaskAsync(
-            step,
-            $"Building image: {resource.Name}",
-            cancellationToken
-            ).ConfigureAwait(false);
+        await _throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
-
-        if (publishingTask is not null)
+        try
         {
-            await using (publishingTask.ConfigureAwait(false))
+
+            logger.LogInformation("Building image: {ResourceName}", resource.Name);
+
+            var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
+
+            if (!success)
             {
-                if (!success)
-                {
-                    await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
-                }
+                logger.LogError("Building image for {ResourceName} failed", resource.Name);
+                throw new DistributedApplicationException($"Failed to build container image.");
+            }
+            else
+            {
+                logger.LogInformation("Building image for {ResourceName} completed", resource.Name);
             }
         }
-
-        if (!success)
+        finally
         {
-            throw new DistributedApplicationException($"Failed to build container image.");
+            _throttle.Release();
         }
     }
 
@@ -291,24 +273,45 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (options.TargetPlatform is not null)
             {
-                arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
+                // Use the appropriate MSBuild property based on the number of RIDs
+                var runtimeIds = options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString();
+                var ridArray = runtimeIds.Split(';');
+
+                if (ridArray.Length == 1)
+                {
+                    // Single platform - use ContainerRuntimeIdentifier
+                    arguments += $" /p:ContainerRuntimeIdentifier=\"{ridArray[0]}\"";
+                }
+                else
+                {
+                    // Multiple platforms - use RuntimeIdentifiers
+                    arguments += $" /p:RuntimeIdentifiers=\"{runtimeIds}\"";
+                }
             }
         }
+
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+        if (resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation) &&
+            baseImageAnnotation.RuntimeImage is string baseImage)
+        {
+            arguments += $" /p:ContainerBaseImage=\"{baseImage}\"";
+        }
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
 
         var spec = new ProcessSpec("dotnet")
         {
             Arguments = arguments,
             OnOutputData = output =>
             {
-                logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
+                logger.LogDebug("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
             },
             OnErrorData = error =>
             {
-                logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
+                logger.LogDebug("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
             }
         };
 
-        logger.LogInformation(
+        logger.LogDebug(
             "Starting .NET CLI with arguments: {Arguments}",
             string.Join(" ", spec.Arguments)
             );
@@ -336,13 +339,22 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var publishingTask = await CreateTaskAsync(
-            step,
-            $"Building image: {resourceName}",
-            cancellationToken
-            ).ConfigureAwait(false);
+        logger.LogInformation("Building image: {ResourceName}", resource.Name);
+
+        // If there's a factory, generate the Dockerfile content and write it to the specified path
+        if (dockerfileBuildAnnotation.DockerfileFactory is not null)
+        {
+            var context = new DockerfileFactoryContext
+            {
+                Services = serviceProvider,
+                Resource = resource,
+                CancellationToken = cancellationToken
+            };
+            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+            await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+        }
 
         // Resolve build arguments
         var resolvedBuildArguments = new Dictionary<string, string?>();
@@ -358,56 +370,34 @@ internal sealed class ResourceContainerImageBuilder(
             resolvedBuildSecrets[buildSecret.Key] = await ResolveValue(buildSecret.Value, cancellationToken).ConfigureAwait(false);
         }
 
-        if (publishingTask is not null)
+        // ensure outputPath is created if specified since docker/podman won't create it for us
+        if (options?.OutputPath is { } outputPath)
         {
-            await using (publishingTask.ConfigureAwait(false))
-            {
-                try
-                {
-                    await ContainerRuntime.BuildImageAsync(
-                        dockerfileBuildAnnotation.ContextPath,
-                        dockerfileBuildAnnotation.DockerfilePath,
-                        imageName,
-                        options,
-                        resolvedBuildArguments,
-                        resolvedBuildSecrets,
-                        dockerfileBuildAnnotation.Stage,
-                        cancellationToken).ConfigureAwait(false);
-
-                    await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                    await publishingTask.FailAsync($"Building image for {resourceName} failed", cancellationToken).ConfigureAwait(false);
-                    throw;
-                }
-            }
+            Directory.CreateDirectory(outputPath);
         }
-        else
+
+        try
         {
-            // Handle case when publishingTask is null (no step provided)
-            try
-            {
-                await ContainerRuntime.BuildImageAsync(
-                    dockerfileBuildAnnotation.ContextPath,
-                    dockerfileBuildAnnotation.DockerfilePath,
-                    imageName,
-                    options,
-                    resolvedBuildArguments,
-                    resolvedBuildSecrets,
-                    dockerfileBuildAnnotation.Stage,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                throw;
-            }
+            await ContainerRuntime.BuildImageAsync(
+                dockerfileBuildAnnotation.ContextPath,
+                dockerfileBuildAnnotation.DockerfilePath,
+                imageName,
+                options,
+                resolvedBuildArguments,
+                resolvedBuildSecrets,
+                dockerfileBuildAnnotation.Stage,
+                cancellationToken).ConfigureAwait(false);
+
+            logger.LogInformation("Building image for {ResourceName} completed", resource.Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to build container image from Dockerfile for {ResourceName}", resource.Name);
+            throw;
         }
     }
 
-    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    internal static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
     {
         try
         {
@@ -418,6 +408,7 @@ internal sealed class ResourceContainerImageBuilder(
                 IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
                 bool boolValue => boolValue ? "true" : "false",
                 null => null,
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => value.ToString()
             };
         }
@@ -427,20 +418,6 @@ internal sealed class ResourceContainerImageBuilder(
             // and we should fallback to resolving it from environment variables.
             return null;
         }
-    }
-
-    private static async Task<IPublishingTask?> CreateTaskAsync(
-        IPublishingStep? step,
-        string description,
-        CancellationToken cancellationToken)
-    {
-
-        if (step is null)
-        {
-            return null;
-        }
-
-        return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
@@ -469,7 +446,7 @@ internal sealed class ResourceContainerImageBuilder(
 /// <summary>
 /// Extension methods for <see cref="ContainerTargetPlatform"/>.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal static class ContainerTargetPlatformExtensions
 {
     /// <summary>
@@ -477,30 +454,82 @@ internal static class ContainerTargetPlatformExtensions
     /// </summary>
     /// <param name="platform">The target platform.</param>
     /// <returns>The platform string in the format used by container runtimes.</returns>
-    public static string ToRuntimePlatformString(this ContainerTargetPlatform platform) => platform switch
+    public static string ToRuntimePlatformString(this ContainerTargetPlatform platform)
     {
-        ContainerTargetPlatform.LinuxAmd64 => "linux/amd64",
-        ContainerTargetPlatform.LinuxArm64 => "linux/arm64",
-        ContainerTargetPlatform.LinuxArm => "linux/arm",
-        ContainerTargetPlatform.Linux386 => "linux/386",
-        ContainerTargetPlatform.WindowsAmd64 => "windows/amd64",
-        ContainerTargetPlatform.WindowsArm64 => "windows/arm64",
-        _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
-    };
+        var platforms = new List<string>();
+
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxAmd64))
+        {
+            platforms.Add("linux/amd64");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm64))
+        {
+            platforms.Add("linux/arm64");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm))
+        {
+            platforms.Add("linux/arm");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.Linux386))
+        {
+            platforms.Add("linux/386");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsAmd64))
+        {
+            platforms.Add("windows/amd64");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsArm64))
+        {
+            platforms.Add("windows/arm64");
+        }
+
+        if (platforms.Count == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform");
+        }
+
+        return string.Join(",", platforms);
+    }
 
     /// <summary>
-    /// Converts the target platform to the format used by MSBuild ContainerRuntimeIdentifier.
+    /// Converts the target platform to the format used by MSBuild RuntimeIdentifiers.
     /// </summary>
     /// <param name="platform">The target platform.</param>
     /// <returns>The platform string in the format used by MSBuild.</returns>
-    public static string ToMSBuildRuntimeIdentifierString(this ContainerTargetPlatform platform) => platform switch
+    public static string ToMSBuildRuntimeIdentifierString(this ContainerTargetPlatform platform)
     {
-        ContainerTargetPlatform.LinuxAmd64 => "linux-x64",
-        ContainerTargetPlatform.LinuxArm64 => "linux-arm64",
-        ContainerTargetPlatform.LinuxArm => "linux-arm",
-        ContainerTargetPlatform.Linux386 => "linux-x86",
-        ContainerTargetPlatform.WindowsAmd64 => "win-x64",
-        ContainerTargetPlatform.WindowsArm64 => "win-arm64",
-        _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
-    };
+        var rids = new List<string>();
+
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxAmd64))
+        {
+            rids.Add("linux-x64");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm64))
+        {
+            rids.Add("linux-arm64");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm))
+        {
+            rids.Add("linux-arm");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.Linux386))
+        {
+            rids.Add("linux-x86");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsAmd64))
+        {
+            rids.Add("win-x64");
+        }
+        if (platform.HasFlag(ContainerTargetPlatform.WindowsArm64))
+        {
+            rids.Add("win-arm64");
+        }
+
+        if (rids.Count == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform");
+        }
+
+        return string.Join(";", rids);
+    }
 }

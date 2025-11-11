@@ -235,6 +235,33 @@ public class AzureResourcePreparerTests
         Assert.True(true);
     }
 
+    [Fact]
+    public async Task CommandLineArgsCallbackContextHasCorrectExecutionContextDuringPublish()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        DistributedApplicationExecutionContext? capturedExecutionContext = null;
+
+        // Create a project with a WithArgs callback that captures the ExecutionContext
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithArgs(context =>
+            {
+                // Capture the ExecutionContext to verify it's set correctly
+                capturedExecutionContext = context.ExecutionContext;
+            });
+
+        using var app = builder.Build();
+        
+        // This should not throw - the ExecutionContext should be set correctly
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Verify the ExecutionContext was captured and is in Publish mode
+        Assert.NotNull(capturedExecutionContext);
+        Assert.True(capturedExecutionContext.IsPublishMode);
+        Assert.False(capturedExecutionContext.IsRunMode);
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";

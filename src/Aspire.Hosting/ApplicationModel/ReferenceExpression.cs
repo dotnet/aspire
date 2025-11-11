@@ -3,6 +3,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -12,9 +13,17 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
-    private readonly string[] _manifestExpressions;
+    /// <summary>
+    /// Represents an empty reference expression with no name, value providers, or arguments.
+    /// </summary>
+    /// <remarks>Use this field to represent a default or uninitialized reference expression. The instance has
+    /// an empty name and contains no value providers or arguments.</remarks>
+    public static readonly ReferenceExpression Empty = Create(string.Empty, [], [], []);
 
-    private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
+    private readonly string[] _manifestExpressions;
+    private readonly string?[] _stringFormats;
+
+    private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)
     {
         ArgumentNullException.ThrowIfNull(format);
         ArgumentNullException.ThrowIfNull(valueProviders);
@@ -23,6 +32,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         Format = format;
         ValueProviders = valueProviders;
         _manifestExpressions = manifestExpressions;
+        _stringFormats = stringFormats;
     }
 
     /// <summary>
@@ -34,6 +44,11 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// The manifest expressions for the parameters for the format string.
     /// </summary>
     public IReadOnlyList<string> ManifestExpressions => _manifestExpressions;
+
+    /// <summary>
+    /// The string formats of the parameters, e.g. "uri".
+    /// </summary>
+    public IReadOnlyList<string?> StringFormats => _stringFormats;
 
     /// <summary>
     /// The list of <see cref="IValueProvider"/> that will be used to resolve parameters for the format string.
@@ -51,9 +66,9 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
     /// </summary>
+    /// <param name="context">A context for resolving the value.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns></returns>
-    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
+    public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
         // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
@@ -64,15 +79,31 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         var args = new object?[ValueProviders.Count];
         for (var i = 0; i < ValueProviders.Count; i++)
         {
-            args[i] = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
+            args[i] = await ValueProviders[i].GetValueAsync(context, cancellationToken).ConfigureAwait(false);
+
+            // Apply string format if needed
+            var stringFormat = _stringFormats[i];
+            if (stringFormat is not null && args[i] is string s)
+            {
+                args[i] = FormattingHelpers.FormatValue(s, stringFormat);
+            }
         }
 
         return string.Format(CultureInfo.InvariantCulture, Format, args);
     }
 
-    internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
+    /// <summary>
+    /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
-        return new(format, valueProviders, manifestExpressions);
+        return this.GetValueAsync(new(), cancellationToken);
+    }
+
+    internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)
+    {
+        return new(format, valueProviders, manifestExpressions, stringFormats);
     }
 
     /// <summary>
@@ -98,6 +129,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         private readonly StringBuilder _builder = new(literalLength * 2);
         private readonly List<IValueProvider> _valueProviders = new(formattedCount);
         private readonly List<string> _manifestExpressions = new(formattedCount);
+        private readonly List<string?> _stringFormats = new(formattedCount);
 
         /// <summary>
         /// Appends a literal value to the expression.
@@ -115,10 +147,25 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
         public readonly void AppendFormatted(string? value)
         {
+            AppendFormatted(value, format: null);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression.
+        /// </summary>
+        /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        public readonly void AppendFormatted(string? value, string? format = null)
+        {
             // The value that comes in is a literal string that is not meant to be interpreted.
             // But the _builder later gets treated as a format string, so we just need to escape the braces.
             if (value is not null)
             {
+                if (format is not null)
+                {
+                    value = FormattingHelpers.FormatValue(value, format);
+                }
+
                 _builder.Append(EscapeUnescapedBraces(value));
             }
         }
@@ -130,11 +177,35 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
         {
+            AppendFormatted(valueProvider, format: null);
+        }
+
+        /// <summary>
+        /// Appends the formatted value provided by the specified reference expression to the output.
+        /// </summary>
+        /// <param name="valueProvider">A reference expression that supplies the value to be formatted and appended.</param>
+        /// <param name="format">A composite format string that specifies how the value should be formatted, or null to use the default format.</param>
+        /// <remarks>This method is marked obsolete only to prevent usages of this type explicitly.</remarks>
+        [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
+        public void AppendFormatted(ReferenceExpression valueProvider, string format)
+        {
+            throw new InvalidOperationException("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.");
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(T valueProvider, string? format = null) where T : IValueProvider, IManifestExpressionProvider
+        {
             var index = _valueProviders.Count;
             _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
             _valueProviders.Add(valueProvider);
             _manifestExpressions.Add(valueProvider.ValueExpression);
+            _stringFormats.Add(format);
         }
 
         /// <summary>
@@ -145,15 +216,28 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
             where T : IResource, IValueProvider, IManifestExpressionProvider
         {
+            AppendFormatted(valueProvider, format: null);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format = null)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
             var index = _valueProviders.Count;
             _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
             _valueProviders.Add(valueProvider.Resource);
             _manifestExpressions.Add(valueProvider.Resource.ValueExpression);
+            _stringFormats.Add(format);
         }
 
         internal readonly ReferenceExpression GetExpression() =>
-            new(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
+            new(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions], [.. _stringFormats]);
 
         private static string EscapeUnescapedBraces(string input)
         {
@@ -205,6 +289,7 @@ public class ReferenceExpressionBuilder
     private readonly StringBuilder _builder = new();
     private readonly List<IValueProvider> _valueProviders = new();
     private readonly List<string> _manifestExpressions = new();
+    private readonly List<string?> _stringFormats = new();
 
     /// <summary>
     /// Indicates whether the expression is empty.
@@ -238,24 +323,65 @@ public class ReferenceExpressionBuilder
     }
 
     /// <summary>
+    /// Appends a formatted value to the expression.
+    /// </summary>
+    /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+    /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+    public void AppendFormatted(string? value, string format)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(value));
+
+        if (value is not null)
+        {
+            value = FormattingHelpers.FormatValue(value, format);
+
+            _builder.Append(value);
+        }
+    }
+
+    /// <summary>
     /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
     /// </summary>
     /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
     /// <exception cref="InvalidOperationException"></exception>
     public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
     {
+        AppendFormatted(valueProvider, format: null);
+    }
+
+    /// <summary>
+    /// Appends the formatted value provided by the specified reference expression to the output.
+    /// </summary>
+    /// <param name="valueProvider">A reference expression that supplies the value to be formatted and appended.</param>
+    /// <param name="format">A composite format string that specifies how the value should be formatted, or null to use the default format.</param>
+    /// <remarks>This method is marked obsolete only to prevent usages of this type explicitly.</remarks>
+    [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
+    public void AppendFormatted(ReferenceExpression valueProvider, string format)
+    {
+        throw new InvalidOperationException("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.");
+    }
+
+    /// <summary>
+    /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+    /// </summary>
+    /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+    /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+    /// <exception cref="InvalidOperationException"></exception>
+    public void AppendFormatted<T>(T valueProvider, string? format) where T : IValueProvider, IManifestExpressionProvider
+    {
         var index = _valueProviders.Count;
         _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
         _valueProviders.Add(valueProvider);
         _manifestExpressions.Add(valueProvider.ValueExpression);
+        _stringFormats.Add(format);
     }
 
     /// <summary>
     /// Builds the <see cref="ReferenceExpression"/>.
     /// </summary>
     public ReferenceExpression Build() =>
-        ReferenceExpression.Create(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
+        ReferenceExpression.Create(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions], [.. _stringFormats]);
 
     /// <summary>
     /// Represents a handler for interpolated strings that contain expressions. Those expressions will either be literal strings or
@@ -288,13 +414,46 @@ public class ReferenceExpressionBuilder
         }
 
         /// <summary>
+        /// Appends a formatted value to the expression.
+        /// </summary>
+        /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        public void AppendFormatted(string? value, string format)
+        {
+            builder.AppendFormatted(value, format);
+        }
+
+        /// <summary>
+        /// Appends the formatted value provided by the specified reference expression to the output.
+        /// </summary>
+        /// <param name="valueProvider">A reference expression that supplies the value to be formatted and appended.</param>
+        /// <param name="format">A composite format string that specifies how the value should be formatted, or null to use the default format.</param>
+        /// <remarks>This method is marked obsolete only to prevent usages of this type explicitly.</remarks>
+        [Obsolete("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.", error: true)]
+        public void AppendFormatted(ReferenceExpression valueProvider, string format)
+        {
+            throw new InvalidOperationException("ReferenceExpression instances can't be used in interpolated string with a custom format. Duplicate the inner expression in-place.");
+        }
+
+        /// <summary>
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
         {
-            builder.AppendFormatted(valueProvider);
+            AppendFormatted(valueProvider, format: null);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(T valueProvider, string? format) where T : IValueProvider, IManifestExpressionProvider
+        {
+            builder.AppendFormatted(valueProvider, format);
         }
 
         /// <summary>
@@ -305,7 +464,19 @@ public class ReferenceExpressionBuilder
         public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
             where T : IResource, IValueProvider, IManifestExpressionProvider
         {
-            builder.AppendFormatted(valueProvider.Resource);
+            AppendFormatted(valueProvider, format: null);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format)
+            where T : IResource, IValueProvider, IManifestExpressionProvider
+        {
+            builder.AppendFormatted(valueProvider.Resource, format);
         }
     }
 }

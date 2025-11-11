@@ -1,7 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { LaunchConfiguration, EnvVar } from '../dcp/types';
+import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
+import { isSingleFileApp } from './languages/dotnet';
 
 /*
  * Represents a launchSettings.json profile.
@@ -9,6 +10,7 @@ import { extensionLogOutputChannel } from '../utils/logging';
  * *and* in the launchSettings.json is available here.
 */
 export interface LaunchProfile {
+    commandName: string;
     executablePath?: string;
     workingDirectory?: string;
     // args in debug configuration
@@ -37,8 +39,15 @@ export interface LaunchProfileResult {
  */
 export async function readLaunchSettings(projectPath: string): Promise<LaunchSettings | null> {
     try {
-        const projectDir = path.dirname(projectPath);
-        const launchSettingsPath = path.join(projectDir, 'Properties', 'launchSettings.json');
+        let launchSettingsPath: string;
+
+        if (isSingleFileApp(projectPath)) {
+            const fileNameWithoutExt = path.basename(projectPath, path.extname(projectPath));
+            launchSettingsPath = path.join(path.dirname(projectPath), `${fileNameWithoutExt}.run.json`);
+        } else {
+            const projectDir = path.dirname(projectPath);
+            launchSettingsPath = path.join(projectDir, 'Properties', 'launchSettings.json');
+        }
 
         if (!fs.existsSync(launchSettingsPath)) {
             extensionLogOutputChannel.debug(`Launch settings file not found at: ${launchSettingsPath}`);
@@ -60,7 +69,7 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
  * Determines the base launch profile according to the Aspire launch profile rules
  */
 export function determineBaseLaunchProfile(
-    launchConfig: LaunchConfiguration,
+    launchConfig: ProjectLaunchConfiguration,
     launchSettings: LaunchSettings | null
 ): LaunchProfileResult {
     // If disable_launch_profile property is set to true in project launch configuration, there is no base profile, regardless of the value of launch_profile property.
@@ -88,6 +97,14 @@ export function determineBaseLaunchProfile(
         }
     }
 
+    // If launch_profile is absent, choose the first one with commandName='Project'
+    for (const [name, profile] of Object.entries(launchSettings.profiles)) {
+        if (profile.commandName === 'Project') {
+            extensionLogOutputChannel.debug(`Using default launch profile: ${name}`);
+            return { profile, profileName: name };
+        }
+    }
+
     // TODO: If launch_profile is absent, check for a ServiceDefaults project in the workspace
     // and look for a launch profile with that ServiceDefaults project name in the current project's launch settings
     extensionLogOutputChannel.debug('No base launch profile determined');
@@ -100,13 +117,19 @@ export function determineBaseLaunchProfile(
  */
 export function mergeEnvironmentVariables(
     baseProfileEnv: { [key: string]: string } | undefined,
-    runSessionEnv: EnvVar[]
+    runSessionEnv: EnvVar[],
+    runApiEnv?: { [key: string]: string }
 ): [string, string][] {
     const merged: { [key: string]: string } = {};
 
     // Start with base profile environment variables
     if (baseProfileEnv) {
         Object.assign(merged, baseProfileEnv);
+    }
+
+    // Override with run API environment variables
+    if (runApiEnv) {
+        Object.assign(merged, runApiEnv);
     }
 
     // Override with run session environment variables (these take precedence)
@@ -180,9 +203,11 @@ export function determineServerReadyAction(launchBrowser?: boolean, applicationU
         return undefined;
     }
 
+    let uriFormat = applicationUrl.includes(';') ? applicationUrl.split(';')[0] : applicationUrl;
+
     return {
         action: "openExternally",
         pattern: "\\bNow listening on:\\s+https?://\\S+",
-        uriFormat: applicationUrl
+        uriFormat: uriFormat
     };
 }

@@ -57,6 +57,10 @@ public class TimestampParserTests
     [InlineData("2023-10-10T15:05:30.123456789+12:59")]
     [InlineData("2023-10-10T15:05:30.123456789-12:59")]
     [InlineData("2023-10-10T15:05:30.123456789")]
+    [InlineData("2023-10-10T15:05:30.123456789+1259")]
+    [InlineData("2023-10-10T15:05:30.123456789-1259")]
+    [InlineData("2023-10-10T15:05:30+1259")]
+    [InlineData("2023-10-10T15:05:30-1259")]
     public void TryColorizeTimestamp_SupportedTimestampFormats(string input)
     {
         var result = TimestampParser.TryParseConsoleTimestamp(input, out var _);

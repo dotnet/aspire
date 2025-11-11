@@ -374,6 +374,57 @@ public class AddAzureKustoTests
         var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithHostPort(8080)));
         Assert.Equal("builder", exception.ParamName);
     }
+
+    [Fact]
+    public void GetDatabaseCreationScript_WithoutCreationScriptAnnotation_ShouldReturnDefaultCommand()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kusto = builder.AddAzureKustoCluster("kusto");
+        var database = kusto.AddReadWriteDatabase("testdb");
+
+        // Act
+        var script = database.Resource.GetDatabaseCreationScript();
+
+        // Assert
+        Assert.Equal(".create database testdb persist (h\"/kustodata/dbs/testdb/md\", h\"/kustodata/dbs/testdb/data\") ifnotexists", script);
+    }
+
+    [Fact]
+    public void GetDatabaseCreationScript_WithVolatileCreationScript_ShouldReturnCustomScript()
+    {
+        // Arrange
+        const string expected = ".create database testdb volatile";
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kusto = builder.AddAzureKustoCluster("kusto");
+        var database = kusto.AddReadWriteDatabase("testdb")
+            .WithCreationScript(expected);
+
+        // Act
+        var script = database.Resource.GetDatabaseCreationScript();
+
+        // Assert
+        Assert.Equal(expected, script);
+    }
+
+    [Fact]
+    public void GetDatabaseCreationScript_WithMultipleAnnotations_ShouldReturnLastAnnotation()
+    {
+        // Arrange
+        const string first = ".create database testdb persist (@'/some/path')";
+        const string second = ".create database testdb volatile";
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kusto = builder.AddAzureKustoCluster("kusto");
+        var database = kusto.AddReadWriteDatabase("testdb")
+            .WithCreationScript(first)
+            .WithCreationScript(second);
+
+        // Act
+        var script = database.Resource.GetDatabaseCreationScript();
+
+        // Assert
+        Assert.Equal(second, script);
+    }
 }
 
 file static class TestingExtensions

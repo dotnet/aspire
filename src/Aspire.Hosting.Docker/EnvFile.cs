@@ -1,55 +1,159 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.Docker;
+
+internal sealed record EnvEntry(string Key, string? Value, string? Comment);
 
 internal sealed class EnvFile
 {
-    private readonly List<string> _lines = [];
-    private readonly HashSet<string> _keys = [];
+    private string? _path;
+    private readonly ILogger? _logger;
 
-    public static EnvFile Load(string path)
+    internal SortedDictionary<string, EnvEntry> Entries { get; } = [];
+
+    private EnvFile(ILogger? logger = null)
     {
-        var envFile = new EnvFile();
+        _logger = logger;
+    }
+
+    public static EnvFile Create(string path, ILogger? logger = null)
+    {
+        return new EnvFile(logger) { _path = path };
+    }
+
+    public static EnvFile Load(string path, ILogger? logger = null)
+    {
+        var envFile = new EnvFile(logger) { _path = path };
         if (!File.Exists(path))
         {
             return envFile;
         }
 
+        string? currentComment = null;
+
         foreach (var line in File.ReadAllLines(path))
         {
-            envFile._lines.Add(line);
             var trimmed = line.TrimStart();
-            if (!trimmed.StartsWith('#') && trimmed.Contains('='))
+            if (trimmed.StartsWith('#'))
             {
-                var eqIndex = trimmed.IndexOf('=');
-                if (eqIndex > 0)
-                {
-                    var key = trimmed[..eqIndex].Trim();
-                    envFile._keys.Add(key);
-                }
+                // Extract comment text (remove # and trim)
+                currentComment = trimmed.Length > 1 ? trimmed[1..].Trim() : string.Empty;
+            }
+            else if (TryParseKeyValue(line, out var key, out var value))
+            {
+                envFile.Entries[key] = new EnvEntry(key, value, currentComment);
+                currentComment = null; // Reset comment after associating it with a key
+            }
+            else
+            {
+                // Reset comment if we encounter a non-comment, non-key line
+                currentComment = null;
             }
         }
         return envFile;
     }
 
-    public void AddIfMissing(string key, string? value, string? comment)
+    public void Add(string key, string? value, string? comment, bool onlyIfMissing = true)
     {
-        if (_keys.Contains(key))
+        if (Entries.ContainsKey(key) && onlyIfMissing)
         {
             return;
         }
-        if (!string.IsNullOrWhiteSpace(comment))
-        {
-            _lines.Add($"# {comment}");
-        }
-        _lines.Add(value is not null ? $"{key}={value}" : $"{key}=");
-        _lines.Add(string.Empty);
-        _keys.Add(key);
+
+        Entries[key] = new EnvEntry(key, value, comment);
     }
 
-    public void Save(string path)
+    private static bool TryParseKeyValue(string line, out string key, out string? value)
     {
-        File.WriteAllLines(path, _lines);
+        key = string.Empty;
+        value = null;
+        var trimmed = line.TrimStart();
+        if (!trimmed.StartsWith('#') && trimmed.Contains('='))
+        {
+            var eqIndex = trimmed.IndexOf('=');
+            if (eqIndex > 0)
+            {
+                key = trimmed[..eqIndex].Trim();
+                value = eqIndex < trimmed.Length - 1 ? trimmed[(eqIndex + 1)..] : string.Empty;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void Save()
+    {
+        if (_path is null)
+        {
+            throw new InvalidOperationException("Cannot save EnvFile without a path. Use Load() to create an EnvFile with a path.");
+        }
+
+        // Log if we're about to overwrite an existing file
+        if (File.Exists(_path))
+        {
+            _logger?.LogInformation("Environment file '{EnvFilePath}' already exists and will be overwritten", _path);
+        }
+
+        var lines = new List<string>();
+
+        foreach (var entry in Entries.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Comment))
+            {
+                lines.Add($"# {entry.Comment}");
+            }
+            lines.Add(entry.Value is not null ? $"{entry.Key}={entry.Value}" : $"{entry.Key}=");
+            lines.Add(string.Empty);
+        }
+
+        File.WriteAllLines(_path, lines);
+    }
+
+    public void Save(bool includeValues)
+    {
+        if (includeValues)
+        {
+            Save();
+        }
+        else
+        {
+            SaveKeysOnly();
+        }
+    }
+
+    private void SaveKeysOnly()
+    {
+        if (_path is null)
+        {
+            throw new InvalidOperationException("Cannot save EnvFile without a path. Use Load() to create an EnvFile with a path.");
+        }
+
+        var lines = new List<string>();
+
+        foreach (var entry in Entries.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Comment))
+            {
+                lines.Add($"# {entry.Comment}");
+            }
+
+            // If the entry already has a non-empty value (loaded from disk), preserve it
+            // This ensures user-modified values are not overwritten when we save keys only
+            if (!string.IsNullOrEmpty(entry.Value))
+            {
+                lines.Add($"{entry.Key}={entry.Value}");
+            }
+            else
+            {
+                lines.Add($"{entry.Key}=");
+            }
+
+            lines.Add(string.Empty);
+        }
+
+        File.WriteAllLines(_path, lines);
     }
 }

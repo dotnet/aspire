@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Pipelines;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources.Models;
@@ -13,12 +14,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
+#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
     ISecretClientProvider secretClientProvider,
-    DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
+    IDeploymentStateManager deploymentStateManager,
+    DistributedApplicationExecutionContext executionContext,
+    ILogger<BicepProvisioner> logger) : IBicepProvisioner
 {
     /// <inheritdoc />
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
@@ -35,8 +40,11 @@ internal sealed class BicepProvisioner(
 
         if (currentCheckSum != configCheckSum)
         {
+            logger.LogDebug("Checksum mismatch for resource {ResourceName}. Expected: {ExpectedChecksum}, Actual: {ActualChecksum}", resource.Name, currentCheckSum, configCheckSum);
             return false;
         }
+
+        logger.LogDebug("Configuring resource {ResourceName} from existing deployment state.", resource.Name);
 
         if (section["Outputs"] is string outputJson)
         {
@@ -60,7 +68,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 
@@ -145,6 +153,7 @@ internal sealed class BicepProvisioner(
 
         var armTemplateContents = await bicepCompiler.CompileBicepToArmAsync(path, cancellationToken).ConfigureAwait(false);
 
+        logger.LogDebug("Setting parameters and scope for resource {ResourceName}", resource.Name);
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
         await BicepUtilities.SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -164,6 +173,7 @@ internal sealed class BicepProvisioner(
         .ConfigureAwait(false);
 
         resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
+        logger.LogDebug("Starting deployment of resource {ResourceName} to resource group {ResourceGroupName}", resource.Name, resourceGroup.Name);
 
         // Resources with a Subscription scope should use a subscription-level deployment.
         var deployments = resource.Scope?.Subscription != null
@@ -198,6 +208,7 @@ internal sealed class BicepProvisioner(
 
         sw.Stop();
         resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Name, sw.Elapsed);
+        logger.LogDebug("Deployment of resource {ResourceName} to resource group {ResourceGroupName} completed in {Elapsed}", resource.Name, resourceGroup.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -218,41 +229,36 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Populate values into user-secrets during run mode
-        if (context.ExecutionContext.IsRunMode)
+        // Acquire resource-specific state section for thread-safe deployment state management
+        var sectionName = $"Azure:Deployments:{resource.Name}";
+        var stateSection = await deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
+
+        // Update deployment state for this specific resource
+        stateSection.Data.Clear();
+
+        // Save the deployment id to the configuration
+        stateSection.Data["Id"] = deployment.Id.ToString();
+
+        // Stash all parameters as a single JSON string
+        stateSection.Data["Parameters"] = parameters.ToJsonString();
+
+        if (outputObj is not null)
         {
-            var az = context.UserSecrets.Prop("Azure");
-            az["Tenant"] = context.Tenant.DefaultDomain;
-
-            var resourceConfig = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name);
-
-            // Clear the entire section
-            resourceConfig.AsObject().Clear();
-
-            // Save the deployment id to the configuration
-            resourceConfig["Id"] = deployment.Id.ToString();
-
-            // Stash all parameters as a single JSON string
-            resourceConfig["Parameters"] = parameters.ToJsonString();
-
-            if (outputObj is not null)
-            {
-                // Same for outputs
-                resourceConfig["Outputs"] = outputObj.ToJsonString();
-            }
-
-            // Write resource scope to config for consistent checksums
-            if (scope is not null)
-            {
-                resourceConfig["Scope"] = scope.ToJsonString();
-            }
-
-            // Save the checksum to the configuration
-            resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+            // Same for outputs
+            stateSection.Data["Outputs"] = outputObj.ToJsonString();
         }
+
+        // Write resource scope to config for consistent checksums
+        if (scope is not null)
+        {
+            stateSection.Data["Scope"] = scope.ToJsonString();
+        }
+
+        // Save the checksum to the configuration
+        stateSection.Data["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+
+        // Save the section back to the deployment state manager
+        await deploymentStateManager.SaveSectionAsync(stateSection, cancellationToken).ConfigureAwait(false);
 
         if (outputObj is not null)
         {
@@ -260,7 +266,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 

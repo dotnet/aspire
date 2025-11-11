@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddedFeedFormat">
         <source>Added: {0}</source>
-        <target state="new">Added: {0}</target>
+        <target state="translated">已新增: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHost">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ApplyChangesToNuGetConfig">
         <source>Apply these changes to NuGet.config?</source>
-        <target state="new">Apply these changes to NuGet.config?</target>
+        <target state="translated">是否將這些變更套用至 NuGet.config?</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
@@ -77,24 +77,34 @@
         <target state="translated">無法更新專案 {1} 中 {0} 的套件參考。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FallbackParsingWarning">
+        <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
+        <target state="translated">注意: 由於無法解析的 AppHost SDK，已使用後援剖析產生更新計劃。相依性分析的正確性可能因此降低。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MappingAddedFormat">
         <source>   Mapping: {0} (added)</source>
-        <target state="new">   Mapping: {0} (added)</target>
+        <target state="translated">   對應: {0} (已新增)</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingRemovedFormat">
         <source>   Mapping: {0} (removed)</source>
-        <target state="new">   Mapping: {0} (removed)</target>
+        <target state="translated">   對應: {0} (已移除)</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
-        <target state="new">   Mapping: {0}</target>
+        <target state="translated">   對應: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoAppHostFoundUpdateCliPrompt">
+        <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
+        <target state="translated">找不到任何 Aspire AppHost 專案。您是否要改為更新 Aspire CLI？</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
         <source>No changes detected in NuGet.config</source>
-        <target state="new">No changes detected in NuGet.config</target>
+        <target state="translated">未偵測到 NuGet.config 中的變更</target>
         <note />
       </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
@@ -134,12 +144,12 @@
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
-        <target state="new">Removed: {0}</target>
+        <target state="translated">已移除: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">
         <source>Retained: {0}</source>
-        <target state="new">Retained: {0}</target>
+        <target state="translated">已保留: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">
@@ -150,6 +160,11 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">未預期的程式碼路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
+        <source>An update is available for the Aspire CLI. Would you like to update it now?</source>
+        <target state="translated">更新可用於 Aspire CLI。您現在要更新嗎？</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">

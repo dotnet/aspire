@@ -62,6 +62,11 @@
         <target state="translated">Укажите значения для неразрешенных параметров. Параметры можно сохранить в [пользовательских секретах](https://learn.microsoft.com/aspnet/core/security/app-secrets) для дальнейшего использования.</target>
         <note>Contains markdown</note>
       </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="translated">Укажите значения для неразрешенных параметров.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>
         <target state="translated">Введите значение для {0}</target>

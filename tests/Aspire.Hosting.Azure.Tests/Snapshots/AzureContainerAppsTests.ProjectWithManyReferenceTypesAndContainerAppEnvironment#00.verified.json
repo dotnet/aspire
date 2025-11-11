@@ -1,6 +1,6 @@
 ﻿{
   "type": "azure.bicep.v0",
-  "path": "api.module.bicep",
+  "path": "api-containerapp.module.bicep",
   "params": {
     "cae_outputs_azure_container_apps_environment_default_domain": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
     "cae_outputs_azure_container_apps_environment_id": "{cae.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",

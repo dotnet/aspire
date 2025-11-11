@@ -44,11 +44,16 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
 
     public TaskCompletionSource? PromptForSelectionAsyncCalled { get; set; }
 
+    public TaskCompletionSource? PromptForSelectionsAsyncCalled { get; set; }
+
     public TaskCompletionSource? ConfirmAsyncCalled { get; set; }
     public Func<string, bool, Task<bool>>? ConfirmAsyncCallback { get; set; }
 
     public TaskCompletionSource? PromptForStringAsyncCalled { get; set; }
     public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForStringAsyncCallback { get; set; }
+
+    public TaskCompletionSource? PromptForSecretStringAsyncCalled { get; set; }
+    public Func<string, Func<string, ValidationResult>?, bool, Task<string>>? PromptForSecretStringAsyncCallback { get; set; }
 
     public TaskCompletionSource? OpenEditorAsyncCalled { get; set; }
     public Func<string, Task>? OpenEditorAsyncCallback { get; set; }
@@ -72,6 +77,9 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
 
     public TaskCompletionSource? DisplayPlainTextAsyncCalled { get; set; }
     public Func<string, Task>? DisplayPlainTextAsyncCallback { get; set; }
+
+    public TaskCompletionSource? WriteDebugSessionMessageAsyncCalled { get; set; }
+    public Func<string, bool, string?, Task>? WriteDebugSessionMessageAsyncCallback { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -152,6 +160,18 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         return Task.FromResult(choices.First());
     }
 
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull
+    {
+        PromptForSelectionsAsyncCalled?.SetResult();
+
+        if (!choices.Any())
+        {
+            throw new InvalidOperationException($"No items available for selection: {promptText}");
+        }
+
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
+    }
+
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         ConfirmAsyncCalled?.SetResult();
@@ -160,12 +180,20 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(true);
     }
 
-    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, CancellationToken cancellationToken = default)
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool required = false, CancellationToken cancellationToken = default)
     {
         PromptForStringAsyncCalled?.SetResult();
         return PromptForStringAsyncCallback != null
-            ? PromptForStringAsyncCallback.Invoke(promptText, defaultValue, validator, isSecret)
+            ? PromptForStringAsyncCallback.Invoke(promptText, defaultValue, validator, required)
             : Task.FromResult(defaultValue ?? string.Empty);
+    }
+
+    public Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator = null, bool required = false, CancellationToken cancellationToken = default)
+    {
+        PromptForSecretStringAsyncCalled?.SetResult();
+        return PromptForSecretStringAsyncCallback != null
+            ? PromptForSecretStringAsyncCallback.Invoke(promptText, validator, required)
+            : Task.FromResult(string.Empty);
     }
 
     public Task OpenEditorAsync(string projectPath, CancellationToken cancellationToken)
@@ -197,7 +225,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         HasCapabilityAsyncCalled?.SetResult();
         return HasCapabilityAsyncCallback != null
             ? HasCapabilityAsyncCallback.Invoke(capability, cancellationToken)
-            : Task.FromResult(false);
+            : Task.FromResult(capability == "secret-prompts.v1"); // Default to supporting the new capability in tests
     }
 
     public Task LaunchAppHostAsync(string projectPath, List<string> arguments, List<EnvVar> envVars, bool debug, CancellationToken cancellationToken)
@@ -228,6 +256,14 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         DisplayPlainTextAsyncCalled?.SetResult();
         return DisplayPlainTextAsyncCallback != null
             ? DisplayPlainTextAsyncCallback.Invoke(text)
+            : Task.CompletedTask;
+    }
+
+    public Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken)
+    {
+        WriteDebugSessionMessageAsyncCalled?.SetResult();
+        return WriteDebugSessionMessageAsyncCallback != null
+            ? WriteDebugSessionMessageAsyncCallback.Invoke(message, stdout, textStyle)
             : Task.CompletedTask;
     }
 }

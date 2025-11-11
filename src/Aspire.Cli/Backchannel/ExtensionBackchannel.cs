@@ -32,8 +32,10 @@ internal interface IExtensionBackchannel
     Task DisplayDashboardUrlsAsync(DashboardUrlsState dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
+    Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
+    Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenEditorAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
@@ -42,12 +44,14 @@ internal interface IExtensionBackchannel
     Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
     Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, CancellationToken cancellationToken);
     Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
+    Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
     private const string BaselineCapability = "baseline.v1";
+    internal const string SecretPromptsCapability = "secret-prompts.v1";
 
     private readonly ActivitySource _activitySource = new(nameof(ExtensionBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
@@ -435,6 +439,36 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return choicesByFormattedValue[result];
     }
 
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+        CancellationToken cancellationToken) where T : notnull
+    {
+        await ConnectAsync(cancellationToken);
+
+        var choicesList = choices.ToList();
+        // this will throw if formatting results in non-distinct values. that should happen because we cannot send the formatter over the wire.
+        var choicesByFormattedValue = choicesList.ToDictionary(choice => choiceFormatter(choice).RemoveSpectreFormatting(), choice => choice);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Prompting for multiple selections with text: {PromptText}, choices: {Choices}", promptText, choicesByFormattedValue.Keys);
+
+        var choicesArray = choicesByFormattedValue.Keys.ToArray();
+        var result = await rpc.InvokeWithCancellationAsync<string[]?>(
+            "promptForSelections",
+            [_token, promptText, choicesArray],
+            cancellationToken);
+
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result.Select(r => choicesByFormattedValue[r]).ToList();
+    }
+
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
@@ -485,6 +519,32 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return result;
     }
 
+    public async Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        _target.ValidationFunction = validator;
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Prompting for secret string with text: {PromptText}, required: {Required}", promptText, required);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "promptForSecretString",
+            [_token, promptText, required],
+            cancellationToken);
+
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result;
+    }
+
     public async Task OpenEditorAsync(string path, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
@@ -514,8 +574,6 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        _logger.LogDebug("Logging message at level {LogLevel}: {Message}", logLevel, message);
-
         await rpc.InvokeWithCancellationAsync(
             "logMessage",
             [_token, logLevel.ToString(), message],
@@ -535,6 +593,22 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         await rpc.InvokeWithCancellationAsync(
             "displayPlainText",
             [_token, text],
+            cancellationToken);
+    }
+
+    public async Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Sent debug session message {Message}", message);
+
+        await rpc.InvokeWithCancellationAsync(
+            "writeDebugSessionMessage",
+            [_token, message, stdout, textStyle],
             cancellationToken);
     }
 
@@ -633,6 +707,10 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         var serverCertificate = _configuration[KnownConfigNames.ExtensionCert];
         Debug.Assert(!string.IsNullOrEmpty(serverCertificate));
         var data = Convert.FromBase64String(serverCertificate);
+#if NET9_0_OR_GREATER
+        return X509CertificateLoader.LoadCertificate(data);
+#else
         return new X509Certificate2(data);
+#endif
     }
 }

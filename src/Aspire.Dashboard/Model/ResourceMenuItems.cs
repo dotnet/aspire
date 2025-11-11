@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.CustomIcons;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -19,6 +22,7 @@ public static class ResourceMenuItems
     private static readonly Icon s_tracesIcon = new Icons.Regular.Size16.GanttChart();
     private static readonly Icon s_metricsIcon = new Icons.Regular.Size16.ChartMultiple();
     private static readonly Icon s_linkIcon = new Icons.Regular.Size16.Link();
+    private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
     private static readonly Icon s_toolboxIcon = new Icons.Regular.Size16.Toolbox();
     private static readonly Icon s_linkMultipleIcon = new Icons.Regular.Size16.LinkMultiple();
 
@@ -27,15 +31,19 @@ public static class ResourceMenuItems
         ResourceViewModel resource,
         NavigationManager navigationManager,
         TelemetryRepository telemetryRepository,
+        IAIContextProvider aiContextProvider,
         Func<ResourceViewModel, string> getResourceName,
         IStringLocalizer<ControlsStrings> controlLoc,
         IStringLocalizer<Resources.Resources> loc,
+        IStringLocalizer<Resources.AIAssistant> aiAssistantLoc,
+        IStringLocalizer<Resources.AIPrompts> aiPromptsLoc,
         IStringLocalizer<Commands> commandsLoc,
         EventCallback onViewDetails,
         EventCallback<CommandViewModel> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
         bool showConsoleLogsItem,
-        bool showUrls)
+        bool showUrls,
+        IconResolver iconResolver)
     {
         menuItems.Add(new MenuButtonItem
         {
@@ -58,9 +66,26 @@ public static class ResourceMenuItems
             });
         }
 
+        if (aiContextProvider.Enabled)
+        {
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = aiAssistantLoc[nameof(AIAssistant.MenuTextAskGitHubCopilot)],
+                Icon = s_gitHubCopilotIcon,
+                OnClick = async () =>
+                {
+                    await aiContextProvider.LaunchAssistantSidebarAsync(
+                        promptContext => PromptContextsBuilder.AnalyzeResource(
+                            promptContext,
+                            aiPromptsLoc.GetString(nameof(AIPrompts.PromptAnalyzeResource), resource.Name),
+                            resource)).ConfigureAwait(false);
+                }
+            });
+        }
+
         AddTelemetryMenuItems(menuItems, resource, navigationManager, telemetryRepository, getResourceName, loc);
 
-        AddCommandMenuItems(menuItems, resource, loc, commandsLoc, commandSelected, isCommandExecuting);
+        AddCommandMenuItems(menuItems, resource, loc, commandsLoc, commandSelected, isCommandExecuting, iconResolver);
 
         if (showUrls)
         {
@@ -177,7 +202,7 @@ public static class ResourceMenuItems
         }
     }
 
-    private static void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc, IStringLocalizer<Commands> commandsLoc, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting)
+    private static void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc, IStringLocalizer<Commands> commandsLoc, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting, IconResolver iconResolver)
     {
         var menuCommands = resource.Commands
                     .Where(c => c.State != CommandViewModelState.Hidden)
@@ -228,7 +253,7 @@ public static class ResourceMenuItems
 
         MenuButtonItem CreateMenuItem(CommandViewModel command)
         {
-            var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
+            var icon = (!string.IsNullOrEmpty(command.IconName) && iconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
 
             return new MenuButtonItem
             {

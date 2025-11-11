@@ -32,11 +32,6 @@
         <target state="translated">Uç Noktalar</target>
         <note />
       </trans-unit>
-      <trans-unit id="ExtensionSwitchingToAppHostConsole">
-        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
-        <target state="translated">AppHost günlüklerini gerçek zamanlı olarak görüntülemek için AppHost Hata Ayıklama Konsoluna geçin.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">Kaynağın durumu, örneğin İyi Durumda</target>

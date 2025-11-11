@@ -94,6 +94,11 @@ internal sealed class DcpOptions
     /// By default log file name suffix defaults to the current process ID.
     /// </summary>
     public string? LogFileNameSuffix { get; set; }
+
+    /// <summary>
+    /// Enables Aspire container tunnel for container-to-host connectivity across all container orchestrators.
+    /// </summary>
+    public bool EnableAspireContainerTunnel { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -197,6 +202,7 @@ internal class ConfigureDefaultDcpOptions(
         options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
         options.LogFileNameSuffix = dcpPublisherConfiguration[nameof(options.LogFileNameSuffix)];
+        options.EnableAspireContainerTunnel = configuration.GetValue(KnownConfigNames.EnableContainerTunnel, options.EnableAspireContainerTunnel);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

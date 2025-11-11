@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -25,9 +27,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
-
+    private IDisposable? _aiDisplayChangedSubscription;
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
+    private const string McpDialogId = "McpServerDialog";
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -46,6 +49,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
 
     [Inject]
     public required IDialogService DialogService { get; init; }
@@ -67,6 +73,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required ILocalStorage LocalStorage { get; init; }
+
+    [Inject]
+    public required IServiceProvider ServiceProvider { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -105,10 +117,28 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
         TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
 
-        if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredTelemetryMessage)
+        await DisplayUnsecuredEndpointsMessageAsync();
+
+        _aiDisplayChangedSubscription = AIContextProvider.OnDisplayChanged(() => InvokeAsync(StateHasChanged));
+    }
+
+    private async Task DisplayUnsecuredEndpointsMessageAsync()
+    {
+        var unsecuredEndpointsMessage = new StringBuilder();
+        if (ShouldShowUnsecuredTelemetryMessage())
         {
-            var dismissedResult = await LocalStorage.GetUnprotectedAsync<bool>(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey);
-            var skipMessage = dismissedResult.Success && dismissedResult.Value;
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointTelemetryBody)]);
+        }
+        if (ShouldShowUnsecuredMcpMessage())
+        {
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointMcpBody)]);
+        }
+
+        if (unsecuredEndpointsMessage.Length > 0)
+        {
+            // Check UnsecuredTelemetryMessageDismissedKey for backwards compatibility.
+            var skipMessage = (await ShouldSkipMessageAsync(LocalStorage, BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey) ||
+                await ShouldSkipMessageAsync(LocalStorage, BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey));
 
             if (!skipMessage)
             {
@@ -116,12 +146,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 // I think this order allows the message bar provider to be fully initialized.
                 await MessageService.ShowMessageBarAsync(options =>
                 {
-                    options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
-                    options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
+                    options.Title = Loc[nameof(Resources.Layout.MessageUnsecuredEndpointTitle)];
+                    options.Body = unsecuredEndpointsMessage.ToString();
                     options.Link = new()
                     {
-                        Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
-                        Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
+                        Text = Loc[nameof(Resources.Layout.MessageUnsecuredEndpointLink)],
+                        Href = "https://aka.ms/aspire/api-endpoint-unsecured",
                         Target = "_blank"
                     };
                     options.Intent = MessageIntent.Warning;
@@ -129,11 +159,27 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                     options.AllowDismiss = true;
                     options.OnClose = async m =>
                     {
-                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey, true);
+                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey, true);
                     };
                 });
             }
         }
+
+        static async Task<bool> ShouldSkipMessageAsync(ILocalStorage localStorage, string storageKey)
+        {
+            var dismissedResult = await localStorage.GetUnprotectedAsync<bool>(storageKey);
+            return dismissedResult.Success && dismissedResult.Value;
+        }
+    }
+
+    private bool ShouldShowUnsecuredTelemetryMessage()
+    {
+        return Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredMessage;
+    }
+
+    private bool ShouldShowUnsecuredMcpMessage()
+    {
+        return Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured && !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -155,6 +201,34 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _isNavMenuOpen = false;
             CloseMobileNavMenu();
         }
+    }
+
+    private async Task LaunchMcpAsync()
+    {
+        DialogParameters parameters = new()
+        {
+            Title = "Aspire MCP server",
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
+            PrimaryAction = null,
+            SecondaryAction = null,
+            TrapFocus = true,
+            Modal = true,
+            Width = "700px",
+            Id = McpDialogId,
+            OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
+        };
+
+        if (_openPageDialog is not null)
+        {
+            if (Equals(_openPageDialog.Id, McpDialogId))
+            {
+                return;
+            }
+
+            await _openPageDialog.CloseAsync();
+        }
+
+        _openPageDialog = await DialogService.ShowDialogAsync<McpServerDialog>(parameters).ConfigureAwait(true);
     }
 
     private async Task LaunchHelpAsync()
@@ -233,6 +307,32 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
     }
 
+    public async Task LaunchAssistantAsync()
+    {
+        if (AIContextProvider.AssistantChatViewModel != null && AIContextProvider.ShowAssistantSidebarDialog)
+        {
+            await AIContextProvider.HideAssistantSidebarAsync();
+        }
+        else
+        {
+            var viewModel = ServiceProvider.GetRequiredService<AssistantChatViewModel>();
+            var initializeTask = AIContextProvider.ChatState is { } state
+                ? viewModel.InitializeWithPreviousStateAsync(state)
+                : viewModel.InitializeAsync();
+
+            if (ViewportInformation.IsDesktop)
+            {
+                await AIContextProvider.LaunchAssistantSidebarAsync(viewModel);
+            }
+            else
+            {
+                await AIContextProvider.LaunchAssistantModelDialogAsync(viewModel);
+            }
+
+            await initializeTask;
+        }
+    }
+
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
     {
         AspireKeyboardShortcut.Help,
@@ -285,6 +385,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
+        _aiDisplayChangedSubscription?.Dispose();
 
         try
         {

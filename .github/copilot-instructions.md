@@ -90,7 +90,7 @@ Note that tests for a project can be executed without first building from the ro
 
 (4) To run specific tests, include the filter after `--`:
 ```bash
-dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "*.TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
@@ -110,6 +110,8 @@ dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestNam
 Never run all tests without the quarantine and outerloop filters in automated environments, as this will include flaky tests that are known to fail intermittently and long-running tests that slow down CI.
 
 Valid test filter switches include: --filter-class, --filter-not-class, --filter-method, --filter-not-method, --filter-namespace, --filter-not-namespace, --filter-not-trait, --filter-trait
+The switches `--filter-class` and `--filter-method` expect fully qualified names, unless a filter is used as a prefix like `--filter-class "*.SomeClassName"` or `--filter-method "*.SomeMethodName"`.
+These switches can be repeated to run tests on multiple classes or methods at once, e.g., `--filter-method "*.SomeMethodName1" --filter-method "*.SomeMethodName2"`.
 
 ### Test Verification Commands
 - **Single Test Project**: Typical runtime ~10-60 seconds per test project
@@ -123,7 +125,6 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
   - `Aspire.Dashboard/`: Web dashboard UI (Blazor application)
   - `Components/`: 40+ integration packages for databases, messaging, cloud services
   - `Aspire.Cli/`: Command-line interface tools
-  - `Microsoft.Extensions.ServiceDiscovery/`: Service discovery infrastructure
 - **`/tests`**: Comprehensive test suites mirroring src structure
 - **`/playground`**: Sample applications including TestShop for verification
 - **`/docs`**: Documentation including contributing guides and area ownership
@@ -193,6 +194,8 @@ The `*.Designer.cs` files are in the repo, but are intended to match same named 
 * Code blocks should be formatted with triple backticks (```) and include the language identifier for syntax highlighting.
 * JSON code blocks should be indented properly.
 
+## Localization files
+* Files matching the pattern `*/localize/templatestrings.*.json` are localization files. Do not translate their content. It is done by a dedicated workflow.
 ## Trust These Instructions
 
 These instructions are comprehensive and tested. Only search for additional information if:
@@ -201,3 +204,12 @@ These instructions are comprehensive and tested. Only search for additional info
 3. You need details about new features not yet documented
 
 For most development tasks, following these instructions should be sufficient to build, test, and validate changes successfully.
+
+## Typescript
+
+* When possible, you should create Typescript files instead of Javascript files.
+* You must not use dynamic imports unless absolutely necessary. Instead, use static imports.
+
+## Aspire VS Code Extension
+
+* When displaying text to the user, ensure that the strings are localized. New localized strings must be put both in the extension `package.nls.json` and also `src/loc/strings.ts`.

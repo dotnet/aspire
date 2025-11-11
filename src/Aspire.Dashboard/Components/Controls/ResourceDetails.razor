@@ -231,7 +231,8 @@
                     </AspireTemplateColumn>
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]" Class="stateColumn">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]"
-                                   Value="@(context.HealthStatus?.Humanize() ?? Loc[nameof(Resources.WaitingHealthDataStatusMessage)])"
+                                   Value="@GetHealthStatusWithTime(context)"
+                                   ToolTip="@GetHealthStatusTooltip(context)"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter"
                                    TextVisualizerTitle="@context.Name">

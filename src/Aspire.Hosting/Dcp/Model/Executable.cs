@@ -101,7 +101,7 @@ internal static class ExecutionType
     public const string IDE = "IDE";
 }
 
-internal sealed class ExecutableStatus : V1Status
+internal sealed record ExecutableStatus : V1Status
 {
     /// <summary>
     /// The execution ID is the identifier for the actual-state counterpart of the Executable.
@@ -241,9 +241,7 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ExecutableState.Running
-        || this.Status?.State == ExecutableState.Finished
-        || this.Status?.State == ExecutableState.Terminated;
+        !string.IsNullOrEmpty(this.Status?.State);
 
     public void SetProjectLaunchConfiguration(ProjectLaunchConfiguration launchConfiguration)
     {
@@ -267,27 +265,14 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
     }
 }
 
-internal static class ProjectLaunchMode
+internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("project")
 {
-    public const string Debug = "Debug";
-    public const string NoDebug = "NoDebug";
-}
-
-internal sealed class ProjectLaunchConfiguration
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "project";
-
-    [JsonPropertyName("mode")]
-    public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ProjectLaunchMode.Debug : ProjectLaunchMode.NoDebug;
-
-    [JsonPropertyName("project_path")]
-    public string ProjectPath { get; set; } = string.Empty;
-
     [JsonPropertyName("launch_profile")]
     public string LaunchProfile { get; set; } = string.Empty;
 
     [JsonPropertyName("disable_launch_profile")]
     public bool DisableLaunchProfile { get; set; } = false;
-}
 
+    [JsonPropertyName("project_path")]
+    public string ProjectPath { get; set; } = string.Empty;
+}

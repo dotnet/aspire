@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
@@ -15,7 +16,7 @@ public class PublishingExtensionsTests
     public async Task PublishingStepExtensions_CreateTask_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -23,8 +24,8 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.NotNull(task);
-        await using var stepInternal = Assert.IsType<PublishingStep>(step);
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        await using var stepInternal = Assert.IsType<ReportingStep>(step);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(stepInternal.Id, taskInternal.StepId);
         Assert.Equal("Initial status", taskInternal.StatusText);
         Assert.Equal(CompletionState.InProgress, taskInternal.CompletionState);
@@ -34,7 +35,7 @@ public class PublishingExtensionsTests
     public async Task PublishingStepExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -43,7 +44,7 @@ public class PublishingExtensionsTests
         // Assert
         Assert.Equal(step, result);
         // Cast to internal type to verify internal state for testing
-        await using var stepInternal = Assert.IsType<PublishingStep>(step);
+        await using var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.NotEqual(CompletionState.InProgress, stepInternal.CompletionState);
         Assert.Equal("Success message", stepInternal.CompletionText);
     }
@@ -52,7 +53,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_UpdateStatus_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -63,7 +64,7 @@ public class PublishingExtensionsTests
         Assert.Equal(task, result);
 
         // Cast to internal type to verify internal state for testing
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal("Updated status", taskInternal.StatusText);
     }
 
@@ -71,7 +72,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -80,7 +81,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(task, result);
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.Completed, taskInternal.CompletionState);
         Assert.Equal("Success message", taskInternal.CompletionMessage);
     }
@@ -89,7 +90,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Warn_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -98,7 +99,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(task, result);
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.CompletedWithWarning, taskInternal.CompletionState);
         Assert.Equal("Warning message", taskInternal.CompletionMessage);
     }
@@ -107,7 +108,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Fail_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -115,8 +116,13 @@ public class PublishingExtensionsTests
         await task.FailAsync("Error message", CancellationToken.None);
 
         // Assert
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(CompletionState.CompletedWithError, taskInternal.CompletionState);
         Assert.Equal("Error message", taskInternal.CompletionMessage);
+    }
+
+    private PipelineActivityReporter CreatePublishingReporter()
+    {
+        return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
     }
 }

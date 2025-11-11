@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
@@ -8,10 +8,12 @@ using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
+using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
@@ -24,6 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
+using Aspire.TestUtilities;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
@@ -329,6 +332,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12740")]
     public async Task ReadingLogs_ErrorDuringRead_SetStatusAndLog()
     {
         // Arrange
@@ -806,7 +810,8 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
         keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        var menuModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        menuModule.SetupVoid("initialize", _ => true);
 
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
@@ -826,6 +831,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<TelemetryRepository>();
+        Services.AddSingleton<IconResolver>();
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();
@@ -839,6 +845,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.AddSingleton<PauseManager>();
+        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

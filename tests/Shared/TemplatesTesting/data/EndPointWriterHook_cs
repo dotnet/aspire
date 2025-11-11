@@ -1,3 +1,4 @@
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -6,12 +7,12 @@ using System.Text.Json.Nodes;
 /// Writes the allocated endpoints to the console in JSON format.
 /// This allows for easier consumption by the external test process.
 /// </summary>
-public sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
+public sealed class EndPointWriterHook : IDistributedApplicationEventingSubscriber
 {
-    public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    public async Task OnAfterResourcesCreated(AfterResourcesCreatedEvent @event, CancellationToken cancellationToken)
     {
         var root = new JsonObject();
-        foreach (var project in appModel.Resources.OfType<ProjectResource>())
+        foreach (var project in @event.Model.Resources.OfType<ProjectResource>())
         {
             var projectJson = new JsonObject();
             root[project.Name] = projectJson;
@@ -38,5 +39,12 @@ public sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
 
         // write the whole json in a single line so it's easier to parse by the external process
         await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        // We can assume endpoints are allocated before project resources are created
+        eventing.Subscribe<AfterResourcesCreatedEvent>(OnAfterResourcesCreated);
+        return Task.CompletedTask;
     }
 }

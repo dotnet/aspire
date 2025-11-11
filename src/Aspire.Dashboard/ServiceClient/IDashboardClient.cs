@@ -46,6 +46,12 @@ public interface IDashboardClient : IAsyncDisposable
     /// </summary>
     ResourceViewModel? GetResource(string resourceName);
 
+    /// <summary>
+    /// Get the current resources.
+    /// </summary>
+    /// <returns></returns>
+    IReadOnlyList<ResourceViewModel> GetResources();
+
     IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken);
 
     Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken);

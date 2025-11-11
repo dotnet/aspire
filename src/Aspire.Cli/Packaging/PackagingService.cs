@@ -22,14 +22,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         var stableChannel = PackageChannel.CreateExplicitChannel("stable", PackageChannelQuality.Stable, new[]
         {
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache);
+        }, nuGetPackageCache, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/ga/daily");
 
         var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Prerelease, new[]
         {
             new PackageMapping("Aspire*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
-            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache);
+        }, nuGetPackageCache, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/daily");
 
         var prPackageChannels = new List<PackageChannel>();
 
@@ -45,7 +44,6 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
                 var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, PackageChannelQuality.Prerelease, new[]
                 {
                     new PackageMapping("Aspire*", prHive.FullName),
-                    new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", prHive.FullName),
                     new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
                 }, nuGetPackageCache);
 
@@ -53,9 +51,9 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             }
         }
 
-        var channels = new List<PackageChannel>([defaultChannel, stableChannel, dailyChannel, ..prPackageChannels]);
+        var channels = new List<PackageChannel>([defaultChannel, stableChannel]);
 
-        // Add staging channel if feature is enabled
+        // Add staging channel if feature is enabled (after stable, before daily)
         if (features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false))
         {
             var stagingChannel = CreateStagingChannel();
@@ -65,39 +63,49 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             }
         }
 
+        // Add daily and PR channels after staging
+        channels.Add(dailyChannel);
+        channels.AddRange(prPackageChannels);
+
         return Task.FromResult<IEnumerable<PackageChannel>>(channels);
     }
 
     private PackageChannel? CreateStagingChannel()
     {
-        var commitHash = GetCommitHashForStagingChannel();
-        if (commitHash is null)
+        var stagingFeedUrl = GetStagingFeedUrl();
+        if (stagingFeedUrl is null)
         {
             return null;
         }
 
-        var stagingFeedUrl = $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json";
+        var stagingQuality = GetStagingQuality();
 
-        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, new[]
+        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", stagingQuality, new[]
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
-            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache, configureGlobalPackagesFolder: true);
+        }, nuGetPackageCache, configureGlobalPackagesFolder: true, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily");
 
         return stagingChannel;
     }
 
-    private string? GetCommitHashForStagingChannel()
+    private string? GetStagingFeedUrl()
     {
-        // Check for test override first
-        var overrideHash = configuration["overrideStagingHash"];
-        if (!string.IsNullOrEmpty(overrideHash))
+        // Check for configuration override first
+        var overrideFeed = configuration["overrideStagingFeed"];
+        if (!string.IsNullOrEmpty(overrideFeed))
         {
-            return overrideHash.Length >= 8 ? overrideHash[..8] : overrideHash;
+            // Validate that the override URL is well-formed
+            if (Uri.TryCreate(overrideFeed, UriKind.Absolute, out var uri) && 
+                (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            {
+                return overrideFeed;
+            }
+            // Invalid URL, fall through to default behavior
         }
 
-        // Extract from assembly version
+        // Extract commit hash from assembly version to build staging feed URL
+        // Staging feed URL template: https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json
         var assembly = Assembly.GetExecutingAssembly();
         var informationalVersion = assembly
             .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false)
@@ -116,6 +124,25 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         }
 
         var commitHash = informationalVersion[(plusIndex + 1)..];
-        return commitHash.Length >= 8 ? commitHash[..8] : commitHash;
+        var truncatedHash = commitHash.Length >= 8 ? commitHash[..8] : commitHash;
+        
+        return $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{truncatedHash}/nuget/v3/index.json";
+    }
+
+    private PackageChannelQuality GetStagingQuality()
+    {
+        // Check for configuration override
+        var overrideQuality = configuration["overrideStagingQuality"];
+        if (!string.IsNullOrEmpty(overrideQuality))
+        {
+            // Try to parse the quality value (case-insensitive)
+            if (Enum.TryParse<PackageChannelQuality>(overrideQuality, ignoreCase: true, out var quality))
+            {
+                return quality;
+            }
+        }
+
+        // Default to Stable if not specified or invalid
+        return PackageChannelQuality.Stable;
     }
 }

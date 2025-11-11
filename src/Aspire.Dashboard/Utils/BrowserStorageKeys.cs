@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Utils;
 internal static class BrowserStorageKeys
 {
     public const string UnsecuredTelemetryMessageDismissedKey = "Aspire_Telemetry_UnsecuredMessageDismissed";
+    public const string UnsecuredEndpointMessageDismissedKey = "Aspire_Security_UnsecuredEndpointMessageDismissed";
 
     public const string TracesPageState = "Aspire_PageState_Traces";
     public const string StructuredLogsPageState = "Aspire_PageState_StructuredLogs";
@@ -20,6 +21,8 @@ internal static class BrowserStorageKeys
     public const string TextVisualizerDialogSettings = "Aspire_TextVisualizerDialog_TextVisualizerDialogSettings";
     public const string ResourcesShowResourceTypes = "Aspire_Resources_ShowResourceTypes";
 
+    public const string AssistantChatAssistantSettings = "Aspire_AssistantChat_AssistantSettings";
+    public const string DashboardTelemetrySettings = "Aspire_Settings_DashboardTelemetry";
     public const string ResourcesShowHiddenResources = "Aspire_Resources_ShowHiddenResources";
 
     public static string SplitterOrientationKey(string viewKey)

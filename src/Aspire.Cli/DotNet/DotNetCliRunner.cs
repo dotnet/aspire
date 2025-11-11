@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -35,8 +36,11 @@ internal interface IDotNetCliRunner
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -156,7 +160,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        var cliArgsList = new List<string> { "msbuild" };
+        var isSingleFileAppHost = projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
+        
+        // If we are a single file app host then we use the build command instead of msbuild command.
+        var cliArgsList = new List<string> { isSingleFileAppHost ? "build" : "msbuild" };
 
         if (properties.Length > 0)
         {
@@ -245,9 +252,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         string[] cliArgs = isSingleFile switch
         {
             false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
-            true => ["run", projectFile.FullName, "--", ..args]
+            true => ["run", noProfileSwitch, "--file", projectFile.FullName, "--", .. args]
         };
-        
+
+        cliArgs = [.. cliArgs.Where(arg => !string.IsNullOrWhiteSpace(arg))];
+
         // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
         // dictionary here because we don't want to mutate the input.
         IDictionary<string, string>? finalEnv = env;
@@ -289,6 +298,20 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             {
                 finalEnv["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"] = "true";
             }
+        }
+
+        if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, true))
+        {
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey("DOTNET_ROLL_FORWARD"))
+            {
+                finalEnv["DOTNET_ROLL_FORWARD"] = "LatestMajor";
+            }            
         }
 
         return await ExecuteAsync(
@@ -536,11 +559,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
+        // Suppress the .NET welcome message that appears on first run
+        startInfo.EnvironmentVariables["DOTNET_NOLOGO"] = "1";
+
+        // Configure DOTNET_ROOT to point to the private SDK installation if it exists
+        ConfigurePrivateSdkEnvironment(startInfo);
+
         if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
             // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
-            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
-            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
+            startInfo.EnvironmentVariables[KnownConfigNames.DebugSessionInfo] = configuration[KnownConfigNames.DebugSessionInfo];
 
             if (backchannelCompletionSource is not null
                 && projectFile is not null
@@ -567,7 +595,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null)
         {
+#pragma warning disable CA2025 // Do not pass 'IDisposable' instances into unawaited tasks
             _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
+#pragma warning restore CA2025 // Do not pass 'IDisposable' instances into unawaited tasks
         }
 
         var pendingStdoutStreamForwarder = Task.Run(async () => {
@@ -625,9 +655,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 process.Id
                 );
 
-            while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
+            string? line;
+            while (!cancellationToken.IsCancellationRequested &&
+                (line = await reader.ReadLineAsync(cancellationToken)) is not null)
             {
-                var line = await reader.ReadLineAsync(cancellationToken);
                 logger.LogDebug(
                     "dotnet({ProcessId}) {Identifier}: {Line}",
                     process.Id,
@@ -796,6 +827,35 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         else
         {
             logger.LogInformation("Package {PackageName} with version {PackageVersion} added to project {ProjectFilePath}", packageName, packageVersion, projectFilePath.FullName);
+        }
+
+        return result;
+    }
+
+    public async Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["sln", solutionFile.FullName, "add", projectFile.FullName];
+
+        logger.LogInformation("Adding project {ProjectFilePath} to solution {SolutionFilePath}", projectFile.FullName, solutionFile.FullName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: solutionFile.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to add project {ProjectFilePath} to solution {SolutionFilePath}. See debug logs for more details.", projectFile.FullName, solutionFile.FullName);
+        }
+        else
+        {
+            logger.LogInformation("Project {ProjectFilePath} added to solution {SolutionFilePath}", projectFile.FullName, solutionFile.FullName);
         }
 
         return result;
@@ -1038,6 +1098,137 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         else
         {
             return (exitCode, stdoutLines.ToArray());
+        }
+    }
+
+    public async Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["sln", solutionFile.FullName, "list"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback;
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback;
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: solutionFile.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to list solution projects. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, Array.Empty<FileInfo>());
+        }
+
+        // Parse output - skip header lines (Project(s) and ----------)
+        var projects = new List<FileInfo>();
+        var startParsing = false;
+        
+        foreach (var line in stdoutLines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            // Skip header lines
+            if (line.StartsWith("Project(s)", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("----------", StringComparison.Ordinal))
+            {
+                startParsing = true;
+                continue;
+            }
+
+            if (startParsing && line.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                var projectPath = Path.IsPathRooted(line)
+                    ? line
+                    : Path.Combine(solutionFile.Directory!.FullName, line);
+                projects.Add(new FileInfo(projectPath));
+            }
+        }
+
+        return (exitCode, projects);
+    }
+
+    public async Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["add", projectFile.FullName, "reference", referencedProject.FullName];
+
+        logger.LogInformation("Adding project reference from {ProjectFile} to {ReferencedProject}", projectFile.FullName, referencedProject.FullName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: projectFile,
+            workingDirectory: projectFile.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to add project reference from {ProjectFile} to {ReferencedProject}. See debug logs for more details.", projectFile.FullName, referencedProject.FullName);
+        }
+        else
+        {
+            logger.LogInformation("Project reference added from {ProjectFile} to {ReferencedProject}", projectFile.FullName, referencedProject.FullName);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Configures environment variables to use the private SDK installation if it exists.
+    /// </summary>
+    /// <param name="startInfo">The process start info to configure.</param>
+    private void ConfigurePrivateSdkEnvironment(ProcessStartInfo startInfo)
+    {
+        // Get the effective minimum SDK version to determine which private SDK to use
+        var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
+        var sdkVersion = sdkInstaller.GetEffectiveMinimumSdkVersion();
+        var sdksDirectory = executionContext.SdksDirectory.FullName;
+        var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
+        var dotnetExecutablePath = Path.Combine(
+            sdkInstallPath,
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"
+        );
+
+        // Check if the private SDK exists
+        if (Directory.Exists(sdkInstallPath))
+        {
+            // Set the executable path to be the private SDK.
+            startInfo.FileName = dotnetExecutablePath;
+
+            // Set DOTNET_ROOT to point to the private SDK installation
+            startInfo.EnvironmentVariables["DOTNET_ROOT"] = sdkInstallPath;
+            
+            // Also set DOTNET_MULTILEVEL_LOOKUP to 0 to prevent fallback to system SDKs
+            startInfo.EnvironmentVariables["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+            
+            // Prepend the private SDK path to PATH so the dotnet executable from the private installation is found first
+            var currentPath = startInfo.EnvironmentVariables["PATH"] ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            startInfo.EnvironmentVariables["PATH"] = $"{sdkInstallPath}{Path.PathSeparator}{currentPath}";
+            
+            logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
         }
     }
 }

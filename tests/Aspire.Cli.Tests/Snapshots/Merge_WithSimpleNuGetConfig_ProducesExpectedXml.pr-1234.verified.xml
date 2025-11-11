@@ -6,7 +6,6 @@
   <packageSourceMapping>
     <packageSource key="{PR_HIVE}">
       <package pattern="Aspire*" />
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
     </packageSource>
     <packageSource key="nuget.org">
       <package pattern="*" />

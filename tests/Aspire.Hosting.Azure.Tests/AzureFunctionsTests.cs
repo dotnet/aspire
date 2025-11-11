@@ -277,6 +277,7 @@ public class AzureFunctionsTests
 
         // hardcoded sha256 to make the storage name deterministic
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         var project = builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
 
         var app = builder.Build();
@@ -307,13 +308,14 @@ public class AzureFunctionsTests
 
         // hardcoded sha256 to make the storage name deterministic
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         var funcApp = builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
 
         var app = builder.Build();
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var (_, bicep) = await GetManifestWithBicep(funcApp.Resource.GetDeploymentTargetAnnotation()!.DeploymentTarget);
 
@@ -335,6 +337,7 @@ public class AzureFunctionsTests
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             .WithHostStorage(storage);
 
@@ -362,6 +365,7 @@ public class AzureFunctionsTests
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             .WithHostStorage(storage)
             .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);
@@ -390,6 +394,7 @@ public class AzureFunctionsTests
         // hardcoded sha256 to make the storage name deterministic
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         builder.Configuration["AppHost:Sha256"] = "634f8";
+        builder.Configuration["AppHost:ProjectNameSha256"] = "634f8";
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             .WithHostStorage(storage)
             .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);

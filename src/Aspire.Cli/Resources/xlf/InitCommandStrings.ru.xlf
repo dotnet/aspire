@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../InitCommandStrings.resx">
+    <body>
+      <trans-unit id="AddingAppHostProjectToSolution">
+        <source>Adding AppHost project to solution...</source>
+        <target state="translated">Добавление проекта AppHost в решение...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddingProjectsToSolution">
+        <source>Adding projects to solution...</source>
+        <target state="translated">Добавление проектов в решение...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddingServiceDefaultsProjectToSolution">
+        <source>Adding ServiceDefaults project to solution...</source>
+        <target state="translated">Добавление проекта ServiceDefaults в решение...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireInitializationComplete">
+        <source>Aspire initialization complete!</source>
+        <target state="translated">Инициализация Aspire завершена!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatingAppHostProject">
+        <source>Creating AppHost project...</source>
+        <target state="translated">Создание проекта AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatingServiceDefaultsProject">
+        <source>Creating ServiceDefaults project...</source>
+        <target state="translated">Создание проекта ServiceDefaults...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
+        <target state="translated">Инициализируйте поддержку Aspire в существующем решении или создайте однофайловый AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleSolutionsFound">
+        <source>Multiple solution files found. Please select which one to add the Aspire projects to:</source>
+        <target state="translated">Найдено несколько файлов решений. Выберите, к какому из них добавить проекты Aspire:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
+        <source>No solution file found. Creating single-file AppHost...</source>
+        <target state="translated">Файл решения не найден. Создание однофайлового AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionDetected">
+        <source>Solution detected: {0}</source>
+        <target state="translated">Обнаружено решение: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionAlreadyInitialized">
+        <source>Solution has already been initialized with Aspire.</source>
+        <target state="translated">Решение уже инициализировано с помощью Aspire.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

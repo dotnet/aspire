@@ -29,6 +29,7 @@ public class OtelTracesTests
     [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task EnsureTracesAreProducedAsync(bool useKeyed)
     {
         List<Activity> activities = new();

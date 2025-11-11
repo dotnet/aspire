@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -23,7 +24,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
     var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-    return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+    return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
     }
 
     [Fact]
@@ -39,13 +40,13 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
+            await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
@@ -77,9 +78,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
         Assert.Equal(targetAppHostProjectFile.FullName, foundAppHost?.FullName);
     }
@@ -116,9 +117,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
         Assert.Equal(targetAppHostProjectFile.FullName, foundAppHost?.FullName);
     }
@@ -160,10 +161,10 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
         // This should fallback to scanning and find the real apphost project
-        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
         Assert.Equal(realAppHostProjectFile.FullName, foundAppHost?.FullName);
     }
@@ -184,9 +185,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
         Assert.Equal(projectFile1.FullName, selectedProjectFile!.FullName);
     }
@@ -219,8 +220,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
-        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         Assert.Equal(appHostProject.FullName, foundAppHost?.FullName);
     }
 
@@ -235,30 +236,33 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
-            await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+            await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         });
 
-        Assert.Equal("No project file found.", ex.Message);
+        Assert.Equal(ErrorStrings.NoProjectFileFound, ex.Message);
     }
 
-    [Fact]
-    public async Task UseOrFindAppHostProjectFileReturnsExplicitProjectIfExistsAndProvided()
+    [Theory]
+    [InlineData(".csproj")]
+    [InlineData(".fsproj")]
+    [InlineData(".vbproj")]
+    public async Task UseOrFindAppHostProjectFileReturnsExplicitProjectIfExistsAndProvided(string projectFileExtension)
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, $"AppHost{projectFileExtension}"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
 
         Assert.Equal(projectFile, returnedProjectFile);
     }
@@ -276,13 +280,13 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
     }
 
-        [Fact]
+    [Fact]
     public async Task CreateSettingsFileIfNotExistsAsync_UsesForwardSlashPathSeparator()
     {
         // Arrange
@@ -309,9 +313,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile);
 
-        var locator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var locator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
+        await locator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true, CancellationToken.None);
 
         var settingsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json"));
         Assert.True(settingsFile.Exists, "Settings file should exist.");
@@ -325,7 +329,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         Assert.Contains('/', settings.AppHostPath); // Ensure forward slashes
     }
 
-    [Fact]
+       [Fact]
     public async Task FindAppHostProjectFilesAsync_DiscoversSingleFileAppHostInRootDirectory()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -528,7 +532,7 @@ builder.Build().Run();");
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
 
-        var result = await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, CancellationToken.None);
+        var result = await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
 
         Assert.Equal(appHostFile.FullName, result!.FullName);
     }
@@ -553,16 +557,15 @@ builder.Build().Run();");
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
         {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, CancellationToken.None);
+            await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
-    public async Task UseOrFindAppHostProjectFileAsync_RejectsSingleFileAppHostWithSiblingCsproj()
+    public async Task UseOrFindAppHostProjectFileAsync_AllowsSingleFileAppHostWithSiblingCsproj()
     {
-        var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
@@ -585,12 +588,8 @@ builder.Build().Run();");
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
 
-        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
-        {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, CancellationToken.None);
-        });
-
-        Assert.Equal("Project file does not exist.", ex.Message);
+        // Allow the single-file apphost to be used explicitly even with sibling .csproj
+        await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
     }
 
     [Fact]
@@ -606,14 +605,14 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
         {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(txtFile, CancellationToken.None);
+            await projectLocator.UseOrFindAppHostProjectFileAsync(txtFile, createSettingsFile: true, CancellationToken.None);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
@@ -656,7 +655,7 @@ builder.Build().Run();");
         var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
 
         // This should trigger the multiple projects selection, the test service will select the first one
-        var result = await projectLocator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
+        var result = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true, CancellationToken.None);
 
         // The test interaction service returns the first item
         Assert.NotNull(result);
@@ -723,17 +722,115 @@ builder.Build().Run();");
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
-        var features = new TestFeatures().SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), features);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
     }
 
     [Fact]
-    public async Task FindAppHostProjectFilesAsync_IgnoresSingleFileAppHostWhenFeatureDisabled()
+    public async Task UseOrFindAppHostProjectFileAcceptsDirectoryPathWithSingleProject()
     {
+        var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        // Create a valid single-file apphost
-        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        // Create a subdirectory with a single project file
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("MyAppHost");
+        var projectFile = new FileInfo(Path.Combine(projectDirectory.FullName, "MyAppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) =>
+        {
+            if (file.FullName == projectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        // Pass directory as FileInfo (this is how System.CommandLine would parse it)
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
+
+        Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileThrowsWhenDirectoryHasNoProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an empty subdirectory
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("EmptyDir");
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        // Pass directory as FileInfo
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
+        {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
+        });
+
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFilePromptsWhenDirectoryHasMultipleProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a subdirectory with multiple project files
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("MultiProject");
+        var projectFile1 = new FileInfo(Path.Combine(projectDirectory.FullName, "Project1.csproj"));
+        await File.WriteAllTextAsync(projectFile1.FullName, "Not a real project file.");
+        var projectFile2 = new FileInfo(Path.Combine(projectDirectory.FullName, "Project2.csproj"));
+        await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) =>
+        {
+            // Both projects are AppHost projects
+            if (file.FullName == projectFile1.FullName || file.FullName == projectFile2.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        // Pass directory as FileInfo
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
+
+        // Should return the first project file (TestConsoleInteractionService returns the first choice)
+        Assert.Equal(projectFile1.FullName, returnedProjectFile!.FullName);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileAcceptsDirectoryPathWithSingleFileAppHost()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a subdirectory with a single-file apphost (no .csproj)
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("MyAppHost");
+        var appHostFile = new FileInfo(Path.Combine(projectDirectory.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
             """
@@ -743,46 +840,235 @@ builder.Build().Run();");
             builder.Build().Run();
             """);
 
-        var logger = NullLogger<ProjectLocator>.Instance;
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        // Use TestFeatures() with default values (feature disabled)
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+        // Pass directory as FileInfo (this is how System.CommandLine would parse it)
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
 
-        // Should find no files since the single-file apphost feature is disabled
-        Assert.Empty(foundFiles);
+        Assert.Equal(appHostFile.FullName, returnedProjectFile!.FullName);
     }
 
     [Fact]
-    public async Task UseOrFindAppHostProjectFileAsync_RejectsExplicitSingleFileAppHostWhenFeatureDisabled()
+    public async Task UseOrFindAppHostProjectFileAcceptsDirectoryPathWithRecursiveSearch()
     {
+        var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        // Create a valid single-file apphost
-        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(
-            appHostFile.FullName,
-            """
-            #:sdk Aspire.AppHost.Sdk
-            using Aspire.Hosting;
-            var builder = DistributedApplication.CreateBuilder(args);
-            builder.Build().Run();
-            """);
+        // Create a directory structure with a project in a subdirectory
+        var topDirectory = workspace.WorkspaceRoot.CreateSubdirectory("playground");
+        var subDirectory = topDirectory.CreateSubdirectory("mongo");
+        var projectFile = new FileInfo(Path.Combine(subDirectory.FullName, "Mongo.AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) =>
+        {
+            if (file.FullName == projectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        // Pass top directory as FileInfo - should find project in subdirectory
+        var directoryAsFileInfo = new FileInfo(topDirectory.FullName);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
+
+        Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
+    }
+
+     [Fact]
+    public async Task FindExecutableProjectsAsync_FindsProjectsWithExeOutputType()
+    {
         var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a project with OutputType=Exe
+        var exeProjectDir = workspace.WorkspaceRoot.CreateSubdirectory("ExeProject");
+        var exeProjectFile = new FileInfo(Path.Combine(exeProjectDir.FullName, "ExeProject.csproj"));
+        await File.WriteAllTextAsync(exeProjectFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>");
+
+        // Create a project with OutputType=Library
+        var libProjectDir = workspace.WorkspaceRoot.CreateSubdirectory("LibProject");
+        var libProjectFile = new FileInfo(Path.Combine(libProjectDir.FullName, "LibProject.csproj"));
+        await File.WriteAllTextAsync(libProjectFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Library</OutputType></PropertyGroup></Project>");
+
+        var runner = new TestDotNetCliRunner
+        {
+            GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, ct) =>
+            {
+                var outputType = projectFile.FullName == exeProjectFile.FullName ? "Exe" : "Library";
+                var json = JsonSerializer.Serialize(new
+                {
+                    Properties = new { OutputType = outputType }
+                });
+                return (0, JsonDocument.Parse(json));
+            }
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Single(executableProjects);
+        Assert.Equal(exeProjectFile.FullName, executableProjects[0].FullName);
+    }
+
+    [Fact]
+    public async Task FindExecutableProjectsAsync_FindsProjectsWithWinExeOutputType()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a project with OutputType=WinExe
+        var winExeProjectDir = workspace.WorkspaceRoot.CreateSubdirectory("WinExeProject");
+        var winExeProjectFile = new FileInfo(Path.Combine(winExeProjectDir.FullName, "WinExeProject.csproj"));
+        await File.WriteAllTextAsync(winExeProjectFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>WinExe</OutputType></PropertyGroup></Project>");
+
+        var runner = new TestDotNetCliRunner
+        {
+            GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, ct) =>
+            {
+                var json = JsonSerializer.Serialize(new
+                {
+                    Properties = new { OutputType = "WinExe" }
+                });
+                return (0, JsonDocument.Parse(json));
+            }
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Single(executableProjects);
+        Assert.Equal(winExeProjectFile.FullName, executableProjects[0].FullName);
+    }
+
+    [Fact]
+    public async Task FindExecutableProjectsAsync_ExcludesLibraryProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create multiple library projects
+        var lib1Dir = workspace.WorkspaceRoot.CreateSubdirectory("Lib1");
+        var lib1File = new FileInfo(Path.Combine(lib1Dir.FullName, "Lib1.csproj"));
+        await File.WriteAllTextAsync(lib1File.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Library</OutputType></PropertyGroup></Project>");
+
+        var lib2Dir = workspace.WorkspaceRoot.CreateSubdirectory("Lib2");
+        var lib2File = new FileInfo(Path.Combine(lib2Dir.FullName, "Lib2.csproj"));
+        await File.WriteAllTextAsync(lib2File.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Library</OutputType></PropertyGroup></Project>");
+
+        var runner = new TestDotNetCliRunner
+        {
+            GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, ct) =>
+            {
+                var json = JsonSerializer.Serialize(new
+                {
+                    Properties = new { OutputType = "Library" }
+                });
+                return (0, JsonDocument.Parse(json));
+            }
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Empty(executableProjects);
+    }
+
+    [Fact]
+    public async Task FindExecutableProjectsAsync_ReturnsEmptyListWhenNoProjectsFound()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        // Use TestFeatures() with default values (feature disabled)
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
 
-        // Should throw when explicitly trying to use an apphost.cs file with feature disabled
-        await Assert.ThrowsAsync<ProjectLocatorException>(() =>
-            projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile));
+        var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Empty(executableProjects);
+    }
+
+    [Fact]
+    public async Task FindExecutableProjectsAsync_FindsMultipleExecutableProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create multiple executable projects
+        var exe1Dir = workspace.WorkspaceRoot.CreateSubdirectory("Exe1");
+        var exe1File = new FileInfo(Path.Combine(exe1Dir.FullName, "Exe1.csproj"));
+        await File.WriteAllTextAsync(exe1File.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>");
+
+        var exe2Dir = workspace.WorkspaceRoot.CreateSubdirectory("Exe2");
+        var exe2File = new FileInfo(Path.Combine(exe2Dir.FullName, "Exe2.csproj"));
+        await File.WriteAllTextAsync(exe2File.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>");
+
+        var winExeDir = workspace.WorkspaceRoot.CreateSubdirectory("WinExe");
+        var winExeFile = new FileInfo(Path.Combine(winExeDir.FullName, "WinExe.csproj"));
+        await File.WriteAllTextAsync(winExeFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>WinExe</OutputType></PropertyGroup></Project>");
+
+        var runner = new TestDotNetCliRunner
+        {
+            GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, ct) =>
+            {
+                var outputType = projectFile.Name switch
+                {
+                    "Exe1.csproj" => "Exe",
+                    "Exe2.csproj" => "Exe",
+                    "WinExe.csproj" => "WinExe",
+                    _ => "Library"
+                };
+                var json = JsonSerializer.Serialize(new
+                {
+                    Properties = new { OutputType = outputType }
+                });
+                return (0, JsonDocument.Parse(json));
+            }
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Equal(3, executableProjects.Count);
+        Assert.Contains(executableProjects, p => p.FullName == exe1File.FullName);
+        Assert.Contains(executableProjects, p => p.FullName == exe2File.FullName);
+        Assert.Contains(executableProjects, p => p.FullName == winExeFile.FullName);
     }
 }
+

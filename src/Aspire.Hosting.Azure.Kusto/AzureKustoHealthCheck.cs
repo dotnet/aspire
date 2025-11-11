@@ -6,7 +6,7 @@ using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// A health check to validate that the Kusto service is available and responsive.

@@ -12,6 +12,11 @@
         <target state="translated">Trwa generowanie artefaktów...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputPromptLoading">
+        <source>Loading...</source>
+        <target state="translated">Trwa ładowanie...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>PUBLISHING COMPLETED</source>
         <target state="translated">UKOŃCZONO PUBLIKOWANIE</target>

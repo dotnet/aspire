@@ -26,14 +26,14 @@
   "groupIdentity": "Aspire.ServiceDefaults",
   "sources": [
     {
-      "source": "./9.4",
-      "target": "./",
-      "condition": "AspireVersionActual == 9.4"
-    },
-    {
       "source": "./9.5",
       "target": "./",
       "condition": "AspireVersionActual == 9.5"
+    },
+    {
+      "source": "./13.0",
+      "target": "./",
+      "condition": "AspireVersionActual == 13.0"
     }
   ],
   "symbols": {
@@ -56,86 +56,26 @@
         }
       ],
       "replaces": "net8.0",
-      "defaultValue": "net9.0"
-    },
-    "AspireVersionCli": {
-      "type": "parameter",
-      "description": "The version of Aspire to use.",
-      "displayName": "Aspire version",
-      "datatype": "choice",
-      "choices": [
-        {
-          "choice": "9.5",
-          "displayName": "9.5",
-          "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
-        }
-      ],
-      "defaultValue": "9.5"
+      "defaultValue": "net10.0"
     },
     "AspireVersion": {
       "type": "parameter",
       "description": "The version of Aspire to use.",
       "displayName": "Aspire version",
       "datatype": "choice",
-      "isEnabled": "Framework == net8.0",
       "choices": [
+        {
+          "choice": "13.0",
+          "displayName": "13.0",
+          "description": "Chooses Aspire 13.0"
+        },
         {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
         }
       ],
-      "defaultValue": "9.5"
-    },
-    "AspireVersionNet9": {
-      "type": "parameter",
-      "description": "The version of Aspire to use.",
-      "displayName": "Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net9.0",
-      "choices": [
-        {
-          "choice": "9.5",
-          "displayName": "9.5",
-          "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
-        }
-      ],
-      "defaultValue": "9.5"
-    },
-    "AspireVersionNet10": {
-      "type": "parameter",
-      "description": "The version of Aspire to use.",
-      "displayName": "Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net10.0",
-      "choices": [
-        {
-          "choice": "9.5",
-          "displayName": "9.5",
-          "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
-        }
-      ],
-      "defaultValue": "9.5"
+      "defaultValue": "13.0"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -144,24 +84,12 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.4",
-            "value": "9.4"
-          },
-          {
-            "condition": "AspireVersion == 9.4",
-            "value": "9.4"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.4",
-            "value": "9.4"
-          },
-          {
-            "condition": "AspireVersionNet10 == 9.4",
-            "value": "9.4"
+            "condition": "AspireVersion == 9.5",
+            "value": "9.5"
           },
           {
             "condition": "",
-            "value": "9.5"
+            "value": "13.0"
           }
         ]
       }

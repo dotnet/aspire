@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Interaction;
 using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Resources;
@@ -39,7 +40,7 @@ public partial class InteractionsInputDialog
         _validationMessages = new ValidationMessageStore(_editContext);
 
         _editContext.OnValidationRequested += (s, e) => ValidateModel();
-        _editContext.OnFieldChanged += (s, e) => ValidateField(e.FieldIdentifier);
+        _editContext.OnFieldChanged += (s, e) => InputValueChanged(e.FieldIdentifier);
 
         _elementRefs = new();
         _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
@@ -91,6 +92,10 @@ public partial class InteractionsInputDialog
                 {
                     numberInput.FocusAsync();
                 }
+                else if (firstInputElement is FluentInputBase<SelectViewModel<string>> selectInput)
+                {
+                    selectInput.FocusAsync();
+                }
             }
         }
 
@@ -130,7 +135,7 @@ public partial class InteractionsInputDialog
         _editContext.NotifyValidationStateChanged();
     }
 
-    private void ValidateField(FieldIdentifier field)
+    private void InputValueChanged(FieldIdentifier field)
     {
         _validationMessages.Clear(field);
 
@@ -139,6 +144,11 @@ public partial class InteractionsInputDialog
             if (IsMissingRequiredValue(inputModel))
             {
                 _validationMessages.Add(field, $"{inputModel.Input.Label} is required.");
+            }
+
+            if (inputModel.Input.UpdateStateOnChange)
+            {
+                _ = Content.OnSubmitCallback(Content.Interaction, true);
             }
         }
 
@@ -172,7 +182,7 @@ public partial class InteractionsInputDialog
         // 4. If validation fails, the server sends back validation errors which are displayed in the dialog.
         if (_editContext.Validate())
         {
-            await Content.OnSubmitCallback(Content.Interaction);
+            await Content.OnSubmitCallback(Content.Interaction, false);
         }
     }
 

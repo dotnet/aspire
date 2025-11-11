@@ -21,10 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
     <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
   </ItemGroup>
 

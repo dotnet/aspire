@@ -5,10 +5,12 @@
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting devtunnels</PackageTags>
-    <Description>DevTunnels support for .NET Aspire.</Description>
+    <Description>DevTunnels support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)CoalescingAsyncOperation.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)RequiredCommandValidator.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)StringComparers.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)PortAllocator.cs" LinkBase="Shared" />

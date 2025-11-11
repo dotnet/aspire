@@ -13,17 +13,18 @@ internal interface IInteractionService
     Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
+    Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
     int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion);
     void DisplayError(string errorMessage);
     void DisplayMessage(string emoji, string message);
     void DisplayPlainText(string text);
     void DisplayMarkdown(string markdown);
     void DisplaySuccess(string message);
-    void DisplaySubtleMessage(string message);
+    void DisplaySubtleMessage(string message, bool escapeMarkup = true);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 
-    void DisplayVersionUpdateNotification(string newerVersion);
+    void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
 }

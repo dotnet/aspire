@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
@@ -24,6 +25,9 @@ public partial class StructuredLogDetails : IDisposable
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
@@ -49,10 +53,12 @@ public partial class StructuredLogDetails : IDisposable
     private List<TelemetryPropertyViewModel> _logEntryAttributes = null!;
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
     private List<TelemetryPropertyViewModel> _exceptionAttributes = null!;
+    private AIContext? _aiContext;
 
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
+        _aiContext = CreateAIContext();
     }
 
     protected override void OnParametersSet()
@@ -63,6 +69,9 @@ public partial class StructuredLogDetails : IDisposable
             if (ViewModel.LogEntry.InternalId != _viewModel?.LogEntry.InternalId)
             {
                 _dataChanged = true;
+
+                // Update AI context with new log entry.
+                _aiContext?.ContextHasChanged();
             }
 
             _viewModel = ViewModel;
@@ -174,11 +183,20 @@ public partial class StructuredLogDetails : IDisposable
         return false;
     }
 
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(StructuredLogDetails), c =>
+        {
+            c.BuildIceBreakers = (builder, context) => builder.StructuredLogs(context, ViewModel.LogEntry);
+        });
+    }
+
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.StructuredLogDetails);
 
     public void Dispose()
     {
         TelemetryContext.Dispose();
+        _aiContext?.Dispose();
     }
 }

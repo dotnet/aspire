@@ -25,9 +25,7 @@ jobs:
         run: npm i -g @vscode/vsce
 
       - name: Build with packages
-        env:
-          CI: false
-        run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true ${{ inputs.versionOverrideArg }}
+        run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true ${{ inputs.versionOverrideArg }}
 
       - name: Stage RID-specific NuGets and remaining packages
         id: stage_rid_specific
@@ -91,11 +89,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      # Always upload logs, even if the build fails, to enable debugging
       - name: Upload logs
+        if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: build_packages_logs
           path: artifacts/log
+          retention-days: 5
 
   upload_arch_specific_nugets:
     name: Upload arch-specific NuGets

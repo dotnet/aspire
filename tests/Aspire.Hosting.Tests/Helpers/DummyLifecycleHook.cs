@@ -5,6 +5,8 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Tests.Helpers;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 internal sealed class DummyLifecycleHook : IDistributedApplicationLifecycleHook
+#pragma warning restore CS0618 // Type or member is obsolete
 {
 }

@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREPIPELINES001
+
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.KeyVault;
@@ -28,6 +30,14 @@ public class SchemaTests
                 { "BasicSecretParameter", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddParameter("foo", secret: true);
+                    }
+                },
+
+                { "FormatterParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                      // A Redis password is formatted in the Uri connection property.
+                        var resourceWithFormatterParameter = builder.AddRedis("redis1", password: builder.AddParameter("pass", secret: true));
+                        builder.AddRedis("redis2").WithReference(resourceWithFormatterParameter);
                     }
                 },
 
@@ -217,17 +227,24 @@ public class SchemaTests
     [MemberData(nameof(ApplicationSamples))]
     public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
-        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
-        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+        var manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: Path.Combine(manifestDir, "not-used.json"), step: "publish-json-manifest");
+
+        // Register the JsonDocumentManifestStore to store the manifest in memory
+        var manifestStore = new JsonDocumentManifestStore();
+        builder.Services.AddSingleton(manifestStore);
+
+        // Add the JSON manifest publishing pipeline step
+        builder.Pipeline.AddJsonDocumentManifestPublishing();
+
         configurator(builder);
 
         using var program = builder.Build();
-        var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
 
-        var manifestText = publisher.ManifestDocument.RootElement.ToString();
+        var manifestDocument = manifestStore.ManifestDocument;
+        var manifestText = manifestDocument.RootElement.ToString();
         AssertValid(manifestText);
     }
 
@@ -239,9 +256,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -261,6 +276,42 @@ public class SchemaTests
     }
 
     [Fact]
+    public void ManifestAcceptsAnnotatedStrings()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                  "cache-password-uri-encoded": {
+                  "type": "annotated.string",
+                  "value": "{cache-password.value}",
+                  "filter": "uri"
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithUnsupportedFilterIsRejected()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                  "cache-password-uri-encoded": {
+                  "type": "annotated.string",
+                  "value": "{cache-password.value}",
+                  "filter": "uri2"
+                }
+              }
+            }
+            """;
+
+        AssertInvalid(manifestText);
+    }
+
+    [Fact]
     public void ManifestWithContainerResourceWithMissingImageIsRejected()
     {
         var manifestText = """
@@ -273,9 +324,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -293,9 +342,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -312,9 +359,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -352,9 +397,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]
@@ -375,9 +418,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        Assert.False(schema.Evaluate(manifestJson).IsValid);
+        AssertInvalid(manifestText);
     }
 
     [Fact]

@@ -26,8 +26,8 @@ public static class AzureProvisionerExtensions
         builder.AddAzureEnvironment();
 #pragma warning restore ASPIREAZURE001
 
-        builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
-        builder.Services.TryAddLifecycleHook<AzureProvisioner>();
+        builder.Services.TryAddEventingSubscriber<AzureResourcePreparer>();
+        builder.Services.TryAddEventingSubscriber<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
         builder.Services.AddOptions<AzureProvisionerOptions>()
@@ -37,6 +37,16 @@ public static class AzureProvisionerExtensions
 
         builder.Services.TryAddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
 
+        // Register ACR login service for container registry authentication
+        builder.Services.TryAddSingleton<IAcrLoginService, AcrLoginService>();
+        
+        // Add named HTTP client for ACR OAuth2 exchange
+        // HTTP request logging can be controlled via logging configuration:
+        // "Logging": { "LogLevel": { "System.Net.Http.HttpClient.AcrLogin": "Debug" } }
+        builder.Services.AddHttpClient("AcrLogin");
+        
+        builder.Services.AddHttpClient(); // Add default IHttpClientFactory
+
         // Register BicepProvisioner via interface
         builder.Services.TryAddSingleton<IBicepProvisioner, BicepProvisioner>();
 
@@ -44,8 +54,8 @@ public static class AzureProvisionerExtensions
         builder.Services.TryAddSingleton<IArmClientProvider, DefaultArmClientProvider>();
         builder.Services.TryAddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
         builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
-        builder.Services.TryAddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
         builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+
         if (builder.ExecutionContext.IsPublishMode)
         {
             builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();

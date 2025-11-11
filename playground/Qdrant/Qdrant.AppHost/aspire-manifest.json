@@ -4,7 +4,7 @@
     "qdrant": {
       "type": "container.v0",
       "connectionString": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
-      "image": "docker.io/qdrant/qdrant:v1.15.4",
+      "image": "docker.io/qdrant/qdrant:v1.15.5",
       "volumes": [
         {
           "name": "qdrant-data",
@@ -41,6 +41,13 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
         "ConnectionStrings__qdrant": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
+        "QDRANT_GRPCHOST": "{qdrant.bindings.grpc.host}",
+        "QDRANT_GRPCPORT": "{qdrant.bindings.grpc.port}",
+        "QDRANT_HTTPHOST": "{qdrant.bindings.http.host}",
+        "QDRANT_HTTPPORT": "{qdrant.bindings.http.port}",
+        "QDRANT_APIKEY": "{qdrant-Key.value}",
+        "QDRANT_URI": "{qdrant.bindings.grpc.url}",
+        "QDRANT_HTTPURI": "{qdrant.bindings.http.url}",
         "ConnectionStrings__qdrant_http": "Endpoint={qdrant.bindings.http.url};Key={qdrant-Key.value}"
       },
       "bindings": {

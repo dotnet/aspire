@@ -17,6 +17,7 @@ public class TracesViewModel
     private string _filterText = string.Empty;
     private int _startIndex;
     private int _count;
+    private bool _currentDataHasErrors;
     private SpanType? _spanType;
 
     public TracesViewModel(TelemetryRepository telemetryRepository)
@@ -92,9 +93,37 @@ public class TracesViewModel
 
             traces = result.PagedResult;
             MaxDuration = result.MaxDuration;
+
+            _currentDataHasErrors = result.PagedResult.Items.Any(t => t.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error));
         }
 
         return traces;
+    }
+
+    // First check if there were any errors in already available data. Avoid fetching data again.
+    public bool HasErrors() => _currentDataHasErrors || GetErrorTraces(count: 0).TotalItemCount > 0;
+
+    public PagedResult<OtlpTrace> GetErrorTraces(int count)
+    {
+        var filters = Filters.Cast<TelemetryFilter>().ToList();
+
+        if (SpanType?.Filter is { } typeFilter)
+        {
+            filters.Add(typeFilter);
+        }
+
+        filters.Add(new FieldTelemetryFilter { Field = KnownTraceFields.StatusField, Condition = FilterCondition.Equals, Value = OtlpSpanStatusCode.Error.ToString() });
+
+        var errorTraces = _telemetryRepository.GetTraces(new GetTracesRequest
+        {
+            ResourceKey = ResourceKey,
+            FilterText = FilterText,
+            StartIndex = 0,
+            Count = count,
+            Filters = filters
+        });
+
+        return errorTraces.PagedResult;
     }
 
     private List<TelemetryFilter> GetFilters()

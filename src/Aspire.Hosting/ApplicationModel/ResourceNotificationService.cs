@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -605,6 +606,14 @@ public class ResourceNotificationService : IDisposable
 
             newState = UpdateIcons(resource, newState);
 
+            if (resource.TryGetAnnotationsOfType<ExcludeFromMcpAnnotation>(out _))
+            {
+                newState = newState with
+                {
+                    Properties = newState.Properties.SetResourceProperty(KnownProperties.Resource.ExcludeFromMcp, true)
+                };
+            }
+
             notificationState.LastSnapshot = newState;
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
@@ -752,9 +761,7 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private static CustomResourceSnapshot UpdateIcons(IResource resource, CustomResourceSnapshot previousState)
     {
-        var iconAnnotation = resource.Annotations.OfType<ResourceIconAnnotation>().FirstOrDefault();
-        
-        if (iconAnnotation == null)
+        if (!resource.TryGetLastAnnotation<ResourceIconAnnotation>(out var iconAnnotation))
         {
             // No icon annotation, keep existing icon information
             return previousState;

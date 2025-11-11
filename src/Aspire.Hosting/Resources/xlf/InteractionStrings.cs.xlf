@@ -62,6 +62,11 @@
         <target state="translated">Zadejte prosím hodnoty pro nevyřešené parametry. Parametry lze uložit do [tajných kódů uživatele](https://learn.microsoft.com/aspnet/core/security/app-secrets) pro budoucí použití.</target>
         <note>Contains markdown</note>
       </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="translated">Zadejte prosím hodnoty pro nevyřešené parametry.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>
         <target state="translated">Zadejte hodnotu pro {0}</target>

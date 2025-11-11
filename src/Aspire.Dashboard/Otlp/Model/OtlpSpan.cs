@@ -173,12 +173,16 @@ public class OtlpSpan
             // Fall back to the span name if we can't find anything.
             if (span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer or OtlpSpanKind.Consumer)
             {
-                if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
+                if (span.Attributes.GetValueWithFallback("http.request.method", "http.method") is { Length: > 0 } httpMethod)
                 {
-                    var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
-                    var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
+                    var statusCode = span.Attributes.GetValueWithFallback("http.response.status_code", "http.status_code");
 
-                    return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
+                    var summary = $"HTTP {httpMethod?.ToUpperInvariant()}";
+                    if (!string.IsNullOrEmpty(statusCode))
+                    {
+                        summary += $" {statusCode}";
+                    }
+                    return summary;
                 }
                 else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
                 {

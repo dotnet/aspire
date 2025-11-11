@@ -25,4 +25,6 @@
   </Target>
 
   <Target Name="Pack" />
+
+  <Target Name="Test" />
 </Project>

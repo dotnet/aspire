@@ -376,4 +376,115 @@ public class AzureKeyVaultTests
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public void EmulatorSupport_IsEmulatorFalseByDefault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+
+        Assert.False(keyVault.Resource.IsEmulator);
+    }
+
+    [Fact]
+    public void EmulatorSupport_IsEmulatorTrueWhenContainerPresent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        
+        // Simulate emulator by adding container annotation
+        keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
+        {
+            Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
+        });
+
+        Assert.True(keyVault.Resource.IsEmulator);
+    }
+
+    [Fact]
+    public async Task EmulatorSupport_ConnectionStringUsesEmulatorEndpointWhenIsEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        
+        // Add container annotation to simulate emulator
+        keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
+        {
+            Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
+        });
+
+        // Add https endpoint for emulator
+        keyVault.WithEndpoint("https", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 8443));
+
+        var connectionString = keyVault.Resource.ConnectionStringExpression;
+
+        Assert.True(keyVault.Resource.IsEmulator);
+        Assert.Contains("localhost:8443", await connectionString.GetValueAsync(default) ?? string.Empty);
+    }
+
+    [Fact]
+    public void EmulatorSupport_ConnectionStringUsesBicepOutputWhenNotEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+
+        var connectionString = keyVault.Resource.ConnectionStringExpression;
+
+        Assert.False(keyVault.Resource.IsEmulator);
+        Assert.Contains("vaultUri", connectionString.ValueExpression);
+    }
+
+    [Fact]
+    public async Task ConnectionStringRedirectAnnotation_RedirectsConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        
+        // Create a connection string resource to redirect to
+        var redirectTarget = new ConnectionStringResource("redirect-target",
+            ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
+
+        // Add ConnectionStringRedirectAnnotation to redirect to another resource
+        keyVault.Resource.Annotations.Add(new ConnectionStringRedirectAnnotation(redirectTarget));
+
+        var connectionString = keyVault.Resource.ConnectionStringExpression;
+        var connectionStringValue = await keyVault.Resource.GetConnectionStringAsync(default);
+
+        Assert.Equal(redirectTarget.ConnectionStringExpression.ValueExpression, connectionString.ValueExpression);
+        Assert.Equal("https://redirected-vault.vault.azure.net", connectionStringValue);
+    }
+
+    [Fact]
+    public async Task ConnectionStringRedirectAnnotation_TakesPrecedenceOverEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        
+        // Create a connection string resource to redirect to
+        var redirectTarget = new ConnectionStringResource("redirect-target",
+            ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
+
+        // Simulate emulator by adding container annotation
+        keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
+        {
+            Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
+        });
+
+        // Add https endpoint for emulator
+        keyVault.WithEndpoint("https", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 8443));
+
+        // Add ConnectionStringRedirectAnnotation - this should take precedence
+        keyVault.Resource.Annotations.Add(new ConnectionStringRedirectAnnotation(redirectTarget));
+
+        var connectionStringValue = await keyVault.Resource.GetConnectionStringAsync(default);
+
+        // The redirect annotation should take precedence over emulator
+        Assert.Equal("https://redirected-vault.vault.azure.net", connectionStringValue);
+    }
 }

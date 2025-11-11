@@ -67,7 +67,7 @@ jobs:
 
       - name: Build with packages
         run: |
-          ./build.cmd -restore -build -pack -c Release -ci -bl /p:InstallBrowsersForPlaywright=false /p:SkipTestProjects=true /p:CI=false
+          ./build.cmd -restore -build -pack -c Release -ci -bl /p:InstallBrowsersForPlaywright=false /p:SkipTestProjects=true
 
       - name: Generate test runsheet
         id: generate_e2e_matrix
@@ -117,12 +117,9 @@ jobs:
       - name: Install Azure Functions Core Tools
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Test ${{ matrix.tests.label }}
-        env:
-          CI: false
         run: |
           ${{ matrix.tests.command }}
 
@@ -181,12 +178,10 @@ jobs:
       - name: Install Azure Functions Core Tools
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Test ${{ matrix.tests.label }}
         env:
-          CI: false
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Release/Shipping
         run: |
           ${{ matrix.tests.command }}

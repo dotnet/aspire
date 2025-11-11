@@ -84,6 +84,138 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
         Assert.Equal($"https+http://ServiceA", clusterA.Targets[0]);
     }
 
+    [Fact]
+    public void AddCluster_WithStringDestination_CreatesCluster()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            var cluster = config.AddCluster("test-cluster", (object)"http://localhost:5000");
+            Assert.NotNull(cluster);
+            Assert.Single(cluster.Targets);
+            Assert.Equal("http://localhost:5000", cluster.Targets[0]);
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithUriDestination_CreatesCluster()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            var uri = new Uri("https://example.com:8080");
+            var cluster = config.AddCluster("test-cluster", (object)uri);
+            Assert.NotNull(cluster);
+            Assert.Single(cluster.Targets);
+            Assert.Equal(uri, cluster.Targets[0]);
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithObjectArrayDestinations_CreatesCluster()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            var destinations = new object[] { "http://localhost:5000", new Uri("http://localhost:5001") };
+            var cluster = config.AddCluster("test-cluster", destinations);
+            Assert.NotNull(cluster);
+            Assert.Equal(2, cluster.Targets.Length);
+            Assert.Equal("http://localhost:5000", cluster.Targets[0]);
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithNullObjectDestination_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            var ex = Assert.Throws<ArgumentException>(() => config.AddCluster("test-cluster", (object)null!));
+            Assert.Contains("IValueProvider, string, or Uri", ex.Message);
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithNullObjectArrayDestinations_ThrowsArgumentNullException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            Assert.Throws<ArgumentNullException>(() => config.AddCluster("test-cluster", (object[])null!));
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithEmptyDestinationsArray_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            Assert.Throws<ArgumentException>(() => config.AddCluster("test-cluster", Array.Empty<object>()));
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithInvalidDestinationType_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            var ex = Assert.Throws<ArgumentException>(() => config.AddCluster("test-cluster", new object[] { 123 }));
+            Assert.Contains("IValueProvider, string, or Uri", ex.Message);
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithMixedValidTypes_CreatesCluster()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            var uri = new Uri("https://example.com");
+            var refExpr = ReferenceExpression.Create($"http://localhost:5000");
+            var cluster = config.AddCluster("test-cluster", new object[] { "http://localhost:5000", uri, refExpr });
+            Assert.NotNull(cluster);
+            Assert.Equal(3, cluster.Targets.Length);
+        });
+    }
+
+    [Fact]
+    public void AddCluster_WithObjectOverload_ValidatesTypes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var yarp = builder.AddYarp("gateway");
+        
+        yarp.WithConfiguration(config =>
+        {
+            // Valid object type (string)
+            var cluster = config.AddCluster("test-cluster", (object)"http://localhost:5000");
+            Assert.NotNull(cluster);
+            Assert.Single(cluster.Targets);
+            
+            // Invalid object type
+            var ex = Assert.Throws<ArgumentException>(() => config.AddCluster("test-cluster2", (object)123));
+            Assert.Contains("IValueProvider, string, or Uri", ex.Message);
+        });
+    }
+
     private sealed class TestResource(string name) : IResourceWithServiceDiscovery
     {
         public string Name => name;

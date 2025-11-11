@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
@@ -46,6 +47,40 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    public async Task CanBuildImageFromProjectResourceWithCustomBaseImage()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithDockerfileBaseImage(runtimeImage: "mcr.microsoft.com/dotnet/sdk:8.0-alpine");
+#pragma warning restore ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains("/p:ContainerBaseImage=\"mcr.microsoft.com/dotnet/sdk:8.0-alpine\""));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -186,6 +221,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithCustomOutputPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -225,6 +261,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithAllOptionsSet()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -240,11 +277,11 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var tempOutputPath = Path.GetTempPath();
+        using var tempDir = new TempDirectory();
         var options = new ContainerBuildOptions
         {
             ImageFormat = ContainerImageFormat.Oci,
-            OutputPath = tempOutputPath,
+            OutputPath = Path.Combine(tempDir.Path, "NewFolder"), // tests that the folder is created if it doesn't exist
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
 
@@ -384,6 +421,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithTrailingSlashContextPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -794,6 +832,26 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task ResolveValue_FormatsDecimalWithInvariantCulture()
+    {
+        // Test decimal value
+        var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
+        Assert.Equal("3.14", result);
+
+        // Test double value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
+        Assert.Equal("3.14", result);
+
+        // Test float value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
+        Assert.Equal("3.14", result);
+
+        // Test integer (should also work)
+        result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
+        Assert.Equal("42", result);
+    }
+
+    [Fact]
     public async Task CanResolveBuildSecretsWithDifferentValueTypes()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
@@ -835,66 +893,5 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Null parameter should resolve to null
         Assert.Null(fakeContainerRuntime.CapturedBuildSecrets["NULL_SECRET"]);
-    }
-
-    private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime
-    {
-        public string Name => "fake-runtime";
-        public bool WasHealthCheckCalled { get; private set; }
-        public bool WasTagImageCalled { get; private set; }
-        public bool WasPushImageCalled { get; private set; }
-        public bool WasBuildImageCalled { get; private set; }
-        public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
-        public List<string> PushImageCalls { get; } = [];
-        public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
-        public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
-        public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
-        public string? CapturedStage { get; private set; }
-
-        public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
-        {
-            WasHealthCheckCalled = true;
-            return Task.FromResult(!shouldFail);
-        }
-
-        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
-        {
-            WasTagImageCalled = true;
-            TagImageCalls.Add((localImageName, targetImageName));
-            if (shouldFail)
-            {
-                throw new InvalidOperationException("Fake container runtime is configured to fail");
-            }
-            return Task.CompletedTask;
-        }
-
-        public Task PushImageAsync(string imageName, CancellationToken cancellationToken)
-        {
-            WasPushImageCalled = true;
-            PushImageCalls.Add(imageName);
-            if (shouldFail)
-            {
-                throw new InvalidOperationException("Fake container runtime is configured to fail");
-            }
-            return Task.CompletedTask;
-        }
-
-        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
-        {
-            // Capture the arguments for verification in tests
-            CapturedBuildArguments = buildArguments;
-            CapturedBuildSecrets = buildSecrets;
-            CapturedStage = stage;
-            WasBuildImageCalled = true;
-            BuildImageCalls.Add((contextPath, dockerfilePath, imageName, options));
-
-            if (shouldFail)
-            {
-                throw new InvalidOperationException("Fake container runtime is configured to fail");
-            }
-
-            // For testing, we don't need to actually build anything
-            return Task.CompletedTask;
-        }
     }
 }

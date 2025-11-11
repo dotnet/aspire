@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(DefaultTargetFramework);netstandard2.0</TargetFrameworks>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsTestUtilityProject>true</IsTestUtilityProject>
   </PropertyGroup>
 
@@ -9,10 +9,9 @@
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
-  
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="Microsoft.Bcl.Memory" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
-  <Import Condition=" '$(TargetFramework)' == 'netstandard2.0' " Project="../../src/Shared/FxPolyfills/FxPolyfills.targets" />
 </Project>

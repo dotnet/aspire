@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +28,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
-    IPublishingActivityReporter activityReporter,
+    IReportingStep reportingStep,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
@@ -76,15 +78,29 @@ internal sealed class DockerComposePublishingContext(
                 ? [r, .. model.Resources]
                 : model.Resources;
 
-        var containerImagesToBuild = new List<IResource>();
-
         foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
-                if (environment.BuildContainerImages)
+                // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
+                if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
                 {
-                    containerImagesToBuild.Add(serviceResource.TargetResource);
+                    var dockerfileContext = new DockerfileFactoryContext
+                    {
+                        Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(dockerfileContext).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
                 }
 
                 var composeService = serviceResource.BuildComposeService();
@@ -120,63 +136,37 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        // Build container images for the services that require it
-        if (containerImagesToBuild.Count > 0)
-        {
-            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
-        }
-
-        var step = await activityReporter.CreateStepAsync(
-            "Writing Docker Compose file.",
+        var writeTask = await reportingStep.CreateTaskAsync(
+            "Writing the Docker Compose file to the output path.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        await using (step.ConfigureAwait(false))
+        await using (writeTask.ConfigureAwait(false))
         {
-            var task = await step.CreateTaskAsync(
-                "Writing the Docker Compose file to the output path.",
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+            // Call the environment's ConfigureComposeFile method to allow for custom modifications
+            environment.ConfigureComposeFile?.Invoke(composeFile);
 
-            await using (task.ConfigureAwait(false))
+            var composeOutput = composeFile.ToYaml();
+            var outputFile = Path.Combine(OutputPath, "docker-compose.yaml");
+            Directory.CreateDirectory(OutputPath);
+            await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
+
+            if (environment.CapturedEnvironmentVariables.Count > 0)
             {
-                // Call the environment's ConfigureComposeFile method to allow for custom modifications
-                environment.ConfigureComposeFile?.Invoke(composeFile);
+                var envFilePath = Path.Combine(OutputPath, ".env");
+                var envFile = EnvFile.Load(envFilePath, logger);
 
-                var composeOutput = composeFile.ToYaml();
-                var outputFile = Path.Combine(OutputPath, "docker-compose.yaml");
-                Directory.CreateDirectory(OutputPath);
-                await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
-
-                if (environment.CapturedEnvironmentVariables.Count > 0)
+                foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                 {
-                    // Write a .env file with the environment variable names
-                    // that are used in the compose file
-                    var envFilePath = Path.Combine(OutputPath, ".env");
-                    var envFile = EnvFile.Load(envFilePath);
+                    var (key, (description, _, _)) = entry;
 
-                    foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
-                    {
-                        var (key, (description, defaultValue, source)) = entry;
-                        
-                        // If the source is a parameter and there's no explicit default value,
-                        // resolve the parameter's default value asynchronously
-                        if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
-                        {
-                            defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                        }
-                        
-                        envFile.AddIfMissing(key, defaultValue, description);
-                    }
-
-                    envFile.Save(envFilePath);
+                    envFile.Add(key, value: null, description, onlyIfMissing: true);
                 }
 
-                await task.SucceedAsync(
-                    $"Docker Compose file written successfully to {outputFile}.",
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                envFile.Save(includeValues: false);
             }
 
-            await step.SucceedAsync(
-                "Docker Compose file generation completed.",
+            await writeTask.SucceedAsync(
+                $"Docker Compose file written successfully to {outputFile}.",
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }

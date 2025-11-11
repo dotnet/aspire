@@ -52,7 +52,14 @@ partial class Resource
 
         HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
         {
-            return new HealthReportViewModel(healthReport.Key, healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, healthReport.Description, healthReport.Exception);
+            return new HealthReportViewModel(
+                healthReport.Key, 
+                healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, 
+                healthReport.Description, 
+                healthReport.Exception)
+            {
+                LastRunAtTimeStamp = healthReport.LastRunAt?.ToDateTime()
+            };
         }
 
         Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus)

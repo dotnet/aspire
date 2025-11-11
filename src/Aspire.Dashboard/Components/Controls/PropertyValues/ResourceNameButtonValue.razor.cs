@@ -27,6 +27,9 @@ public partial class ResourceNameButtonValue
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
+
     private ResourceViewModel? _resource;
     private Icon? _resourceIcon;
 
@@ -39,7 +42,7 @@ public partial class ResourceNameButtonValue
             _resource = DashboardClient.GetResource(Resource.ResourceKey.ToString());
             if (_resource != null)
             {
-                _resourceIcon = ResourceIconHelpers.GetIconForResource(_resource, IconSize.Size16, IconVariant.Regular);
+                _resourceIcon = ResourceIconHelpers.GetIconForResource(IconResolver, _resource, IconSize.Size16, IconVariant.Regular);
             }
         }
     }

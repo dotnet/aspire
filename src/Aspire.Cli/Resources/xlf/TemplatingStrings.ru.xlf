@@ -22,19 +22,24 @@
         <target state="translated">NUnit</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">Начальный пакет React (Vite) и FastAPI</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
         <target state="translated">Значения по умолчанию для службы</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
-        <source>Single-file AppHost (experimental)</source>
-        <target state="translated">Однофайловый AppHost (экспериментальная функция)</target>
+        <source>Empty AppHost</source>
+        <target state="translated">Пустой AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Starter template</source>
-        <target state="translated">Шаблон для начинающих</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Начальный пакет Blazor и минимального API</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
@@ -150,6 +155,26 @@
       <trans-unit id="Unknown">
         <source>Unknown</source>
         <target state="translated">Unbekannt</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_Description">
+        <source>Configures whether to use *.dev.localhost URLs for local development.</source>
+        <target state="translated">Настраивает, нужно ли использовать URL-адреса *.dev.localhost для локальной разработки.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_Prompt">
+        <source>Use *.dev.localhost URLs</source>
+        <target state="translated">Использовать URL-адреса *.dev.localhost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UnexpectedChoice">
+        <source>Unexpected choice for *.dev.localhost option</source>
+        <target state="translated">Неожиданный выбор параметра *.dev.localhost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UsingLocalhostTld">
+        <source>Using *.dev.localhost URLs for local development.</source>
+        <target state="translated">Использование URL-адресов *.dev.localhost для локальной разработки.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">

@@ -1,10 +1,30 @@
 # Executes outerloop tests
+#
+# COPILOT INSTRUCTIONS:
+# - Keep the 'paths:' list in sync across tests-outerloop.yml and
+#   tests-quarantine.yml
+# - Validate that each path exists in the repository before adding or
+#   updating the list
+# - No external YAML file is used—only the workflow YAMLs themselves
+#   hold the list
+#
 name: Outerloop Tests
 
 on:
   workflow_dispatch:
+
   schedule:
-    - cron: '0 2 * * *' # Daily at 02:00 UTC
+    - cron: '0 2 * * *'  # Daily at 02:00 UTC
+
+  # TEMPORARILY DISABLED pull_request trigger due to #12143 (disk space issues): https://github.com/dotnet/aspire/issues/12143
+  # pull_request:
+  #   paths:
+  #     - '.github/actions/**'
+  #     - '.github/workflows/**'
+  #     - 'eng/**'
+  #     - '!eng/pipelines/**'
+  #     - '!eng/scripts/**'
+  #     - '!eng/*pack/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

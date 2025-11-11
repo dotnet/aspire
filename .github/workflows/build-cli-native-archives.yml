@@ -27,8 +27,6 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: Build CLI packages (Windows)
-        env:
-          CI: false
         if: ${{ matrix.targets.os == 'windows-latest' }}
         shell: pwsh
         run: >
@@ -43,8 +41,6 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Build CLI packages (Unix)
-        env:
-          CI: false
         if: ${{ matrix.targets.os != 'windows-latest' }}
         shell: bash
         run: >

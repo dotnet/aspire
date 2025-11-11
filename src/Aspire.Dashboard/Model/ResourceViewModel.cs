@@ -449,6 +449,10 @@ public sealed record class VolumeViewModel(int index, string Source, string Targ
 
 public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
 {
+    /// <summary>
+    /// The timestamp when this health check was last executed, or <see langword="null"/> if not available.
+    /// </summary>
+    public DateTime? LastRunAtTimeStamp { get; init; }
     private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription

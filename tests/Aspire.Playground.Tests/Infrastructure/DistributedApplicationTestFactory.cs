@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
@@ -22,7 +23,7 @@ internal static class DistributedApplicationTestFactory
         // Custom hook needed because we want to only override the registry when
         // the original is from `docker.io`, but the options.ContainerRegistryOverride will
         // always override.
-        builder.Services.AddLifecycleHook<ContainerRegistryHook>();
+        builder.Services.AddHostedService<ContainerRegistryHook>();
 
         builder.WithRandomParameterValues();
         builder.WithRandomVolumeNames();
@@ -47,12 +48,12 @@ internal static class DistributedApplicationTestFactory
         return builder;
     }
 
-    internal sealed class ContainerRegistryHook : IDistributedApplicationLifecycleHook
+    internal sealed class ContainerRegistryHook(DistributedApplicationEventing eventing) : IHostedService
     {
         public const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
-        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
         {
-            var resourcesWithContainerImages = appModel.Resources
+            var resourcesWithContainerImages = @event.Model.Resources
                                                        .SelectMany(r => r.Annotations.OfType<ContainerImageAnnotation>()
                                                                                      .Select(cia => new { Resource = r, Annotation = cia }));
 
@@ -65,6 +66,17 @@ internal static class DistributedApplicationTestFactory
                 }
             }
 
+            return Task.CompletedTask;
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
             return Task.CompletedTask;
         }
     }

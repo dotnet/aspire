@@ -15,7 +15,7 @@
 <FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@_disabled" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
     @if (string.IsNullOrWhiteSpace(Text))
     {
-        <FluentIcon Value="@_icon" Color="@IconColor" />
+        <FluentIcon Value="@_icon" Color="@IconColor" CustomColor="@IconCustomColor" />
     }
     else
     {
@@ -23,7 +23,7 @@
 
         @if (!HideIcon)
         {
-            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+            <FluentIcon Value="@_icon" Color="@IconColor" CustomColor="@IconCustomColor" Slot="end" />
         }
     }
 </FluentButton>

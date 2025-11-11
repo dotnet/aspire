@@ -54,6 +54,9 @@ public class Program
 
     private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
+        // Check for --non-interactive flag early
+        var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
+
         var settings = new HostApplicationBuilderSettings
         {
             Configuration = new ConfigurationManager()
@@ -109,8 +112,14 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
+        builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            return new CliHostEnvironment(configuration, nonInteractive);
+        });
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
+        builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
@@ -121,7 +130,7 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
-    builder.Services.AddSingleton<IDiskCache, DiskCache>();
+        builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
@@ -129,6 +138,7 @@ public class Program
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
+        builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -137,6 +147,7 @@ public class Program
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();
+        builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
@@ -144,6 +155,7 @@ public class Program
         builder.Services.AddTransient<CacheCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
+        builder.Services.AddTransient<DoCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
@@ -159,12 +171,20 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
+    private static DirectoryInfo GetSdksDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var sdksPath = Path.Combine(homeDirectory, "sdks");
+        return new DirectoryInfo(sdksPath);
+    }
+
     private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
         var cacheDirectory = GetCacheDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+        var sdksDirectory = GetSdksDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode);
     }
 
     private static DirectoryInfo GetCacheDirectory()
@@ -209,12 +229,27 @@ public class Program
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
+
         var settings = new AnsiConsoleSettings()
         {
-            Ansi = AnsiSupport.Detect,
-            Interactive = InteractionSupport.Detect,
-            ColorSystem = ColorSystemSupport.Detect
+            Ansi = isPlayground ? AnsiSupport.Yes : AnsiSupport.Detect,
+            Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
+            ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
         };
+
+        if (isPlayground)
+        {
+            // Enrichers interfere with interactive playground experience so
+            // this suppresses the default enrichers so that the CLI experience
+            // is more like what we would get in an interactive experience.
+            settings.Enrichment.UseDefaultEnrichers = false;
+            settings.Enrichment.Enrichers = new()
+            {
+                new AspirePlaygroundEnricher()
+            };
+        }
 
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
@@ -260,16 +295,12 @@ public class Program
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext);
+                var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
             });
-
-            // If the CLI is being launched from the aspire extension, we don't want to use the console logger that's used when including --debug.
-            // Instead, we will log to the extension backchannel.
-            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Information);
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ExtensionLoggerProvider>());
         }
         else
         {
@@ -277,8 +308,34 @@ public class Program
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                return new ConsoleInteractionService(ansiConsole, executionContext);
+                var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
+                return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
             });
         }
+    }
+}
+
+internal class AspirePlaygroundEnricher : IProfileEnricher
+{
+    public string Name => "Aspire Playground";
+
+    public bool Enabled(IDictionary<string, string> environmentVariables)
+    {
+        if (!environmentVariables.TryGetValue("ASPIRE_PLAYGROUND", out var value))
+        {
+            return false;
+        }
+
+        if (!bool.TryParse(value, out var isEnabled))
+        {
+            return false;
+        }
+
+        return isEnabled;
+    }
+
+    public void Enrich(Profile profile)
+    {
+        profile.Capabilities.Interactive = true;
     }
 }

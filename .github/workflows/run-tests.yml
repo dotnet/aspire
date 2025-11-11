@@ -48,6 +48,11 @@ on:
         required: false
         type: string
         default: "ubuntu-latest"
+      # When true, ignores test failures and checks if .trx files have nonzero test count
+      ignoreTestFailures:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -167,8 +172,6 @@ jobs:
 
       - name: Install sdk for nuget based testing
         if: ${{ inputs.requiresTestSdk }}
-        env:
-          CI: false
         run: >
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
           /p:SkipPackageCheckForTemplatesTesting=true
@@ -177,14 +180,11 @@ jobs:
       - name: Install Azure Functions Core Tools
         if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Compute test project path
         id: compute_project_path
         shell: pwsh
-        env:
-          CI: false
         run: |
           $testShortName = "${{ inputs.testShortName }}"
           $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
@@ -208,8 +208,6 @@ jobs:
 
       - name: Build test project
         if: ${{ ! inputs.requiresNugets }}
-        env:
-          CI: false
         run: >
           ${{ env.BUILD_SCRIPT }}
           -restore
@@ -221,8 +219,6 @@ jobs:
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
-        env:
-          CI: false
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
@@ -233,8 +229,6 @@ jobs:
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
         if: inputs.testShortName == 'Playground'
-        env:
-          CI: false
         run: |
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
@@ -279,7 +273,6 @@ jobs:
         if: ${{ inputs.requiresNugets }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
-          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
@@ -297,12 +290,12 @@ jobs:
           --filter-not-trait "category=failing"
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
+          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
 
       - name: Run tests
         if: ${{ ! inputs.requiresNugets }}
         id: run-tests
         env:
-          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
@@ -325,6 +318,54 @@ jobs:
           --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
+          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+
+      - name: Verify test results exist
+        if: ${{ inputs.ignoreTestFailures }}
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
+          
+          if ($trxFiles.Count -eq 0) {
+            Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
+            exit 1
+          }
+          
+          Write-Host "Found $($trxFiles.Count) .trx file(s)"
+          
+          $validFileCount = 0
+          foreach ($trxFile in $trxFiles) {
+            Write-Host "Checking $($trxFile.Name)..."
+            
+            try {
+              [xml]$trxContent = Get-Content -Path $trxFile.FullName
+              
+              # Check if the XML is valid and non-empty
+              if ($trxContent -and $trxContent.TestRun) {
+                $validFileCount++
+                $countersNode = $trxContent.TestRun.ResultSummary.Counters
+                
+                if ($countersNode -and $countersNode.total) {
+                  $testCount = [int]$countersNode.total
+                  Write-Host "  Total tests in file: $testCount"
+                } else {
+                  Write-Host "  File is valid but has no test count information"
+                }
+              } else {
+                Write-Warning "  File appears to be empty or invalid"
+              }
+            }
+            catch {
+              Write-Warning "Failed to parse $($trxFile.Name): $_"
+            }
+          }
+          
+          if ($validFileCount -eq 0) {
+            Write-Error "No valid .trx files found. All .trx files are empty or invalid XML."
+            exit 1
+          }
+          
+          Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
 
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
@@ -348,8 +389,6 @@ jobs:
 
       - name: Generate test results summary
         if: always()
-        env:
-          CI: false
         shell: pwsh
         run: |
           if (Test-Path "${{ github.workspace }}/testresults") {

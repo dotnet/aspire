@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Interaction;
@@ -19,7 +20,7 @@ namespace Aspire.Hosting.Dashboard;
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger)
     : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
@@ -37,9 +38,12 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         ApplicationInformationRequest request,
         ServerCallContext context)
     {
+        // Read the application name from configuration if available, otherwise fall back to the environment
+        var applicationName = configuration["AppHost:DashboardApplicationName"] ?? hostEnvironment.ApplicationName;
+        
         return Task.FromResult(new ApplicationInformationResponse
         {
-            ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName)
+            ApplicationName = ComputeApplicationName(applicationName)
         });
 
         static string ComputeApplicationName(string applicationName)
@@ -115,13 +119,24 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.InputsDialog = new InteractionInputsDialog();
 
+                            // Find all the inputs that are depended on.
+                            // These inputs value changing will cause the interaction to be sent to the server.
+                            var updateStateOnChangeInputs = inputs.Inputs
+                                .SelectMany(i => i.DynamicLoading?.DependsOnInputs ?? [])
+                                .ToList();
+
                             var inputInstances = inputs.Inputs.Select(input =>
                             {
+                                var updateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName));
+
                                 var dto = new Aspire.DashboardService.Proto.V1.InteractionInput
                                 {
+                                    Name = input.Name,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required,
                                     AllowCustomChoice = input.AllowCustomChoice,
+                                    UpdateStateOnChange = updateStateOnChange,
+                                    Disabled = input.Disabled
                                 };
                                 if (input.EffectiveLabel != null)
                                 {
@@ -143,6 +158,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                if (input.DynamicLoadingState is { } providerState)
+                                {
+                                    dto.Loading = providerState.Loading;
                                 }
                                 if (input.MaxLength != null)
                                 {
@@ -214,6 +233,20 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
     }
+
+    public static Aspire.Hosting.InputType MapInputType(Aspire.DashboardService.Proto.V1.InputType inputType)
+    {
+        return inputType switch
+        {
+            Aspire.DashboardService.Proto.V1.InputType.Text => InputType.Text,
+            Aspire.DashboardService.Proto.V1.InputType.SecretText => InputType.SecretText,
+            Aspire.DashboardService.Proto.V1.InputType.Choice => InputType.Choice,
+            Aspire.DashboardService.Proto.V1.InputType.Boolean => InputType.Boolean,
+            Aspire.DashboardService.Proto.V1.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
+    }
+
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(

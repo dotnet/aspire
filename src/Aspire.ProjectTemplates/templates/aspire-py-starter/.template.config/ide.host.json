@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "unsupportedHosts": [
+    {
+      "id": "vs"
+    }
+  ],
+  "symbolInfo": [
+    {
+      "id": "UseRedisCache",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    },
+    {
+      "id": "LocalhostTld",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    }
+  ]
+}

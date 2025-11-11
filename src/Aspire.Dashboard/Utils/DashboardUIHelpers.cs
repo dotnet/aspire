@@ -93,6 +93,15 @@ internal static class DashboardUIHelpers
             };
         }).ConfigureAwait(false);
     }
+
+    public static string? ResolveTooltip(string value)
+    {
+        // FluentSelects in the dashboard are wide enough to display at least 30 characters.
+        // Only display a tooltip if the value length is greater.
+        const int TooltipLengthThreshold = 30;
+
+        return value is { Length: > TooltipLengthThreshold } ? value : null;
+    }
 }
 
 internal record TextMask(MarkupString MarkupString, string Text);

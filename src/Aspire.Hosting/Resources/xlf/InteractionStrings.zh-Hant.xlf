@@ -62,6 +62,11 @@
         <target state="translated">請提供未解析參數的值。參數可以儲存到 [使用者秘密](https://learn.microsoft.com/aspnet/core/security/app-secrets) 以供未來使用。</target>
         <note>Contains markdown</note>
       </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="translated">請提供未解析參數的值。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>
         <target state="translated">輸入 {0} 的值</target>

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES002
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
@@ -39,13 +41,10 @@ internal sealed class KubernetesPublishingContext(
         .WithIndentedSequences()
         .Build();
 
-    public ILogger Logger => logger;
-
     internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
-            logger.NotInPublishingMode();
             return;
         }
 
@@ -71,6 +70,27 @@ internal sealed class KubernetesPublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)
             {
+                // Materialize Dockerfile factory if present
+                if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var dockerfileContext = new DockerfileFactoryContext
+                    {
+                        Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(dockerfileContext).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)

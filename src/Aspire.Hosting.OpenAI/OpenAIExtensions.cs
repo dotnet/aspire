@@ -25,9 +25,14 @@ public static class OpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var defaultApiKeyParameter = builder.AddParameter($"{name}-openai-apikey", () =>
-            builder.Configuration[$"Parameters:{name}-openai-apikey"] ??
-            Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
-            throw new MissingParameterValueException($"OpenAI API key parameter '{name}-openai-apikey' is missing and OPENAI_API_KEY environment variable is not set."),
+        {
+            var configKey = $"Parameters:{name}-openai-apikey";
+            var value = builder.Configuration.GetValueWithNormalizedKey(configKey);
+            
+            return value ??
+                Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
+                throw new MissingParameterValueException($"OpenAI API key parameter '{name}-openai-apikey' is missing and OPENAI_API_KEY environment variable is not set.");
+        },
             secret: true);
         defaultApiKeyParameter.Resource.Description = """
             The API key used to authenticate requests to the OpenAI API.
@@ -42,13 +47,18 @@ public static class OpenAIExtensions
         // Register the health check
         var healthCheckKey = $"{name}_check";
 
-        builder.AddStatusPageCheck(
-            healthCheckKey,
-            statusJsonUrl: "https://status.openai.com/api/v2/status.json",
-            httpClientName: "OpenAIHealthCheck",
-            timeout: TimeSpan.FromSeconds(5),
+        // Ensure IHttpClientFactory is available by registering HTTP client services
+        builder.Services.AddHttpClient();
+
+        builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            name: healthCheckKey,
+            factory: sp =>
+            {
+                var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+                return new OpenAIHealthCheck(httpFactory, resource, "OpenAIHealthCheck", TimeSpan.FromSeconds(5));
+            },
             failureStatus: HealthStatus.Unhealthy,
-            tags: ["openai", "healthcheck"]);
+            tags: ["openai", "healthcheck"]));
 
         return builder.AddResource(resource)
             .WithInitialState(new()

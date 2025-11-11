@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
@@ -13,37 +15,29 @@ namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
     IBicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
-    IProvisioningContextProvider provisioningContextProvider,
-    IUserSecretsManager userSecretsManager
-    ) : IDistributedApplicationLifecycleHook
+    IProvisioningContextProvider provisioningContextProvider
+    ) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
     private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
-        // AzureProvisioner only applies to RunMode
-        if (executionContext.IsPublishMode)
-        {
-            return;
-        }
-
-        var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(appModel);
+        var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(@event.Model);
         if (azureResources.Count == 0)
         {
             return;
         }
 
         // Create a map of parents to their children used to propagate state changes later.
-        _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
+        _parentChildLookup = @event.Model.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
         async Task UpdateStateAsync((IResource Resource, IAzureResource AzureResource) resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
@@ -168,11 +162,8 @@ internal sealed class AzureProvisioner(
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        // Load user secrets first so they can be passed to the provisioning context
-        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
-
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -183,11 +174,8 @@ internal sealed class AzureProvisioner(
 
         var task = Task.WhenAll(tasks);
 
-        // Suppress throwing so that we can save the user secrets even if the task fails
+        // Suppress throwing so that we can save the deployment state even if the task fails
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-
-        // If we created any resources then save the user secrets
-        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)
@@ -287,5 +275,15 @@ internal sealed class AzureProvisioner(
                 }
             }
         }
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        if (executionContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
+
+        return Task.CompletedTask;
     }
 }

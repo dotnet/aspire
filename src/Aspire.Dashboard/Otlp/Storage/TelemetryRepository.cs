@@ -434,6 +434,28 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
+    public OtlpLogEntry? GetLog(long logId)
+    {
+        _logsLock.EnterReadLock();
+
+        try
+        {
+            foreach (var logEntry in _logs)
+            {
+                if (logEntry.InternalId == logId)
+                {
+                    return logEntry;
+                }
+            }
+
+            return null;
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
+    }
+
     public List<string> GetLogPropertyKeys(ResourceKey? resourceKey)
     {
         List<OtlpResource>? resources = null;

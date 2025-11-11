@@ -14,6 +14,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using StreamJsonRpc;
 
@@ -31,6 +32,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -44,7 +46,8 @@ internal sealed class RunCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -55,6 +58,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -66,6 +70,7 @@ internal sealed class RunCommand : BaseCommand
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
         _features = features;
+        _hostEnvironment = hostEnvironment;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -98,7 +103,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -111,7 +116,7 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostFile is null)
             {
@@ -119,13 +124,6 @@ internal sealed class RunCommand : BaseCommand
             }
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
-
-            // Validate that single file AppHost feature is enabled if we detected a .cs file
-            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-            {
-                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
-                return ExitCodeConstants.FailedToFindProject;
-            }
 
             var env = new Dictionary<string, string>();
 
@@ -144,7 +142,7 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                if (!isSingleFileAppHost)
+                if (!isSingleFileAppHost && !isExtensionHost)
                 {
                     var buildOptions = new DotNetCliRunnerInvocationOptions
                     {
@@ -152,18 +150,13 @@ internal sealed class RunCommand : BaseCommand
                         StandardErrorCallback = buildOutputCollector.AppendError,
                     };
 
-                    // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                    if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
-                        || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
-                    {
-                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
-                        if (buildExitCode != 0)
-                        {
-                            InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                            InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                            return ExitCodeConstants.FailedToBuildArtifacts;
-                        }
+                    if (buildExitCode != 0)
+                    {
+                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
                     }
                 }
             }
@@ -208,6 +201,7 @@ internal sealed class RunCommand : BaseCommand
                     env["ASPNETCORE_ENVIRONMENT"] = "Development";
                     env["DOTNET_ENVIRONMENT"] = "Development";
                     env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                    env["ASPIRE_DASHBOARD_MCP_ENDPOINT_URL"] = "https://localhost:21294";
                     env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
                     env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
                 }
@@ -224,11 +218,11 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await InteractionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
+            var backchannel = await InteractionService.ShowStatusAsync(isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
-            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
+            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, _interactionService, cancellationToken);
 
             var dashboardUrls = await InteractionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
@@ -254,15 +248,22 @@ internal sealed class RunCommand : BaseCommand
             var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
                 .Max(s => s.Length);
 
-            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+            // +1 -> accommodates the colon (:) that gets appended to each localized string
+            var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
+
+            topGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
             topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+
+            if (!isExtensionHost)
             {
-                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+                {
+                    topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
+                }
             }
 
             topGrid.AddRow(Text.Empty, Text.Empty);
@@ -277,7 +278,7 @@ internal sealed class RunCommand : BaseCommand
             var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
                               && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
 
-            AppendCtrlCMessage(longestLocalizedLength);
+            AppendCtrlCMessage(longestLocalizedLengthWithColon);
 
             if (isCodespaces || isRemoteContainers || isSshRemote)
             {
@@ -300,7 +301,7 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
+                            endpointsGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
                             if (firstEndpoint)
                             {
@@ -316,7 +317,7 @@ internal sealed class RunCommand : BaseCommand
                             _ansiConsole.Write(endpointsPadder);
                             firstEndpoint = false;
 
-                            AppendCtrlCMessage(longestLocalizedLength);
+                            AppendCtrlCMessage(longestLocalizedLengthWithColon);
                         });
                     }
                 }
@@ -328,7 +329,6 @@ internal sealed class RunCommand : BaseCommand
 
             if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
             {
-                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
                 extensionInteractionService.NotifyAppHostStartupCompleted();
             }
@@ -385,7 +385,7 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
-    private void AppendCtrlCMessage(int longestLocalizedLength)
+    private void AppendCtrlCMessage(int longestLocalizedLengthWithColon)
     {
         if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
         {
@@ -395,7 +395,7 @@ internal sealed class RunCommand : BaseCommand
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();
         ctrlCGrid.AddColumn();
-        ctrlCGrid.Columns[0].Width = longestLocalizedLength;
+        ctrlCGrid.Columns[0].Width = longestLocalizedLengthWithColon;
         ctrlCGrid.AddRow(Text.Empty, Text.Empty);
         ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
 
@@ -412,7 +412,7 @@ internal sealed class RunCommand : BaseCommand
         return logFile;
     }
 
-    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
@@ -432,6 +432,15 @@ internal sealed class RunCommand : BaseCommand
 
             await foreach (var entry in logEntries.WithCancellation(cancellationToken))
             {
+                if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+                {
+                    if (entry.LogLevel is not LogLevel.Trace and not LogLevel.Debug)
+                    {
+                        // Send only information+ level logs to the extension host.
+                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical, "\x1b[2m");
+                    }
+                }
+
                 await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
             }
         }

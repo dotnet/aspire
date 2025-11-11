@@ -553,11 +553,23 @@ internal sealed class DashboardClient : IDashboardClient
     public ResourceViewModel? GetResource(string resourceName)
     {
         EnsureInitialized();
-        if (_resourceByName.TryGetValue(resourceName, out var resource))
+        lock (_lock)
         {
-            return resource;
+            if (_resourceByName.TryGetValue(resourceName, out var resource))
+            {
+                return resource;
+            }
+            return null;
         }
-        return null;
+    }
+
+    public IReadOnlyList<ResourceViewModel> GetResources()
+    {
+        EnsureInitialized();
+        lock (_lock)
+        {
+            return _resourceByName.Values.ToList();
+        }
     }
 
     public async Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)

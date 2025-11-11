@@ -77,6 +77,11 @@
         <target state="translated">{1} projesinde {0} için paket başvurusu güncellenemedi.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FallbackParsingWarning">
+        <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
+        <target state="translated">Not: Çözülemeyen AppHost SDK nedeniyle geri dönüş ayrıştırması kullanılarak oluşturulan güncelleştirme planı. Bağımlılık analizi doğruluğu azaltmış olabilir.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MappingAddedFormat">
         <source>   Mapping: {0} (added)</source>
         <target state="translated">   Eşleme: {0} (eklendi)</target>
@@ -90,6 +95,11 @@
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
         <target state="translated">   Eşleme: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoAppHostFoundUpdateCliPrompt">
+        <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
+        <target state="translated">Aspire AppHost projesi bulunamadı. Bunun yerine Aspire CLI'yı güncelleştirmek ister misiniz?</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
@@ -150,6 +160,11 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">Beklenmeyen kod yolu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
+        <source>An update is available for the Aspire CLI. Would you like to update it now?</source>
+        <target state="translated">Aspire CLI için bir güncelleştirme var. Şimdi güncelleştirmek istiyor musunuz?</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">

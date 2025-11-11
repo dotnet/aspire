@@ -21,10 +21,12 @@ internal sealed class RootCommand : BaseRootCommand
 
     public RootCommand(
         NewCommand newCommand,
+        InitCommand initCommand,
         RunCommand runCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
+        DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
         ExecCommand execCommand,
@@ -35,12 +37,14 @@ internal sealed class RootCommand : BaseRootCommand
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(initCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(cacheCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
+        ArgumentNullException.ThrowIfNull(doCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
@@ -53,6 +57,11 @@ internal sealed class RootCommand : BaseRootCommand
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;
         debugOption.Recursive = true;
         Options.Add(debugOption);
+
+        var nonInteractiveOption = new Option<bool>("--non-interactive");
+        nonInteractiveOption.Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners";
+        nonInteractiveOption.Recursive = true;
+        Options.Add(nonInteractiveOption);
 
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
@@ -90,12 +99,14 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
+        Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
         Subcommands.Add(deployCommand);
+        Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);
 

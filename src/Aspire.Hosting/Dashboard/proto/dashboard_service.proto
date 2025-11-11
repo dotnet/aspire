@@ -166,6 +166,8 @@ message HealthReport {
     string description = 3;
     // Any exception details.
     string exception = 4;
+    // The timestamp when this health check was last executed.
+    optional google.protobuf.Timestamp last_run_at = 5;
 }
 
 enum HealthStatus {
@@ -332,6 +334,10 @@ message WatchInteractionsRequestUpdate {
         InteractionInputsDialog inputs_dialog = 4;
         InteractionNotification notification = 5;
     }
+
+    // A flag indicating that the message is an update and shouldn't complete the interaction.
+    // Currently only used for inputs dialog updates.
+    optional bool response_update = 6;
 }
 // A message received from the server when watching interactions. Has multiple types of payload.
 message WatchInteractionsResponseUpdate {
@@ -385,6 +391,10 @@ message InteractionInput {
     bool enable_description_markdown = 9;
     int32 max_length = 10;
     bool allow_custom_choice = 11;
+    bool loading = 12;
+    bool update_state_on_change = 13;
+    string name = 14;
+    bool disabled = 15;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;

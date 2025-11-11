@@ -29,6 +29,9 @@ param value1_value string
 @secure()
 param cs_connectionstring string
 
+@secure()
+param pgc_password_value string
+
 param api_identity_outputs_clientid string
 
 resource pg_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
@@ -62,6 +65,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           name: 'cs'
           value: cs_connectionstring
+        }
+        {
+          name: 'database-url'
+          value: 'postgresql://postgres:${uriComponent(pgc_password_value)}@pgc:5432'
         }
       ]
       activeRevisionsMode: 'Single'
@@ -148,6 +155,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               secretRef: 'cs'
             }
             {
+              name: 'DATABASE_URL'
+              secretRef: 'database-url'
+            }
+            {
               name: 'HTTP_EP'
               value: 'http://api.internal.${env_outputs_azure_container_apps_environment_default_domain}'
             }
@@ -186,6 +197,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

@@ -17,9 +17,12 @@ public static class GenAIHelpers
     public const string GenAIUsageInputTokens = "gen_ai.usage.input_tokens";
     public const string GenAIUsageOutputTokens = "gen_ai.usage.output_tokens";
 
+    // LangSmith OpenTelemetry genai standard attributes (flattened format)
+    public const string GenAIPromptPrefix = "gen_ai.prompt.";
+    public const string GenAICompletionPrefix = "gen_ai.completion.";
+
     public static bool IsGenAISpan(KeyValuePair<string, string>[] attributes)
     {
-        return attributes.GetValue(GenAISystem) is { Length: > 0 } ||
-            attributes.GetValue(GenAIProviderName) is { Length: > 0 };
+        return attributes.GetValueWithFallback(GenAISystem, GenAIProviderName) is { Length: > 0 };
     }
 }

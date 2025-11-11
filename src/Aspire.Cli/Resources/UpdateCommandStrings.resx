@@ -111,4 +111,13 @@
   <data name="MappingRetainedFormat" xml:space="preserve">
     <value>   Mapping: {0}</value>
   </data>
+  <data name="FallbackParsingWarning" xml:space="preserve">
+    <value>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</value>
+  </data>
+  <data name="NoAppHostFoundUpdateCliPrompt" xml:space="preserve">
+    <value>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</value>
+  </data>
+  <data name="UpdateCliAfterProjectUpdatePrompt" xml:space="preserve">
+    <value>An update is available for the Aspire CLI. Would you like to update it now?</value>
+  </data>
 </root>

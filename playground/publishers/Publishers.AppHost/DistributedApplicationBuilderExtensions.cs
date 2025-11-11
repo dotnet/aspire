@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
-#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREINTERACTION001
 
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 
 internal static class IDistributedApplicationBuilderExtensions
@@ -19,12 +19,21 @@ internal static class IDistributedApplicationBuilderExtensions
     {
         public PublishTestResource(string name) : base(name)
         {
-            Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+            Annotations.Add(new PipelineStepAnnotation(context =>
+            {
+                var step = new PipelineStep
+                {
+                    Name = $"publish-{name}",
+                    Action = PublishAsync
+                };
+                step.RequiredBy(WellKnownPipelineSteps.Publish);
+                return step;
+            }));
         }
 
-        private async Task PublishAsync(PublishingContext context)
+        private async Task PublishAsync(PipelineStepContext context)
         {
-            var reporter = context.ActivityReporter;
+            var reporter = context.ReportingStep;
             var interactionService = context.Services.GetRequiredService<IInteractionService>();
 
             // ALL PROMPTS FIRST - before any tasks are created
@@ -62,6 +71,28 @@ internal static class IDistributedApplicationBuilderExtensions
                             new KeyValuePair<string, string>("self-signed", "Self-Signed Certificate"),
                             new KeyValuePair<string, string>("lets-encrypt", "Let's Encrypt Certificate")
                         ]
+                    },
+                    new InteractionInput
+                    {
+                        Name = "SSLCertificateTypeMoreDetails",
+                        Label = "More certificate details",
+                        InputType = InputType.Choice,
+                        Required = true,
+                        DynamicLoading = new InputLoadOptions
+                        {
+                            DependsOnInputs = ["SSLCertificateType"],
+                            LoadCallback = async (c) =>
+                            {
+                                await Task.Delay(5000);
+                                var dependsOnInput = c.AllInputs["SSLCertificateType"];
+                                var options = new List<KeyValuePair<string, string>>();
+                                for (var i = 0; i < 5; i++)
+                                {
+                                    options.Add(new KeyValuePair<string, string>($"{dependsOnInput.Value}-{i}", $"{dependsOnInput.Value}-{i}"));
+                                }
+                                c.Input.Options = options;
+                            }
+                        }
                     }
                 ],
                 new InputsDialogInteractionOptions

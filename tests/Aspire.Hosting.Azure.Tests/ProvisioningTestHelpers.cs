@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable CS0618 // Type or member is obsolete
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -9,8 +11,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -41,7 +44,6 @@ internal static class ProvisioningTestHelpers
         ITenantResource? tenant = null,
         AzureLocation? location = null,
         UserPrincipal? principal = null,
-        JsonObject? userSecrets = null,
         DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ProvisioningContext(
@@ -52,7 +54,6 @@ internal static class ProvisioningTestHelpers
             tenant ?? new TestTenantResource(),
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
-            userSecrets ?? [],
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
@@ -63,7 +64,7 @@ internal static class ProvisioningTestHelpers
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
     public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
-    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
+    public static IDeploymentStateManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
     public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 
@@ -210,8 +211,29 @@ internal sealed class TestArmClient : IArmClient
         return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
     }
 
+    public Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default)
+    {
+        var tenants = new List<ITenantResource>
+        {
+            new TestTenantResource()
+        };
+        return Task.FromResult<IEnumerable<ITenantResource>>(tenants);
+    }
+
     public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
     {
+        var subscriptions = new List<ISubscriptionResource>
+        {
+            new TestSubscriptionResource()
+        };
+        return Task.FromResult<IEnumerable<ISubscriptionResource>>(subscriptions);
+    }
+
+    public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default)
+    {
+        // For testing, return the same subscription regardless of tenant filtering
+        _ = tenantId; // Suppress unused parameter warning
+        _ = cancellationToken; // Suppress unused parameter warning
         var subscriptions = new List<ISubscriptionResource>
         {
             new TestSubscriptionResource()
@@ -414,6 +436,7 @@ internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
 internal sealed class TestTenantResource : ITenantResource
 {
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
+    public string? DisplayName { get; } = "Test Tenant";
     public string? DefaultDomain { get; } = "testdomain.onmicrosoft.com";
 }
 
@@ -571,18 +594,23 @@ internal sealed class TestBicepCompiler : IBicepCompiler
     }
 }
 
-internal sealed class TestUserSecretsManager : IUserSecretsManager
+internal sealed class TestUserSecretsManager : IDeploymentStateManager
 {
-    private JsonObject _userSecrets = [];
+    private readonly JsonObject _state = [];
 
-    public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
+    public string? StateFilePath => null;
+
+    public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_userSecrets);
+        var sectionData = _state.TryGetPropertyValue(sectionName, out var node) && node is JsonObject obj
+            ? obj
+            : new JsonObject();
+        return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
     }
 
-    public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
     {
-        _userSecrets = userSecrets;
+        _state[section.SectionName] = section.Data;
         return Task.CompletedTask;
     }
 }
@@ -649,50 +677,5 @@ internal sealed class MockProcessRunner : IProcessRunner
     private sealed class NoOpAsyncDisposable : IAsyncDisposable
     {
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-    }
-}
-
-/// <summary>
-/// Mock implementation of IResourceContainerImageBuilder for testing.
-/// </summary>
-internal sealed class MockImageBuilder : IResourceContainerImageBuilder
-{
-    public bool BuildImageCalled { get; private set; }
-    public bool BuildImagesCalled { get; private set; }
-    public bool TagImageCalled { get; private set; }
-    public bool PushImageCalled { get; private set; }
-    public List<ApplicationModel.IResource> BuildImageResources { get; } = [];
-    public List<ContainerBuildOptions?> BuildImageOptions { get; } = [];
-    public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
-    public List<string> PushImageCalls { get; } = [];
-
-    public Task BuildImageAsync(ApplicationModel.IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        BuildImageCalled = true;
-        BuildImageResources.Add(resource);
-        BuildImageOptions.Add(options);
-        return Task.CompletedTask;
-    }
-
-    public Task BuildImagesAsync(IEnumerable<ApplicationModel.IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        BuildImagesCalled = true;
-        BuildImageResources.AddRange(resources);
-        BuildImageOptions.Add(options);
-        return Task.CompletedTask;
-    }
-
-    public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
-    {
-        TagImageCalled = true;
-        TagImageCalls.Add((localImageName, targetImageName));
-        return Task.CompletedTask;
-    }
-
-    public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
-    {
-        PushImageCalled = true;
-        PushImageCalls.Add(imageName);
-        return Task.CompletedTask;
     }
 }

@@ -3,6 +3,8 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Tests.Shared.DashboardModel;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
 
@@ -10,6 +12,8 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceIconHelpersTests
 {
+    private readonly IconResolver _iconResolver = new IconResolver(NullLogger<IconResolver>.Instance);
+
     [Fact]
     public void GetIconForResource_WithCustomIcon_ReturnsCustomIcon()
     {
@@ -17,7 +21,7 @@ public sealed class ResourceIconHelpersTests
         var resource = ModelTestHelpers.CreateResource(iconName: "Database", iconVariant: IconVariant.Filled);
 
         // Act
-        var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
 
         // Assert
         Assert.NotNull(icon);
@@ -32,7 +36,7 @@ public sealed class ResourceIconHelpersTests
         var resource = ModelTestHelpers.CreateResource(iconName: "CloudArrowUp", iconVariant: IconVariant.Regular);
 
         // Act
-        var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size16);
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size16);
 
         // Assert
         Assert.NotNull(icon);
@@ -45,7 +49,7 @@ public sealed class ResourceIconHelpersTests
         var resource = ModelTestHelpers.CreateResource(resourceType: KnownResourceTypes.Container);
 
         // Act
-        var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
 
         // Assert
         Assert.NotNull(icon);
@@ -59,7 +63,7 @@ public sealed class ResourceIconHelpersTests
         var resource = ModelTestHelpers.CreateResource(resourceType: KnownResourceTypes.Project, iconName: "NonExistentIcon", iconVariant: IconVariant.Filled);
 
         // Act
-        var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
 
         // Assert
         Assert.NotNull(icon);
@@ -79,7 +83,7 @@ public sealed class ResourceIconHelpersTests
         var resource = ModelTestHelpers.CreateResource(resourceType: resourceType);
 
         // Act
-        var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
 
         // Assert
         Assert.NotNull(icon);
@@ -92,11 +96,69 @@ public sealed class ResourceIconHelpersTests
         var resource = ModelTestHelpers.CreateResource(resourceType: "postgres-database");
 
         // Act
-        var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
 
         // Assert
         Assert.NotNull(icon);
-        // Should match the database special case
+        Assert.Equal("Database", icon.Name);
     }
 
+    [Theory]
+    [InlineData(".cs", "CodeCsRectangle")]
+    [InlineData(".CS", "CodeCsRectangle")]
+    [InlineData(".csproj", "CodeCsRectangle")]
+    [InlineData(".CSPROJ", "CodeCsRectangle")]
+    [InlineData(".fsproj", "CodeFsRectangle")]
+    [InlineData(".vbproj", "CodeVbRectangle")]
+    [InlineData(".xyz", "CodeCircle")]
+    public void GetIconForResource_WithSpecificProjectType_ReturnsLanguageSpecificIcon(string extension, string name)
+    {
+        // Arrange
+        var projectPath = $"/path/to/project{extension}";
+        var properties = new Dictionary<string, ResourcePropertyViewModel>
+        {
+            [KnownProperties.Project.Path] = new ResourcePropertyViewModel(KnownProperties.Project.Path, Value.ForString(projectPath), isValueSensitive: false, knownProperty: null, priority: 0)
+        };
+        var resource = ModelTestHelpers.CreateResource(
+            resourceType: KnownResourceTypes.Project,
+            properties: properties);
+
+        // Act
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.Equal(name, icon.Name);
+    }
+
+    [Fact]
+    public void GetIconForResource_WithProjectButNoPath_ReturnsGenericCodeIcon()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceType: KnownResourceTypes.Project);
+
+        // Act
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.Equal("CodeCircle", icon.Name);
+    }
+
+    [Theory]
+    [InlineData(IconSize.Size16)]
+    [InlineData(IconSize.Size20)]
+    [InlineData(IconSize.Size24)]
+    public void GetIconForResource_WithDifferentSizes_ReturnsIconOfDesiredSize(IconSize size)
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceType: KnownResourceTypes.Container);
+
+        // Act
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, size);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.Equal(size, icon.Size);
+    }
 }

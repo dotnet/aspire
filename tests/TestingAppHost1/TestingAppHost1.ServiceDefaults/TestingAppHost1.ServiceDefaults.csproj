@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

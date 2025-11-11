@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -57,6 +57,7 @@
     <!-- on helix, the file will be in the source directory, so it will get
          picked up by msbuild by default -->
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting\Utils\X509Certificate2Extensions.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\FileUtil.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\PlatformDetection.cs" />
@@ -68,7 +69,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.JavaScript" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 
@@ -104,6 +105,7 @@
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\X509Certificate2Extensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\X509Certificate2Extensions.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.TestUtilities\FileUtil.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

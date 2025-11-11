@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hans" original="../InitCommandStrings.resx">
+    <body>
+      <trans-unit id="AddingAppHostProjectToSolution">
+        <source>Adding AppHost project to solution...</source>
+        <target state="translated">正在将 AppHost 项目添加到解决方案中...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddingProjectsToSolution">
+        <source>Adding projects to solution...</source>
+        <target state="translated">正在将项目添加到解决方案中...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddingServiceDefaultsProjectToSolution">
+        <source>Adding ServiceDefaults project to solution...</source>
+        <target state="translated">正在将 ServiceDefaults 项目添加到解决方案中...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireInitializationComplete">
+        <source>Aspire initialization complete!</source>
+        <target state="translated">Aspire 初始化完成!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatingAppHostProject">
+        <source>Creating AppHost project...</source>
+        <target state="translated">正在创建 AppHost 项目...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatingServiceDefaultsProject">
+        <source>Creating ServiceDefaults project...</source>
+        <target state="translated">正在创建 ServiceDefaults 项目...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
+        <target state="translated">在现有解决方案中初始化 Aspire 支持，或创建单文件 AppHost。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleSolutionsFound">
+        <source>Multiple solution files found. Please select which one to add the Aspire projects to:</source>
+        <target state="translated">找到多个解决方案文件。请选择要将 Aspire 项目添加到哪个解决方案:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
+        <source>No solution file found. Creating single-file AppHost...</source>
+        <target state="translated">找不到解决方案文件。正在创建单文件 AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionDetected">
+        <source>Solution detected: {0}</source>
+        <target state="translated">检测到解决方案: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionAlreadyInitialized">
+        <source>Solution has already been initialized with Aspire.</source>
+        <target state="translated">解决方案已使用 Aspire 初始化。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

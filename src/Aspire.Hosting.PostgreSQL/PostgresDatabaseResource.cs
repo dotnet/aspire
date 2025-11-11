@@ -46,4 +46,28 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    /// <summary>
+    /// Gets the connection URI expression for the PostgreSQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>postgresql://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.BuildUri(DatabaseName);
+
+    /// <summary>
+    /// Gets the JDBC connection string for the PostgreSQL database.
+    /// </summary>
+    /// <remarks>
+    /// <para>Format: <c>jdbc:postgresql://{host}:{port}/{database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

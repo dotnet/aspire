@@ -11,7 +11,6 @@
     </packageSource>
     <packageSource key="{PR_HIVE}">
       <package pattern="Aspire*" />
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
       <package pattern="*" />
     </packageSource>
     <packageSource key="companyfeed">

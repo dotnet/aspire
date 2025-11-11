@@ -40,6 +40,7 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_Starts()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -88,6 +89,7 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithDatabase_CanReadIngestedData()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -164,6 +166,7 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -190,6 +193,7 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -220,6 +224,7 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -229,19 +234,13 @@ public class KustoFunctionalTests
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         const string dbName = "TestDb";
-        const string dbPath = "/kustodata";
+        const string dbPath = "/kustodata/";
+        var script = AzureKustoEmulatorContainerDefaults.DefaultCreateDatabaseCommand(dbName, dbPath);
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator(configureContainer: container =>
         {
             container.WithBindMount(temp.Path, dbPath);
         });
-        var kustoDb = kusto.AddReadWriteDatabase("TestDb")
-            .WithCreationScript(
-            $"""
-            .create database {dbName} persist (
-                @"{dbPath}/dbs/{dbName}/md",
-                @"{dbPath}/dbs/{dbName}/data"
-            )
-            """);
+        var kustoDb = kusto.AddReadWriteDatabase(dbName).WithCreationScript(script);
 
         // Ensure the directory is empty before starting the application
         Assert.Empty(GetFilesInMount());

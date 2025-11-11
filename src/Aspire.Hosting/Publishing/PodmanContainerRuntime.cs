@@ -1,16 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
 
-using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : IContainerRuntime
+internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContainerRuntime>
 {
-    public string Name => "Podman";
+    public PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : base(logger)
+    {
+    }
+
+    protected override string RuntimeExecutable => "podman";
+    public override string Name => "Podman";
     private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
@@ -42,74 +46,36 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         }
 
         // Add build arguments if specified
-        foreach (var buildArg in buildArguments)
-        {
-            arguments += buildArg.Value is not null
-                ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
-                : $" --build-arg \"{buildArg.Key}\"";
-        }
+        arguments += BuildArgumentsString(buildArguments);
 
         // Add build secrets if specified
-        foreach (var buildSecret in buildSecrets)
-        {
-            arguments += buildSecret.Value is not null
-                ? $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\""
-                : $" --secret \"id={buildSecret.Key}\"";
-        }
+        arguments += BuildSecretsString(buildSecrets, requireValue: true);
 
         // Add stage if specified
-        if (!string.IsNullOrEmpty(stage))
-        {
-            arguments += $" --target \"{stage}\"";
-        }
+        arguments += BuildStageString(stage);
 
         arguments += $" \"{contextPath}\"";
 
-        var spec = new ProcessSpec("podman")
-        {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogInformation("podman build (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("podman build (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        // Add build secrets as environment variables
+        // Prepare environment variables for build secrets
+        var environmentVariables = new Dictionary<string, string>();
         foreach (var buildSecret in buildSecrets)
         {
             if (buildSecret.Value is not null)
             {
-                spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                environmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
             }
         }
 
-        logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("Podman build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
-                return processResult.ExitCode;
-            }
-
-            logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
-            return processResult.ExitCode;
-        }
+        return await ExecuteContainerCommandWithExitCodeAsync(
+            arguments,
+            "Podman build for {ImageName} failed with exit code {ExitCode}.",
+            "Podman build for {ImageName} succeeded.",
+            cancellationToken,
+            new object[] { imageName },
+            environmentVariables).ConfigureAwait(false);
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,
@@ -127,120 +93,22 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         }
     }
 
-    public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
+    public override async Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
-        var spec = new ProcessSpec("podman")
+        try
         {
-            Arguments = "container ls -n 1",
-            OnOutputData = output =>
-            {
-                logger.LogInformation("podman container ls (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("podman container ls (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        return CheckPodmanHealthAsync(pendingProcessResult, processDisposable, cancellationToken);
-
-        async Task<bool> CheckPodmanHealthAsync(Task<ProcessResult> pending, IAsyncDisposable disposable, CancellationToken token)
-        {
-            await using (disposable)
-            {
-                var processResult = await pending.WaitAsync(token).ConfigureAwait(false);
-
-                if (processResult.ExitCode != 0)
-                {
-                    logger.LogError("Podman container ls failed with exit code {ExitCode}.", processResult.ExitCode);
-                    return false;
-                }
-
-                // Optionally, parse processResult.Output for more health checks.
-                logger.LogInformation("Podman is running and healthy.");
-                return true;
-            }
+            var exitCode = await ExecuteContainerCommandWithExitCodeAsync(
+                "container ls -n 1",
+                "Podman container ls failed with exit code {ExitCode}.",
+                "Podman is running and healthy.",
+                cancellationToken,
+                Array.Empty<object>()).ConfigureAwait(false);
+            
+            return exitCode == 0;
         }
-    }
-
-    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
-    {
-        var arguments = $"tag \"{localImageName}\" \"{targetImageName}\"";
-
-        var spec = new ProcessSpec("podman")
+        catch
         {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogInformation("podman tag (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("podman tag (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Running Podman tag with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("podman tag for {LocalImageName} -> {TargetImageName} failed with exit code {ExitCode}.", localImageName, targetImageName, processResult.ExitCode);
-                throw new DistributedApplicationException($"Podman tag failed with exit code {processResult.ExitCode}.");
-            }
-
-            logger.LogInformation("podman tag for {LocalImageName} -> {TargetImageName} succeeded.", localImageName, targetImageName);
-        }
-    }
-
-    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
-    {
-        var arguments = $"push \"{imageName}\"";
-
-        var spec = new ProcessSpec("podman")
-        {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogInformation("podman push (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("podman push (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Running Podman push with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("podman push for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
-                throw new DistributedApplicationException($"Podman push failed with exit code {processResult.ExitCode}.");
-            }
-
-            logger.LogInformation("podman push for {ImageName} succeeded.", imageName);
+            return false;
         }
     }
 }

@@ -9,6 +9,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 public class OtlpTrace
 {
     private OtlpSpan? _rootSpan;
+    private TimeSpan? _duration;
 
     public ReadOnlyMemory<byte> Key { get; }
     public string TraceId { get; }
@@ -18,23 +19,7 @@ public class OtlpTrace
     public DateTime TimeStamp => FirstSpan.StartTime;
     public OtlpSpan? RootSpan => _rootSpan;
     public OtlpSpan RootOrFirstSpan => RootSpan ?? FirstSpan;
-    public TimeSpan Duration
-    {
-        get
-        {
-            var start = FirstSpan.StartTime;
-            DateTime end = default;
-            foreach (var span in Spans)
-            {
-                if (span.EndTime > end)
-                {
-                    end = span.EndTime;
-                }
-            }
-            return end - start;
-        }
-    }
-
+    public TimeSpan Duration => _duration ??= CalculateDuration();
     public OtlpSpanCollection Spans { get; } = new OtlpSpanCollection();
     public DateTime LastUpdatedDate { get; private set; }
 
@@ -171,6 +156,20 @@ public class OtlpTrace
         }
 
         return newTrace;
+    }
+
+    private TimeSpan CalculateDuration()
+    {
+        var start = FirstSpan.StartTime;
+        DateTime end = default;
+        foreach (var span in Spans)
+        {
+            if (span.EndTime > end)
+            {
+                end = span.EndTime;
+            }
+        }
+        return end - start;
     }
 
     private string DebuggerToString()

@@ -53,6 +53,25 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     /// <inheritdoc/>
     public YarpCluster AddCluster(string clusterName, object[] destinations)
     {
+        ArgumentNullException.ThrowIfNull(clusterName);
+        ArgumentNullException.ThrowIfNull(destinations);
+
+        if (destinations.Length == 0)
+        {
+            throw new ArgumentException("At least one destination must be provided.", nameof(destinations));
+        }
+
+        // Validate that each destination is a supported type
+        foreach (var dest in destinations)
+        {
+            if (dest is not (IValueProvider or string or Uri))
+            {
+                throw new ArgumentException(
+                    $"Destination must be an IValueProvider, string, or Uri. Got: {dest?.GetType().FullName ?? "null"}",
+                    nameof(destinations));
+            }
+        }
+
         var destination = new YarpCluster(clusterName, destinations);
         _parent.Resource.Clusters.Add(destination);
         return destination;

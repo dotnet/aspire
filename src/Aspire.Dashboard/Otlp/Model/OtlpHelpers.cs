@@ -332,6 +332,20 @@ public static class OtlpHelpers
         return null;
     }
 
+    public static string? GetValueWithFallback(this KeyValuePair<string, string>[] values, params ReadOnlySpan<string> names)
+    {
+        // Attempt each name in order and return the first match.
+        foreach (var name in names)
+        {
+            if (values.GetValue(name) is { } value)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
     public static int? GetValueAsInteger(this KeyValuePair<string, string>[] values, string name)
     {
         var value = values.GetValue(name);

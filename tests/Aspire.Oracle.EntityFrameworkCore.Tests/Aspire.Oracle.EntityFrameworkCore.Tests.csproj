@@ -17,7 +17,6 @@
     <!-- Needed until Oracle supports net9.0 - https://github.com/dotnet/aspire/issues/7060 -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
 
-    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.Oracle" />
   </ItemGroup>
 </Project>

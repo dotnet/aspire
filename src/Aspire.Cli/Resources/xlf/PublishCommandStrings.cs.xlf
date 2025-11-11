@@ -12,6 +12,11 @@
         <target state="translated">Generování artefaktů...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputPromptLoading">
+        <source>Loading...</source>
+        <target state="translated">Probíhá načítání...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>PUBLISHING COMPLETED</source>
         <target state="translated">PUBLIKOVÁNÍ DOKONČENO</target>

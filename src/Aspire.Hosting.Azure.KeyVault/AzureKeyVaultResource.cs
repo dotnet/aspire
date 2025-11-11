@@ -30,10 +30,44 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets a value indicating whether the Azure Key Vault resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
+    internal EndpointReference EmulatorEndpoint => new(this, "https");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{VaultUri}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
+
+            return IsEmulator
+                ? ReferenceExpression.Create($"{EmulatorEndpoint}")
+                : ReferenceExpression.Create($"{VaultUri}");
+        }
+    }
+
+    /// <summary>
+    /// Gets the connection string for the Azure Key Vault resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure Key Vault resource.</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return ConnectionStringExpression.GetValueAsync(cancellationToken);
+    }
 
     BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 

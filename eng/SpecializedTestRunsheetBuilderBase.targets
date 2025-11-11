@@ -33,9 +33,18 @@
     NOTE: The final piece of the puzzle is in eng/AfterSolutionBuild.targets, where we combine the runsheets from all the test projects into a single runsheet.
     -->
 
+  <!--
+    Skip Templates, Playground, and EndToEnd tests for specialized test workflows as these are known to be broken.
+    See https://github.com/dotnet/aspire/issues/11747 for tracking the work to enable these tests.
+    -->
+  <PropertyGroup>
+    <_IsUnsupportedProject>false</_IsUnsupportedProject>
+    <_IsUnsupportedProject Condition="$(MSBuildProjectName.Contains('Templates')) or $(MSBuildProjectName.Contains('Playground')) or $(MSBuildProjectName.Contains('EndToEnd'))">true</_IsUnsupportedProject>
+  </PropertyGroup>
+
   <Target Name="RunTests"
           Outputs="%(TestToRun.ResultsStdOutPath)"
-          Condition=" '$(SkipTests)' != 'true' and '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true' ">
+          Condition=" '$(SkipTests)' != 'true' and '$(_IsUnsupportedProject)' != 'true' and '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true' ">
 
     <PropertyGroup>
       <_TestEnvironment>%(TestToRun.EnvironmentDisplay)</_TestEnvironment>

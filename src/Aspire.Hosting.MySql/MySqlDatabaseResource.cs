@@ -36,6 +36,24 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
             return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
+
+    /// <summary>
+    /// Gets the connection URI expression for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mysql://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.BuildUri(DatabaseName);
+
+    /// <summary>
+    /// Gets the JDBC connection string for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// <para>Format: <c>jdbc:mysql://{host}:{port}/{database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -46,4 +64,11 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

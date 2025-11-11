@@ -247,6 +247,18 @@
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
   </data>
+  <data name="HealthCheckStatusWithTimeFormat" xml:space="preserve">
+    <value>{0} ({1} ago)</value>
+    <comment>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</comment>
+  </data>
+  <data name="HealthCheckStatusJustNowFormat" xml:space="preserve">
+    <value>{0} (just now)</value>
+    <comment>{0} is the health status like "Unhealthy"</comment>
+  </data>
+  <data name="HealthCheckStatusWithTimeTooltipFormat" xml:space="preserve">
+    <value>{0} (last run at {1})</value>
+    <comment>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</comment>
+  </data>
   <data name="WaitingForHealthDataMessage" xml:space="preserve">
     <value>Waiting for health data...</value>
     <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>

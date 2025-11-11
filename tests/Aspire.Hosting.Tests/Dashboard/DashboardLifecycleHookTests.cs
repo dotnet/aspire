@@ -43,7 +43,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, loggerFactory: factory);
 
         var model = new DistributedApplicationModel(new ResourceCollection());
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
+        await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None).DefaultTimeout();
 
         await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s).DefaultTimeout();
 
@@ -86,7 +86,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var model = new DistributedApplicationModel(new ResourceCollection());
 
         // Act
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
+        await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None).DefaultTimeout();
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
         dashboardResource.AddLifeCycleCommands();
 
@@ -134,8 +134,14 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var model = new DistributedApplicationModel(new ResourceCollection());
 
         // Act
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
-        var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+        await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None).DefaultTimeout();
+        var dashboardResource = (IResourceWithEndpoints)model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+
+        var httpEndpoint = new EndpointReference(dashboardResource, "http");
+        httpEndpoint.EndpointAnnotation.AllocatedEndpoint = new(httpEndpoint.EndpointAnnotation, "localhost", 8080);
+        var otlpGrpcEndpoint = new EndpointReference(dashboardResource, DashboardEventHandlers.OtlpGrpcEndpointName);
+        otlpGrpcEndpoint.EndpointAnnotation.AllocatedEndpoint = new(otlpGrpcEndpoint.EndpointAnnotation, "localhost", 4317);
+
         var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
         var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
         await dashboardResource.ProcessEnvironmentVariableValuesAsync(context, (key, _, value, _) => dashboardEnvironmentVariables[key] = value, new FakeLogger()).DefaultTimeout();
@@ -228,7 +234,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var model = new DistributedApplicationModel(new ResourceCollection());
 
             // Act
-            await hook.BeforeStartAsync(model, CancellationToken.None);
+            await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None);
 
             // Assert
             var dashboardResource = Assert.Single(model.Resources);
@@ -251,7 +257,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             // Verify that the custom runtime config has been updated with current framework versions
             var customConfigContent = File.ReadAllText((string)args[2]);
             var customConfig = JsonSerializer.Deserialize<JsonElement>(customConfigContent);
-            
+
             var frameworks = customConfig.GetProperty("runtimeOptions").GetProperty("frameworks").EnumerateArray().ToArray();
             var netCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.NETCore.App");
             var aspNetCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.AspNetCore.App");
@@ -316,7 +322,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var model = new DistributedApplicationModel(new ResourceCollection());
 
             // Act
-            await hook.BeforeStartAsync(model, CancellationToken.None);
+            await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None);
 
             // Assert
             var dashboardResource = Assert.Single(model.Resources);
@@ -388,7 +394,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var model = new DistributedApplicationModel(new ResourceCollection());
 
             // Act
-            await hook.BeforeStartAsync(model, CancellationToken.None);
+            await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None);
 
             // Assert
             var dashboardResource = Assert.Single(model.Resources);
@@ -458,7 +464,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var model = new DistributedApplicationModel(new ResourceCollection());
 
             // Act
-            await hook.BeforeStartAsync(model, CancellationToken.None);
+            await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None);
 
             // Assert
             var dashboardResource = Assert.Single(model.Resources);
@@ -485,7 +491,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    private static DashboardLifecycleHook CreateHook(
+    private static DashboardEventHandlers CreateHook(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
         IConfiguration configuration,
@@ -498,7 +504,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
-        return new DashboardLifecycleHook(
+        return new DashboardEventHandlers(
             configuration,
             dashboardOptions,
             NullLogger<DistributedApplication>.Instance,

@@ -178,6 +178,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal..
+        /// </summary>
+        public static string InteractiveInputNotSupported {
+            get {
+                return ResourceManager.GetString("InteractiveInputNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to [dim]For more information, see: [link]{0}[/][/].
         /// </summary>
         public static string MoreInfoNewCliVersion {
@@ -327,6 +336,15 @@ namespace Aspire.Cli.Resources {
         public static string WaitingForDebuggerToAttachToAppHost {
             get {
                 return ResourceManager.GetString("WaitingForDebuggerToAttachToAppHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [dim]To update, run: {0}[/].
+        /// </summary>
+        public static string ToUpdateRunCommand {
+            get {
+                return ResourceManager.GetString("ToUpdateRunCommand", resourceCulture);
             }
         }
     }

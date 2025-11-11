@@ -1,6 +1,6 @@
 # Aspire.Hosting.GitHub.Models library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure GitHub Models.
+Provides extension methods and resource definitions for an Aspire AppHost to configure GitHub Models.
 
 ## Getting started
 
@@ -11,7 +11,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire GitHub Models Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire GitHub Models Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.GitHub.Models
@@ -77,6 +77,23 @@ Then in user secrets:
     }
 }
 ```
+
+## Connection Properties
+
+When you reference a GitHub Model resource using `WithReference`, the following connection properties are made available to the consuming project:
+
+### GitHub Model
+
+The GitHub Model resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The GitHub Models inference endpoint URI, with the format `https://models.github.ai/inference` |
+| `Key` | The API key (PAT or GitHub App token) for authentication |
+| `Model` | The model identifier for inference requests, for instance `openai/gpt-4o-mini` |
+| `Organization` | The organization attributed to the request (available when configured) |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Available Models
 

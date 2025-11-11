@@ -7,6 +7,7 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -225,9 +226,11 @@ public partial class StructuredLogsTests : DashboardTestContext
         var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
         keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+        var menuModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        menuModule.SetupVoid("initialize", _ => true);
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
@@ -243,6 +246,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<StructuredLogsViewModel>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();
+        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
@@ -250,6 +254,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
+        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

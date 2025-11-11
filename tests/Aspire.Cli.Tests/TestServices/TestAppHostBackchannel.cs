@@ -241,6 +241,11 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         return Task.CompletedTask;
     }
 
+    public Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);

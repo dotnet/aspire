@@ -5,10 +5,13 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Lifecycle;
+using Azure.Core;
 using Azure.Provisioning;
+using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Roles;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,7 +29,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
         builder.Services.Configure<AzureProvisioningOptions>(options => options.SupportsTargetedRoleAssignments = true);
 
-        builder.Services.TryAddLifecycleHook<AzureAppServiceInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<AzureAppServiceInfrastructure>();
 
         return builder;
     }
@@ -44,7 +47,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
         var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
         {
             var prefix = infra.AspireResource.Name;
-            var resource = infra.AspireResource;
+            var resource = (AzureAppServiceEnvironmentResource)infra.AspireResource;
 
             // This tells azd to avoid creating infrastructure
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
@@ -65,9 +68,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
             infra.Add(identity);
 
             ContainerRegistryService? containerRegistry = null;
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             }
@@ -96,7 +97,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
                     Tier = "Premium"
                 },
                 Kind = "Linux",
-                IsReserved = true
+                IsReserved = true,
+                // Enable perSiteScaling or automatic scaling so each app service can scale independently
+                IsPerSiteScaling = !resource.EnableAutomaticScaling,
+                IsElasticScaleEnabled = resource.EnableAutomaticScaling,
+                // Capping the automatic scaling limit to 10 as per best practices
+                MaximumElasticWorkerCount = 10
             };
 
             infra.Add(plan);
@@ -109,6 +115,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
             infra.Add(new ProvisioningOutput("planId", typeof(string))
             {
                 Value = plan.Id
+            });
+
+            infra.Add(new ProvisioningOutput("webSiteSuffix", typeof(string))
+            {
+                Value = AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
@@ -131,6 +142,72 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 Value = identity.ClientId
             });
+
+            if (resource.EnableDashboard)
+            {
+                // Add aspire dashboard website
+                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+
+                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                {
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                });
+            }
+
+            if (resource.EnableApplicationInsights)
+            {
+                ApplicationInsightsComponent? applicationInsights = null;
+
+                if (resource.ApplicationInsightsResource is not null)
+                {
+                    applicationInsights = (ApplicationInsightsComponent)resource.ApplicationInsightsResource.AddAsExistingResource(infra);
+                }
+                else
+                {
+                    // Create Log Analytics workspace
+                    var logAnalyticsWorkspace = new OperationalInsightsWorkspace(prefix + "_law")
+                    {
+                        Sku = new OperationalInsightsWorkspaceSku()
+                        {
+                            Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                        }
+                    };
+
+                    infra.Add(logAnalyticsWorkspace);
+
+                    // Create Application Insights resource linked to the Log Analytics workspace
+                    applicationInsights = new ApplicationInsightsComponent(prefix + "_ai")
+                    {
+                        ApplicationType = ApplicationInsightsApplicationType.Web,
+                        Kind = "web",
+                        WorkspaceResourceId = logAnalyticsWorkspace.Id,
+                        IngestionMode = ComponentIngestionMode.LogAnalytics
+                    };
+
+                    if (resource.ApplicationInsightsLocation is not null)
+                    {
+                        var applicationInsightsLocation = new AzureLocation(resource.ApplicationInsightsLocation);
+                        applicationInsights.Location = applicationInsightsLocation;
+                    }
+                    else if (resource.ApplicationInsightsLocationParameter is not null)
+                    {
+                        var applicationInsightsLocationParameter = resource.ApplicationInsightsLocationParameter.AsProvisioningParameter(infra);
+                        applicationInsights.Location = applicationInsightsLocationParameter;
+                    }
+                }
+
+                infra.Add(applicationInsights);
+
+                infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", typeof(string))
+                {
+                    Value = applicationInsights.InstrumentationKey
+                });
+
+                infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
+                {
+                    Value = applicationInsights.ConnectionString
+                });
+            }
         });
 
         if (!builder.ExecutionContext.IsPublishMode)
@@ -139,5 +216,79 @@ public static partial class AzureAppServiceEnvironmentExtensions
         }
 
         return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Configures whether the Aspire dashboard should be included in the Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
+    /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration."/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.EnableDashboard = enable;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Resource.EnableApplicationInsights = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string applicationInsightsLocation)
+    {
+        builder.WithAzureApplicationInsights();
+        builder.Resource.ApplicationInsightsLocation = applicationInsightsLocation;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="applicationInsightsLocation">The location parameter for Application Insights.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> applicationInsightsLocation)
+    {
+        builder.WithAzureApplicationInsights();
+        builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource builder to configure.</param>
+    /// <param name="applicationInsightsBuilder">The Application Insights resource builder.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<AzureApplicationInsightsResource> applicationInsightsBuilder)
+    {
+        builder.WithAzureApplicationInsights();
+        builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
+    {
+        builder.Resource.EnableAutomaticScaling = true;
+        return builder;
     }
 }

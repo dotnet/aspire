@@ -62,7 +62,7 @@ public class NuGetConfigMergerSnapshotTests
         // Add a deterministic PR hive for testing realistic PR channel mappings.
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir);
+        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
@@ -111,7 +111,7 @@ public class NuGetConfigMergerSnapshotTests
         // Add a deterministic PR hive for testing realistic PR channel mappings.
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir2 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir2);
+        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir2, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
@@ -130,7 +130,6 @@ public class NuGetConfigMergerSnapshotTests
                     </packageSource>
                     <packageSource key="C:\Users\davifowl\.aspire\hives\pr-11227">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                     </packageSource>
                     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
                         <package pattern="*" />
@@ -174,7 +173,7 @@ public class NuGetConfigMergerSnapshotTests
         // Add a deterministic PR hive for testing realistic PR channel mappings.
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir3 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir3);
+        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir3, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
@@ -191,7 +190,6 @@ public class NuGetConfigMergerSnapshotTests
                 <packageSourceMapping>
                     <packageSource key="dotnet9">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                         <package pattern="Microsoft.Extensions.SpecialPackage*" />
                     </packageSource>
                     <packageSource key="https://api.nuget.org/v3/index.json">
@@ -236,7 +234,7 @@ public class NuGetConfigMergerSnapshotTests
         // Add a deterministic PR hive for testing realistic PR channel mappings.
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir4 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir4);
+        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir4, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
@@ -255,7 +253,6 @@ public class NuGetConfigMergerSnapshotTests
                     </packageSource>
                     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                     </packageSource>
                 </packageSourceMapping>
             </configuration>
@@ -296,7 +293,7 @@ public class NuGetConfigMergerSnapshotTests
         // Add a deterministic PR hive for testing realistic PR channel mappings.
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir5 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir5);
+        var executionContext = new CliExecutionContext(root, hivesDir, cacheDir5, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
@@ -320,7 +317,6 @@ public class NuGetConfigMergerSnapshotTests
                     </packageSource>
                     <packageSource key="C:\Users\midenn\.aspire\hives\pr-11275">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                     </packageSource>
                 </packageSourceMapping>
             </configuration>

@@ -8,7 +8,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
 using Kusto.Data;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Kusto read-write database resource, which is a child resource of a <see cref="AzureKustoClusterResource"/>.

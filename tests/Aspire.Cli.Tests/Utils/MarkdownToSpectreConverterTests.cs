@@ -101,8 +101,8 @@ public class MarkdownToSpectreConverterTests
     }
 
     [Theory]
-    [InlineData("[link text](https://example.com)", "[cyan link=https://example.com]link text[/]")]
-    [InlineData("Visit [GitHub](https://github.com) for more info.", "Visit [cyan link=https://github.com]GitHub[/] for more info.")]
+    [InlineData("[link text](https://example.com)", "[cyan][link=https://example.com]link text[/][/]")]
+    [InlineData("Visit [GitHub](https://github.com) for more info.", "Visit [cyan][link=https://github.com]GitHub[/][/] for more info.")]
     public void ConvertToSpectre_WithLinks_ConvertsCorrectly(string markdown, string expected)
     {
         // Act
@@ -130,7 +130,7 @@ Some more text.";
         var expected = @"[bold green]Main Header[/]
 This is [bold]bold[/] and [italic]italic[/] text with [grey][bold]inline code[/][/].
 [bold blue]Sub Header[/]
-Visit [cyan link=https://github.com]GitHub[/] for more information.
+Visit [cyan][link=https://github.com]GitHub[/][/] for more information.
 [bold yellow]Small Header[/]
 Some more text.";
         // Normalize line endings in expected string to match converter output
@@ -174,7 +174,7 @@ Some more text.";
         var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
 
         // Assert
-        Assert.Equal("Inline [cyan link=https://github.com]GitHub[/] and reference [[docs]][[ref1]].", result);
+        Assert.Equal("Inline [cyan][link=https://github.com]GitHub[/][/] and reference [[docs]][[ref1]].", result);
     }
 
     [Theory]
@@ -227,7 +227,7 @@ Some more text.";
         var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
 
         // Assert
-        Assert.Equal("Visit [cyan link=https://github.com]GitHub[/] and see this  for details.", result);
+        Assert.Equal("Visit [cyan][link=https://github.com]GitHub[/][/] and see this  for details.", result);
     }
 
     [Fact]
@@ -246,7 +246,7 @@ Visit [our site](https://example.com) for more details.";
         var expected = @"[bold green]Documentation[/]
 This is [bold]important[/] information with an image: 
 
-Visit [cyan link=https://example.com]our site[/] for more details.";
+Visit [cyan][link=https://example.com]our site[/][/] for more details.";
         // Normalize line endings in expected string to match converter output
         expected = expected.Replace("\r\n", "\n").Replace("\r", "\n");
         Assert.Equal(expected, result);

@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -271,6 +272,8 @@ public class AzureContainerAppsTests
         var db = builder.AddAzureCosmosDB("mydb");
         db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
+        var pgContainer = builder.AddPostgres("pgc");
+
         // Postgres uses secret outputs + a literal connection string
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
 
@@ -294,7 +297,8 @@ public class AzureContainerAppsTests
             .WithEnvironment("SecretVal", secretValue)
             .WithEnvironment("secret_value_1", secretValue)
             .WithEnvironment("Value", value)
-            .WithEnvironment("CS", rawCs);
+            .WithEnvironment("CS", rawCs)
+            .WithEnvironment("DATABASE_URL", pgContainer.Resource.UriExpression);
 
         project.WithEnvironment(context =>
         {
@@ -1612,7 +1616,7 @@ public class AzureContainerAppsTests
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "publish-manifest");
 
         var env1 = builder.AddAzureContainerAppEnvironment("env1");
         var env2 = builder.AddAzureContainerAppEnvironment("env2");
@@ -1952,5 +1956,99 @@ public class AzureContainerAppsTests
 
         await Verify(containerBicep, "bicep")
               .AppendContentAsFile(projectBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task BuildOnlyContainerResource_DoesNotGetDeployed()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        // Add a normal container resource
+        builder.AddContainer("api", "myimage");
+
+        // Add a build-only container resource
+        builder.AddExecutable("build-only", "exe", ".")
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    var dockerBuilder = dockerfileContext.Builder
+                        .From("scratch");
+                });
+
+                var dockerFileAnnotation = c.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+                dockerFileAnnotation.HasEntrypoint = false;
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = model.Resources.Single(r => r.Name == "api");
+        var containerProvisioningResource = container.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(containerProvisioningResource);
+
+        var buildOnly = model.Resources.Single(r => r.Name == "build-only");
+        Assert.Null(buildOnly.GetDeploymentTargetAnnotation());
+    }
+
+    [Fact]
+    public async Task BindMountNamesWithHyphensAreNormalized()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        using var tempDirectory = new TempDirectory();
+
+        // Contents of the Dockerfile are not important for this test
+        File.WriteAllText(Path.Combine(tempDirectory.Path, "Dockerfile"), "FROM alpine");
+
+        builder.AddDockerfile("with-bind-mount", tempDirectory.Path)
+            .WithBindMount(tempDirectory.Path, "/app/data");
+
+        using var app = builder.Build();
+
+        // This should not throw an exception about invalid Bicep identifier
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("env");
+
+        var project = builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1.internal.{0}", endpointReferenceEx.Format);
+        var provider = Assert.Single(endpointReferenceEx.ValueProviders);
+        var output = Assert.IsType<BicepOutputReference>(provider);
+        Assert.Equal(env.Resource, output.Resource);
+        Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", output.Name);
     }
 }

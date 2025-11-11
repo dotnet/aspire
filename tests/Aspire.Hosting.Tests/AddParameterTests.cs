@@ -500,4 +500,100 @@ public class AddParameterTests
         Assert.False(input.EnableDescriptionMarkdown);
     }
 #pragma warning restore ASPIREINTERACTION001
+
+    [Fact]
+    public async Task ParameterWithDashInName_CanBeResolvedWithUnderscoreInConfiguration()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Configuration using underscore instead of dash (as would come from environment variables or command line)
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage_account_name"] = "test-storage-account"
+        });
+
+        // Act - parameter defined with dash
+        appBuilder.AddParameter("storage-account-name");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should resolve to the value set with underscore
+        Assert.Equal("test-storage-account", await parameterResource.GetValueAsync(default));
+    }
+
+    [Fact]
+    public async Task ParameterWithDashInName_PrefersDashConfigurationOverUnderscore()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Set both versions, dash version should take precedence
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage-account-name"] = "dash-value",
+            ["Parameters:storage_account_name"] = "underscore-value"
+        });
+
+        // Act
+        appBuilder.AddParameter("storage-account-name");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should prefer the exact match (with dash)
+        Assert.Equal("dash-value", await parameterResource.GetValueAsync(default));
+    }
+
+    [Fact]
+    public async Task ParameterWithoutDash_DoesNotFallbackToUnderscore()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Set only underscore version for a parameter without dash
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage_name"] = "underscore-value"
+        });
+
+        // Act
+        appBuilder.AddParameter("storagename");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should not find the value because names don't match
+        await Assert.ThrowsAsync<MissingParameterValueException>(async () =>
+        {
+            _ = await parameterResource.GetValueAsync(default);
+        });
+    }
+
+    [Fact]
+    public async Task ParameterWithCustomConfigurationKey_UsesFallback()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Set configuration with custom key that has underscore
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["CustomSection:my_key"] = "custom-value"
+        });
+
+        // Act - use custom configuration key with dash
+        appBuilder.AddParameterFromConfiguration("my-param", "CustomSection:my-key");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should find the value using the normalized key (dash -> underscore)
+        Assert.Equal("custom-value", await parameterResource.GetValueAsync(default));
+    }
 }

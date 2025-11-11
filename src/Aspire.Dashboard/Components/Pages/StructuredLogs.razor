@@ -14,6 +14,7 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
 @inject IStringLocalizer<Dialogs> DialogsLoc
+@inject IStringLocalizer<AIPrompts> AIPromptsLoc
 
 <PageTitle>
     <ApplicationName
@@ -42,6 +43,7 @@
                                   OnPausedChanged="@PauseManager.SetStructuredLogsPaused"
                                   SelectedResource="@PageViewModel.SelectedResource" />
 
+            <ExplainErrorsButton @ref="_explainErrorsButton" OnClick="ExplainErrorsAsync" HasErrors="@ViewModel.HasErrors()" />
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"

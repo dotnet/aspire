@@ -67,6 +67,27 @@
               "connectionString": {
                 "$ref": "#/definitions/connectionString"
               },
+              "containerFiles": {
+                "type": "object",
+                "description": "Container files to be copied from other resources into this container's image.",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "destination": {
+                      "type": "string",
+                      "description": "The destination path within this container where files will be copied."
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "The source paths within the source container to copy from.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [ "destination" ]
+                }
+              },
               "env": {
                 "$ref": "#/definitions/env"
               },
@@ -125,6 +146,27 @@
               "connectionString": {
                 "$ref": "#/definitions/connectionString"
               },
+              "containerFiles": {
+                "type": "object",
+                "description": "Container files to be copied from other resources into this container's image.",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "destination": {
+                      "type": "string",
+                      "description": "The destination path within this container where files will be copied."
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "The source paths within the source container to copy from.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [ "destination" ]
+                }
+              },
               "env": {
                 "$ref": "#/definitions/env"
               },
@@ -151,6 +193,27 @@
               "path": {
                 "type": "string",
                 "description": "The path to the project file. Relative paths are interpreted as being relative to the location of the manifest file."
+              },
+              "containerFiles": {
+                "type": "object",
+                "description": "Container files to be copied from other resources into this project's container image.",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "destination": {
+                      "type": "string",
+                      "description": "The destination path within this container where files will be copied."
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "The source paths within the source container to copy from.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [ "destination" ]
+                }
               },
               "args": {
                 "$ref": "#/definitions/args"
@@ -186,6 +249,27 @@
                   }
                 ]
               },
+              "containerFiles": {
+                "type": "object",
+                "description": "Container files to be copied from other resources into this project's container image.",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "destination": {
+                      "type": "string",
+                      "description": "The destination path within this container where files will be copied."
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "The source paths within the source container to copy from.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [ "destination" ]
+                }
+              },
               "args": {
                 "$ref": "#/definitions/args"
               },
@@ -213,6 +297,27 @@
               "command": {
                 "type": "string",
                 "description": "The path to the command. Should be interpreted as being relative to the AppHost directory."
+              },
+              "containerFiles": {
+                "type": "object",
+                "description": "Container files to be copied from other resources into this executable's container image.",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "destination": {
+                      "type": "string",
+                      "description": "The destination path within this container where files will be copied."
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "The source paths within the source container to copy from.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [ "destination" ]
+                }
               },
               "args": {
                 "$ref": "#/definitions/args"
@@ -341,6 +446,23 @@
           },
           {
             "type": "object",
+            "description": "Represents a formatted projection of a parameter value, produced by applying the specified filter to the parameter.",
+            "required": [ "type", "value", "filter" ],
+            "properties": {
+              "type": {
+                "const": "annotated.string"
+              },
+              "value": {
+                "$ref": "#/definitions/value"
+              },
+              "filter": {
+                "$ref": "#/definitions/annotatedStringFilter"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
             "description": "Represents a Dapr resource in the manifest.",
             "required": [ "dapr" ],
             "properties": {
@@ -458,6 +580,7 @@
                   "type": "string",
                   "enum": [
                     "parameter.v0",
+                    "annotated.string",
                     "container.v0",
                     "container.v1",
                     "dockerfile.v0",
@@ -549,6 +672,11 @@
       "type": "string",
       "description": "A value that can be referenced via an expression in the manifest"
     },
+    "annotatedStringFilter": {
+      "type": "string",
+      "description": "Identifies the filter to apply to the referenced parameter value (for example, 'uri').",
+      "enum": [ "uri" ]
+    },
     "args": {
       "type": "array",
       "description": "List of arguments to used when launched.",
@@ -568,6 +696,14 @@
         "dockerfile": {
           "type": "string",
           "description": "The path to the Dockerfile. Can be relative or absolute. If relative it is relative to the manifest file."
+        },
+        "stage": {
+          "type": "string",
+          "description": "The name of the build stage to use for multi-stage Dockerfiles."
+        },
+        "buildOnly": {
+          "type": "boolean",
+          "description": "Indicates whether this container is built only to provide files for other containers and should not be deployed as a running service."
         },
         "args": {
           "type": "object",

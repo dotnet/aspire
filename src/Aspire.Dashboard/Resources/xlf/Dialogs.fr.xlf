@@ -102,6 +102,11 @@
         <target state="translated">Détails</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="translated">Erreur lors de l’affichage du contenu GenAI :</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIDurationLabel">
         <source>Duration</source>
         <target state="translated">Durée</target>
@@ -325,6 +330,101 @@
       <trans-unit id="InteractionButtonOk">
         <source>OK</source>
         <target state="translated">OK</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogConfigurationHeading">
+        <source>Aspire MCP configuration</source>
+        <target state="translated">Configuration Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
+        <source>VS Code: Install Aspire MCP Server</source>
+        <target state="translated">VS Code : installer le serveur Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCodeInsiders">
+        <source>VS Code Insiders: Install Aspire MCP Server</source>
+        <target state="translated">VS Code Insiders : installer le serveur Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogInstallButtonAriaLabelVisualStudio">
+        <source>Visual Studio: Install Aspire MCP Server</source>
+        <target state="translated">Visual Studio : installer le serveur Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogIntroduction">
+        <source>Aspire MCP connects AI assistants to Aspire app data. AI can use Aspire MCP to get information about app resources, health checks, commands, console logs and real-time telemetry.</source>
+        <target state="translated">Aspire MCP connecte les assistants IA aux données de l’application Aspire. L’IA peut utiliser Aspire MCP pour obtenir des informations sur les ressources de l’application, les contrôles d’intégrité, les commandes, les journaux de la console et la télémétrie en temps réel.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogLearnMoreLink">
+        <source>Use Aspire MCP with AI</source>
+        <target state="translated">Utiliser Aspire MCP avec l’IA</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherDescription">
+        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
+        <target state="translated">Aspire MCP peut être utilisé avec tout outil IA qui prend en charge les serveurs MCP HTTP diffusables en continu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherInstructions">
+        <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
+        <target state="translated">Vous trouverez ci-dessous des détails importants pour la configuration d’Aspire MCP. Reportez-vous à la documentation de votre client IA pour savoir comment ajouter un serveur MCP.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherOptionsVSCode">
+        <source>For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="{0}" target="_blank"&gt;Add an MCP server to VS Code&lt;/a&gt;.</source>
+        <target state="translated">Pour d’autres options, telles que la mise à jour de &lt;code&gt;mcp.json&lt;/code&gt;, consultez &lt;a href="{0}" target="_blank"&gt;Ajouter un serveur MCP à VS Code&lt;/a&gt;.</target>
+        <note>{0} is a URL to documentation</note>
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherOptionsVisualStudio">
+        <source>For other options, such as updating &lt;code&gt;mcp.json&lt;/code&gt;, see &lt;a href="{0}" target="_blank"&gt;Add an MCP server to Visual Studio&lt;/a&gt;.</source>
+        <target state="translated">Pour d’autres options, telles que la mise à jour de &lt;code&gt;mcp.json&lt;/code&gt;, consultez &lt;a href="{0}" target="_blank"&gt;Ajouter un serveur MCP à Visual Studio&lt;/a&gt;.</target>
+        <note>{0} is a URL to documentation</note>
+      </trans-unit>
+      <trans-unit id="McpServerDialogOtherTab">
+        <source>Other</source>
+        <target state="translated">Autre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogQuicklyAddVSCode">
+        <source>Quickly add Aspire MCP to VS Code using a browser install button:</source>
+        <target state="translated">Ajoutez rapidement Aspire MCP à VS Code à l’aide d’un bouton d’installation dans le navigateur :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogQuicklyAddVisualStudio">
+        <source>Quickly add Aspire MCP to Visual Studio using a browser install button:</source>
+        <target state="translated">Ajoutez rapidement Aspire MCP à Visual Studio à l’aide d’un bouton d’installation dans le navigateur :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeTab">
+        <source>VS Code</source>
+        <target state="translated">VS Code</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningInstructions">
+        <source>To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS. Note that this will remove transport security from Aspire MCP communication and could allow data to be read by a third party.</source>
+        <target state="translated">Pour utiliser VS Code avec Aspire MCP, configurez le point de terminaison MCP pour qu’il utilise HTTP au lieu de HTTPS. Notez que cela supprimera la sécurité de transport des communications Aspire MCP et pourrait permettre à un tiers de lire les données.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningMessage">
+        <source>As of October 2025, VS Code does not support using Aspire MCP over HTTPS.</source>
+        <target state="translated">Depuis octobre 2025, VS Code ne prend pas en charge l’utilisation d’Aspire MCP via HTTPS.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningMoreInfo">
+        <source>More information</source>
+        <target state="translated">Autres informations</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeWarningTitle">
+        <source>VS Code limitation</source>
+        <target state="translated">Limitation de VS Code</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioTab">
+        <source>Visual Studio</source>
+        <target state="translated">Visual Studio</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">

@@ -23,8 +23,6 @@ jobs:
 
       - name: Run RefreshManifests Script
         shell: pwsh
-        env:
-          CI: false
         run: |
           ./eng/refreshManifests.ps1
 

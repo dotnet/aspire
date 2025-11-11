@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES004
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using System.Diagnostics;
 using System.Reflection;
@@ -19,7 +23,10 @@ using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +35,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting;
 
@@ -58,6 +64,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
+    private readonly IUserSecretsManager _userSecretsManager;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -85,6 +92,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+
+    /// <inheritdoc />
+    public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -196,40 +206,80 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        // Set configuration
-        ConfigurePublishingOptions(options);
+        ConfigurePipelineOptions(options);
         var isExecMode = ConfigureExecOptions(options);
+
+        // Compute the dashboard application name - use DashboardApplicationName if set for file-based apps,
+        // otherwise fall back to the environment's ApplicationName
+        var dashboardApplicationName = options.DashboardApplicationName ?? _innerBuilder.Environment.ApplicationName;
+
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
-        // account for the path the AppHost is running from to disambiguate between different projects
-        // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
-        // we want to use a stable hash based only on the project name.
-        string appHostSha;
-        if (ExecutionContext.IsPublishMode)
+        // Compute both PathSha and ProjectNameSha to support different use cases:
+        // - PathSha: For disambiguating projects with the same name in different locations (deployment state)
+        // - ProjectNameSha: For stable naming across deployments regardless of path (Azure Functions, Azure environments)
+        string appHostPathSha;
+        string appHostProjectNameSha;
+        string appHostSha; // Legacy value, computed based on mode
+
+        // Check if AppHostSha is already configured (e.g., for testing scenarios)
+        var configuredAppHostSha = _innerBuilder.Configuration["AppHostSha"];
+        if (!string.IsNullOrEmpty(configuredAppHostSha))
         {
-            var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
-            appHostSha = Convert.ToHexString(appHostNameShaBytes);
+            // For backward compatibility with tests
+            appHostPathSha = configuredAppHostSha;
+            appHostProjectNameSha = configuredAppHostSha;
+            appHostSha = configuredAppHostSha;
         }
         else
         {
-            // Normalize the casing of AppHostPath
-            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
-            appHostSha = Convert.ToHexString(appHostShaBytes);
+            // Normalize the casing of AppHostPath and compute PathSha
+            var appHostPathShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
+            appHostPathSha = Convert.ToHexString(appHostPathShaBytes);
+
+            // Compute ProjectNameSha
+            var appHostProjectNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+            appHostProjectNameSha = Convert.ToHexString(appHostProjectNameShaBytes);
+
+            // For backward compatibility, AppHost:Sha256 uses the old logic:
+            // - Publish mode: ProjectNameSha (stable across paths)
+            // - Run mode: PathSha (disambiguates by path)
+            if (ExecutionContext.IsPublishMode)
+            {
+                appHostSha = appHostProjectNameSha;
+            }
+            else
+            {
+                appHostSha = appHostPathSha;
+            }
         }
+
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
+            // PathSha for deployment state (path-based disambiguation)
+            ["AppHost:PathSha256"] = appHostPathSha,
+            // ProjectNameSha for Azure Functions and Azure environments (stable naming)
+            ["AppHost:ProjectNameSha256"] = appHostProjectNameSha,
+            // Legacy Sha256 for backward compatibility (mode-dependent)
             ["AppHost:Sha256"] = appHostSha
         });
+
+        // Load deployment state early in the configuration chain if in publish mode
+        // This must happen before command line args are added so they can override saved state
+        if (ExecutionContext.IsPublishMode)
+        {
+            LoadDeploymentState(appHostPathSha);
+        }
 
         // exec
         if (isExecMode)
@@ -239,9 +289,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Core things
+        // Create and register the user secrets manager
+        _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
+        // Always register IUserSecretsManager so dependencies can resolve
+        _innerBuilder.Services.AddSingleton(_userSecretsManager);
+        
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddSingleton<PipelineExecutor>();
+        _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
-        _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
         _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
         _innerBuilder.Services.AddSingleton<IPackageVersionProvider, PackageVersionProvider>();
@@ -257,6 +313,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
+        // Add the manifest publishing step to the pipeline
+        Pipeline.AddManifestPublishing();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
             // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
@@ -275,6 +333,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        _innerBuilder.Services.AddSingleton<IDeveloperCertificateService, DeveloperCertificateService>();
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Shared DCP things (even though DCP isn't used in 'publish' and 'inspect' mode
         // we still honour the DCP options around container runtime selection.
@@ -301,7 +362,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
                     // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
                     // of persistent containers (as a new key would be a spec change).
-                    SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
+
+                    // Set a random API key for the MCP Server if one isn't already present in configuration.
+                    // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
+                    // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
+                    // of MCP clients.
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
 
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
@@ -349,7 +416,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
                 _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
                 _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
-                _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
+                _innerBuilder.Services.AddEventingSubscriber<DashboardEventHandlers>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
@@ -367,7 +434,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+            _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
         }
 
         if (ExecutionContext.IsRunMode)
@@ -392,13 +459,59 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
-        this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
-        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
+        _innerBuilder.Services.AddSingleton(sp =>
+        {
+            var dcpOptions = sp.GetRequiredService<IOptions<DcpOptions>>();
+            return dcpOptions.Value.ContainerRuntime switch
+            {
+                string rt => sp.GetRequiredKeyedService<IContainerRuntime>(rt),
+                null => sp.GetRequiredKeyedService<IContainerRuntime>("docker")
+            };
+        });
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
-        _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
-        _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
+        _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
+        _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
+        _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();
+        _innerBuilder.Services.AddSingleton(Pipeline);
+
+        // Configure pipeline logging options
+        _innerBuilder.Services.Configure<PipelineLoggingOptions>(options =>
+        {
+            var config = _innerBuilder.Configuration;
+
+            options.MinimumLogLevel = config["Pipeline:LogLevel"]?.ToLowerInvariant() switch
+            {
+                "trace" => LogLevel.Trace,
+                "debug" => LogLevel.Debug,
+                "info" or "information" => LogLevel.Information,
+                "warn" or "warning" => LogLevel.Warning,
+                "error" => LogLevel.Error,
+                "crit" or "critical" => LogLevel.Critical,
+                _ => LogLevel.Information
+            };
+
+            options.IncludeExceptionDetails = config.GetBool("Pipeline:IncludeExceptionDetails") ?? false;
+        });
+
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
+
+        // Configure logging filter using the PipelineLoggingOptions
+        _innerBuilder.Services.AddOptions<LoggerFilterOptions>().Configure<IOptions<PipelineLoggingOptions>>((filterLoggingOptions, pipelineLoggingOptions) =>
+        {
+            filterLoggingOptions.AddFilter<PipelineLoggerProvider>((level) => level >= pipelineLoggingOptions.Value.MinimumLogLevel);
+        });
+
+        // Register IDeploymentStateManager based on execution context
+        if (ExecutionContext.IsPublishMode)
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, FileDeploymentStateManager>();
+        }
+        else
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, UserSecretsDeploymentStateManager>();
+        }
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
@@ -475,21 +588,52 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
-    private void ConfigurePublishingOptions(DistributedApplicationOptions options)
+    private void ConfigurePipelineOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            // Legacy mappings for backward compatibility
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
-            { "--output-path", "Publishing:OutputPath" },
-            { "--deploy", "Publishing:Deploy" },
+
+            // Pipeline options (valid for aspire do based commands)
+            { "--step", "Pipeline:Step" },
+            { "--output-path", "Pipeline:OutputPath" },
+            { "--log-level", "Pipeline:LogLevel" },
+            { "--include-exception-details", "Pipeline:IncludeExceptionDetails" },
+
+            // TODO: Rename this to something related to deployment state
+            { "--clear-cache", "Pipeline:ClearCache" },
+
+            // DCP Publisher options, we should only process these in run mode
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
             { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
+
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+
+        // Configure PipelineOptions from the Pipeline section
+        _innerBuilder.Services.Configure<PipelineOptions>(_innerBuilder.Configuration.GetSection("Pipeline"));
+
+        // Handle backward compatibility for --publisher manifest to support `azd` scenarios
+        var publisher = _innerBuilder.Configuration["Publishing:Publisher"];
+        if (string.Equals(publisher, "manifest", StringComparison.OrdinalIgnoreCase))
+        {
+
+            // If no explicit --step was provided, set it to run only the manifest step
+            if (string.IsNullOrEmpty(_innerBuilder.Configuration["Pipeline:Step"]))
+            {
+                _innerBuilder.Configuration["Pipeline:Step"] = "publish-manifest";
+            }
+
+            // If no explicit operation was set, default to Publish mode
+            if (string.IsNullOrEmpty(_innerBuilder.Configuration["AppHost:Operation"]))
+            {
+                _innerBuilder.Configuration["AppHost:Operation"] = "Publish";
+            }
+        }
     }
 
     private bool ConfigureExecOptions(DistributedApplicationOptions options)
@@ -630,6 +774,41 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     }
 
     /// <summary>
+    /// Loads deployment state from the filesystem based on the app host SHA and environment name.
+    /// Only loads if ClearCache is false.
+    /// </summary>
+    /// <param name="appHostSha">The SHA hash of the app host.</param>
+    private void LoadDeploymentState(string appHostSha)
+    {
+        // Only load if ClearCache is false
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Pipeline:ClearCache");
+        if (clearCache)
+        {
+            return;
+        }
+
+        var environment = _innerBuilder.Environment.EnvironmentName;
+        var deploymentStatePath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+            ".aspire",
+            "deployments",
+            appHostSha,
+            $"{environment}.json"
+        );
+
+        if (!File.Exists(deploymentStatePath))
+        {
+            return;
+        }
+
+        try
+        {
+            _innerBuilder.Configuration.AddJsonFile(deploymentStatePath, optional: true, reloadOnChange: false);
+        }
+        catch { }
+    }
+
+    /// <summary>
     /// Gets the metadata value for the specified key from the assembly metadata.
     /// </summary>
     /// <param name="assemblyMetadata">The assembly metadata.</param>
@@ -638,3 +817,4 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 }
+

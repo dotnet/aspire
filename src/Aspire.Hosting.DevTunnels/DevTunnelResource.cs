@@ -78,22 +78,9 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// Options controlling how this port is exposed.
     /// </summary>
     public DevTunnelPortOptions Options { get; }
-
     internal EndpointReference TunnelEndpoint { get; }
-
     internal EndpointAnnotation TunnelEndpointAnnotation { get; }
-
-    internal TaskCompletionSource TunnelEndpointAllocatedTcs { get; } = new();
-
-    internal Task TunnelEndpointAllocatedTask => TunnelEndpointAllocatedTcs.Task;
-
     internal EndpointReference TargetEndpoint { get; init; }
-
-    internal TaskCompletionSource TargetEndpointAllocatedTcs { get; set; } = new();
-
-    internal Task TargetEndpointAllocatedTask => TargetEndpointAllocatedTcs.Task;
-
     internal DevTunnelPort? LastKnownStatus { get; set; }
-
     internal DevTunnelAccessStatus? LastKnownAccessStatus { get; set; }
 }

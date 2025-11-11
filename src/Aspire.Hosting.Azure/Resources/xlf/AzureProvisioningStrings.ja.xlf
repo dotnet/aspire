@@ -81,6 +81,31 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
         <target state="translated">Azure サブスクリプションを選択してください:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="translated">Azure テナント</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="translated">テナント ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="translated">Azure テナント ID を入力してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="translated">テナント ID の選択</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="translated">Azure テナントを選択してください:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">リソース グループ名は、有効な Azure リソース グループ名である必要があります。</target>
@@ -89,6 +114,11 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">サブスクリプション ID は有効な GUID である必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="translated">テナント ID は有効な GUID である必要があります。</target>
         <note />
       </trans-unit>
     </body>

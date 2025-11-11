@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="MainLayoutAspireRepoLink" xml:space="preserve">
-    <value>.NET Aspire repo</value>
+    <value>Aspire repo</value>
   </data>
   <data name="MainLayoutAspireDashboardHelpLink" xml:space="preserve">
     <value>Help</value>
@@ -154,16 +154,13 @@
     <value>Metrics</value>
   </data>
   <data name="MainLayoutAspire" xml:space="preserve">
-    <value>.NET Aspire</value>
+    <value>Aspire</value>
   </data>
-  <data name="MessageTelemetryBody" xml:space="preserve">
+  <data name="MessageUnsecuredEndpointTelemetryBody" xml:space="preserve">
     <value>Untrusted apps can send telemetry to the dashboard.</value>
   </data>
-  <data name="MessageTelemetryLink" xml:space="preserve">
+  <data name="MessageUnsecuredEndpointLink" xml:space="preserve">
     <value>More information</value>
-  </data>
-  <data name="MessageTelemetryTitle" xml:space="preserve">
-    <value>Telemetry endpoint is unsecured</value>
   </data>
   <data name="PageLayoutViewFilters" xml:space="preserve">
     <value>View filters</value>
@@ -179,5 +176,11 @@
   </data>
   <data name="ReconnectRetryButtonText" xml:space="preserve">
     <value>Retry</value>
+  </data>
+  <data name="MessageUnsecuredEndpointTitle" xml:space="preserve">
+    <value>Endpoint is unsecured</value>
+  </data>
+  <data name="MessageUnsecuredEndpointMcpBody" xml:space="preserve">
+    <value>Untrusted apps can access sensitive information about the running services.</value>
   </data>
 </root>

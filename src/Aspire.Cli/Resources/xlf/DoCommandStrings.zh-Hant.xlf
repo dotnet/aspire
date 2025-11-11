@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../DoCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Execute a specific pipeline step and its dependencies. (Preview)</source>
+        <target state="translated">執行特定管線步驟及其相依性。(預覽)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GeneratingArtifacts">
+        <source>Executing pipeline...</source>
+        <target state="translated">正在執行管線...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCanceled">
+        <source>The operation was canceled.</source>
+        <target state="translated">已取消作業。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>OPERATION COMPLETED</source>
+        <target state="translated">作業完成</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>OPERATION FAILED</source>
+        <target state="translated">作業失敗</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputPathArgumentDescription">
+        <source>The optional output path for artifacts.</source>
+        <target state="translated">成品的選用輸出路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StepArgumentDescription">
+        <source>The name of the step to execute.</source>
+        <target state="translated">要執行的步驟名稱。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

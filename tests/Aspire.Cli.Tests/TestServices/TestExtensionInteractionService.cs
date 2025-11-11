@@ -18,6 +18,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public Action? NotifyAppHostStartupCompletedCallback { get; set; }
     public Action<DashboardUrlsState>? DisplayDashboardUrlsCallback { get; set; }
     public Action<string, string?, bool>? StartDebugSessionCallback { get; set; }
+    public Action<string, bool>? ConsoleDisplaySubtleMessageCallback { get; set; }
 
     public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
@@ -44,6 +45,16 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         }
 
         return Task.FromResult(choices.First());
+    }
+
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
     }
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
@@ -85,6 +96,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.CompletedTask;
     }
 
+    public void WriteDebugSessionMessage(string message, bool stdout, string? textStyle)
+    {
+    }
+
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
     }
@@ -98,7 +113,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(true);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
@@ -123,7 +138,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
 
     public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
@@ -154,5 +169,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
         LaunchAppHostCallback?.Invoke();
         return Task.CompletedTask;
+    }
+
+    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
+    {
+        ConsoleDisplaySubtleMessageCallback?.Invoke(message, escapeMarkup);
     }
 }

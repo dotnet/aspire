@@ -1,6 +1,6 @@
 # Overview
 
-Aspire client integrations are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire client integrations feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the client integrations included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Client Integrations Progress](./Aspire_Components_Progress.md) page.
+Aspire client integrations are classic .NET NuGet packages which are designed as highly usable libraries. Aspire client integrations feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the client integrations included in this repo and tracked for Aspire's first preview, please check out the [Aspire Client Integrations Progress](./Aspire_Components_Progress.md) page.
 
 ## Contribution guidelines
 
@@ -22,14 +22,13 @@ Each client integration is in its own NuGet package, and can version independent
 
 ### Target Framework(s)
 
-The Aspire client integration must support the [latest LTS version of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) and may optionally support a higher STS version, if one exists. For example:
+The Aspire client integration must support [all supported versions of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) at the time that specific version of Aspire is initially released. For example:
 
-| .NET Aspire Version | Targets                         |
-|---------------------|---------------------------------|
-| 8.x                 | `net8.0`                        |
-| 9.x                 | `net8.0` (+`net9.0` optional)   |
-| 10.x                | `net10.0`                       |
-| 11.x                | `net10.0` (+`net11.0` optional) |
+| Aspire Version | Targets                       |
+|---------------------|-------------------------------|
+| 8.x                 | `net8.0`                      |
+| 9.x                 | `net8.0` (+`net9.0` optional) |
+| 13.x                | `net8.0` (+`net9.0`, `net10.0` optional) |
 
 ### Dependency Versioning
 
@@ -44,11 +43,11 @@ In the situation that a client library associated with an Aspire client integrat
 To understand how this will work, an example of this is the `RabbitMQ.Client` library made many large breaking changes between version `6.8.1` and `7.0.0`. To handle this:
 
 1. For the current `Aspire.RabbitMQ.Client` package, we put a NuGet version limit on our dependency: `[6.8.1,7.0.0)`. This way people won't be able to update to the `7.0.0` version, which will break their app.
-2. When `RabbitMQ.Client` ships an official `7.0.0` stable package during the .NET Aspire `8.x` lifetime, we can add a new, forked client integration named `Aspire.RabbitMQ.Client.v7` which will have a dependency on `7.0.0` and contain any updates so the .NET Aspire client integration will work with v7. People who explicitly want to use v7 can opt into using this package.
-3. When .NET Aspire 9 ships, we can "swap" the dependencies around.
+2. When `RabbitMQ.Client` ships an official `7.0.0` stable package during the Aspire `8.x` lifetime, we can add a new, forked client integration named `Aspire.RabbitMQ.Client.v7` which will have a dependency on `7.0.0` and contain any updates so the Aspire client integration will work with v7. People who explicitly want to use v7 can opt into using this package.
+3. When Aspire 9 ships, we can "swap" the dependencies around.
     - The `Aspire.RabbitMQ.Client` package will be updated to depend on v7 of `RabbitMQ.Client`.
     - If `RabbitMQ.Client` v6 is still in support, we can create `Aspire.RabbitMQ.Client.v6` which has the dependency limit `[6.8.1, 7.0.0)` and works with the version 6 of RabbitMQ.Client.
-    - `Aspire.RabbitMQ.Client.v7` will be dead-ended. We won't make new .NET Aspire 9 versions of this package.
+    - `Aspire.RabbitMQ.Client.v7` will be dead-ended. We won't make new Aspire 9 versions of this package.
 
 ## Icon
 
@@ -183,7 +182,7 @@ Aspire client integrations offer integrated logging, metrics, and tracing using 
 
 ### Security
 
-- If the underlying client library supports passwordless/[RBAC](https://learn.microsoft.com/azure/role-based-access-control/overview) authentication, which Credential to use should be configurable through the .NET Aspire Settings object. For example:
+- If the underlying client library supports passwordless/[RBAC](https://learn.microsoft.com/azure/role-based-access-control/overview) authentication, which Credential to use should be configurable through the Aspire Settings object. For example:
 
 ```csharp
 builder.AddAzureServiceBus(settings =>
@@ -212,7 +211,7 @@ builder.AddAzureServiceBus(settings =>
 }
 ```
 
-- Alternatively, the ConnectionString should be able to be configured through the .NET Aspire Settings object. For example:
+- Alternatively, the ConnectionString should be able to be configured through the Aspire Settings object. For example:
 
 ```csharp
 builder.AddAzureServiceBus(settings =>
