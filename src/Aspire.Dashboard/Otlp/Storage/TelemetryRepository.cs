@@ -255,20 +255,17 @@ public sealed class TelemetryRepository : IDisposable
         {
             _logger.LogTrace("New resource added: {ResourceKey}", key);
             
-            // Persist new resource to external storage if configured
+            // Persist new resource to external storage if configured (synchronously)
             if (_telemetryStorage != null)
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await _telemetryStorage.AddOrUpdateResourceAsync(resource).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to persist resource to external storage");
-                    }
-                });
+                    _telemetryStorage.AddOrUpdateResourceAsync(resource).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist resource to external storage");
+                }
             }
         }
         return (Resource: resource, IsNew: newResource);
@@ -416,20 +413,19 @@ public sealed class TelemetryRepository : IDisposable
                 }
             }
 
-            // Persist to external storage if configured
+            // Persist to external storage if configured (synchronously for source of truth)
             if (_telemetryStorage != null && context.SuccessCount > 0)
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await _telemetryStorage.AddLogsAsync(_logs.TakeLast(context.SuccessCount)).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to persist logs to external storage");
-                    }
-                });
+                    // Use synchronous wait to ensure data is persisted before releasing lock
+                    var logsToStore = _logs.TakeLast(context.SuccessCount).ToList();
+                    _telemetryStorage.AddLogsAsync(logsToStore).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist logs to external storage");
+                }
             }
         }
         finally
@@ -440,6 +436,28 @@ public sealed class TelemetryRepository : IDisposable
 
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
     {
+        // Use external storage as source of truth if configured
+        if (_telemetryStorage != null)
+        {
+            try
+            {
+                var storageTask = _telemetryStorage.GetLogsAsync(context);
+                // Wait synchronously for now - could be optimized with async methods
+                var result = storageTask.GetAwaiter().GetResult();
+                
+                // If we got results from storage, return them
+                if (result.TotalItemCount > 0 || context.StartIndex > 0)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to query logs from external storage, falling back to in-memory");
+            }
+        }
+
+        // Fallback to in-memory storage (or default when no external storage)
         List<OtlpResource>? resources = null;
         if (context.ResourceKey is { } key)
         {
@@ -552,6 +570,28 @@ public sealed class TelemetryRepository : IDisposable
 
     public GetTracesResponse GetTraces(GetTracesRequest context)
     {
+        // Use external storage as source of truth if configured
+        if (_telemetryStorage != null)
+        {
+            try
+            {
+                var storageTask = _telemetryStorage.GetTracesAsync(context);
+                // Wait synchronously for now - could be optimized with async methods
+                var result = storageTask.GetAwaiter().GetResult();
+                
+                // If we got results from storage, return them
+                if (result.PagedResult.TotalItemCount > 0 || context.StartIndex > 0)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to query traces from external storage, falling back to in-memory");
+            }
+        }
+
+        // Fallback to in-memory storage (or default when no external storage)
         List<OtlpResource>? resources = null;
         if (context.ResourceKey is { } key)
         {
@@ -1142,22 +1182,19 @@ public sealed class TelemetryRepository : IDisposable
                 }
             }
 
-            // Persist to external storage if configured
+            // Persist to external storage if configured (synchronously for source of truth)
             if (_telemetryStorage != null && context.SuccessCount > 0)
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        // Get the most recently added/updated traces
-                        var tracesToPersist = _traces.TakeLast(Math.Min(context.SuccessCount, _traces.Count)).ToList();
-                        await _telemetryStorage.AddTracesAsync(tracesToPersist).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to persist traces to external storage");
-                    }
-                });
+                    // Get the most recently added/updated traces
+                    var tracesToPersist = _traces.TakeLast(Math.Min(context.SuccessCount, _traces.Count)).ToList();
+                    _telemetryStorage.AddTracesAsync(tracesToPersist).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist traces to external storage");
+                }
             }
         }
         finally
