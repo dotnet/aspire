@@ -14,16 +14,9 @@ builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "s
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
-    .WithHttpEndpoint(env: "PORT", port: 3000)
+    .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .PublishAsDockerFile()
-    .WithBrowserDebugger("msedge", "./", "http://localhost:3000", props =>
-    {
-        props.SourceMapPathOverrides = new Dictionary<string, string>
-        {
-            { "webpack://react-weather/./src/*", "${webRoot}/src/*" },
-        };
-    });
+    .PublishAsDockerFile();
 
 builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
     .WithRunScript("start")
@@ -43,11 +36,7 @@ builder.AddNodeApp("node", "../AspireJavaScript.NodeApp", "app.js")
     .WithRunScript("dev") // Use 'npm run dev' for development
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .PublishAsDockerFile()
-    .WithJavaScriptDebuggerProperties(props =>
-    {
-        props.Trace = true;
-    });
+    .PublishAsDockerFile();
 
 weatherApi.PublishWithContainerFiles(reactvite, "./wwwroot");
 
