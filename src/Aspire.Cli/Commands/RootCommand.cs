@@ -110,8 +110,12 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
-        Subcommands.Add(mcpCommand);
         Subcommands.Add(extensionInternalCommand);
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.McpCommandEnabled, false))
+        {
+            Subcommands.Add(mcpCommand);
+        }
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {
