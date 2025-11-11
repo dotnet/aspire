@@ -163,30 +163,21 @@ internal sealed class RunModeProvisioningContextProvider(
                     Required = true,
                     AllowCustomChoice = true,
                     Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                    Disabled = true,  // Always start disabled - will be enabled by LoadCallback when tenant is selected or when SubscriptionId is already configured
-                    Value = _options.SubscriptionId,
+                    Disabled = true,
                     DynamicLoading = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
                         {
-                            if (!string.IsNullOrEmpty(_options.SubscriptionId))
-                            {
-                                // If subscription ID is not set, we don't need to load options
-                                return;
-                            }
-
-                            // Get tenant ID from input if tenant selection is enabled, otherwise use configured value
                             var tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
 
                             var (subscriptionOptions, fetchSucceeded) =
                                 await TryGetSubscriptionsAsync(tenantId, cancellationToken).ConfigureAwait(false);
 
-                            context.Input.Options = fetchSucceeded
-                                ? subscriptionOptions!
-                                : [];
-                            context.Input.Disabled = string.IsNullOrWhiteSpace(tenantId);
+                            context.Input.Options = fetchSucceeded ? subscriptionOptions! : [];
+                            context.Input.Disabled = false;
+                            context.Input.Value = _options.SubscriptionId; // Attempt to set pre-configured value.
                         },
-                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [TenantName] : []
+                        DependsOnInputs = [TenantName]
                     }
                 });
 
