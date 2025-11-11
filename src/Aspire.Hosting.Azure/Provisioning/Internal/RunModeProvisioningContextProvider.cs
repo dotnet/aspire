@@ -197,7 +197,7 @@ internal sealed class RunModeProvisioningContextProvider(
                     Label = AzureProvisioningStrings.LocationLabel,
                     Placeholder = AzureProvisioningStrings.LocationPlaceholder,
                     Required = true,
-                    Disabled = true,
+                    Disabled = string.IsNullOrEmpty(_options.SubscriptionId),
                     DynamicLoading = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
@@ -209,7 +209,7 @@ internal sealed class RunModeProvisioningContextProvider(
                             context.Input.Options = locationOptions;
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = [SubscriptionIdName]
+                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [SubscriptionIdName] : []
                     }
                 });
 
