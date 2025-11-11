@@ -41,25 +41,6 @@ jobs:
             \.md$
             eng/pipelines/.*
 
-      - id: compute_version_suffix
-        name: Compute version suffix for PRs
-        if: ${{ github.event_name == 'pull_request' }}
-        shell: pwsh
-        env:
-          # Use the pull request head SHA instead of GITHUB_SHA (which can be a merge commit)
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          Write-Host "Determining VERSION_SUFFIX_OVERRIDE (PR only step)..."
-          if ([string]::IsNullOrWhiteSpace($Env:PR_HEAD_SHA)) {
-            Write-Error "PR_HEAD_SHA not set; cannot compute version suffix."
-            exit 1
-          }
-          $SHORT_SHA = $Env:PR_HEAD_SHA.Substring(0,8)
-          $VERSION_SUFFIX = "/p:VersionSuffix=pr.$($Env:PR_NUMBER).g$SHORT_SHA"
-          Write-Host "Computed VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX"
-          "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
-
   tests:
     uses: ./.github/workflows/tests.yml
     name: Tests

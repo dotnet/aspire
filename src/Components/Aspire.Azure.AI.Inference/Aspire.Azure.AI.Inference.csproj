@@ -9,6 +9,8 @@
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
     <!-- In preview until Azure.AI.Inference is shipped stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- MEAI has transitive dependencies that pull versions to 10.0 so we need pull our dependency versions for this package as well -->
+    <ForceLatestDotnetVersions>true</ForceLatestDotnetVersions>
   </PropertyGroup>
 
   <ItemGroup>
