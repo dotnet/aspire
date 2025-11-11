@@ -280,6 +280,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // OTLP services.
         builder.Services.AddGrpc();
+        
+        // Register telemetry storage factory and storage
+        builder.Services.AddSingleton<Storage.TelemetryStorageFactory>();
+        builder.Services.AddSingleton<Storage.ITelemetryStorage>(sp =>
+        {
+            var factory = sp.GetRequiredService<Storage.TelemetryStorageFactory>();
+            return factory.CreateStorage();
+        });
+        
         builder.Services.AddSingleton<TelemetryRepository>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
 

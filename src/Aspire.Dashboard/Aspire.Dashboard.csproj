@@ -55,6 +55,7 @@
     <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
     <PackageReference Include="ModelContextProtocol" />
