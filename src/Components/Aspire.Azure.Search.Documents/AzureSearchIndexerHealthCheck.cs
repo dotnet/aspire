@@ -20,7 +20,7 @@ internal sealed class AzureSearchIndexerHealthCheck : IHealthCheck
     public AzureSearchIndexerHealthCheck(SearchIndexerClient indexerClient)
     {
 #pragma warning disable S3236 // Caller information arguments should not be provided explicitly
-        ArgumentNullException.ThrowIfNull(indexerClient,nameof(indexerClient));
+        ArgumentNullException.ThrowIfNull(indexerClient, nameof(indexerClient));
 #pragma warning restore S3236 // Caller information arguments should not be provided explicitly
         _searchIndexerClient = indexerClient;
     }

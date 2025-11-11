@@ -22,8 +22,15 @@ var logger = app.Logger;
 // Configure the HTTP request pipeline.
 app.MapGet("/", async (SearchIndexerClient searchIndexerClient, SearchIndexClient searchIndexClient, CancellationToken cancellationToken) =>
 {
+    
     logger.LogInformation("Listing indexers...");
+    var indexerNames = await searchIndexerClient.GetIndexerNamesAsync(cancellationToken);
+    foreach (var name in indexerNames.Value)
+    {
+        logger.LogInformation("Indexer name: {0}", name);
+    }
 
+    logger.LogInformation("Listing indexs...");
     var indexNames = searchIndexClient.GetIndexNames(cancellationToken);
     foreach(var name in indexNames)
     {
