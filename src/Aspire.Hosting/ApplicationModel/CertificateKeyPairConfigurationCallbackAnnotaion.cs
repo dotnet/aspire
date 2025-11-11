@@ -82,6 +82,11 @@ public sealed class CertificateKeyPairConfigurationCallbackAnnotationContext
     public required ReferenceExpression KeyPath { get; init; }
 
     /// <summary>
+    /// A value provider that will resolve to a path to a PFX file for the key pair.
+    /// </summary>
+    public required ReferenceExpression PfxPath { get; init; }
+
+    /// <summary>
     /// A value provider that will resolve to the password for the private key, if applicable.
     /// </summary>
     public required IValueProvider? Password { get; init; }

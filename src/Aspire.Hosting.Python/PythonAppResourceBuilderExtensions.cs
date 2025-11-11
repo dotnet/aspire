@@ -316,28 +316,28 @@ public static class PythonAppResourceBuilderExtensions
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
-                if (developerCertificateService.SupportsTlsTermination)
+                bool addHttps = false;
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
                 {
-                    bool addHttps = false;
-                    if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                    if (developerCertificateService.SupportsTlsTermination)
                     {
                         // If no certificate is configured, and the developer certificate service supports container trust,
                         // configure the resource to use the developer certificate for its key pair.
                         resourceBuilder.WithDeveloperCertificateKeyPair();
                         addHttps = true;
                     }
-                    else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
-                    {
-                        addHttps = true;
-                    }
+                }
+                else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
 
-                    if (addHttps)
-                    {
-                        // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
-                        // Uvicorn only supports binding to a single port
-                        resourceBuilder
-                            .WithEndpoint("http", ep => ep.UriScheme = "https");
-                    }
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
+                    // Uvicorn only supports binding to a single port
+                    resourceBuilder
+                        .WithEndpoint("http", ep => ep.UriScheme = "https");
                 }
 
                 return Task.CompletedTask;

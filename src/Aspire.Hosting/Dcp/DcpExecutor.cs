@@ -2544,6 +2544,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
                 var keyOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.key");
                 var certificateOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pem");
+                var pfxOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pfx");
 
                 var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
                 {
@@ -2553,6 +2554,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     EnvironmentVariables = new(),
                     CertificatePath = ReferenceExpression.Create($"{certificateOutputPath}"),
                     KeyPath = ReferenceExpression.Create($"{keyOutputPath}"),
+                    PfxPath = ReferenceExpression.Create($"{pfxOutputPath}"),
                     Password = annotation.Password,
                     CancellationToken = cancellationToken,
                 };
@@ -2614,14 +2616,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
 
                 (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
+                var pfxBytes = certificate.Export(X509ContentType.Pfx, passphrase);
 
                 var certificateBytes = Encoding.ASCII.GetBytes(certificatePem);
                 var keyBytes = Encoding.ASCII.GetBytes(keyPem);
 
                 Directory.CreateDirectory(baseOutputPath);
 
-                File.WriteAllBytes(Path.Join(_locations.DcpSessionDir, modelResource.Name, "private", $"{certificate.Thumbprint}.key"), keyBytes);
-                File.WriteAllBytes(Path.Join(_locations.DcpSessionDir, modelResource.Name, "private", $"{certificate.Thumbprint}.pem"), certificateBytes);
+                // Write each of the certificate, key, and PFX assets to the temp folder
+                File.WriteAllBytes(keyOutputPath, keyBytes);
+                File.WriteAllBytes(certificateOutputPath, certificateBytes);
+                File.WriteAllBytes(pfxOutputPath, pfxBytes);
 
                 Array.Clear(keyPem, 0, keyPem.Length);
                 Array.Clear(keyBytes, 0, keyBytes.Length);
@@ -2676,6 +2681,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     EnvironmentVariables = new(),
                     CertificatePath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.pem"),
                     KeyPath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.key"),
+                    PfxPath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.pfx"),
                     Password = annotation.Password,
                     CancellationToken = cancellationToken,
                 };
@@ -2737,6 +2743,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
 
                 (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
+                var pfxBytes = certificate.Export(X509ContentType.Pfx, passphrase);
+
+                // The PFX file is binary, so we need to write it to a temp file first
+                var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
+                var pfxOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pfx");
+                Directory.CreateDirectory(baseOutputPath);
+                File.WriteAllBytes(pfxOutputPath, pfxBytes);
 
                 // Write the certificate and key to the container filesystem
                 createFiles.Add(new ContainerCreateFileSystem
@@ -2760,7 +2773,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                                     Type = ContainerFileSystemEntryType.File,
                                     Contents = new string(certificatePem),
                                 },
-                            ]
+                                // Copy the PFX file from the temp location
+                                new ContainerFileSystemEntry
+                                {
+                                    Name = certificate.Thumbprint + ".pfx",
+                                    Type = ContainerFileSystemEntryType.File,
+                                    Source = pfxOutputPath,
+                                },
+                            ],
                         },
                     ],
                 });
