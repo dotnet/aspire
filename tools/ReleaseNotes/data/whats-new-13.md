@@ -314,7 +314,7 @@ By default, `createIfNotExists` is `true`, so Aspire will create the virtual env
 
 #### VS Code Debugging Support
 
-Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13.0 automatically enables debugging infrastructure for all Python resources - no additional configuration required.
+Python applications can be debugged directly in VS Code with full breakpoint support. Aspire 13.0 automatically enables debugging infrastructure for all Python resources - no additional configuration required. See [Visual Studio Code extension](#visual-studio-code-extension) for more.
 
 **Supported debugging scenarios:**
 
