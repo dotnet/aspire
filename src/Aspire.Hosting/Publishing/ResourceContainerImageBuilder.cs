@@ -286,8 +286,9 @@ internal sealed class ResourceContainerImageBuilder(
                 else
                 {
                     // Multiple platforms - use RuntimeIdentifiers/ContainerRuntimeIdentifiers
-                    arguments += $" /p:RuntimeIdentifiers=\"{runtimeIds}\"";
-                    arguments += $" /p:ContainerRuntimeIdentifiers=\"{runtimeIds}\"";
+                    // MSBuild doesn't handle ';' in parameters well, need to escape the double quote. See https://github.com/dotnet/msbuild/issues/471
+                    arguments += $" /p:RuntimeIdentifiers=\\\"{runtimeIds}\\\"";
+                    arguments += $" /p:ContainerRuntimeIdentifiers=\\\"{runtimeIds}\\\"";
                 }
             }
         }
