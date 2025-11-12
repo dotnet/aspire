@@ -1,8 +1,11 @@
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -14,9 +17,12 @@ public static class KeycloakResourceBuilderExtensions
     private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
     private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+    private const string Features = "KC_FEATURES";
 
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
+    private const int DefaultHttpsPort = 8443;
+
     private const string ManagementEndpointName = "management";
     private const string KeycloakImportDirectory = "/opt/keycloak/data/import";
 
@@ -69,8 +75,60 @@ public static class KeycloakResourceBuilderExtensions
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
+                context.EnvironmentVariables[Features] = "opentelemetry";
             })
-            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
+            .WithOtlpExporter()
+            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly)
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                if (ctx.Password is null)
+                {
+                    ctx.EnvironmentVariables["KC_HTTPS_CERTIFICATE_FILE"] = ctx.CertificatePath;
+                    ctx.EnvironmentVariables["KC_HTTPS_CERTIFICATE_KEY_FILE"] = ctx.KeyPath;
+                }
+                else
+                {
+                    ctx.EnvironmentVariables["KC_HTTPS_KEY_STORE_FILE"] = ctx.PfxPath;
+                    ctx.EnvironmentVariables["KC_HTTPS_KEY_STORE_TYPE"] = "pkcs12";
+                    ctx.EnvironmentVariables["KC_HTTPS_KEY_STORE_PASSWORD"] = ctx.Password;
+                }
+
+                return Task.CompletedTask;
+            });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.SupportsTlsTermination)
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        keycloak.WithDeveloperCertificateKeyPair();
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    keycloak
+                        .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {
