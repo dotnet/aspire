@@ -239,10 +239,12 @@ public static class ProjectResourceBuilderExtensions
         var options = new ProjectResourceOptions();
         configure(options);
 
+        var projectMetadata = new TProject();
+
         var project = new ProjectResource(name);
         return builder.AddResource(project)
-                      .WithAnnotation(new TProject())
-                            .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "project")
+                      .WithAnnotation(projectMetadata)
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "project")
                       .WithProjectDefaults(options);
     }
 
