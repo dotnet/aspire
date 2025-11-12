@@ -648,6 +648,78 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var expectedPath = $"./[27;5;13~";
         Assert.Equal(expectedPath, capturedOutputPathDefault);
     }
+
+    [Fact]
+    public async Task NewCommand_CreatesSettingsJsonWithAppHostPath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                };
+
+                // Override GetAppHostInformationAsync to simulate finding an AppHost project
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                {
+                    // Simulate that any .csproj file ending with "AppHost.csproj" is an AppHost project
+                    if (projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return (0, true, "9.2.0"); // ExitCode = 0, IsAspireHost = true, AspireHostingVersion = "9.2.0"
+                    }
+                    return (0, false, null);
+                };
+
+                // Override NewProjectAsync to create a mock AppHost project file
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                {
+                    // Create a mock solution structure
+                    var appHostProjectDir = Path.Combine(outputPath, $"{name}.AppHost");
+                    Directory.CreateDirectory(appHostProjectDir);
+                    var appHostProjectFile = Path.Combine(appHostProjectDir, $"{name}.AppHost.csproj");
+                    File.WriteAllText(appHostProjectFile, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+                    return 0;
+                };
+
+                return runner;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new aspire-starter --name TestApp --output testoutput --use-redis-cache --test-framework None");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+
+        // Verify that .aspire/settings.json was created
+        var settingsFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "testoutput", ".aspire", "settings.json");
+        Assert.True(File.Exists(settingsFilePath), $"Settings file should exist at {settingsFilePath}");
+
+        // Verify the content of settings.json
+        var settingsContent = await File.ReadAllTextAsync(settingsFilePath);
+        Assert.Contains("appHostPath", settingsContent);
+        Assert.Contains("TestApp.AppHost/TestApp.AppHost.csproj", settingsContent);
+    }
+
+
 }
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
