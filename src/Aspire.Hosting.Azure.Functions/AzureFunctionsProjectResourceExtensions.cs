@@ -103,6 +103,15 @@ public static class AzureFunctionsProjectResourceExtensions
             functionsBuilder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
         }
 
+        // Functions applications cannot be run like normal dotnet projects, since they require being run in a functions environment.
+        // Until better support is added in the Aspire extension, disable debugging support for these projects.
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (functionsBuilder.Resource.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation))
+        {
+            functionsBuilder.Resource.Annotations.Remove(supportsDebuggingAnnotation);
+        }
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         return functionsBuilder
             .WithEnvironment(context =>
             {

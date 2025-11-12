@@ -1315,7 +1315,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 // We cannot use the IDE execution type if the Aspire extension does not support c# projects
                 var supportedLaunchConfigurations = ExtensionUtils.GetSupportedLaunchConfigurations(_configuration);
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
+                if (project.TryGetAnnotationsOfType<SupportsDebuggingAnnotation>(out _) && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
