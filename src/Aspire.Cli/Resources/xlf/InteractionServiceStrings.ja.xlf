@@ -108,8 +108,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
-        <source>The project argument was not specified and no *.csproj files were detected.</source>
-        <target state="translated">プロジェクトで引数が指定されておらず、*.csproj ファイルが検出されませんでした。</target>
+        <source>The project argument was not specified and no app host project files were detected.</source>
+        <target state="new">The project argument was not specified and no app host project files were detected.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
