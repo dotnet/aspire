@@ -306,7 +306,7 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST1", item.Key);
-                Assert.Equal(redis1.Resource.Name, item.Value);
+                Assert.Equal($"{redis1.Resource.Name}.dev.internal", item.Value);
             },
             (item) =>
             {
@@ -328,7 +328,7 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST2", item.Key);
-                Assert.Equal(redis2.Resource.Name, item.Value);
+                Assert.Equal($"{redis2.Resource.Name}.dev.internal", item.Value);
             },
             (item) =>
             {
@@ -350,7 +350,7 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST3", item.Key);
-                Assert.Equal(redis3.Resource.Name, item.Value);
+                Assert.Equal($"{redis3.Resource.Name}.dev.internal", item.Value);
             },
             (item) =>
             {
