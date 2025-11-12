@@ -690,11 +690,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
                 await backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
-                backchannel.AddDisconnectHandler((_, _) =>
-                {
-                    // If the backchannel disconnects, we want to stop the CLI process
-                    Environment.Exit(ExitCodeConstants.Success);
-                });
+                // Note: We intentionally do not call Environment.Exit when the backchannel disconnects.
+                // The CLI should complete normally and return the appropriate exit code based on the
+                // deployment result. Calling Environment.Exit here would bypass the normal exit code
+                // logic and always return success (0), even when the deployment failed.
+                // See: https://github.com/dotnet/aspire/issues/XXXXX
 
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;
