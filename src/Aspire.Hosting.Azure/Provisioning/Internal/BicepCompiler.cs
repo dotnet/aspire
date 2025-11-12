@@ -45,7 +45,6 @@ internal sealed class BicepCliCompiler : IBicepCompiler
         }
 
         var armTemplateContents = new StringBuilder();
-        var errorOutput = new StringBuilder();
         var templateSpec = new ProcessSpec(commandPath)
         {
             Arguments = arguments,
@@ -57,7 +56,6 @@ internal sealed class BicepCliCompiler : IBicepCompiler
             OnErrorData = data =>
             {
                 _logger.LogDebug("{CommandPath} (stderr): {Error}", commandPath, data);
-                errorOutput.AppendLine(data);
             },
         };
 
@@ -67,11 +65,6 @@ internal sealed class BicepCliCompiler : IBicepCompiler
 
         if (exitCode != 0)
         {
-            var errorText = errorOutput.ToString();
-            if (!string.IsNullOrWhiteSpace(errorText))
-            {
-                _logger.LogDebug("Error output: {ErrorOutput}", errorText);
-            }
             _logger.LogError("Bicep compilation for {BicepFilePath} failed with exit code {ExitCode}.", bicepFilePath, exitCode);
             throw new InvalidOperationException($"Failed to compile bicep file: {bicepFilePath}");
         }
