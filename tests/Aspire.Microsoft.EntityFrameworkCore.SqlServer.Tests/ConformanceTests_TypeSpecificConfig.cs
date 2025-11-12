@@ -4,13 +4,14 @@
 using Aspire.TestUtilities;
 using Aspire.Microsoft.Data.SqlClient.Tests;
 using Microsoft.Extensions.Configuration;
+using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
-    public ConformanceTests_TypeSpecificConfig(SqlServerContainerFixture containerFixture)
-        : base(containerFixture)
+    public ConformanceTests_TypeSpecificConfig(SqlServerContainerFixture containerFixture, ITestOutputHelper? output = null)
+        : base(containerFixture, output)
     {
     }
 

@@ -415,7 +415,7 @@ public class AzureKeyVaultTests
         {
             Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
         });
-        
+
         // Add https endpoint for emulator
         keyVault.WithEndpoint("https", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 8443));
 

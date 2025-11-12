@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
-        <target state="needs-review-translation">.NET Aspire</target>
+        <target state="translated">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
-        <target state="needs-review-translation">Repository .NET Aspire</target>
+        <target state="translated">Repository Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -44,22 +44,22 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Altre informazioni</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointMcpBody">
         <source>Untrusted apps can access sensitive information about the running services.</source>
-        <target state="new">Untrusted apps can access sensitive information about the running services.</target>
+        <target state="translated">Le app non attendibili possono accedere a informazioni sensibili sui servizi in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Le app non attendibili possono inviare dati di telemetria al dashboard.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">
         <source>Endpoint is unsecured</source>
-        <target state="new">Endpoint is unsecured</target>
+        <target state="translated">L'endpoint non è protetto</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

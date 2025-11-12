@@ -876,8 +876,7 @@ public class DistributedApplicationPipelineTests
             app.Services.GetRequiredService<DistributedApplicationExecutionContext>(),
             app.Services,
             NullLogger.Instance,
-            CancellationToken.None,
-            outputPath: null);
+            CancellationToken.None);
     }
 
     [Fact]

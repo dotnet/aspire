@@ -40,7 +40,7 @@
       "path": "../AzureAppService.ApiService/AzureAppService.ApiService.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "api.module.bicep",
+        "path": "api-website.module.bicep",
         "params": {
           "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "infra_outputs_planid": "{infra.outputs.planId}",

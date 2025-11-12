@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface ErrorResponse {
     error: ErrorDetails;
@@ -106,6 +107,7 @@ export interface LaunchOptions {
     runId: string;
     debugSessionId: string;
     isApphost: boolean;
+    debugSession: AspireDebugSession;
 };
 
 export interface AspireResourceDebugSession {

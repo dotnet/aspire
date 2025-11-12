@@ -1,0 +1,22 @@
+﻿{
+  "type": "executable.v0",
+  "workingDirectory": ".",
+  "command": "command",
+  "env": {
+    "ConnectionStrings__server": "{server.connectionString}",
+    "SERVER_HOST": "{server.bindings.tcp.host}",
+    "SERVER_PORT": "{server.bindings.tcp.port}",
+    "SERVER_USERNAME": "system",
+    "SERVER_PASSWORD": "{server-password.value}",
+    "SERVER_URI": "oracle://system:{server-password-uri-encoded.value}@{server.bindings.tcp.host}:{server.bindings.tcp.port}",
+    "SERVER_JDBCCONNECTIONSTRING": "jdbc:oracle:thin:@//{server.bindings.tcp.host}:{server.bindings.tcp.port}",
+    "ConnectionStrings__db": "{db.connectionString}",
+    "DB_HOST": "{server.bindings.tcp.host}",
+    "DB_PORT": "{server.bindings.tcp.port}",
+    "DB_USERNAME": "system",
+    "DB_PASSWORD": "{server-password.value}",
+    "DB_URI": "oracle://system:{server-password-uri-encoded.value}@{server.bindings.tcp.host}:{server.bindings.tcp.port}/db%23test",
+    "DB_JDBCCONNECTIONSTRING": "jdbc:oracle:thin:@//{server.bindings.tcp.host}:{server.bindings.tcp.port}/db%23test",
+    "DB_DATABASE": "db#test"
+  }
+}

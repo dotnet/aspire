@@ -263,9 +263,9 @@ public static class AzureEventHubsExtensions
             var blobEndpoint = storage.GetEndpoint("blob");
             var tableEndpoint = storage.GetEndpoint("table");
 
-            context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
-            context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.Resource.Name}:{blobEndpoint.TargetPort}");
-            context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.Resource.Name}:{tableEndpoint.TargetPort}");
+            context.EnvironmentVariables["ACCEPT_EULA"] = "Y";
+            context.EnvironmentVariables["BLOB_SERVER"] = $"{blobEndpoint.Resource.Name}:{blobEndpoint.TargetPort}";
+            context.EnvironmentVariables["METADATA_SERVER"] = $"{tableEndpoint.Resource.Name}:{tableEndpoint.TargetPort}";
         }));
 
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file

@@ -11,8 +11,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -249,6 +250,17 @@ internal sealed class TestArmClient : IArmClient
             ("westus2", "West US 2")
         };
         return Task.FromResult<IEnumerable<(string, string)>>(locations);
+    }
+
+    public Task<IEnumerable<(string Name, string Location)>> GetAvailableResourceGroupsWithLocationAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var resourceGroups = new List<(string Name, string Location)>
+        {
+            ("rg-test-1", "eastus"),
+            ("rg-test-2", "westus"),
+            ("rg-aspire-dev", "westus2")
+        };
+        return Task.FromResult<IEnumerable<(string, string)>>(resourceGroups);
     }
 }
 

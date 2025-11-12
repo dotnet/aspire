@@ -69,7 +69,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.JavaScript" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 

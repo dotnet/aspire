@@ -295,32 +295,43 @@ public class ProvisioningContextProviderTests
             },
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
 
-        // Trigger dynamic update of locations based on subscription.
+        // Trigger dynamic update of resource groups based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Set a custom resource group name (new resource group)
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "test-new-rg";
+
+        // Trigger dynamic update of locations based on subscription and resource group.
         await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
         {
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -333,7 +344,7 @@ public class ProvisioningContextProviderTests
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
-        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+        Assert.Equal("test-new-rg", context.ResourceGroup.Name);
     }
 
     [Fact]
@@ -376,7 +387,7 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
@@ -385,7 +396,7 @@ public class ProvisioningContextProviderTests
         var context = new InputsDialogValidationContext
         {
             CancellationToken = CancellationToken.None,
-            ServiceProvider = new ServiceCollection().BuildServiceProvider(),
+            Services = new ServiceCollection().BuildServiceProvider(),
             Inputs = inputsInteraction.Inputs
         };
 
@@ -448,18 +459,39 @@ public class ProvisioningContextProviderTests
             },
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
+
+        // Trigger dynamic update of resource groups based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Set a custom resource group name
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "test-new-rg";
+
+        // Trigger dynamic update of locations based on subscription and resource group.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
 
         // Trigger dynamic update of locations based on subscription.
         await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
@@ -467,11 +499,10 @@ public class ProvisioningContextProviderTests
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
             Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+            Services = new ServiceCollection().BuildServiceProvider()
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -484,7 +515,7 @@ public class ProvisioningContextProviderTests
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
-        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+        Assert.Equal("test-new-rg", context.ResourceGroup.Name);
     }
 
     [Fact]

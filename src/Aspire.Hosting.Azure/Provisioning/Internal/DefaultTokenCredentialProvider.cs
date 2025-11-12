@@ -15,13 +15,15 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
 
     public DefaultTokenCredentialProvider(
         ILogger<DefaultTokenCredentialProvider> logger,
-        IOptions<AzureProvisionerOptions> options)
+        IOptions<AzureProvisionerOptions> options,
+        DistributedApplicationExecutionContext distributedApplicationExecutionContext)
     {
         _logger = logger;
 
         // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
+        var credentialSetting = options.Value.CredentialSource;
 
-        TokenCredential credential = options.Value.CredentialSource switch
+        TokenCredential credential = credentialSetting switch
         {
             "AzureCli" => new AzureCliCredential(new()
             {
@@ -40,6 +42,11 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
                 AdditionallyAllowedTenants = { "*" }
             }),
             "InteractiveBrowser" => new InteractiveBrowserCredential(),
+            // Use AzureCli as default for publish mode when no explicit credential source is set
+            null or "Default" when distributedApplicationExecutionContext.IsPublishMode => new AzureCliCredential(new()
+            {
+                AdditionallyAllowedTenants = { "*" }
+            }),
             _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
             {
                 ExcludeManagedIdentityCredential = true,

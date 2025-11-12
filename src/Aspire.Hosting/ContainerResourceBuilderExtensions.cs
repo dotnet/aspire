@@ -1427,6 +1427,50 @@ public static class ContainerResourceBuilderExtensions
             return Task.CompletedTask;
         }, stage);
     }
+
+    /// <summary>
+    /// Configures custom base images for generated Dockerfiles.
+    /// </summary>
+    /// <typeparam name="T">The type of resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="buildImage">The base image to use for the build stage. If null, uses the default build image.</param>
+    /// <param name="runtimeImage">The base image to use for the runtime stage. If null, uses the default runtime image.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This extension method allows customization of the base images used in generated Dockerfiles.
+    /// For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
+    /// </para>
+    /// <example>
+    /// Specify custom base images for a Python application:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddPythonApp("myapp", "path/to/app", "main.py")
+    ///        .WithDockerfileBaseImage(
+    ///            buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
+    ///            runtimeImage: "python:3.12-slim-bookworm");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDockerfileBaseImage<T>(this IResourceBuilder<T> builder, string? buildImage = null, string? runtimeImage = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (buildImage is null && runtimeImage is null)
+        {
+            throw new ArgumentException($"At least one of {nameof(buildImage)} or {nameof(runtimeImage)} must be specified.", nameof(buildImage));
+        }
+
+        return builder.WithAnnotation(new DockerfileBaseImageAnnotation
+        {
+            BuildImage = buildImage,
+            RuntimeImage = runtimeImage
+        }, ResourceAnnotationMutationBehavior.Replace);
+    }
 }
 
 internal static class IListExtensions

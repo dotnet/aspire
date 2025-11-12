@@ -7,7 +7,7 @@
 using System.Security.Cryptography;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -155,26 +155,13 @@ internal sealed class RunModeProvisioningContextProvider(
                 // show the value as from the configuration and disable the input
                 // there should be no option to change it
 
-                inputs.Add(new InteractionInput
+                InputLoadOptions? subscriptionLoadOptions = null;
+                if (string.IsNullOrEmpty(_options.SubscriptionId))
                 {
-                    Name = SubscriptionIdName,
-                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
-                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
-                    Required = true,
-                    AllowCustomChoice = true,
-                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                    Disabled = !string.IsNullOrEmpty(_options.SubscriptionId),
-                    Value = _options.SubscriptionId,
-                    DynamicLoading = new InputLoadOptions
+                    subscriptionLoadOptions = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
                         {
-                            if (!string.IsNullOrEmpty(_options.SubscriptionId))
-                            {
-                                // If subscription ID is not set, we don't need to load options
-                                return;
-                            }
-
                             // Get tenant ID from input if tenant selection is enabled, otherwise use configured value
                             var tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
 
@@ -186,7 +173,51 @@ internal sealed class RunModeProvisioningContextProvider(
                                 : [];
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [TenantName] : []
+                        DependsOnInputs = [TenantName]
+                    };
+                }
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = SubscriptionIdName,
+                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
+                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
+                    Required = true,
+                    AllowCustomChoice = true,
+                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
+                    Disabled = true,
+                    Value = _options.SubscriptionId,
+                    DynamicLoading = subscriptionLoadOptions
+                });
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = ResourceGroupName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.ResourceGroupLabel,
+                    Placeholder = AzureProvisioningStrings.ResourceGroupPlaceholder,
+                    Value = GetDefaultResourceGroupName(),
+                    AllowCustomChoice = true,
+                    Disabled = true,
+                    DynamicLoading = new InputLoadOptions
+                    {
+                        LoadCallback = async (context) =>
+                        {
+                            var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+
+                            var (resourceGroupOptions, fetchSucceeded) = await TryGetResourceGroupsWithLocationAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+
+                            if (fetchSucceeded && resourceGroupOptions is not null)
+                            {
+                                context.Input.Options = resourceGroupOptions.Select(rg => KeyValuePair.Create(rg.Name, rg.Name)).ToList();
+                            }
+                            else
+                            {
+                                context.Input.Options = [];
+                            }
+                            context.Input.Disabled = false;
+                        },
+                        DependsOnInputs = [SubscriptionIdName]
                     }
                 });
 
@@ -203,22 +234,31 @@ internal sealed class RunModeProvisioningContextProvider(
                         LoadCallback = async (context) =>
                         {
                             var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+                            var resourceGroupName = context.AllInputs[ResourceGroupName].Value ?? string.Empty;
 
+                            // Check if the selected resource group is an existing one
+                            var (resourceGroupOptions, fetchSucceeded) = await TryGetResourceGroupsWithLocationAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+                            
+                            if (fetchSucceeded && resourceGroupOptions is not null)
+                            {
+                                var existingResourceGroup = resourceGroupOptions.FirstOrDefault(rg => rg.Name.Equals(resourceGroupName, StringComparison.OrdinalIgnoreCase));
+                                if (existingResourceGroup != default)
+                                {
+                                    // Use location from existing resource group
+                                    context.Input.Options = [KeyValuePair.Create(existingResourceGroup.Location, existingResourceGroup.Location)];
+                                    context.Input.Value = existingResourceGroup.Location;
+                                    context.Input.Disabled = true; // Make it read-only since it's from existing RG
+                                    return;
+                                }
+                            }
+
+                            // For new resource groups, load all locations
                             var (locationOptions, _) = await TryGetLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
-
                             context.Input.Options = locationOptions;
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = [SubscriptionIdName]
+                        DependsOnInputs = [SubscriptionIdName, ResourceGroupName]
                     }
-                });
-
-                inputs.Add(new InteractionInput
-                {
-                    Name = ResourceGroupName,
-                    InputType = InputType.Text,
-                    Label = AzureProvisioningStrings.ResourceGroupLabel,
-                    Value = GetDefaultResourceGroupName()
                 });
 
                 var result = await _interactionService.PromptInputsAsync(

@@ -20,11 +20,11 @@
             <div Style="grid-area: dialog-format;">
                 <FluentButton IconStart="new Icons.Regular.Size16.ArrowUp()"
                               Appearance="Appearance.Stealth"
-                              Disabled="@(_currentSpanContextIndex == 0)"
+                              Disabled="@NoPreviousGenAISpan"
                               OnClick="OnPreviousGenAISpan">@Loc[nameof(Dialogs.GenAIPreviousButtonText)]</FluentButton>
                 <FluentButton IconStart="new Icons.Regular.Size16.ArrowDown()"
                               Appearance="Appearance.Stealth"
-                              Disabled="@(_currentSpanContextIndex >= _contextSpans.Count - 1)"
+                              Disabled="@NoNextGenAISpan"
                               OnClick="OnNextGenAISpan">@Loc[nameof(Dialogs.GenAINextButtonText)]</FluentButton>
             </div>
         }
@@ -89,9 +89,29 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    if (IsImagePart(itemPart, out var imageContent) && IsSupportedImageScheme(imageContent))
+                                    if (TryGetDataPart(itemPart, MimeTypeHelpers.SupportedImageTypes, out var imageData))
                                     {
-                                        <img src="@imageContent" />
+                                        <img src="@imageData.Url" />
+                                    }
+                                    else if (TryGetDataPart(itemPart, MimeTypeHelpers.SupportedAudioTypes, out var audioData))
+                                    {
+                                        <audio controls>
+                                            <source src="@audioData.Url" type="@audioData.MimeType">
+                                            <!-- If file isn't supported then fallback to download link -->
+                                            <a href="@audioData.Url" download="@audioData.FileName">@audioData.FileName</a>
+                                        </audio>
+                                    }
+                                    else if (TryGetDataPart(itemPart, MimeTypeHelpers.SupportedVideoTypes, out var videoData))
+                                    {
+                                        <video controls>
+                                            <source src="@videoData.Url" type="@videoData.MimeType">
+                                            <!-- If file isn't supported then fallback to download link -->
+                                            <a href="@videoData.Url" download="@videoData.FileName">@videoData.FileName</a>
+                                        </video>
+                                    }
+                                    else if (TryGetDataPart(itemPart, matchingMimeTypes: null, out var otherData))
+                                    {
+                                        <a href="@otherData.Url" download="@otherData.FileName">@otherData.FileName</a>
                                     }
                                     else if (itemPart.AdditionalProperties is { } additionalProperties && additionalProperties.Count > 0)
                                     {

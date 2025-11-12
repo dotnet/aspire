@@ -20,6 +20,9 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => GetConnectionStringAsync(cancellationToken);
 
+    ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken) =>
+        ConnectionStringExpression.GetValueAsync(context, cancellationToken);
+
     /// <summary>
     /// Describes the connection string format string used for this resource.
     /// </summary>

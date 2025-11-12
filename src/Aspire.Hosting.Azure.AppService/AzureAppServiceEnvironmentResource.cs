@@ -131,6 +131,8 @@ public class AzureAppServiceEnvironmentResource :
             var printSummarySteps = context.GetSteps(this, "print-summary");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
             printSummarySteps.DependsOn(provisionSteps);
+
+            acrLoginSteps.DependsOn(provisionSteps);
         }));
     }
 
@@ -184,6 +186,11 @@ public class AzureAppServiceEnvironmentResource :
     /// Application Insights resource.
     /// </summary>
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
+
+    /// <summary>
+    /// Enables or disables automatic scaling for the App Service Plan.
+    /// </summary>
+    internal bool EnableAutomaticScaling { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.

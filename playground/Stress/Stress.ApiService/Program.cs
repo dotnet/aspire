@@ -443,12 +443,44 @@ app.MapGet("/genai-trace", async () =>
                     "content": "This is the input prompt."
                   },
                   {
-                    "type": "image",
-                    "content": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/9.0.9/icon"
+                    "type": "uri",
+                    "uri": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/9.0.9/icon",
+                    "mime_type": "image/png",
+                    "modality": "image"
                   },
                   {
-                    "type": "image",
-                    "content": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFwAAABcCAMAAADUMSJqAAAAilBMVEX///+XgOV0Vd1RK9S5qu7c1fZHGdKto+hOJ9Oag+ZNJNOWfuVyU91LINPi3Pi4qO6WiuOEbt9EEtJtTdtaNtZnRtn39f1WMdX6+f6ReeTs6fr08fwhAM68sO1iQtjIvvA8ANHl4fhePNeEaeHQx/Kjj+iwoOyeiednUtnCuO+jlOfWzvR5Xd5+Yt+aCjLkAAAD3ElEQVRoge2ZW3eqMBCFC0gM4VIJKlIPQkXbqvj//94hk1a5TChI+uZefes6X2dl78wMOS8vTz31VFPb7R+BN+nXv0pf6UY/295xalWifGfrZmcSDfg808sO7mxR/LtWeMSACj+WxSKd7BMX6DgyzSgWeH7Sx17vBTE2QbH4O/u1NviZCGAk4ZH4Q+Ssi73NxUEvzW8tBT3XdZ0K4Sb1fuBQOgv1sC/g5t68CRzgFy1wGUPvDvf0xTGFwldmTSsoPZ3OXse1GP4I4kinx/FYj2HDU3Kcyn5vu1mL4+QWU/gtN2ue+sU09gEK37XZprmD0g+T4BBpq8s2TeiS+ylTadaNYTOOs8fZa9JoKi1Pxe/I4y1mgcWwEUffeZQdEBlDz+ukRQj8IMGDcA+6YZkkYYnRZYspH2Nnoo0z0zEMw7lidIjjY6vABv7t0gC56LHHD8dxTuASOgB3Qqx0iCP5GM9+kxGX7EqlMo78bTQ8EU2FJT9sAy1dxjEZy7ZzmJu3wg0HTQzEMR+7PJoQQ9e4K1HH0RzHhhWLXZ0a3CmUno5bwGC20b3RUE8c4zFxhBXLD50GHI/j6AWsHUOtcQxFDGnSZuOeyjgOXsBgtsmm0lRfixk48TYQw9jtsHvj6A2Dw2xjRbfw3jjmgybeRm4qGLuSMo4WGRLHT2gqIQ7vi+Pid/Y7zLaV6yYuJqP0upILmP/7xIMVyz8f7MvpFdHsAzUa4Nff2IccZnpg23aQvc4QHbHTKgfFUYSWLm2pFKO/YqUb0GJ2/ew5hz0qkPALWvoZoTtwmnzex94yKu7DN9u2TygdvQFibFDat4AZ0A0z+yaMjXsaQhwNNTvgMBKDO/yAlv6Jle7B2FDHsRRNhdh1pYNLd1nvAgYrFjkHdTju6RHzFEpTLWAbmG07uyk07HgcxT1VTbwP4SZJgxYd9RSPoyidowvYmy9iWLbZCk8djA43kGETD2YbObTZYzxNmGLiBdBU3E7hlafowajjmHfjGIEbly5b5SlmqQHfeJ2JBysWPyOFC08xOhrHK0OeHDbw8hbhbJWn2MFAHK1mHBcyhji7amCD4xiyzgK2piKGhaLwSsNbzIq2X0tgDcJi2OupeuI1HgXE5fRDdeGKe4qWLmLX+E4SLzZEERUp9Cbh45S1Dl2szHIqK+HYuaCVm7QFFym/jWVMaBjR3uha7U8NWMj9wg4Uwk4lnX06Xbny27TRvKBr+XGyQGWEiApsa4wsZFt/g8d3ynxcDBPFBM2l/bKWiYPRI8o7o+6Q+3rYfpddnUzCOZksThL822ubzScr+6v/pnrqqad06z+o/mHi4pLvAgAAAABJRU5ErkJggg=="
+                    "type": "blob",
+                    "content": "iVBORw0KGgoAAAANSUhEUgAAAFwAAABcCAMAAADUMSJqAAAAilBMVEX///+XgOV0Vd1RK9S5qu7c1fZHGdKto+hOJ9Oag+ZNJNOWfuVyU91LINPi3Pi4qO6WiuOEbt9EEtJtTdtaNtZnRtn39f1WMdX6+f6ReeTs6fr08fwhAM68sO1iQtjIvvA8ANHl4fhePNeEaeHQx/Kjj+iwoOyeiednUtnCuO+jlOfWzvR5Xd5+Yt+aCjLkAAAD3ElEQVRoge2ZW3eqMBCFC0gM4VIJKlIPQkXbqvj//94hk1a5TChI+uZefes6X2dl78wMOS8vTz31VFPb7R+BN+nXv0pf6UY/295xalWifGfrZmcSDfg808sO7mxR/LtWeMSACj+WxSKd7BMX6DgyzSgWeH7Sx17vBTE2QbH4O/u1NviZCGAk4ZH4Q+Ssi73NxUEvzW8tBT3XdZ0K4Sb1fuBQOgv1sC/g5t68CRzgFy1wGUPvDvf0xTGFwldmTSsoPZ3OXse1GP4I4kinx/FYj2HDU3Kcyn5vu1mL4+QWU/gtN2ue+sU09gEK37XZprmD0g+T4BBpq8s2TeiS+ylTadaNYTOOs8fZa9JoKi1Pxe/I4y1mgcWwEUffeZQdEBlDz+ukRQj8IMGDcA+6YZkkYYnRZYspH2Nnoo0z0zEMw7lidIjjY6vABv7t0gC56LHHD8dxTuASOgB3Qqx0iCP5GM9+kxGX7EqlMo78bTQ8EU2FJT9sAy1dxjEZy7ZzmJu3wg0HTQzEMR+7PJoQQ9e4K1HH0RzHhhWLXZ0a3CmUno5bwGC20b3RUE8c4zFxhBXLD50GHI/j6AWsHUOtcQxFDGnSZuOeyjgOXsBgtsmm0lRfixk48TYQw9jtsHvj6A2Dw2xjRbfw3jjmgybeRm4qGLuSMo4WGRLHT2gqIQ7vi+Pid/Y7zLaV6yYuJqP0upILmP/7xIMVyz8f7MvpFdHsAzUa4Nff2IccZnpg23aQvc4QHbHTKgfFUYSWLm2pFKO/YqUb0GJ2/ew5hz0qkPALWvoZoTtwmnzex94yKu7DN9u2TygdvQFibFDat4AZ0A0z+yaMjXsaQhwNNTvgMBKDO/yAlv6Jle7B2FDHsRRNhdh1pYNLd1nvAgYrFjkHdTju6RHzFEpTLWAbmG07uyk07HgcxT1VTbwP4SZJgxYd9RSPoyidowvYmy9iWLbZCk8djA43kGETD2YbObTZYzxNmGLiBdBU3E7hlafowajjmHfjGIEbly5b5SlmqQHfeJ2JBysWPyOFC08xOhrHK0OeHDbw8hbhbJWn2MFAHK1mHBcyhji7amCD4xiyzgK2piKGhaLwSsNbzIq2X0tgDcJi2OupeuI1HgXE5fRDdeGKe4qWLmLX+E4SLzZEERUp9Cbh45S1Dl2szHIqK+HYuaCVm7QFFym/jWVMaBjR3uha7U8NWMj9wg4Uwk4lnX06Xbny27TRvKBr+XGyQGWEiApsa4wsZFt/g8d3ynxcDBPFBM2l/bKWiYPRI8o7o+6Q+3rYfpddnUzCOZksThL822ubzScr+6v/pnrqqad06z+o/mHi4pLvAgAAAABJRU5ErkJggg==",
+                    "mime_type": "image/png",
+                    "modality": "image"
+                  },
+                  {
+                    "type": "uri",
+                    "uri": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/9.0.9/microsoft.extensions.dependencyinjection.9.0.9.nupkg",
+                    "mime_type": "application/zip"
+                  },
+                  {
+                    "type": "blob",
+                    "content": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IHRleHQgZmlsZS4=",
+                    "mime_type": "text/plain"
+                  },
+                  {
+                    "type": "uri",
+                    "uri": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg",
+                    "mime_type": "audio/ogg",
+                    "modality": "audio"
+                  },
+                  {
+                    "type": "blob",
+                    "content": "UklGRhwMAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0Ya4LAACAgICAgICAgICAgICAgICAgICAgICAgICAf3hxeH+AfXZ1eHx6dnR5fYGFgoOKi42aloubq6GOjI2Op7ythXJ0eYF5aV1AOFFib32HmZSHhpCalIiYi4SRkZaLfnhxaWptb21qaWBea2BRYmZTVmFgWFNXVVVhaGdbYGhZbXh1gXZ1goeIlot1k6yxtKaOkaWhq7KonKCZoaCjoKWuqqmurK6ztrO7tbTAvru/vb68vbW6vLGqsLOfm5yal5KKhoyBeHt2dXBnbmljVlJWUEBBPDw9Mi4zKRwhIBYaGRQcHBURGB0XFxwhGxocJSstMjg6PTc6PUxVV1lWV2JqaXN0coCHhIyPjpOenqWppK6xu72yxMu9us7Pw83Wy9nY29ve6OPr6uvs6ezu6ejk6erm3uPj3dbT1sjBzdDFuMHAt7m1r7W6qaCupJOTkpWPgHqAd3JrbGlnY1peX1hTUk9PTFRKR0RFQkRBRUVEQkdBPjs9Pzo6NT04Njs+PTxAPzo/Ojk6PEA5PUJAQD04PkRCREZLUk1KT1BRUVdXU1VRV1tZV1xgXltcXF9hXl9eY2VmZmlna3J0b3F3eHyBfX+JgIWJiouTlZCTmpybnqSgnqyrqrO3srK2uL2/u7jAwMLFxsfEv8XLzcrIy83JzcrP0s3M0dTP0drY1dPR1dzc19za19XX2dnU1NjU0dXPzdHQy8rMysfGxMLBvLu3ta+sraeioJ2YlI+MioeFfX55cnJsaWVjXVlbVE5RTktHRUVAPDw3NC8uLyknKSIiJiUdHiEeGx4eHRwZHB8cHiAfHh8eHSEhISMoJyMnKisrLCszNy8yOTg9QEJFRUVITVFOTlJVWltaXmNfX2ZqZ21xb3R3eHqAhoeJkZKTlZmhpJ6kqKeur6yxtLW1trW4t6+us7axrbK2tLa6ury7u7u9u7vCwb+/vr7Ev7y9v8G8vby6vru4uLq+tri8ubi5t7W4uLW5uLKxs7G0tLGwt7Wvs7avr7O0tLW4trS4uLO1trW1trm1tLm0r7Kyr66wramsqaKlp52bmpeWl5KQkImEhIB8fXh3eHJrbW5mYGNcWFhUUE1LRENDQUI9ODcxLy8vMCsqLCgoKCgpKScoKCYoKygpKyssLi0sLi0uMDIwMTIuLzQ0Njg4Njc8ODlBQ0A/RUdGSU5RUVFUV1pdXWFjZGdpbG1vcXJ2eXh6fICAgIWIio2OkJGSlJWanJqbnZ2cn6Kkp6enq62srbCysrO1uLy4uL+/vL7CwMHAvb/Cvbq9vLm5uba2t7Sysq+urqyqqaalpqShoJ+enZuamZqXlZWTkpGSkpCNjpCMioqLioiHhoeGhYSGg4GDhoKDg4GBg4GBgoGBgoOChISChISChIWDg4WEgoSEgYODgYGCgYGAgICAgX99f398fX18e3p6e3t7enp7fHx4e3x6e3x7fHx9fX59fn1+fX19fH19fnx9fn19fX18fHx7fHx6fH18fXx8fHx7fH1+fXx+f319fn19fn1+gH9+f4B/fn+AgICAgH+AgICAgIGAgICAgH9+f4B+f35+fn58e3t8e3p5eXh4d3Z1dHRzcXBvb21sbmxqaWhlZmVjYmFfX2BfXV1cXFxaWVlaWVlYV1hYV1hYWVhZWFlaWllbXFpbXV5fX15fYWJhYmNiYWJhYWJjZGVmZ2hqbG1ub3Fxc3V3dnd6e3t8e3x+f3+AgICAgoGBgoKDhISFh4aHiYqKi4uMjYyOj4+QkZKUlZWXmJmbm52enqCioqSlpqeoqaqrrK2ur7CxsrGys7O0tbW2tba3t7i3uLe4t7a3t7i3tre2tba1tLSzsrKysbCvrq2sq6qop6alo6OioJ+dnJqZmJeWlJKSkI+OjoyLioiIh4WEg4GBgH9+fXt6eXh3d3V0c3JxcG9ubWxsamppaWhnZmVlZGRjYmNiYWBhYGBfYF9fXl5fXl1dXVxdXF1dXF1cXF1cXF1dXV5dXV5fXl9eX19gYGFgYWJhYmFiY2NiY2RjZGNkZWRlZGVmZmVmZmVmZ2dmZ2hnaGhnaGloZ2hpaWhpamlqaWpqa2pra2xtbGxtbm1ubm5vcG9wcXBxcnFycnN0c3N0dXV2d3d4eHh5ent6e3x9fn5/f4CAgIGCg4SEhYaGh4iIiYqLi4uMjY2Oj5CQkZGSk5OUlJWWlpeYl5iZmZqbm5ybnJ2cnZ6en56fn6ChoKChoqGio6KjpKOko6SjpKWkpaSkpKSlpKWkpaSlpKSlpKOkpKOko6KioaKhoaCfoJ+enp2dnJybmpmZmJeXlpWUk5STkZGQj4+OjYyLioqJh4eGhYSEgoKBgIB/fn59fHt7enl5eHd3dnZ1dHRzc3JycXBxcG9vbm5tbWxrbGxraWppaWhpaGdnZ2dmZ2ZlZmVmZWRlZGVkY2RjZGNkZGRkZGRkZGRkZGRjZGRkY2RjZGNkZWRlZGVmZWZmZ2ZnZ2doaWhpaWpra2xsbW5tbm9ub29wcXFycnNzdHV1dXZ2d3d4eXl6enp7fHx9fX5+f4CAgIGAgYGCgoOEhISFhoWGhoeIh4iJiImKiYqLiouLjI2MjI2OjY6Pj46PkI+QkZCRkJGQkZGSkZKRkpGSkZGRkZKRkpKRkpGSkZKRkpGSkZKRkpGSkZCRkZCRkI+Qj5CPkI+Pjo+OjY6Njo2MjYyLjIuMi4qLioqJiomJiImIh4iHh4aHhoaFhoWFhIWEg4SDg4KDgoKBgoGAgYCBgICAgICAf4CAf39+f35/fn1+fX59fHx9fH18e3x7fHt6e3p7ent6e3p5enl6enl6eXp5eXl4eXh5eHl4eXh5eHl4eXh5eHh3eHh4d3h4d3h3d3h4d3l4eHd4d3h3eHd4d3h3eHh4eXh5eHl4eHl4eXh5enl6eXp5enl6eXp5ent6ent6e3x7fHx9fH18fX19fn1+fX5/fn9+f4B/gH+Af4CAgICAgIGAgYCBgoGCgYKCgoKDgoOEg4OEg4SFhIWEhYSFhoWGhYaHhoeHhoeGh4iHiIiHiImIiImKiYqJiYqJiouKi4qLiouKi4qLiouKi4qLiouKi4qLi4qLiouKi4qLiomJiomIiYiJiImIh4iIh4iHhoeGhYWGhYaFhIWEg4OEg4KDgoOCgYKBgIGAgICAgH+Af39+f359fn18fX19fHx8e3t6e3p7enl6eXp5enl6enl5eXh5eHh5eHl4eXh5eHl4eHd5eHd3eHl4d3h3eHd4d3h3eHh4d3h4d3h3d3h5eHl4eXh5eHl5eXp5enl6eXp7ent6e3p7e3t7fHt8e3x8fHx9fH1+fX59fn9+f35/gH+AgICAgICAgYGAgYKBgoGCgoKDgoOEg4SEhIWFhIWFhoWGhYaGhoaHhoeGh4aHhoeIh4iHiIeHiIeIh4iHiIeIiIiHiIeIh4iHiIiHiIeIh4iHiIeIh4eIh4eIh4aHh4aHhoeGh4aHhoWGhYaFhoWFhIWEhYSFhIWEhISDhIOEg4OCg4OCg4KDgYKCgYKCgYCBgIGAgYCBgICAgICAgICAf4B/f4B/gH+Af35/fn9+f35/fn1+fn19fn1+fX59fn19fX19fH18fXx9fH18fXx9fH18fXx8fHt8e3x7fHt8e3x7fHt8e3x7fHt8e3x7fHt8e3x7fHt8e3x8e3x7fHt8e3x7fHx8fXx9fH18fX5+fX59fn9+f35+f35/gH+Af4B/gICAgICAgICAgICAgYCBgIGAgIGAgYGBgoGCgYKBgoGCgYKBgoGCgoKDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KDgoOCg4KCgoGCgYKBgoGCgYKBgoGCgYKBgoGCgYKBgoGCgYKBgoGCgYKBgoGCgYKBgoGBgYCBgIGAgYCBgIGAgYCBgIGAgYCBgIGAgYCBgIGAgYCAgICBgIGAgYCBgIGAgYCBgIGAgYCBgExJU1RCAAAASU5GT0lDUkQMAAAAMjAwOC0wOS0yMQAASUVORwMAAAAgAAABSVNGVBYAAABTb255IFNvdW5kIEZvcmdlIDguMAAA",
+                    "mime_type": "audio/wav",
+                    "modality": "audio"
+                  },
+                  {
+                    "type": "uri",
+                    "uri": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Sample_file.webm",
+                    "mime_type": "video/webm",
+                    "modality": "video"
                   }
                 ]
               },
@@ -503,6 +535,45 @@ app.MapGet("/genai-trace-display-error", async () =>
     activity?.Stop();
 
     return "Created GenAI trace";
+});
+
+app.MapGet("/genai-langchain-trace", async () =>
+{
+    var source = new ActivitySource("Services.Api", "1.0.0");
+
+    var activity = source.StartActivity("langchain llm call", ActivityKind.Client);
+    if (activity != null)
+    {
+        activity.SetTag("gen_ai.system", "langchain");
+        activity.SetTag("gen_ai.provider.name", "openai");
+        activity.SetTag("gen_ai.response.model", "gpt-4");
+        activity.SetTag("gen_ai.usage.input_tokens", 150);
+        activity.SetTag("gen_ai.usage.output_tokens", 75);
+
+        // LangSmith/LangChain format uses flattened indexed attributes
+        // Prompt messages
+        activity.SetTag("gen_ai.prompt.0.role", "system");
+        activity.SetTag("gen_ai.prompt.0.content", "You are a helpful AI assistant that provides accurate and concise information.");
+
+        activity.SetTag("gen_ai.prompt.1.role", "user");
+        activity.SetTag("gen_ai.prompt.1.content", "What is the capital of France?");
+
+        activity.SetTag("gen_ai.prompt.2.role", "assistant");
+        activity.SetTag("gen_ai.prompt.2.content", "The capital of France is Paris. It is located in the north-central part of the country and is known for its art, culture, and history.");
+
+        activity.SetTag("gen_ai.prompt.3.message.role", "user");
+        activity.SetTag("gen_ai.prompt.3.message.content", "What about Germany?");
+
+        activity.SetTag("gen_ai.completion.1.message.role", "assistant");
+        activity.SetTag("gen_ai.completion.1.message.content", "The capital of Germany is Berlin. It is located in the northeastern part of the country and serves as the political and cultural center.");
+    }
+
+    // Avoid zero seconds span.
+    await Task.Delay(100);
+
+    activity?.Stop();
+
+    return "Created LangChain GenAI trace";
 });
 
 async Task SimulateWorkAsync(ActivitySource source, int index, int millisecondsDelay = 2)
