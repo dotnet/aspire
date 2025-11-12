@@ -67,6 +67,11 @@ internal sealed class BicepCliCompiler : IBicepCompiler
 
         if (exitCode != 0)
         {
+            var errorText = errorOutput.ToString();
+            if (!string.IsNullOrWhiteSpace(errorText))
+            {
+                _logger.LogDebug("Error output: {ErrorOutput}", errorText);
+            }
             _logger.LogError("Bicep compilation for {BicepFilePath} failed with exit code {ExitCode}.", bicepFilePath, exitCode);
             throw new InvalidOperationException($"Failed to compile bicep file: {bicepFilePath}");
         }
