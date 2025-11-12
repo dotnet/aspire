@@ -125,7 +125,14 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         get
         {
             var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("redis://");
+            if (TlsEnabled)
+            {
+                builder.AppendLiteral("rediss://");
+            }
+            else
+            {
+                builder.AppendLiteral("redis://");
+            }
 
             if (PasswordParameter is not null)
             {
