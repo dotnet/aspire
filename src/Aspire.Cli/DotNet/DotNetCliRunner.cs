@@ -694,7 +694,6 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 // The CLI should complete normally and return the appropriate exit code based on the
                 // deployment result. Calling Environment.Exit here would bypass the normal exit code
                 // logic and always return success (0), even when the deployment failed.
-                // See: https://github.com/dotnet/aspire/issues/XXXXX
 
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;
