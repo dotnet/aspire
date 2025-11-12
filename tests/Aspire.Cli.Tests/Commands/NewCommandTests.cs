@@ -719,7 +719,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("TestApp.AppHost/TestApp.AppHost.csproj", settingsContent);
     }
 
-
 }
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
