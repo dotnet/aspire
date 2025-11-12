@@ -53,15 +53,15 @@ internal sealed class AppHostRunnerFactory : IAppHostRunnerFactory
         _executionContext = executionContext;
     }
 
-    public IAppHostRunner CreateRunner(FileInfo appHostFile)
+    public IAppHostRunner CreateRunner(AppHostRunnerContext context)
     {
-        ArgumentNullException.ThrowIfNull(appHostFile);
+        ArgumentNullException.ThrowIfNull(context);
 
         // For now, we only have one type of runner - the legacy .NET-based runner
         // In the future, we can add logic here to determine the appropriate runner
         // based on the file type or other characteristics
         return new LegacyAppHostRunner(
-            appHostFile,
+            context.AppHostFile,
             _runner,
             _interactionService,
             _certificateService,

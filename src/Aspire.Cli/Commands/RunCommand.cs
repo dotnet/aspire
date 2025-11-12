@@ -93,8 +93,15 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
+            // Get the settings file path if it exists
+            var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(ExecutionContext.WorkingDirectory.FullName);
+            var settingsFile = File.Exists(settingsFilePath) ? new FileInfo(settingsFilePath) : null;
+
+            // Create context with the AppHost file and settings file
+            var context = new AppHostRunnerContext(effectiveAppHostFile, settingsFile);
+
             // Create the appropriate runner for this AppHost
-            var runner = _appHostRunnerFactory.CreateRunner(effectiveAppHostFile);
+            var runner = _appHostRunnerFactory.CreateRunner(context);
 
             // Execute the runner
             return await runner.RunAsync(parseResult, cancellationToken);

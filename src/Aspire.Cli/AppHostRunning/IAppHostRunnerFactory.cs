@@ -9,9 +9,9 @@ namespace Aspire.Cli.AppHostRunning;
 internal interface IAppHostRunnerFactory
 {
     /// <summary>
-    /// Creates an appropriate runner for the given AppHost file.
+    /// Creates an appropriate runner for the given AppHost context.
     /// </summary>
-    /// <param name="appHostFile">The AppHost file to create a runner for.</param>
+    /// <param name="context">The context containing the AppHost file and related information.</param>
     /// <returns>An instance of <see cref="IAppHostRunner"/> capable of running the specified AppHost.</returns>
-    IAppHostRunner CreateRunner(FileInfo appHostFile);
+    IAppHostRunner CreateRunner(AppHostRunnerContext context);
 }
