@@ -81,7 +81,13 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var client = app.CreateHttpClient(commanderBuilder.Resource.Name, "http");
 
-        var endpoint = redis.GetEndpoint("tcp");
+        var endpoint = redis.GetEndpoint(RedisResource.PrimaryEndpointName);
+        if (redis.Resource.TlsEnabled)
+        {
+            // We don't support TLS connections in Redis Commander yet, so we need to use the secondary endpoint which is non-TLS
+            endpoint = redis.GetEndpoint(RedisResource.SecondaryEndpointName);
+        }
+
         var path = $"/apiv2/server/R:{redis.Resource.Name}:{endpoint.TargetPort}:0/info";
         var response = await client.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

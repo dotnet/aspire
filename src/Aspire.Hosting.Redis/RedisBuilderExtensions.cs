@@ -89,7 +89,7 @@ public static class RedisBuilderExtensions
         builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         var redisBuilder = builder.AddResource(redis)
-            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName, scheme: "redis")
             .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
             .WithImageRegistry(RedisContainerImageTags.Registry)
             .WithHealthCheck(healthCheckKey)
@@ -181,7 +181,8 @@ public static class RedisBuilderExtensions
                 // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
                 // configure the environment variables to use it.
                 redisBuilder
-                    .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                    .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName, scheme: "redis")
+                    .WithEndpoint(RedisResource.PrimaryEndpointName, ep => ep.UriScheme = "rediss")
                     .WithArgs(ctx =>
                     {
                         ctx.Args.Add("--tls-port");

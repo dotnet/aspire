@@ -46,6 +46,11 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
 
     /// <summary>
+    /// Gets the scheme endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Scheme => PrimaryEndpoint.Property(EndpointProperty.Scheme);
+
+    /// <summary>
     /// Gets the parameter that contains the Redis server password.
     /// </summary>
     public ParameterResource? PasswordParameter { get; private set; }
@@ -125,14 +130,8 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         get
         {
             var builder = new ReferenceExpressionBuilder();
-            if (TlsEnabled)
-            {
-                builder.AppendLiteral("rediss://");
-            }
-            else
-            {
-                builder.AppendLiteral("redis://");
-            }
+            builder.Append($"{Scheme}");
+            builder.AppendLiteral("://");
 
             if (PasswordParameter is not null)
             {
@@ -151,6 +150,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     {
         yield return new("Host", ReferenceExpression.Create($"{Host}"));
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
+        yield return new("Scheme", ReferenceExpression.Create($"{Scheme}"));
 
         if (PasswordParameter is not null)
         {
