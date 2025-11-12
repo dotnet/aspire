@@ -20,9 +20,13 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     public RedisResource(string name, ParameterResource password) : this(name)
     {
         PasswordParameter = password;
+        ShellExecution = true;
     }
 
-    internal const string PrimaryEndpointName = "tcp";
+    internal const string PrimaryEndpointName = "primary";
+
+    // The non-TLS endpoint if TLS is enabled, otherwise not allocated
+    internal const string SecondaryEndpointName = "secondary";
 
     private EndpointReference? _primaryEndpoint;
 
@@ -46,6 +50,16 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// </summary>
     public ParameterResource? PasswordParameter { get; private set; }
 
+    /// <summary>
+    /// Determines whether Tls is enabled for the resource
+    /// </summary>
+    public bool TlsEnabled { get; internal set; }
+
+    /// <summary>
+    /// Arguments for the Dockerfile
+    /// </summary>
+    internal List<string> Args { get; set; } = new();
+
     private ReferenceExpression BuildConnectionString()
     {
         var builder = new ReferenceExpressionBuilder();
@@ -54,6 +68,11 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         if (PasswordParameter is not null)
         {
             builder.Append($",password={PasswordParameter}");
+        }
+
+        if (TlsEnabled)
+        {
+            builder.Append($",ssl=true");
         }
 
         return builder.Build();

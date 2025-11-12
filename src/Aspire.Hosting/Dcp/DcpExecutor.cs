@@ -1674,7 +1674,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 new ContainerNetworkConnection
                 {
                     Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value,
-                    Aliases = new List<string> { container.Name },
+                    Aliases = [container.Name, $"{container.Name}.dev.internal"],
                 }
             };
 
@@ -1803,7 +1803,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         createFiles.AddRange(keyPairFiles);
 
         // Set the final args, env vars, and create files on the container spec
-        spec.Args = args.Select(a => a.Value).ToList();
+        if (modelContainerResource is not ContainerResource container || container.ShellExecution != true)
+        {
+            spec.Args = args.Select(a => a.Value).ToList();
+        }
+        else
+        {
+            spec.Args = ["-c", $"{string.Join(' ', args.Select(a => a.Value))}"];
+        }
+
         dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
         spec.Env = env;
         spec.CreateFiles = createFiles;
@@ -2527,110 +2535,119 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         try
         {
+            var effectiveAnnotation = new CertificateKeyPairAnnotation();
             if (modelResource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
             {
-                X509Certificate2? certificate = annotation.Certificate;
-                if (annotation.UseDeveloperCertificate)
-                {
-                    certificate = _developerCertificateService.Certificates.FirstOrDefault();
-                }
-
-                if (certificate is null)
-                {
-                    // No certificate to configure, do nothing
-                    return (args, envVars, false);
-                }
-
-                var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
-                var keyOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.key");
-                var certificateOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pem");
-                var pfxOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pfx");
-
-                var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
-                {
-                    ExecutionContext = _executionContext,
-                    Resource = modelResource,
-                    Arguments = new(),
-                    EnvironmentVariables = new(),
-                    CertificatePath = ReferenceExpression.Create($"{certificateOutputPath}"),
-                    KeyPath = ReferenceExpression.Create($"{keyOutputPath}"),
-                    PfxPath = ReferenceExpression.Create($"{pfxOutputPath}"),
-                    Password = annotation.Password,
-                    CancellationToken = cancellationToken,
-                };
-
-                foreach (var callback in modelResource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
-                {
-                    await callback.Callback(context).ConfigureAwait(false);
-                }
-
-                if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
-                {
-                    // No configuration requested, do nothing
-                    resourceLogger.LogWarning("Resource '{ResourceName}' does not have certificate key pair configuration defined. No TLS key pair override will be applied.", modelResource.Name);
-                    return (args, envVars, false);
-                }
-
-                foreach (var a in context.Arguments)
-                {
-                    try
-                    {
-                        var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, a, key: null, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                        if (resolvedValue?.Value != null)
-                        {
-                            args.Add((resolvedValue.Value, resolvedValue.IsSensitive));
-                        }
-                    }
-                    catch
-                    {
-                        failedToApplyConfiguration = true;
-                    }
-                }
-
-                foreach (var (key, expr) in context.EnvironmentVariables)
-                {
-                    try
-                    {
-                        var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, expr, key, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                        if (resolvedValue?.Value is not null)
-                        {
-                            envVars.Add(new EnvVar
-                            {
-                                Name = key,
-                                Value = resolvedValue.Value,
-                            });
-                        }
-                    }
-                    catch
-                    {
-                        failedToApplyConfiguration = true;
-                    }
-                }
-
-                string? passphrase = null;
-                if (annotation.Password is { })
-                {
-                    passphrase = await annotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
-                var pfxBytes = certificate.Export(X509ContentType.Pfx, passphrase);
-
-                var certificateBytes = Encoding.ASCII.GetBytes(certificatePem);
-                var keyBytes = Encoding.ASCII.GetBytes(keyPem);
-
-                Directory.CreateDirectory(baseOutputPath);
-
-                // Write each of the certificate, key, and PFX assets to the temp folder
-                File.WriteAllBytes(keyOutputPath, keyBytes);
-                File.WriteAllBytes(certificateOutputPath, certificateBytes);
-                File.WriteAllBytes(pfxOutputPath, pfxBytes);
-
-                Array.Clear(keyPem, 0, keyPem.Length);
-                Array.Clear(keyBytes, 0, keyBytes.Length);
+                effectiveAnnotation = annotation;
             }
+
+            if (effectiveAnnotation is null)
+            {
+                // Should never happen
+                return (args, envVars, false);
+            }
+
+            X509Certificate2? certificate = effectiveAnnotation.Certificate;
+            if (certificate is null && effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(_developerCertificateService.DefaultTlsTerminationEnabled))
+            {
+                certificate = _developerCertificateService.Certificates.FirstOrDefault();
+            }
+
+            if (certificate is null)
+            {
+                // No certificate to configure, do nothing
+                return (args, envVars, false);
+            }
+
+            var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
+            var keyOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.key");
+            var certificateOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pem");
+            var pfxOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pfx");
+
+            var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
+            {
+                ExecutionContext = _executionContext,
+                Resource = modelResource,
+                Arguments = new(),
+                EnvironmentVariables = new(),
+                CertificatePath = ReferenceExpression.Create($"{certificateOutputPath}"),
+                KeyPath = ReferenceExpression.Create($"{keyOutputPath}"),
+                PfxPath = ReferenceExpression.Create($"{pfxOutputPath}"),
+                Password = effectiveAnnotation.Password,
+                CancellationToken = cancellationToken,
+            };
+
+            foreach (var callback in modelResource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
+            {
+                // No configuration requested, do nothing
+                resourceLogger.LogWarning("Resource '{ResourceName}' does not have certificate key pair configuration defined. No TLS key pair override will be applied.", modelResource.Name);
+                return (args, envVars, false);
+            }
+
+            foreach (var a in context.Arguments)
+            {
+                try
+                {
+                    var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, a, key: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    if (resolvedValue?.Value != null)
+                    {
+                        args.Add((resolvedValue.Value, resolvedValue.IsSensitive));
+                    }
+                }
+                catch
+                {
+                    failedToApplyConfiguration = true;
+                }
+            }
+
+            foreach (var (key, expr) in context.EnvironmentVariables)
+            {
+                try
+                {
+                    var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, expr, key, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    if (resolvedValue?.Value is not null)
+                    {
+                        envVars.Add(new EnvVar
+                        {
+                            Name = key,
+                            Value = resolvedValue.Value,
+                        });
+                    }
+                }
+                catch
+                {
+                    failedToApplyConfiguration = true;
+                }
+            }
+
+            string? passphrase = null;
+            if (effectiveAnnotation.Password is { })
+            {
+                passphrase = await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
+            var pfxBytes = certificate.Export(X509ContentType.Pfx, passphrase);
+
+            var certificateBytes = Encoding.ASCII.GetBytes(certificatePem);
+            var keyBytes = Encoding.ASCII.GetBytes(keyPem);
+
+            Directory.CreateDirectory(baseOutputPath);
+
+            // Write each of the certificate, key, and PFX assets to the temp folder
+            File.WriteAllBytes(keyOutputPath, keyBytes);
+            File.WriteAllBytes(certificateOutputPath, certificateBytes);
+            File.WriteAllBytes(pfxOutputPath, pfxBytes);
+
+            Array.Clear(keyPem, 0, keyPem.Length);
+            Array.Clear(keyBytes, 0, keyBytes.Length);
         }
         catch
         {
@@ -2653,140 +2670,149 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         try
         {
+            var effectiveAnnotation = new CertificateKeyPairAnnotation();
             if (modelResource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
             {
-                X509Certificate2? certificate = annotation.Certificate;
-                if (annotation.UseDeveloperCertificate)
-                {
-                    certificate = _developerCertificateService.Certificates.FirstOrDefault();
-                }
-
-                if (certificate is null)
-                {
-                    // No certificate to configure, do nothing
-                    return (args, envVars, createFiles, false);
-                }
-
-                var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
-                if (modelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
-                {
-                    certificatesDestination = pathsAnnotation.CustomCertificatesDestination ?? certificatesDestination;
-                }
-
-                var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
-                {
-                    ExecutionContext = _executionContext,
-                    Resource = modelResource,
-                    Arguments = new(),
-                    EnvironmentVariables = new(),
-                    CertificatePath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.pem"),
-                    KeyPath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.key"),
-                    PfxPath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.pfx"),
-                    Password = annotation.Password,
-                    CancellationToken = cancellationToken,
-                };
-
-                foreach (var callback in modelResource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
-                {
-                    await callback.Callback(context).ConfigureAwait(false);
-                }
-
-                if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
-                {
-                    // No configuration requested, do nothing
-                    resourceLogger.LogWarning("Resource '{ResourceName}' does not have certificate key pair configuration defined. No TLS key pair override will be applied.", modelResource.Name);
-                    return (args, envVars, createFiles, false);
-                }
-
-                foreach (var a in context.Arguments)
-                {
-                    try
-                    {
-                        var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, a, key: null, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                        if (resolvedValue?.Value != null)
-                        {
-                            args.Add((resolvedValue.Value, resolvedValue.IsSensitive));
-                        }
-                    }
-                    catch
-                    {
-                        failedToApplyConfiguration = true;
-                    }
-                }
-
-                foreach (var (key, expr) in context.EnvironmentVariables)
-                {
-                    try
-                    {
-                        var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, expr, key, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                        if (resolvedValue?.Value is not null)
-                        {
-                            envVars.Add(new EnvVar
-                            {
-                                Name = key,
-                                Value = resolvedValue.Value,
-                            });
-                        }
-                    }
-                    catch
-                    {
-                        failedToApplyConfiguration = true;
-                    }
-                }
-
-                string? passphrase = null;
-                if (annotation.Password is { })
-                {
-                    passphrase = await annotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
-                var pfxBytes = certificate.Export(X509ContentType.Pfx, passphrase);
-
-                // The PFX file is binary, so we need to write it to a temp file first
-                var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
-                var pfxOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pfx");
-                Directory.CreateDirectory(baseOutputPath);
-                File.WriteAllBytes(pfxOutputPath, pfxBytes);
-
-                // Write the certificate and key to the container filesystem
-                createFiles.Add(new ContainerCreateFileSystem
-                {
-                    Destination = certificatesDestination,
-                    Entries = [
-                        new ContainerFileSystemEntry
-                        {
-                            Name = "private",
-                            Type = ContainerFileSystemEntryType.Directory,
-                            Entries = [
-                                new ContainerFileSystemEntry
-                                {
-                                    Name = certificate.Thumbprint + ".key",
-                                    Type = ContainerFileSystemEntryType.File,
-                                    Contents = new string(keyPem),
-                                },
-                                new ContainerFileSystemEntry
-                                {
-                                    Name = certificate.Thumbprint + ".pem",
-                                    Type = ContainerFileSystemEntryType.File,
-                                    Contents = new string(certificatePem),
-                                },
-                                // Copy the PFX file from the temp location
-                                new ContainerFileSystemEntry
-                                {
-                                    Name = certificate.Thumbprint + ".pfx",
-                                    Type = ContainerFileSystemEntryType.File,
-                                    Source = pfxOutputPath,
-                                },
-                            ],
-                        },
-                    ],
-                });
-
-                Array.Clear(keyPem, 0, keyPem.Length);
+                effectiveAnnotation = annotation;
             }
+
+            if (effectiveAnnotation is null)
+            {
+                // Should never happen
+                return (args, envVars, createFiles, false);
+            }
+
+            X509Certificate2? certificate = effectiveAnnotation.Certificate;
+            if (certificate is null && effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(_developerCertificateService.DefaultTlsTerminationEnabled))
+            {
+                certificate = _developerCertificateService.Certificates.FirstOrDefault();
+            }
+
+            if (certificate is null)
+            {
+                // No certificate to configure, do nothing
+                return (args, envVars, createFiles, false);
+            }
+
+            var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
+            if (modelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
+            {
+                certificatesDestination = pathsAnnotation.CustomCertificatesDestination ?? certificatesDestination;
+            }
+
+            var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
+            {
+                ExecutionContext = _executionContext,
+                Resource = modelResource,
+                Arguments = new(),
+                EnvironmentVariables = new(),
+                CertificatePath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.pem"),
+                KeyPath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.key"),
+                PfxPath = ReferenceExpression.Create($"{certificatesDestination}/private/{certificate.Thumbprint}.pfx"),
+                Password = effectiveAnnotation.Password,
+                CancellationToken = cancellationToken,
+            };
+
+            foreach (var callback in modelResource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
+            {
+                // No configuration requested, do nothing
+                resourceLogger.LogWarning("Resource '{ResourceName}' does not have certificate key pair configuration defined. No TLS key pair override will be applied.", modelResource.Name);
+                return (args, envVars, createFiles, false);
+            }
+
+            foreach (var a in context.Arguments)
+            {
+                try
+                {
+                    var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, a, key: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    if (resolvedValue?.Value != null)
+                    {
+                        args.Add((resolvedValue.Value, resolvedValue.IsSensitive));
+                    }
+                }
+                catch
+                {
+                    failedToApplyConfiguration = true;
+                }
+            }
+
+            foreach (var (key, expr) in context.EnvironmentVariables)
+            {
+                try
+                {
+                    var resolvedValue = await modelResource.ResolveValueAsync(_executionContext, resourceLogger, expr, key, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    if (resolvedValue?.Value is not null)
+                    {
+                        envVars.Add(new EnvVar
+                        {
+                            Name = key,
+                            Value = resolvedValue.Value,
+                        });
+                    }
+                }
+                catch
+                {
+                    failedToApplyConfiguration = true;
+                }
+            }
+
+            string? passphrase = null;
+            if (effectiveAnnotation.Password is { })
+            {
+                passphrase = await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            (var certificatePem, var keyPem) = GetCertificateKeyPair(certificate, passphrase);
+            var pfxBytes = certificate.Export(X509ContentType.Pfx, passphrase);
+
+            // The PFX file is binary, so we need to write it to a temp file first
+            var baseOutputPath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "private");
+            var pfxOutputPath = Path.Join(baseOutputPath, $"{certificate.Thumbprint}.pfx");
+            Directory.CreateDirectory(baseOutputPath);
+            File.WriteAllBytes(pfxOutputPath, pfxBytes);
+
+            // Write the certificate and key to the container filesystem
+            createFiles.Add(new ContainerCreateFileSystem
+            {
+                Destination = certificatesDestination,
+                Entries = [
+                    new ContainerFileSystemEntry
+                    {
+                        Name = "private",
+                        Type = ContainerFileSystemEntryType.Directory,
+                        Entries = [
+                            new ContainerFileSystemEntry
+                            {
+                                Name = certificate.Thumbprint + ".key",
+                                Type = ContainerFileSystemEntryType.File,
+                                Contents = new string(keyPem),
+                            },
+                            new ContainerFileSystemEntry
+                            {
+                                Name = certificate.Thumbprint + ".pem",
+                                Type = ContainerFileSystemEntryType.File,
+                                Contents = new string(certificatePem),
+                            },
+                            // Copy the PFX file from the temp location
+                            new ContainerFileSystemEntry
+                            {
+                                Name = certificate.Thumbprint + ".pfx",
+                                Type = ContainerFileSystemEntryType.File,
+                                Source = pfxOutputPath,
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            Array.Clear(keyPem, 0, keyPem.Length);
         }
         catch (Exception ex)
         {

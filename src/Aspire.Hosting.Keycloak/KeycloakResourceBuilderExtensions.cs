@@ -104,40 +104,39 @@ public static class KeycloakResourceBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        if (builder.ExecutionContext.IsRunMode)
+        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            if (!builder.ExecutionContext.IsRunMode)
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+                return Task.CompletedTask;
+            }
 
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.SupportsTlsTermination)
-                    {
-                        // If no certificate is configured, and the developer certificate service supports container trust,
-                        // configure the resource to use the developer certificate for its key pair.
-                        keycloak.WithDeveloperCertificateKeyPair();
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.DefaultTlsTerminationEnabled)
                 {
                     addHttps = true;
                 }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
 
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
-                    // configure the environment variables to use it.
-                    keycloak
-                        .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
-                        .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
-                }
+            if (addHttps)
+            {
+                // If a TLS certificate is configured, ensure the keycloak resource has an HTTPS endpoint and
+                // configure the environment variables to use it.
+                keycloak
+                    .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
+                    .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
+            }
 
-                return Task.CompletedTask;
-            });
-        }
+            return Task.CompletedTask;
+        });
 
         if (builder.ExecutionContext.IsRunMode)
         {

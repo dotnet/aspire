@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -9,9 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
 
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 internal class DeveloperCertificateService : IDeveloperCertificateService
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
@@ -86,5 +86,5 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool TrustCertificate { get; }
 
-    public bool SupportsTlsTermination => _supportsTlsTermination.Value;
+    public bool DefaultTlsTerminationEnabled => _supportsTlsTermination.Value && TrustCertificate;
 }

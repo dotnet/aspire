@@ -310,39 +310,40 @@ public static class PythonAppResourceBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        if (builder.ExecutionContext.IsRunMode)
+        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            if (!builder.ExecutionContext.IsRunMode)
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+                return Task.CompletedTask;
+            }
 
-                bool addHttps = false;
-                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.DefaultTlsTerminationEnabled)
                 {
-                    if (developerCertificateService.SupportsTlsTermination)
-                    {
-                        // If no certificate is configured, and the developer certificate service supports container trust,
-                        // configure the resource to use the developer certificate for its key pair.
-                        resourceBuilder.WithDeveloperCertificateKeyPair();
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
-                {
+                    // If no certificate is configured, and the developer certificate service supports container trust,
+                    // configure the resource to use the developer certificate for its key pair.
                     addHttps = true;
                 }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
 
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
-                    // Uvicorn only supports binding to a single port
-                    resourceBuilder
-                        .WithEndpoint("http", ep => ep.UriScheme = "https");
-                }
+            if (addHttps)
+            {
+                // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
+                // Uvicorn only supports binding to a single port
+                resourceBuilder
+                    .WithEndpoint("http", ep => ep.UriScheme = "https");
+            }
 
-                return Task.CompletedTask;
-            });
-        }
+            return Task.CompletedTask;
+        });
 
         return resourceBuilder;
     }

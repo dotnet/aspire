@@ -40,43 +40,55 @@ public static class YarpResourceExtensions
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
-                      .WithOtlpExporter();
+                      .WithOtlpExporter()
+                      .WithCertificateKeyPairConfiguration(ctx =>
+                      {
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+
+                          return Task.CompletedTask;
+                      });
+
+        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        {
+            if (!builder.ExecutionContext.IsRunMode)
+            {
+                // This configuration is only valid for run mode currently
+                return Task.CompletedTask;
+            }
+
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.DefaultTlsTerminationEnabled)
+                {
+                    // If no specific certificate is configured
+                    addHttps = true;
+                }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
+
+            if (addHttps)
+            {
+                // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                // configure the environment variables to use it.
+                yarpBuilder
+                    .WithHttpsEndpoint(targetPort: HttpsPort)
+                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                    .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+            }
+
+            return Task.CompletedTask;
+        });
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
-            {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.SupportsTlsTermination)
-                    {
-                        // If no certificate is configured, and the developer certificate service supports container trust,
-                        // configure the resource to use the developer certificate for its key pair.
-                        yarpBuilder.WithDeveloperCertificateKeyPair();
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
-                    // configure the environment variables to use it.
-                    yarpBuilder
-                        .WithHttpsEndpoint(targetPort: HttpsPort)
-                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
-                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
-                }
-
-                return Task.CompletedTask;
-            });
-
             yarpBuilder.WithEnvironment(ctx =>
             {
                 var options = ctx.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationOptions>();
@@ -85,17 +97,6 @@ public static class YarpResourceExtensions
                     ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
                 }
             });
-
-#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            yarpBuilder.WithCertificateKeyPairConfiguration(ctx =>
-            {
-                ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
-                ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
-                ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
-
-                return Task.CompletedTask;
-            });
-#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 
         yarpBuilder.WithEnvironment(ctx =>

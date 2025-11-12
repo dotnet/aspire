@@ -2440,16 +2440,15 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Adds a <see cref="CertificateKeyPairAnnotation"/> to the resource annotations to associate a certificate key pair with the resource.
-    /// This is used to configure the certificate presented by the resource for HTTPS endpoints. If no certificate is specified,
-    /// the resource's default certificate configuration will be used.
+    /// This is used to configure the certificate presented by the resource for HTTPS endpoints.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS endpoints on the resource.</param>
     /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2? certificate, IResourceBuilder<ParameterResource>? password = null)
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> WithCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2458,6 +2457,27 @@ public static class ResourceBuilderExtensions
         {
             Certificate = certificate,
             Password = password?.Resource,
+        };
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Disable certificate key pair configuration for the resource. No TLS termination configuration will be applied.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> WithoutCertificateKeyPair<TResource>(this IResourceBuilder<TResource> builder)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateKeyPairAnnotation
+        {
+            Certificate = null,
+            UseDeveloperCertificate = false,
         };
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);

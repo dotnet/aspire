@@ -7,6 +7,10 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+#pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
 
 namespace Aspire.Hosting;
 
@@ -84,47 +88,115 @@ public static class RedisBuilderExtensions
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
-        return builder.AddResource(redis)
-                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry)
-                      .WithHealthCheck(healthCheckKey)
-                      // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
-                      .WithEntrypoint("/bin/sh")
-                      .WithEnvironment(context =>
-                      {
-                          if (redis.PasswordParameter is { } password)
-                          {
-                              context.EnvironmentVariables["REDIS_PASSWORD"] = password;
-                          }
-                      })
-                      .WithArgs(context =>
-                      {
-                          var redisCommand = new List<string>
-                          {
-                              "redis-server"
-                          };
+        var redisBuilder = builder.AddResource(redis)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+            .WithImageRegistry(RedisContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey)
+            // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+            .WithEntrypoint("/bin/sh")
+            .WithEnvironment(context =>
+            {
+                if (redis.PasswordParameter is { } password)
+                {
+                    context.EnvironmentVariables["REDIS_PASSWORD"] = password;
+                }
+            })
+            .WithArgs(context =>
+            {
+                context.Args.Add("redis-server");
 
-                          if (redis.PasswordParameter is not null)
-                          {
-                              redisCommand.Add("--requirepass");
-                              redisCommand.Add("$REDIS_PASSWORD");
-                          }
+                if (redis.PasswordParameter is not null)
+                {
+                    context.Args.Add("--requirepass");
+                    context.Args.Add("$REDIS_PASSWORD");
+                }
 
-                          if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
-                          {
-                              var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
+                if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                {
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
 
-                              redisCommand.Add("--save");
-                              redisCommand.Add(interval);
-                              redisCommand.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-                          }
+                    context.Args.Add("--save");
+                    context.Args.Add(interval);
+                    context.Args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                }
 
-                          context.Args.Add("-c");
-                          context.Args.Add(string.Join(' ', redisCommand));
+                return Task.CompletedTask;
+            })
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--tls-ca-cert-file");
+                ctx.Arguments.Add(ctx.CertificateBundlePath);
 
-                          return Task.CompletedTask;
-                      });
+                return Task.CompletedTask;
+            })
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--tls-cert-file");
+                ctx.Arguments.Add(ctx.CertificatePath);
+                ctx.Arguments.Add("--tls-key-file");
+                ctx.Arguments.Add(ctx.KeyPath);
+
+                if (ctx.ExecutionContext.IsRunMode)
+                {
+                    // TODO: Expose this as new API
+                    ctx.Arguments.Add("--tls-auth-clients");
+                    ctx.Arguments.Add("no");
+                }
+
+                if (ctx.Password is not null)
+                {
+                    var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                    var logger = resourceLogger.GetLogger(redis);
+                    logger.LogError($"Cannot configure an encrypted certificate for redis resource '{redis.Name}'");
+                }
+
+                return Task.CompletedTask;
+            });
+
+        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        {
+            if (!builder.ExecutionContext.IsRunMode)
+            {
+                return Task.CompletedTask;
+            }
+
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!redis.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.DefaultTlsTerminationEnabled)
+                {
+                    addHttps = true;
+                }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
+
+            if (addHttps)
+            {
+                // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                // configure the environment variables to use it.
+                redisBuilder
+                    .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                    .WithArgs(ctx =>
+                    {
+                        ctx.Args.Add("--tls-port");
+                        ctx.Args.Add(ReferenceExpression.Create($"{redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port)}"));
+                        ctx.Args.Add("--port");
+                        ctx.Args.Add(ReferenceExpression.Create($"{redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port)}"));
+                    });
+
+                redis.TlsEnabled = true;
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return redisBuilder;
     }
 
     /// <summary>
@@ -172,9 +244,19 @@ public static class RedisBuilderExtensions
 
                 foreach (var redisInstance in redisInstances)
                 {
+                    // Can't configure redis commander image for HTTPS via environment variables
+                    var endpoint = redisInstance.PrimaryEndpoint;
+                    if (redisInstance.TryGetEndpoints(out var endpoints))
+                    {
+                        var secondaryEndpoint = endpoints.FirstOrDefault(ep => StringComparer.OrdinalIgnoreCase.Equals(ep.Name, RedisResource.SecondaryEndpointName));
+                        if (secondaryEndpoint is not null)
+                        {
+                            endpoint = new EndpointReference(redisInstance, secondaryEndpoint);
+                        }
+                    }
                     // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
                     // This will need to be refactored once updated service discovery APIs are available
-                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
+                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{endpoint.TargetPort}:0";
                     if (redisInstance.PasswordParameter is not null)
                     {
                         var password = await redisInstance.PasswordParameter.GetValueAsync(ct).ConfigureAwait(false);
@@ -238,9 +320,13 @@ public static class RedisBuilderExtensions
                     foreach (var redisInstance in redisInstances)
                     {
                         // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                        context.EnvironmentVariables[$"RI_REDIS_HOST{counter}"] = redisInstance.Name;
+                        context.EnvironmentVariables[$"RI_REDIS_HOST{counter}"] = $"{redisInstance.Name}.dev.internal";
                         context.EnvironmentVariables[$"RI_REDIS_PORT{counter}"] = redisInstance.PrimaryEndpoint.TargetPort!.Value;
                         context.EnvironmentVariables[$"RI_REDIS_ALIAS{counter}"] = redisInstance.Name;
+                        if (redisInstance.TlsEnabled)
+                        {
+                            context.EnvironmentVariables[$"RI_REDIS_TLS{counter}"] = "true";
+                        }
                         if (redisInstance.PasswordParameter is not null)
                         {
                             context.EnvironmentVariables[$"RI_REDIS_PASSWORD{counter}"] = redisInstance.PasswordParameter;
@@ -250,7 +336,63 @@ public static class RedisBuilderExtensions
                     }
                 })
                 .WithRelationship(builder.Resource, "RedisInsight")
+                .WithCertificateTrustConfiguration(ctx =>
+                {
+                    var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
+
+                    var counter = 1;
+
+                    foreach (var redisInstance in redisInstances)
+                    {
+                        // Configure the TLS bundle for each connection
+                        ctx.EnvironmentVariables[$"RI_REDIS_TLS_CA_PATH{counter}"] = ctx.CertificateBundlePath;
+
+                        counter++;
+                    }
+
+                    return Task.CompletedTask;
+                })
+                .WithCertificateKeyPairConfiguration(ctx =>
+                {
+                    ctx.EnvironmentVariables["RI_SERVER_TLS_CERT"] = ctx.CertificatePath;
+                    ctx.EnvironmentVariables["RI_SERVER_TLS_KEY"] = ctx.KeyPath;
+
+                    if (ctx.Password != null)
+                    {
+                        var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                        var logger = resourceLogger.GetLogger(resource);
+                        logger.LogError($"Cannot configure an encrypted certificate for redis insight resource '{resource.Name}'");
+                    }
+
+                    return Task.CompletedTask;
+                })
                 .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the endpoint uses https scheme
+                    resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
 
             configureContainer?.Invoke(resourceBuilder);
 

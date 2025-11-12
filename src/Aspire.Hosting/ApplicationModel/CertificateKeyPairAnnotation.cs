@@ -12,7 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class CertificateKeyPairAnnotation : IResourceAnnotation
 {
     private X509Certificate2? _certificate;
-    private bool _useDeveloperCertificate;
+    private bool? _useDeveloperCertificate;
 
     /// <summary>
     /// Sets an <see cref="X509Certificate2"/> instance associated with this annotation.
@@ -23,7 +23,7 @@ public sealed class CertificateKeyPairAnnotation : IResourceAnnotation
         get => _certificate;
         init
         {
-            if (value != null && _useDeveloperCertificate)
+            if (value != null && _useDeveloperCertificate == true)
             {
                 throw new ArgumentException("Cannot set both UseDeveloperCertificate and Certificate properties.", nameof(value));
             }
@@ -52,13 +52,13 @@ public sealed class CertificateKeyPairAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets or sets a value indicating whether the resource should use a platform developer certificate for its key pair.
     /// </summary>
-    public bool UseDeveloperCertificate
+    public bool? UseDeveloperCertificate
     {
         get => _useDeveloperCertificate;
         init
         {
             _useDeveloperCertificate = value;
-            if (value && _certificate != null)
+            if (value == true && _certificate != null)
             {
                 throw new ArgumentException("Cannot set both UseDeveloperCertificate and Certificate properties.", nameof(value));
             }

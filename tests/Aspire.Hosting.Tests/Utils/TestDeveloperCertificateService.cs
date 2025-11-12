@@ -19,5 +19,5 @@ public sealed class TestDeveloperCertificateService(List<X509Certificate2> certi
     /// <inheritdoc />
     public bool TrustCertificate => trustCertificate;
 
-    public bool SupportsTlsTermination => supportsTlsTermination;
+    public bool DefaultTlsTerminationEnabled => supportsTlsTermination && trustCertificate;
 }
