@@ -23,11 +23,11 @@ Steps with no dependencies run first, followed by steps that depend on them.
   7. provision-api-identity
   8. provision-kv
   9. provision-api-roles-kv
- 10. provision-env
- 11. login-to-acr-env
- 12. push-api
- 13. provision-api-website
- 14. provision-cache
+ 10. provision-cache
+ 11. provision-env
+ 12. login-to-acr-env
+ 13. push-api
+ 14. provision-api-website
  15. provision-azure-bicep-resources
  16. print-dashboard-url-env
  17. deploy
@@ -202,13 +202,13 @@ If targeting 'deploy':
 
 If targeting 'deploy-api':
   Direct dependencies: print-api-summary
-  Total steps: 13
+  Total steps: 14
   Execution order:
     [0] build-prereq | deploy-prereq (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env
+    [4] login-to-acr-env | provision-cache (parallel)
     [5] push-api
     [6] provision-api-website
     [7] print-api-summary
@@ -238,13 +238,13 @@ If targeting 'login-to-acr-env':
 
 If targeting 'print-api-summary':
   Direct dependencies: provision-api-website
-  Total steps: 12
+  Total steps: 13
   Execution order:
     [0] build-prereq | deploy-prereq (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env
+    [4] login-to-acr-env | provision-cache (parallel)
     [5] push-api
     [6] provision-api-website
     [7] print-api-summary
@@ -283,14 +283,14 @@ If targeting 'provision-api-roles-kv':
     [4] provision-api-roles-kv
 
 If targeting 'provision-api-website':
-  Direct dependencies: create-provisioning-context, provision-api-identity, provision-env, provision-kv, push-api
-  Total steps: 11
+  Direct dependencies: create-provisioning-context, provision-api-identity, provision-cache, provision-env, provision-kv, push-api
+  Total steps: 12
   Execution order:
     [0] build-prereq | deploy-prereq (parallel)
     [1] build-api | validate-azure-login (parallel)
     [2] create-provisioning-context
     [3] provision-api-identity | provision-env | provision-kv (parallel)
-    [4] login-to-acr-env
+    [4] login-to-acr-env | provision-cache (parallel)
     [5] push-api
     [6] provision-api-website
 
