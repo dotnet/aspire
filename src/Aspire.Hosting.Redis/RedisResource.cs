@@ -23,7 +23,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         ShellExecution = true;
     }
 
-    internal const string PrimaryEndpointName = "primary";
+    internal const string PrimaryEndpointName = "tcp";
 
     // The non-TLS endpoint if TLS is enabled, otherwise not allocated
     internal const string SecondaryEndpointName = "secondary";
