@@ -6,9 +6,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
-using Spectre.Console;
 
 namespace Aspire.Cli.AppHostRunning;
 
@@ -20,7 +18,7 @@ internal sealed class AppHostRunnerFactory : IAppHostRunnerFactory
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
-    private readonly IAnsiConsole _ansiConsole;
+    private readonly Spectre.Console.IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
     private readonly IFeatures _features;
@@ -30,7 +28,7 @@ internal sealed class AppHostRunnerFactory : IAppHostRunnerFactory
         IDotNetCliRunner runner,
         IInteractionService interactionService,
         ICertificateService certificateService,
-        IAnsiConsole ansiConsole,
+        Spectre.Console.IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
         IFeatures features,
