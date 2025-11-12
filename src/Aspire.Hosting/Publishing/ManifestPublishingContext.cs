@@ -228,10 +228,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         foreach (var containerFileDestination in containerFilesAnnotations)
         {
             var source = containerFileDestination.Source;
-            
+
             Writer.WriteStartObject(source.Name);
             Writer.WriteString("destination", containerFileDestination.DestinationPath);
-            
+
             // Get source paths from the source resource
             if (source.TryGetAnnotationsOfType<ContainerFilesSourceAnnotation>(out var sourceAnnotations))
             {
@@ -242,7 +242,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 }
                 Writer.WriteEndArray();
             }
-            
+
             Writer.WriteEndObject();
         }
 
@@ -379,7 +379,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
                 Directory.CreateDirectory(manifestDirectory);
                 File.Copy(annotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
-                
+
                 // Update the dockerfile path to use the generated file for the manifest
                 dockerfilePath = resourceDockerfilePath;
             }
@@ -644,13 +644,29 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             Writer.WriteStartArray("args");
 
-            foreach (var (unprocessed, expression) in args)
+            if (resource is ContainerResource containerResource && containerResource.ShellExecution == true)
             {
-                var manifestExpression = GetManifestExpression(unprocessed, expression);
+                // Format the arguments in shell execution form (so that environment variable references and other shell features can work)
+                Writer.WriteStringValue("-c");
+                var shellArgs = new List<string>();
+                foreach (var (unprocessed, expression) in args)
+                {
+                    shellArgs.Add(GetManifestExpression(unprocessed, expression));
 
-                Writer.WriteStringValue(manifestExpression);
+                    TryAddDependentResources(unprocessed);
+                }
+                Writer.WriteStringValue(string.Join(' ', shellArgs));
+            }
+            else
+            {
+                foreach (var (unprocessed, expression) in args)
+                {
+                    var manifestExpression = GetManifestExpression(unprocessed, expression);
 
-                TryAddDependentResources(unprocessed);
+                    Writer.WriteStringValue(manifestExpression);
+
+                    TryAddDependentResources(unprocessed);
+                }
             }
 
             Writer.WriteEndArray();
