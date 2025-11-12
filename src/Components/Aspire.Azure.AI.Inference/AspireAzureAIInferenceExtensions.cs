@@ -236,7 +236,7 @@ public static class AspireAzureAIInferenceExtensions
     /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
     /// <remarks>
     /// <para>
-    /// The client is registered as a singleton with a keyed service.
+    /// The client is registered as a singleton.
     /// </para>
     /// <para>
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="connectionName"/> parameter.
@@ -371,11 +371,11 @@ public static class AspireAzureAIInferenceExtensions
     }
 
     /// <summary>
-    /// Creates a <see cref="IEmbeddingGenerator{Single, Single}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
+    /// Creates a <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <returns></returns>
+    /// <returns>An <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/>.</returns>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(this AspireEmbeddingsClientBuilder builder, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -385,12 +385,12 @@ public static class AspireAzureAIInferenceExtensions
     }
 
     /// <summary>
-    /// Creates a <see cref="IEmbeddingGenerator{Single, Single}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
+    /// Creates a <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> from the <see cref="EmbeddingsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
-    /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
+    /// <param name="serviceKey">The service key with which the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <returns></returns>
+    /// <returns>An <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/>.</returns>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(this AspireEmbeddingsClientBuilder builder, string serviceKey, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
