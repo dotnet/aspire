@@ -20,5 +20,10 @@ public interface IAzureKeyVaultSecretReference : IValueProvider, IManifestExpres
     /// </summary>
     IAzureKeyVaultResource Resource { get; }
 
-    IEnumerable<object> IValueWithReferences.References => [Resource];
+    /// <summary>
+    /// The resource that writes this secret to the Key Vault.
+    /// </summary>
+    public IResource? SecretOwner { get => null; set { } }
+
+    IEnumerable<object> IValueWithReferences.References => SecretOwner is null ? [Resource] : [Resource, SecretOwner];
 }

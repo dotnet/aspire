@@ -579,4 +579,35 @@ public class AzurePostgresExtensionsTests
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public void WithPasswordAuthentication_SetsSecretOwner(string? kvName)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+
+        // Act
+        if (kvName is null)
+        {
+            postgres.WithPasswordAuthentication();
+        }
+        else
+        {
+            var keyVault = builder.AddAzureKeyVault(kvName);
+            postgres.WithPasswordAuthentication(keyVault);
+        }
+
+        // Assert - Verify that the SecretOwner is set to the Postgres resource
+        Assert.NotNull(postgres.Resource.ConnectionStringSecretOutput);
+        Assert.Same(postgres.Resource, postgres.Resource.ConnectionStringSecretOutput.SecretOwner);
+        
+        // Also verify that References includes both the KeyVault and the Postgres resource
+        var references = ((IValueWithReferences)postgres.Resource.ConnectionStringSecretOutput).References.ToList();
+        Assert.Contains(postgres.Resource, references);
+        Assert.Contains(postgres.Resource.ConnectionStringSecretOutput.Resource, references);
+    }
 }

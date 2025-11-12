@@ -942,10 +942,10 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         // Set up the scenario from the issue: AppService environment with a compute resource that references a KeyVault secret
         builder.AddAzureAppServiceEnvironment("env");
-        
+
         var keyVault = builder.AddAzureKeyVault("kv");
         var secret = keyVault.GetSecret("test-secret");
-        
+
         // Add a compute resource that references the KeyVault secret
         // This creates a dependency: api -> secret -> keyVault
         builder.AddProject<Project>("api", launchProfileName: null)
@@ -968,7 +968,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
             // Verify that diagnostics complete without hanging (test will timeout if there's a hang)
             Assert.NotEmpty(logs);
-            
+
             // Use Verify to snapshot the diagnostic output showing the dependency graph
             await Verify(logs);
             return;
@@ -978,6 +978,77 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // The key verification is that the provision-api-website step depends on provision-kv
         // which is shown in the diagnostics output above (line 101 in the snapshot)
         // Just verify the test completed without timing out, which proves no hang occurred
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithRedisAccessKeyAuthentication_CreatesCorrectDependencies()
+    {
+        // Arrange - Test that Redis with AccessKeyAuthentication creates proper dependencies
+        // This recreates the scenario from issue #12801 where Redis writes a secret to KeyVault
+        // and a website references that secret
+        var mockProcessRunner = new MockProcessRunner();
+        var fakeContainerRuntime = new FakeContainerRuntime();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "diagnostics");
+        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var armClientProvider = new TestArmClientProvider(deploymentName =>
+        {
+            return deploymentName switch
+            {
+                string name when name.StartsWith("env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                    ["planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/testplan" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "test-client-id" }
+                },
+                string name when name.StartsWith("kv") => new Dictionary<string, object>
+                {
+                    ["vaultUri"] = new { type = "String", value = "https://testkv.vault.azure.net/" }
+                },
+                string name when name.StartsWith("cache") => new Dictionary<string, object>
+                {
+                    ["hostName"] = new { type = "String", value = "testcache.redis.cache.windows.net" }
+                },
+                _ => []
+            };
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+
+        // Set up the scenario: AppService environment with Redis using access key authentication
+        // and a compute resource that references the Redis cache
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        var cache = builder.AddAzureRedis("cache")
+            .WithAccessKeyAuthentication(keyVault);
+
+        // Add a compute resource that references the Redis cache
+        // This creates dependencies: api -> cache secret -> keyVault
+        // The cache secret is owned by cache, so api should depend on cache being fully provisioned
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithReference(cache);
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.StopAsync();
+
+        // In diagnostics mode, verify the deployment graph shows correct dependencies
+        var logs = mockActivityReporter.LoggedMessages
+                        .Where(s => s.StepTitle == "diagnostics")
+                        .Select(s => s.Message)
+                        .ToList();
+
+        // Verify that diagnostics complete without hanging (test will timeout if there's a hang)
+        Assert.NotEmpty(logs);
+
+        // Use Verify to snapshot the diagnostic output showing the dependency graph
+        // The key assertion is that provision-api-website depends on provision-cache
+        // because the Redis resource writes the secret that the API consumes
+        await Verify(logs);
     }
 
     private void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
@@ -991,9 +1062,9 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
         var environment = ProvisioningTestHelpers.CreateEnvironment();
-        
+
         builder.WithTestAndResourceLogging(testOutputHelper);
-        
+
         armClientProvider ??= ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
