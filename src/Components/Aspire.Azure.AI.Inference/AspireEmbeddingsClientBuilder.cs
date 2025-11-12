@@ -45,7 +45,7 @@ public class AspireEmbeddingsClientBuilder(
     public string? ServiceKey { get; } = serviceKey;
 
     /// <summary>
-    /// The name of the deployment in Azure AI Foundry.
+    /// Gets the name of the deployment in Azure AI Foundry.
     /// </summary>
     public string? DeploymentName { get; } = deploymentName;
 }
