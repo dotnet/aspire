@@ -1022,7 +1022,7 @@
 
 "@vscode/vsce-sign-linux-x64@2.0.2":
   version "2.0.2"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@vscode/vsce-sign-linux-x64/-/vsce-sign-linux-x64-2.0.2.tgz"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@vscode/vsce-sign-linux-x64/-/vsce-sign-linux-x64-2.0.2.tgz#59ab93f322efb3cf49166d4e2e812789c3117428"
   integrity sha1-WauT8yLvs89JFm1OLoEnicMRdCg=
 
 "@vscode/vsce-sign-win32-arm64@2.0.2":
@@ -1032,7 +1032,7 @@
 
 "@vscode/vsce-sign-win32-x64@2.0.2":
   version "2.0.2"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@vscode/vsce-sign-win32-x64/-/vsce-sign-win32-x64-2.0.2.tgz#294ea72b44fedd694d49f5cef4c55bf3876dc257"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@vscode/vsce-sign-win32-x64/-/vsce-sign-win32-x64-2.0.2.tgz"
   integrity sha1-KU6nK0T+3WlNSfXO9MVb84dtwlc=
 
 "@vscode/vsce-sign@^2.0.0":
@@ -3388,11 +3388,6 @@ is-negated-glob@^1.0.0:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-negated-glob/-/is-negated-glob-1.0.0.tgz"
   integrity sha1-aRC8pdqMleeEtXUbl2z1oQ/uNtI=
 
-is-network-error@^1.1.0:
-  version "1.1.0"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-network-error/-/is-network-error-1.1.0.tgz"
-  integrity sha1-0mp2DjdwIm0RwWkFLyZqSAPZyZc=
-
 is-number@^7.0.0:
   version "7.0.0"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-number/-/is-number-7.0.0.tgz"
@@ -3606,7 +3601,7 @@ json5@^2.2.2:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/json5/-/json5-2.2.3.tgz"
   integrity sha1-eM1vGhm9wStz21rQxh79ZsHikoM=
 
-jsonc-parser@^3.2.0:
+jsonc-parser@^3.2.0, jsonc-parser@^3.3.1:
   version "3.3.1"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/jsonc-parser/-/jsonc-parser-3.3.1.tgz"
   integrity sha1-8qUktPf9EePXkeVZl3rWC5i3mLQ=
@@ -4354,13 +4349,6 @@ p-map@^4.0.0:
   integrity sha1-uy+Vpe2i7BaOySdOBqdHw+KQTSs=
   dependencies:
     aggregate-error "^3.0.0"
-
-p-retry@^7.0.0:
-  version "7.0.0"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/p-retry/-/p-retry-7.0.0.tgz"
-  integrity sha1-ONvuIBSdlGgP4KAiQFg52ZX5Xns=
-  dependencies:
-    is-network-error "^1.1.0"
 
 p-try@^2.0.0:
   version "2.2.0"

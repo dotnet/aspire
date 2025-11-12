@@ -179,7 +179,7 @@
     <value>The --project option was not specified and multiple app host project files were detected.</value>
   </data>
   <data name="ProjectOptionNotSpecifiedNoCsprojFound" xml:space="preserve">
-    <value>The project argument was not specified and no *.csproj files were detected.</value>
+    <value>The project argument was not specified and no app host project files were detected.</value>
   </data>
   <data name="ProjectCouldNotBeBuilt" xml:space="preserve">
     <value>The project could not be built. For more information run with --debug switch.</value>
