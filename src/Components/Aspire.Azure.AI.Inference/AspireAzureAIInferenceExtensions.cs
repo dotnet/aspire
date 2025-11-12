@@ -36,7 +36,7 @@ public static class AspireAzureAIInferenceExtensions
     /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
     /// <remarks>
     /// <para>
-    /// The client is registered as a singleton with a keyed service.
+    /// The client is registered as a singleton.
     /// </para>
     /// <para>
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="connectionName"/> parameter.
@@ -178,7 +178,7 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <returns></returns>
+    /// <returns>A <see cref="ChatClientBuilder"/>.</returns>
     public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -193,7 +193,7 @@ public static class AspireAzureAIInferenceExtensions
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <returns></returns>
+    /// <returns>A <see cref="ChatClientBuilder"/>.</returns>
     public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
