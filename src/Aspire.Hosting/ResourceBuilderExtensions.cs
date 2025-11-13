@@ -2770,7 +2770,7 @@ public static class ResourceBuilderExtensions
     /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<LaunchConfigurationProducerOptions, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2785,8 +2785,7 @@ public static class ResourceBuilderExtensions
         {
             resourceWithArgs.WithArgs(async ctx =>
             {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
@@ -2954,8 +2953,7 @@ public static class ResourceBuilderExtensions
         {
             resourceWithArgs.WithArgs(async ctx =>
             {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }

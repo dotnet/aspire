@@ -244,7 +244,7 @@ public static class ProjectResourceBuilderExtensions
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(projectMetadata)
-                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "project")
+                      .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = options.Mode }, "project")
                       .WithProjectDefaults(options);
     }
 
