@@ -885,6 +885,12 @@ public static class ProjectResourceBuilderExtensions
             };
 
             options.AdditionalConfiguration?.Invoke(configuration);
+
+            if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<CSharpDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+            {
+                debuggerPropertiesAnnotation.ConfigureDebuggerProperties(configuration.DebuggerProperties);
+            }
+            
             return configuration;
         }, "project");
     }

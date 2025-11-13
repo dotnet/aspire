@@ -113,7 +113,7 @@ public class CSharpDebuggerProperties : DebuggerProperties
     /// Allows customization of how the debugger searches for symbols (.pdb files).
     /// </summary>
     [JsonPropertyName("symbolOptions")]
-    public SymbolOptions? SymbolOptions { get; set; }
+    public SymbolLoadOptions? SymbolOptions { get; set; }
 
     /// <summary>
     /// Allows customization of Source Link behavior by URL. Source Link enables downloading source files 
@@ -135,184 +135,184 @@ public class CSharpDebuggerProperties : DebuggerProperties
     /// </summary>
     [JsonPropertyName("checkForDevCert")]
     public bool? CheckForDevCert { get; set; }
-}
-
-/// <summary>
-/// Configures logging options for the C# debugger.
-/// </summary>
-[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class LoggingOptions
-{
-    /// <summary>
-    /// If true, the debugger will log exceptions.
-    /// </summary>
-    [JsonPropertyName("exceptions")]
-    public bool? Exceptions { get; set; }
 
     /// <summary>
-    /// If true, the debugger will log module load events.
+    /// Configures logging options for the C# debugger.
     /// </summary>
-    [JsonPropertyName("moduleLoad")]
-    public bool? ModuleLoad { get; set; }
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public class LoggingOptions
+    {
+        /// <summary>
+        /// If true, the debugger will log exceptions.
+        /// </summary>
+        [JsonPropertyName("exceptions")]
+        public bool? Exceptions { get; set; }
+
+        /// <summary>
+        /// If true, the debugger will log module load events.
+        /// </summary>
+        [JsonPropertyName("moduleLoad")]
+        public bool? ModuleLoad { get; set; }
+
+        /// <summary>
+        /// If true, the debugger will log program output.
+        /// </summary>
+        [JsonPropertyName("programOutput")]
+        public bool? ProgramOutput { get; set; }
+
+        /// <summary>
+        /// If true, the debugger will log browser standard output.
+        /// </summary>
+        [JsonPropertyName("browserStdOut")]
+        public bool? BrowserStdOut { get; set; }
+
+        /// <summary>
+        /// If true, the debugger will log console usage messages.
+        /// </summary>
+        [JsonPropertyName("consoleUsageMessage")]
+        public bool? ConsoleUsageMessage { get; set; }
+
+        /// <summary>
+        /// Configuration for diagnostic logging to help diagnose debugger problems.
+        /// </summary>
+        [JsonPropertyName("diagnosticsLog")]
+        public DiagnosticsLogOptions? DiagnosticsLog { get; set; }
+    }
 
     /// <summary>
-    /// If true, the debugger will log program output.
+    /// Advanced diagnostic logging options for troubleshooting debugger issues.
     /// </summary>
-    [JsonPropertyName("programOutput")]
-    public bool? ProgramOutput { get; set; }
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public class DiagnosticsLogOptions
+    {
+        /// <summary>
+        /// The path where diagnostic logs should be written.
+        /// </summary>
+        [JsonPropertyName("path")]
+        public string? Path { get; set; }
+
+        /// <summary>
+        /// Controls the verbosity of diagnostic logging.
+        /// </summary>
+        [JsonPropertyName("level")]
+        public string? Level { get; set; }
+    }
 
     /// <summary>
-    /// If true, the debugger will log browser standard output.
+    /// Configuration for pipe transport to connect to a remote computer.
     /// </summary>
-    [JsonPropertyName("browserStdOut")]
-    public bool? BrowserStdOut { get; set; }
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public class PipeTransportOptions
+    {
+        /// <summary>
+        /// The fully qualified path to the pipe program to use (e.g., "ssh").
+        /// </summary>
+        [JsonPropertyName("pipeProgram")]
+        public required string PipeProgram { get; set; }
+
+        /// <summary>
+        /// Command line arguments passed to the pipe program.
+        /// </summary>
+        [JsonPropertyName("pipeArgs")]
+        public string[]? PipeArgs { get; set; }
+
+        /// <summary>
+        /// The full path to the debugger on the target machine.
+        /// </summary>
+        [JsonPropertyName("debuggerPath")]
+        public string? DebuggerPath { get; set; }
+
+        /// <summary>
+        /// The working directory for the pipe program.
+        /// </summary>
+        [JsonPropertyName("pipeCwd")]
+        public string? PipeCwd { get; set; }
+
+        /// <summary>
+        /// If true, arguments will be quoted. Defaults to true.
+        /// </summary>
+        [JsonPropertyName("quoteArgs")]
+        public bool? QuoteArgs { get; set; }
+    }
 
     /// <summary>
-    /// If true, the debugger will log console usage messages.
+    /// Configures how the debugger searches for symbol (.pdb) files.
     /// </summary>
-    [JsonPropertyName("consoleUsageMessage")]
-    public bool? ConsoleUsageMessage { get; set; }
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public class SymbolLoadOptions
+    {
+        /// <summary>
+        /// Array of symbol server URLs or directories to search for .pdb files.
+        /// </summary>
+        [JsonPropertyName("searchPaths")]
+        public string[]? SearchPaths { get; set; }
+
+        /// <summary>
+        /// If true, the Microsoft Symbol server (https://msdl.microsoft.com/download/symbols) is added to the search path.
+        /// </summary>
+        [JsonPropertyName("searchMicrosoftSymbolServer")]
+        public bool? SearchMicrosoftSymbolServer { get; set; }
+
+        /// <summary>
+        /// If true, the NuGet.org Symbol server (https://symbols.nuget.org/download/symbols) is added to the search path.
+        /// </summary>
+        [JsonPropertyName("searchNuGetOrgSymbolServer")]
+        public bool? SearchNuGetOrgSymbolServer { get; set; }
+
+        /// <summary>
+        /// Directory where symbols downloaded from symbol servers should be cached.
+        /// </summary>
+        [JsonPropertyName("cachePath")]
+        public string? CachePath { get; set; }
+
+        /// <summary>
+        /// Controls which modules to load symbols for.
+        /// </summary>
+        [JsonPropertyName("moduleFilter")]
+        public ModuleFilter? ModuleFilter { get; set; }
+    }
 
     /// <summary>
-    /// Configuration for diagnostic logging to help diagnose debugger problems.
+    /// Filters which modules should have symbols loaded.
     /// </summary>
-    [JsonPropertyName("diagnosticsLog")]
-    public DiagnosticsLogOptions? DiagnosticsLog { get; set; }
-}
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public class ModuleFilter
+    {
+        /// <summary>
+        /// Either "loadAllButExcluded" or "loadOnlyIncluded".
+        /// </summary>
+        [JsonPropertyName("mode")]
+        public string? Mode { get; set; }
 
-/// <summary>
-/// Advanced diagnostic logging options for troubleshooting debugger issues.
-/// </summary>
-[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class DiagnosticsLogOptions
-{
-    /// <summary>
-    /// The path where diagnostic logs should be written.
-    /// </summary>
-    [JsonPropertyName("path")]
-    public string? Path { get; set; }
+        /// <summary>
+        /// Array of modules to exclude (when mode is "loadAllButExcluded"). Wildcards are supported.
+        /// </summary>
+        [JsonPropertyName("excludedModules")]
+        public string[]? ExcludedModules { get; set; }
 
-    /// <summary>
-    /// Controls the verbosity of diagnostic logging.
-    /// </summary>
-    [JsonPropertyName("level")]
-    public string? Level { get; set; }
-}
+        /// <summary>
+        /// Array of modules to include (when mode is "loadOnlyIncluded"). Wildcards are supported.
+        /// </summary>
+        [JsonPropertyName("includedModules")]
+        public string[]? IncludedModules { get; set; }
 
-/// <summary>
-/// Configuration for pipe transport to connect to a remote computer.
-/// </summary>
-[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class PipeTransportOptions
-{
-    /// <summary>
-    /// The fully qualified path to the pipe program to use (e.g., "ssh").
-    /// </summary>
-    [JsonPropertyName("pipeProgram")]
-    public required string PipeProgram { get; set; }
+        /// <summary>
+        /// If true, for modules not in includedModules, the debugger will still check next to the module itself.
+        /// </summary>
+        [JsonPropertyName("includeSymbolsNextToModules")]
+        public bool? IncludeSymbolsNextToModules { get; set; }
+    }
 
     /// <summary>
-    /// Command line arguments passed to the pipe program.
+    /// Configures Source Link behavior for a specific URL pattern.
     /// </summary>
-    [JsonPropertyName("pipeArgs")]
-    public string[]? PipeArgs { get; set; }
-
-    /// <summary>
-    /// The full path to the debugger on the target machine.
-    /// </summary>
-    [JsonPropertyName("debuggerPath")]
-    public string? DebuggerPath { get; set; }
-
-    /// <summary>
-    /// The working directory for the pipe program.
-    /// </summary>
-    [JsonPropertyName("pipeCwd")]
-    public string? PipeCwd { get; set; }
-
-    /// <summary>
-    /// If true, arguments will be quoted. Defaults to true.
-    /// </summary>
-    [JsonPropertyName("quoteArgs")]
-    public bool? QuoteArgs { get; set; }
-}
-
-/// <summary>
-/// Configures how the debugger searches for symbol (.pdb) files.
-/// </summary>
-[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class SymbolOptions
-{
-    /// <summary>
-    /// Array of symbol server URLs or directories to search for .pdb files.
-    /// </summary>
-    [JsonPropertyName("searchPaths")]
-    public string[]? SearchPaths { get; set; }
-
-    /// <summary>
-    /// If true, the Microsoft Symbol server (https://msdl.microsoft.com/download/symbols) is added to the search path.
-    /// </summary>
-    [JsonPropertyName("searchMicrosoftSymbolServer")]
-    public bool? SearchMicrosoftSymbolServer { get; set; }
-
-    /// <summary>
-    /// If true, the NuGet.org Symbol server (https://symbols.nuget.org/download/symbols) is added to the search path.
-    /// </summary>
-    [JsonPropertyName("searchNuGetOrgSymbolServer")]
-    public bool? SearchNuGetOrgSymbolServer { get; set; }
-
-    /// <summary>
-    /// Directory where symbols downloaded from symbol servers should be cached.
-    /// </summary>
-    [JsonPropertyName("cachePath")]
-    public string? CachePath { get; set; }
-
-    /// <summary>
-    /// Controls which modules to load symbols for.
-    /// </summary>
-    [JsonPropertyName("moduleFilter")]
-    public ModuleFilter? ModuleFilter { get; set; }
-}
-
-/// <summary>
-/// Filters which modules should have symbols loaded.
-/// </summary>
-[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class ModuleFilter
-{
-    /// <summary>
-    /// Either "loadAllButExcluded" or "loadOnlyIncluded".
-    /// </summary>
-    [JsonPropertyName("mode")]
-    public string? Mode { get; set; }
-
-    /// <summary>
-    /// Array of modules to exclude (when mode is "loadAllButExcluded"). Wildcards are supported.
-    /// </summary>
-    [JsonPropertyName("excludedModules")]
-    public string[]? ExcludedModules { get; set; }
-
-    /// <summary>
-    /// Array of modules to include (when mode is "loadOnlyIncluded"). Wildcards are supported.
-    /// </summary>
-    [JsonPropertyName("includedModules")]
-    public string[]? IncludedModules { get; set; }
-
-    /// <summary>
-    /// If true, for modules not in includedModules, the debugger will still check next to the module itself.
-    /// </summary>
-    [JsonPropertyName("includeSymbolsNextToModules")]
-    public bool? IncludeSymbolsNextToModules { get; set; }
-}
-
-/// <summary>
-/// Configures Source Link behavior for a specific URL pattern.
-/// </summary>
-[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class SourceLinkOption
-{
-    /// <summary>
-    /// Whether Source Link is enabled for this URL pattern.
-    /// </summary>
-    [JsonPropertyName("enabled")]
-    public bool Enabled { get; set; }
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public class SourceLinkOption
+    {
+        /// <summary>
+        /// Whether Source Link is enabled for this URL pattern.
+        /// </summary>
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; }
+    }
 }
