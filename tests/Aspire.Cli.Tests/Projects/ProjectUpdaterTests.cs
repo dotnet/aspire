@@ -2156,7 +2156,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UpdateProjectFileAsync_SkipsPackagesWithVersionRangeExpressions()
+    public async Task UpdateProjectFileAsync_TreatsVersionRangeExpressionsLikeWildcard()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
@@ -2173,6 +2173,8 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
               </ItemGroup>
             </Project>
             """);
+
+        var packagesUpdated = new List<string>();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
@@ -2198,7 +2200,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     {
                         var itemsAndProperties = new JsonObject();
                         itemsAndProperties.WithSdkVersion("9.4.1");
-                        // Package with version range expression - should be skipped
+                        // Package with version range expression - should be treated like wildcard and updated
                         itemsAndProperties.WithPackageReference("Aspire.Hosting.Azure.Functions", "(9.4-*,9.5]");
                         // Normal package - should be updated
                         itemsAndProperties.WithPackageReference("Aspire.Hosting.Redis", "9.4.1");
@@ -2209,9 +2211,8 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     },
                     AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                     {
-                        // Verify that only the valid package is updated, not the one with range expression
-                        Assert.NotEqual("Aspire.Hosting.Azure.Functions", packageName);
-                        Assert.Equal("Aspire.Hosting.Redis", packageName);
+                        // Track which packages are updated
+                        packagesUpdated.Add(packageName);
                         Assert.Equal("9.5.0", packageVersion);
                         return 0;
                     }
@@ -2238,8 +2239,10 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var projectUpdater = provider.GetRequiredService<IProjectUpdater>();
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
-        // Update should be applied for the valid package (Redis), but not for the one with range expression
+        // Both packages should be updated - range expression is treated like wildcard
         Assert.True(updateResult.UpdatedApplied);
+        Assert.Contains("Aspire.Hosting.Azure.Functions", packagesUpdated);
+        Assert.Contains("Aspire.Hosting.Redis", packagesUpdated);
     }
 
     [Theory]
