@@ -21,9 +21,19 @@ public interface IAzureKeyVaultSecretReference : IValueProvider, IManifestExpres
     IAzureKeyVaultResource Resource { get; }
 
     /// <summary>
-    /// The resource that writes this secret to the Key Vault.
+    /// Gets or sets the resource that writes this secret to the Key Vault.
     /// </summary>
-    public IResource? SecretOwner { get => null; set { } }
+    /// <value>
+    /// The <see cref="IResource"/> that is responsible for writing this secret to the Key Vault, or <c>null</c> if not set.
+    /// </value>
+    /// <remarks>
+    /// Implementers must provide both a getter and setter for this property. If not implemented, attempts to set <see cref="SecretOwner"/> will silently fail.
+    /// </remarks>
+    public IResource? SecretOwner
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
 
     IEnumerable<object> IValueWithReferences.References => SecretOwner is null ? [Resource] : [Resource, SecretOwner];
 }

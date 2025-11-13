@@ -100,7 +100,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     public Dictionary<string, object?> Parameters { get; } = [];
 
     /// <summary>
-    /// Resources that this resource depends on.
+    /// References to other objects that may contain Azure resource references.
     /// </summary>
     public HashSet<object> References { get; } = [];
 

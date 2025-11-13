@@ -27,11 +27,6 @@ internal sealed class AzureKeyVaultSecretReference(string secretName, AzureKeyVa
     /// </summary>
     public IResource? SecretOwner { get; set; }
 
-    /// <summary>
-    /// Gets the resources referenced by this secret.
-    /// </summary>
-    IEnumerable<object> IValueWithReferences.References => SecretOwner is null ? [Resource] : [Resource, SecretOwner];
-
     string IManifestExpressionProvider.ValueExpression => $"{{{azureKeyVaultResource.Name}.secrets.{SecretName}}}";
 
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
