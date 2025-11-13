@@ -27,4 +27,9 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     /// Defaults to "--".
     /// </summary>
     public string? CommandSeparator { get; init; } = "--";
+
+    /// <summary>
+    /// Gets the URL with installation instructions for this package manager.
+    /// </summary>
+    public string? InstallHelpLink { get; init; }
 }

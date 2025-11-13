@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Globalization;
 using System.Text.Json;
@@ -12,7 +13,6 @@ using Aspire.Hosting.JavaScript;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -58,8 +58,7 @@ public static class JavaScriptHostingExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
 
-        // Register Node environment validation services (once per builder)
-        builder.Services.TryAddSingleton<NodeInstallationManager>();
+        // InstallationManager is registered globally in DistributedApplicationBuilder
 
         appDirectory = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
         var resource = new NodeAppResource(name, "node", appDirectory);
@@ -230,9 +229,6 @@ public static class JavaScriptHostingExtensions
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(runScriptName);
 
-        // Register Node environment validation services (once per builder)
-        builder.Services.TryAddSingleton<NodeInstallationManager>();
-
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new JavaScriptAppResource(name, "npm", appDirectory);
 
@@ -368,9 +364,6 @@ public static class JavaScriptHostingExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
 
-        // Register Node environment validation services (once per builder)
-        builder.Services.TryAddSingleton<NodeInstallationManager>();
-
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new ViteAppResource(name, "npm", appDirectory);
 
@@ -413,13 +406,13 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        // Register npm validation service
-        resource.ApplicationBuilder.Services.TryAddSingleton<NpmInstallationManager>();
-
         installCommand ??= GetDefaultNpmInstallCommand(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run")
+            {
+                InstallHelpLink = "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm"
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
         AddInstaller(resource, install);
@@ -443,13 +436,13 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        // Register yarn validation service
-        resource.ApplicationBuilder.Services.TryAddSingleton<YarnInstallationManager>();
-
         installArgs ??= GetDefaultYarnInstallArgs(resource);
 
         resource
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run"))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run")
+            {
+                InstallHelpLink = "https://yarnpkg.com/getting-started/install"
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
         AddInstaller(resource, install);
@@ -491,16 +484,14 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        // Register pnpm validation service
-        resource.ApplicationBuilder.Services.TryAddSingleton<PnpmInstallationManager>();
-
         installArgs ??= GetDefaultPnpmInstallArgs(resource);
 
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("pnpm", runScriptCommand: "run")
             {
                 // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
-                CommandSeparator = null
+                CommandSeparator = null,
+                InstallHelpLink = "https://pnpm.io/installation"
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
@@ -594,8 +585,8 @@ public static class JavaScriptHostingExtensions
             installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
             {
                 // Validate that Node is installed before running any package manager
-                var nodeInstallationManager = e.Services.GetRequiredService<NodeInstallationManager>();
-                await nodeInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+                await installationManager.EnsureInstalledAsync("node", helpLink: "https://nodejs.org/", cancellationToken: ct).ConfigureAwait(false);
             });
 
             resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
@@ -616,23 +607,12 @@ public static class JavaScriptHostingExtensions
                 // Add a second validation hook for the specific package manager after the command is set
                 installerBuilder.OnBeforeResourceStarted(async (installerResource, e, ct) =>
                 {
-                    // Check which package manager is being used and validate it
-                    var executableName = packageManager.ExecutableName.ToLowerInvariant();
-                    switch (executableName)
-                    {
-                        case "npm":
-                            var npmInstallationManager = e.Services.GetRequiredService<NpmInstallationManager>();
-                            await npmInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-                            break;
-                        case "yarn":
-                            var yarnInstallationManager = e.Services.GetRequiredService<YarnInstallationManager>();
-                            await yarnInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-                            break;
-                        case "pnpm":
-                            var pnpmInstallationManager = e.Services.GetRequiredService<PnpmInstallationManager>();
-                            await pnpmInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-                            break;
-                    }
+                    // Validate the package manager is installed
+                    var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+                    await installationManager.EnsureInstalledAsync(
+                        packageManager.ExecutableName,
+                        helpLink: packageManager.InstallHelpLink,
+                        cancellationToken: ct).ConfigureAwait(false);
                 });
 
                 return Task.CompletedTask;
