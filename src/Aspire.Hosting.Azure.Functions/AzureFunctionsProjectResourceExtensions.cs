@@ -324,7 +324,7 @@ public static class AzureFunctionsProjectResourceExtensions
             if (Directory.Exists(path))
             {
                 // Path is a directory, assume it's a project directory
-                var projectFiles = Directory.GetFiles(path, "*.*proj", new EnumerationOptions
+                var projectFiles = Directory.GetFiles(path, "*.csproj", new EnumerationOptions
                 {
                     MatchCasing = MatchCasing.CaseInsensitive,
                     RecurseSubdirectories = false,
