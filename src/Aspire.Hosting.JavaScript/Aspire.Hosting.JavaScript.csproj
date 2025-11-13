@@ -11,8 +11,6 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
-    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
-    <Compile Include="$(SharedDir)ResourceDebugSupportExtensions.cs" Link="Utils\ResourceDebugSupportExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

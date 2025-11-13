@@ -1,6 +1,6 @@
 import path from "path";
 import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration } from "../dcp/types";
-import { debugProject, runProject } from "../loc/strings";
+import { debugProject, invalidLaunchConfiguration, runProject } from "../loc/strings";
 import { mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
@@ -60,6 +60,8 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
             ...filteredDebuggerProperties
         } as any as AspireResourceExtendedDebugConfiguration;
     }
+
+    configuration = configuration!;
 
     if (debugSessionConfig.debuggers) {
         // 1. Check if this is the apphost
