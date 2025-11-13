@@ -143,12 +143,12 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
 
         // Only http, https, and tcp are supported
-        /*var unsupportedEndpoints = endpoints.Where(e => e.UriScheme is not ("tcp" or "http" or "https")).ToArray();
+        var unsupportedEndpoints = endpoints.Where(e => e.UriScheme is not ("tcp" or "http" or "https")).ToArray();
 
         if (unsupportedEndpoints.Length > 0)
         {
             throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.");
-        }*/
+        }
 
         // We can allocate ports per endpoint
         var portAllocator = new PortAllocator();
@@ -257,7 +257,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         // Don't allow mixing http and tcp endpoints
         // This means we want to fail if we see a group with http/https and tcp endpoints
         static bool Compatible(string[] schemes) =>
-            schemes.All(s => s is "http" or "https") || !schemes.Any(s => s is "http" or "https");
+            schemes.All(s => s is "http" or "https") || schemes.All(s => s is "tcp");
 
         if (endpointsByTargetPort.Any(g => !Compatible(g.UniqueSchemes)))
         {
