@@ -38,7 +38,7 @@ public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationW
 /// <summary>
 /// Models debugger properties for a python application made available by the debugpy debug adapter.
 /// </summary>
-public sealed class PythonDebuggerProperties : DebuggerProperties
+public class PythonDebuggerProperties : DebuggerProperties
 {
     /// <summary>
     /// Identifies the type of debugger to use.

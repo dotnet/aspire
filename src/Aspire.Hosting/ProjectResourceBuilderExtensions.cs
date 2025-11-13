@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -244,7 +243,7 @@ public static class ProjectResourceBuilderExtensions
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(projectMetadata)
-                      .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = options.Mode }, "project")
+                      .WithDebugging(projectMetadata.ProjectPath)
                       .WithProjectDefaults(options);
     }
 
@@ -289,7 +288,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = options.Mode }, "project")
+                      .WithDebugging(projectPath)
                       .WithProjectDefaults(options);
     }
 
@@ -370,7 +369,7 @@ public static class ProjectResourceBuilderExtensions
 
         var resource = builder.AddResource(app)
                               .WithAnnotation(projectMetadata)
-                              .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = options.Mode }, "project")
+                              .WithDebugging(projectMetadata.ProjectPath)
                               .WithProjectDefaults(options);
 
         resource.OnBeforeResourceStarted(async (r, e, ct) =>
@@ -859,6 +858,76 @@ public static class ProjectResourceBuilderExtensions
         // so that the container resource is written to the manifest
         return builder.WithManifestPublishingCallback(context =>
             context.WriteContainerAsync(container));
+    }
+
+    /// <summary>
+    /// Configures debugging support for the project resource.
+    /// </summary>
+    /// <typeparam name="TProjectResource">The type of the project resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method configures the project resource to support debugging via the Aspire debugger.
+    /// It sets up the necessary launch configuration based on the provided project path. This method is only necessary for inheritors of ProjectResource.
+    /// </remarks>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TProjectResource> WithDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
+        where TProjectResource : ProjectResource
+    {
+        return builder.WithDebugSupport(options =>
+        {
+            var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+            var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
+            var displayProgramPath = workspaceRoot is not null
+                ? Path.GetRelativePath(workspaceRoot, projectPath)
+                : projectPath;
+
+            return new ProjectLaunchConfiguration
+            {
+                ProjectPath = projectPath,
+                Mode = options.Mode,
+                DebuggerProperties = new CSharpDebuggerProperties
+                {
+                    WorkingDirectory = Path.GetDirectoryName(projectPath)!,
+                    Name = $"{modeText} C#: {displayProgramPath}",
+                }
+            };
+        }, "project");
+    }
+
+    /// <summary>
+    /// Configures C# debugger properties for the project resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the project resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">An action to configure the C# debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object
+    /// that is pre-populated with default values based on the resource's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure C# debugger to stop on entry:
+    /// <code lang="csharp">
+    /// var api = builder.AddCSharpApp("api", "../Api/Api.csproj")
+    ///     .WithCSharpDebuggerProperties(props =>
+    ///     {
+    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
+    ///     })
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithCSharpDebuggerProperties<T>(
+        this IResourceBuilder<T> builder,
+        Action<CSharpDebuggerProperties> configureDebuggerProperties)
+        where T : ProjectResource
+    {
+        return builder.WithDebuggerProperties(configureDebuggerProperties);
     }
 
     private static IConfiguration GetConfiguration(ProjectResource projectResource)

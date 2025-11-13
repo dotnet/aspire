@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
@@ -919,13 +920,18 @@ public static class PythonAppResourceBuilderExtensions
                 }
 
                 var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+                var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
+                var displayProgramPath = workspaceRoot is not null
+                    ? Path.GetRelativePath(workspaceRoot, programPath)
+                    : programPath;
+
                 var debuggerProperties = new PythonDebuggerProperties
                 {
                     InterpreterPath = interpreterPath,
                     Module = string.IsNullOrEmpty(module) ? null : module,
                     ProgramPath = programPath,
                     Jinja = true, // by default, activate Jinja support,
-                    Name = $"{modeText} Python: {Path.GetRelativePath(Environment.CurrentDirectory, programPath)}",
+                    Name = $"{modeText} Python: {displayProgramPath}",
                     WorkingDirectory = builder.Resource.WorkingDirectory
                 };
 
@@ -1268,6 +1274,7 @@ public static class PythonAppResourceBuilderExtensions
     ///     })
     /// </code>
     /// </example>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithPythonDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
         Action<PythonDebuggerProperties> configureDebuggerProperties)
