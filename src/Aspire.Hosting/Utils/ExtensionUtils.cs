@@ -12,14 +12,15 @@ namespace Aspire.Hosting.Utils;
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 internal static class ExtensionUtils
 {
-    public static bool SupportsDebugging(this IResourceBuilder<IResourceWithArgs> builder, IConfiguration configuration)
+    public static bool SupportsDebugging(this IResource builder, IConfiguration configuration)
     {
         var supportedLaunchConfigurations = GetSupportedLaunchConfigurations(configuration);
 
-        return builder.Resource.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
+        return builder.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
             && !string.IsNullOrEmpty(configuration[DcpExecutor.DebugSessionPortVar])
-            && supportedLaunchConfigurations is not null
-            && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType);
+            && (supportedLaunchConfigurations is not null 
+                || (supportedLaunchConfigurations is null && supportsDebuggingAnnotation.LaunchConfigurationType == "project") // per DCP spec, project resources support debugging if no launch configurations are specified
+                || supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType));
     }
 
     public static string[]? GetSupportedLaunchConfigurations(IConfiguration configuration)

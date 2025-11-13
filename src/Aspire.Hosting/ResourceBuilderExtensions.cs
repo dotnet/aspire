@@ -8,7 +8,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -2786,8 +2785,7 @@ public static class ResourceBuilderExtensions
         {
             resourceWithArgs.WithArgs(async ctx =>
             {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
