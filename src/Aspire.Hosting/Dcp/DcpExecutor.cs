@@ -1314,7 +1314,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exeSpec);
 
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                var projectLaunchConfiguration = new ProjectLaunchConfiguration
+                {
+                    DebuggerProperties = ProjectResourceBuilderExtensions.GetCSharpDebuggerProperties(
+                        projectMetadata.ProjectPath,
+                        Debugger.IsAttached ? ExecutableLaunchMode.Debug : ExecutableLaunchMode.NoDebug,
+                        _configuration)
+                };
+
                 projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
                 var projectArgs = new List<string>();

@@ -9,7 +9,9 @@ namespace Aspire.Hosting.Python;
 /// <summary>
 /// Models a runnable debug configuration for a python application.
 /// </summary>
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<PythonDebuggerProperties>("python")
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <summary>
     /// Provides the fully qualified path to the python program's entry module (startup file).

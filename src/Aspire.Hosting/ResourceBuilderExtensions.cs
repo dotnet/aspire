@@ -2979,6 +2979,7 @@ public static class ResourceBuilderExtensions
     /// to customize the debugging experience.
     /// </para>
     /// </remarks>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
         this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
         where T : IResource

@@ -9,7 +9,9 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Models a runnable debug configuration for a .NET project application.
 /// </summary>
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 public class ProjectLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<CSharpDebuggerProperties>("project")
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <summary>
     /// The name of the launch profile to be used for project execution.

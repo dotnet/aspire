@@ -877,23 +877,28 @@ public static class ProjectResourceBuilderExtensions
     {
         return builder.WithDebugSupport(options =>
         {
-            var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-            var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
-            var displayProgramPath = workspaceRoot is not null
-                ? Path.GetRelativePath(workspaceRoot, projectPath)
-                : projectPath;
-
             return new ProjectLaunchConfiguration
             {
                 ProjectPath = projectPath,
                 Mode = options.Mode,
-                DebuggerProperties = new CSharpDebuggerProperties
-                {
-                    WorkingDirectory = Path.GetDirectoryName(projectPath)!,
-                    Name = $"{modeText} C#: {displayProgramPath}",
-                }
+                DebuggerProperties = GetCSharpDebuggerProperties(projectPath, options.Mode, builder.ApplicationBuilder.Configuration),
             };
         }, "project");
+    }
+
+    internal static CSharpDebuggerProperties GetCSharpDebuggerProperties(string projectPath, string mode, IConfiguration configuration)
+    {
+        var workspaceRoot = configuration[KnownConfigNames.ExtensionWorkspaceRoot];
+        var displayProgramPath = workspaceRoot is not null
+            ? Path.GetRelativePath(workspaceRoot, projectPath)
+            : projectPath;
+        var modeText = mode == "Debug" ? "Debug" : "Run";
+
+        return new CSharpDebuggerProperties
+        {
+            WorkingDirectory = Path.GetDirectoryName(projectPath)!,
+            Name = $"{modeText} C#: {displayProgramPath}"
+        };
     }
 
     /// <summary>
