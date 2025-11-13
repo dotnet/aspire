@@ -1314,28 +1314,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exeSpec);
 
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration
-                {
-                    DebuggerProperties = ProjectResourceBuilderExtensions.GetCSharpDebuggerProperties(
-                        projectMetadata.ProjectPath,
-                        Debugger.IsAttached ? ExecutableLaunchMode.Debug : ExecutableLaunchMode.NoDebug,
-                        _configuration)
-                };
-
-                projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+                var mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug;
 
                 var projectArgs = new List<string>();
 
-                if (project.SupportsDebugging(_configuration, out _))
+                if (project.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
 
-                    // Use the effective launch profile which has fallback logic
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                    var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                     {
-                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
-                    }
+                        DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(exeInstance.Name),
+                        Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug,
+                        AdditionalConfiguration = launchConfiguration =>
+                        {
+                            if (launchConfiguration is not ProjectLaunchConfiguration projectLaunchConfiguration)
+                            {
+                                throw new InvalidOperationException("Expected a ProjectLaunchConfiguration. The SupportsDebuggingAnnotation launch configuration producer must produce a ProjectLaunchConfiguration for project resources.");
+                            }
+
+                            projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+
+                            // Use the effective launch profile which has fallback logic
+                            if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                            {
+                                projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                            }
+                        }
+                    };
+
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exeSpec, launchConfigurationProducerOptions);
                 }
                 else
                 {
@@ -1378,10 +1386,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
+
+                    var projectLaunchConfiguration = new ProjectLaunchConfiguration
+                    {
+                        DebuggerProperties = ProjectResourceBuilderExtensions.GetCSharpDebuggerProperties(
+                        projectMetadata.ProjectPath,
+                        mode,
+                        _configuration)
+                    };
+
+                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+                    exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 
-                // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
-                exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new RenderedModelResource(project, exeSpec);

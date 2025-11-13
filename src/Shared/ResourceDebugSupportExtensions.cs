@@ -20,7 +20,7 @@ internal static class ResourceDebugSupportExtensions
         var supportedLaunchConfigurations = GetSupportedLaunchConfigurations(configuration);
 
         return builder.TryGetLastAnnotation(out supportsDebuggingAnnotation)
-            && !string.IsNullOrEmpty(configuration[DcpExecutor.DebugSessionPortVar])
+            && !string.IsNullOrEmpty(configuration["DEBUG_SESSION_PORT"])
             && ((supportedLaunchConfigurations is null && supportsDebuggingAnnotation.LaunchConfigurationType == "project") // per DCP spec, project resources support debugging if no launch configurations are specified
                 || (supportedLaunchConfigurations is not null && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType)));
     }

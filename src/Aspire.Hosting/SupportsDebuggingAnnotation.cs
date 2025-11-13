@@ -38,6 +38,7 @@ public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
     /// <param name="launchConfigurationType">The type of launch configuration supported by the resource.</param>
     /// <param name="launchProfileProducer">The function that produces the launch configuration for the resource.</param>
     public static SupportsDebuggingAnnotation Create<T>(string launchConfigurationType, Func<LaunchConfigurationProducerOptions, T> launchProfileProducer)
+        where T : ExecutableLaunchConfiguration
     {
         return new SupportsDebuggingAnnotation(launchConfigurationType, (exe, options) =>
         {
@@ -60,4 +61,9 @@ public sealed class LaunchConfigurationProducerOptions
     /// The logger used for debug console output.
     /// </summary>
     public required ILogger DebugConsoleLogger { get; init; }
+
+    /// <summary>
+    /// Internal hook to allow further configuration of the launch configuration after creation.
+    /// </summary>
+    internal Action<ExecutableLaunchConfiguration>? AdditionalConfiguration { get; set; }
 }
