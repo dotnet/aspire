@@ -1019,9 +1019,16 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // and a compute resource that references the Redis cache
         builder.AddAzureAppServiceEnvironment("env");
 
-        var keyVault = builder.AddAzureKeyVault("kv");
         var cache = builder.AddAzureRedis("cache")
-            .WithAccessKeyAuthentication(keyVault);
+            .WithAccessKeyAuthentication();
+
+        var azpg = builder.AddAzurePostgresFlexibleServer("pg")
+                          .WithPasswordAuthentication()
+                          .AddDatabase("db");
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                            .WithAccessKeyAuthentication()
+                            .AddCosmosDatabase("cdb");
 
         // Add a compute resource that references the Redis cache
         // This creates dependencies: api -> cache secret -> keyVault
@@ -1029,7 +1036,9 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
             .WithExternalHttpEndpoints()
-            .WithReference(cache);
+            .WithReference(cache)
+            .WithReference(azpg)
+            .WithReference(cosmos);
 
         // Act
         using var app = builder.Build();
