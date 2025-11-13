@@ -1728,17 +1728,6 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var dockerfileContent = File.ReadAllText(dockerfilePath);
 
-        // Verify it's a fallback Dockerfile (single stage, no UV)
-        Assert.DoesNotContain("uv sync", dockerfileContent);
-        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
-
-        // Verify it has pip install . for pyproject.toml
-        Assert.Contains("pip install --no-cache-dir .", dockerfileContent);
-        Assert.Contains("Copy pyproject.toml for dependency installation", dockerfileContent);
-
-        // Verify it uses the same runtime image as UV workflow
-        Assert.Contains("FROM python:3.11-slim-bookworm", dockerfileContent);
-
         await Verify(dockerfileContent);
     }
 
@@ -1769,16 +1758,6 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for Python app");
 
         var dockerfileContent = File.ReadAllText(dockerfilePath);
-
-        // Verify it's a fallback Dockerfile (single stage, no UV)
-        Assert.DoesNotContain("uv sync", dockerfileContent);
-        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
-
-        // Verify it doesn't have pip install since there are no dependency files
-        Assert.DoesNotContain("pip install", dockerfileContent);
-
-        // Verify it uses the default runtime image
-        Assert.Contains("FROM python:3.13-slim-bookworm", dockerfileContent);
 
         await Verify(dockerfileContent);
     }
