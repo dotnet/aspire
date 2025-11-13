@@ -38,6 +38,24 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             foreach (var r in @event.Model.GetComputeResources())
             {
+                // Check if this resource should use this specific environment
+                if (r.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvAnnotation))
+                {
+                    // Resource is bound to a specific environment
+                    if (computeEnvAnnotation.ComputeEnvironment != environment)
+                    {
+                        // Skip this resource - it belongs to a different environment
+                        continue;
+                    }
+                }
+                else if (caes.Length > 1)
+                {
+                    // Resource has no explicit environment binding but there are multiple environments.
+                    // Skip it for now - it will be handled by GetDeploymentTargetAnnotation later
+                    // which will throw a clear error if the resource is actually used.
+                    continue;
+                }
+
                 var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, options.Value, cancellationToken).ConfigureAwait(false);
 
                 // Capture information about the container registry used by the
