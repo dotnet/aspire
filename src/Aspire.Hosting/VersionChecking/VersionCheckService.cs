@@ -109,7 +109,10 @@ internal sealed class VersionCheckService : BackgroundService
         }
         else
         {
-            TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion);
+            if (TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion))
+            {
+                _logger.LogDebug("Using stored known latest version {StoredKnownLatestVersion}.", storedKnownLatestVersion);
+            }
         }
 
         // Use known package versions to figure out what the newest valid version is.
@@ -118,7 +121,7 @@ internal sealed class VersionCheckService : BackgroundService
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
         {
-            // App host version is up to date or the latest version is unknown.
+            _logger.LogDebug("App host version is up to date or the latest version is unknown.");
             return;
         }
 
