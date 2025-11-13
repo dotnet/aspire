@@ -15,7 +15,7 @@ namespace Aspire.Hosting;
 /// </para>
 /// </remarks>
 public sealed class ExecutableDebuggerPropertiesAnnotation<T>(Action<T> configureDebugProperties) : IResourceAnnotation
-    where T : DebuggerProperties
+    where T : VSCodeDebuggerProperties
 {
     /// <summary>
     /// Gets the action to configure the debugger properties.

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Python;
 /// Models a runnable debug configuration for a python application.
 /// </summary>
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<PythonDebuggerProperties>("python")
+public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationWithVSCodeDebuggerProperties<PythonDebuggerProperties>("python")
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <summary>
@@ -42,7 +42,7 @@ public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationW
 /// Models debugger properties for a python application made available by the debugpy debug adapter.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class PythonDebuggerProperties : DebuggerProperties
+public class PythonDebuggerProperties : VSCodeDebuggerProperties
 {
     /// <summary>
     /// Identifies the type of debugger to use.

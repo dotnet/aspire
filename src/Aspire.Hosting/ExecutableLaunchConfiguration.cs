@@ -82,7 +82,7 @@ public class ServerReadyAction
 /// Base properties for all debuggers. These properties come from https://code.visualstudio.com/docs/debugtest/debugging-configuration, and can
 /// be extended to map to the properties made available by any VS Code debug adapter.
 /// </summary>
-public abstract class DebuggerProperties
+public abstract class VSCodeDebuggerProperties
 {
     /// <summary>
     /// The type of debugger to use for this launch configuration.
@@ -151,8 +151,8 @@ public abstract class DebuggerProperties
 /// </summary>
 /// <typeparam name="T">The type of debugger properties to include.</typeparam>
 /// <param name="type">Launch configuration type indicator.</param>
-public abstract class ExecutableLaunchConfigurationWithDebuggerProperties<T>(string type) : ExecutableLaunchConfiguration(type)
-    where T : DebuggerProperties
+public abstract class ExecutableLaunchConfigurationWithVSCodeDebuggerProperties<T>(string type) : ExecutableLaunchConfiguration(type)
+    where T : VSCodeDebuggerProperties
 {
     /// <summary>
     /// Debugger-specific properties.

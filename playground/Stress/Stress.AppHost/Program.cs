@@ -162,7 +162,7 @@ builder.AddProject<Projects.Stress_Empty>("empty-profile-2", launchProfileName: 
     .WithArgs("arg_from_apphost");
 
 builder.AddProject<Projects.Stress_Empty>("empty-profile-3-fallback-to-process")
-    .WithCSharpDebuggerProperties(props =>
+    .WithCSharpVSCodeDebuggerProperties(props =>
     {
         throw new InvalidOperationException("Simulated failure to configure IDE debugging, should fall back to process execution");
     });

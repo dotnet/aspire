@@ -929,19 +929,19 @@ public static class ProjectResourceBuilderExtensions
     /// Configure C# debugger to stop on entry:
     /// <code lang="csharp">
     /// var api = builder.AddCSharpApp("api", "../Api/Api.csproj")
-    ///     .WithCSharpDebuggerProperties(props =>
+    ///     .WithCSharpVSCodeDebuggerProperties(props =>
     ///     {
     ///         props.StopOnEntry = true;  // Stop execution at entrypoint
     ///     })
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithCSharpDebuggerProperties<T>(
+    public static IResourceBuilder<T> WithCSharpVSCodeDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
         Action<CSharpDebuggerProperties> configureDebuggerProperties)
         where T : ProjectResource
     {
-        return builder.WithDebuggerProperties(configureDebuggerProperties);
+        return builder.WithVSCodeDebuggerProperties(configureDebuggerProperties);
     }
 
     private static IConfiguration GetConfiguration(ProjectResource projectResource)

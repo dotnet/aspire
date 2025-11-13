@@ -1248,7 +1248,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Configure Python debugger to stop on entry:
     /// <code lang="csharp">
     /// var api = builder.AddPythonScript("script", "../app", "main.py")
-    ///     .WithPythonDebuggerProperties(props =>
+    ///     .WithPythonVSCodeDebuggerProperties(props =>
     ///     {
     ///         props.StopOnEntry = true;  // Stop execution at entrypoint
     ///     })
@@ -1258,7 +1258,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Enable automatic reload for faster development:
     /// <code lang="csharp">
     /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
-    ///     .WithPythonDebuggerProperties(props =>
+    ///     .WithPythonVSCodeDebuggerProperties(props =>
     ///     {
     ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
     ///     })
@@ -1268,19 +1268,19 @@ public static class PythonAppResourceBuilderExtensions
     /// Pass custom arguments to the Python interpreter:
     /// <code lang="csharp">
     /// var app = builder.AddPythonModule("app", "../app", "myapp")
-    ///     .WithPythonDebuggerProperties(props =>
+    ///     .WithPythonVSCodeDebuggerProperties(props =>
     ///     {
     ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
     ///     })
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithPythonDebuggerProperties<T>(
+    public static IResourceBuilder<T> WithPythonVSCodeDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
         Action<PythonDebuggerProperties> configureDebuggerProperties)
         where T : PythonAppResource
     {
-        return builder.WithDebuggerProperties(configureDebuggerProperties);
+        return builder.WithVSCodeDebuggerProperties(configureDebuggerProperties);
     }
 
     private static bool IsPythonCommandAvailable(string command)

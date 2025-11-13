@@ -2946,10 +2946,10 @@ public static class ResourceBuilderExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
+    public static IResourceBuilder<T> WithVSCodeDebuggerProperties<T, TDebuggerProperties>(
         this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
         where T : IResource
-        where TDebuggerProperties : DebuggerProperties
+        where TDebuggerProperties : VSCodeDebuggerProperties
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
