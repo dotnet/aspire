@@ -29,6 +29,7 @@ public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets the action that annotates the launch configuration for the resource.
     /// </summary>
+    /// <returns>Whether the annotation was applied successfully. If this throws, the resource will not be launched in IDE</returns>
     internal Action<Executable, LaunchConfigurationProducerOptions> LaunchConfigurationAnnotator { get; }
 
     /// <summary>

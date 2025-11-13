@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -159,6 +160,12 @@ builder.AddProject<Projects.Stress_Empty>("empty-profile-2", launchProfileName: 
     .WithEnvironment("APPHOST_ENV_VAR", "test")
     .WithEnvironment("ENV_TO_OVERRIDE", "this value came from the apphost")
     .WithArgs("arg_from_apphost");
+
+builder.AddProject<Projects.Stress_Empty>("empty-profile-3-fallback-to-process")
+    .WithCSharpDebuggerProperties(props =>
+    {
+        throw new InvalidOperationException("Simulated failure to configure IDE debugging, should fall back to process execution");
+    });
 
 builder.Build().Run();
 

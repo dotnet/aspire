@@ -2046,6 +2046,98 @@ public class DcpExecutorTests
             a => Assert.Equal(KnownResourceCommands.RestartCommand, a.Name));
     }
 
+    [Fact]
+    public async Task PlainExecutable_LaunchConfigurationProducerThrows_FallsBackToProcess()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Create executable resource with SupportsDebuggingAnnotation that throws
+        var debuggableExecutable = new TestExecutableResource("test-working-directory");
+        builder.AddResource(debuggableExecutable).WithDebugSupport<TestExecutableResource, CustomExecutableLaunchConfiguration>(_ => throw new InvalidOperationException("Test exception from launch configuration producer"), "test");
+
+        // Simulate debug session info with SupportedLaunchConfigurations that match the executable type
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["test"]
+        };
+
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(runSessionInfo),
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
+        // Should fall back to Process execution when the launch configuration producer throws
+        Assert.Equal(ExecutionType.Process, exe.Spec.ExecutionType);
+    }
+
+    [Fact]
+    public async Task ProjectExecutable_LaunchConfigurationProducerThrows_FallsBackToProcess()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var project = builder.AddProject<Projects.ServiceA>("ServiceA");
+        
+        // Add a SupportsDebuggingAnnotation that throws to override the default project debugging
+        project.WithAnnotation(SupportsDebuggingAnnotation.Create<ProjectLaunchConfiguration>(
+            "project",
+            _ => throw new InvalidOperationException("Test exception from project launch configuration producer")));
+
+        // Simulate debug session info with project support
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["project"],
+            SupportedLaunchConfigurations = ["project"]
+        };
+
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(runSessionInfo),
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "ServiceA");
+        // Should fall back to Process execution when the launch configuration producer throws
+        Assert.Equal(ExecutionType.Process, exe.Spec.ExecutionType);
+    }
+
     private static DcpExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
         IHostEnvironment? hostEnvironment = null,

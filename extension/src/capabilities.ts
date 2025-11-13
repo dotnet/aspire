@@ -20,7 +20,7 @@ export function isPythonInstalled() {
 }
 
 export function getSupportedCapabilities(): string[] {
-    const capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'node'];
+    const capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");

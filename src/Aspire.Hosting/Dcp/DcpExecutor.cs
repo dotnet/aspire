@@ -1260,19 +1260,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
+            var isProcessExecution = true;
             if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
             {
-                exe.Spec.ExecutionType = ExecutionType.IDE;
-
                 var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                 {
                     DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(executable.Name),
                     Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
                 };
 
-                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
+                try
+                {
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
+                    exe.Spec.ExecutionType = ExecutionType.IDE;
+                    isProcessExecution = false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to configure debugging for executable resource '{ResourceName}'. Falling back to process execution.", executable.Name);
+                }
             }
-            else
+            
+            if (isProcessExecution)
             {
                 exe.Spec.ExecutionType = ExecutionType.Process;
             }
@@ -1318,9 +1327,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 var projectArgs = new List<string>();
 
+                var isProcessExecution = true;
                 if (project.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
                 {
-                    exeSpec.Spec.ExecutionType = ExecutionType.IDE;
 
                     var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                     {
@@ -1343,9 +1352,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         }
                     };
 
-                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exeSpec, launchConfigurationProducerOptions);
+                    try 
+                    {
+                        supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exeSpec, launchConfigurationProducerOptions);
+                        exeSpec.Spec.ExecutionType = ExecutionType.IDE;
+                        isProcessExecution = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to configure debugging for project resource '{ResourceName}'. Falling back to process execution.", project.Name);
+                    }
                 }
-                else
+                
+                if (isProcessExecution)
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
