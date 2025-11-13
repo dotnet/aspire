@@ -79,7 +79,7 @@ internal static class PackageUpdateHelpers
             """
             Current version: {CurrentVersion}
             Newest stable version: {NewestStableVersion}
-            Newest stable version: {NewestPrereleaseVersion}
+            Newest prerelease version: {NewestPrereleaseVersion}
             """, currentVersion, newestStable, newestPrerelease);
 
         // Apply notification rules
