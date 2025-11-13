@@ -1256,12 +1256,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            var supportedLaunchConfigurations = ExtensionUtils.GetSupportedLaunchConfigurations(_configuration);
-
-            if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
-                && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && supportedLaunchConfigurations is not null
-                && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
+            if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
@@ -1313,7 +1308,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 var projectArgs = new List<string>();
 
-                if (project.SupportsDebugging(_configuration))
+                if (project.SupportsDebugging(_configuration, out _))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);

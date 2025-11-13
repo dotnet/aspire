@@ -2785,7 +2785,7 @@ public static class ResourceBuilderExtensions
         {
             resourceWithArgs.WithArgs(async ctx =>
             {
-                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
