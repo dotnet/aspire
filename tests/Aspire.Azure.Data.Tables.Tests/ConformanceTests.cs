@@ -4,7 +4,6 @@
 using Aspire.Components.ConformanceTests;
 using Azure.Data.Tables;
 using Azure.Identity;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -94,6 +93,10 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
         }
     }
 
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     protected override void SetHealthCheck(AzureDataTablesSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
 
@@ -112,11 +115,11 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: null), Output);
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: "key"), Output);
 
     private static bool GetCanConnect()
     {

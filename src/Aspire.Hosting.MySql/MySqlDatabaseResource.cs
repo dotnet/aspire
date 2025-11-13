@@ -43,7 +43,7 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// <remarks>
     /// Format: <c>mysql://{user}:{password}@{host}:{port}/{database}</c>.
     /// </remarks>
-    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+    public ReferenceExpression UriExpression => Parent.BuildUri(DatabaseName);
 
     /// <summary>
     /// Gets the JDBC connection string for the MySQL database.

@@ -232,6 +232,15 @@ public sealed class GenAIVisualizerDialogViewModel
                 currentIndex++;
             }
         }
+
+        if (viewModel.Items.Count > 0)
+        {
+            return;
+        }
+
+        // Final fallback: attempt to parse LangSmith OpenTelemetry genai standard attributes.
+        // LangSmith uses a flattened format with indexed attributes like gen_ai.prompt.0.role, gen_ai.prompt.0.content, etc.
+        ParseLangSmithFormat(viewModel, ref currentIndex);
     }
 
     private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, string description, bool isOutput, ref int currentIndex)
@@ -252,6 +261,108 @@ public sealed class GenAIVisualizerDialogViewModel
         }
 
         return currentIndex;
+    }
+
+    // Parse LangSmith OpenTelemetry genai standard attributes format.
+    // LangSmith uses a flattened format with indexed attributes:
+    // gen_ai.prompt.0.role, gen_ai.prompt.0.content, gen_ai.prompt.1.role, etc.
+    // gen_ai.completion.0.role, gen_ai.completion.0.content, etc.
+    private static void ParseLangSmithFormat(GenAIVisualizerDialogViewModel viewModel, ref int currentIndex)
+    {
+        var attributes = viewModel.Span.Attributes;
+        
+        // Group attributes by prefix (prompt or completion) and index
+        var promptMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAIPromptPrefix);
+        var completionMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAICompletionPrefix);
+
+        // Parse prompt messages (inputs)
+        foreach (var (index, message) in promptMessages.OrderBy(kvp => kvp.Key))
+        {
+            var role = GetMessageRole(message, defaultRole: "user");
+            var content = GetMessageContent(message);
+
+            if (content != null)
+            {
+                var parts = new List<GenAIItemPartViewModel>
+                {
+                    GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = content })
+                };
+
+                var type = role switch
+                {
+                    "system" => GenAIItemType.SystemMessage,
+                    "user" => GenAIItemType.UserMessage,
+                    "assistant" => GenAIItemType.AssistantMessage,
+                    "tool" => GenAIItemType.ToolMessage,
+                    _ => GenAIItemType.UserMessage
+                };
+
+                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type, parts, internalId: null));
+                currentIndex++;
+            }
+        }
+
+        // Parse completion messages (outputs)
+        foreach (var (index, message) in completionMessages.OrderBy(kvp => kvp.Key))
+        {
+            var role = GetMessageRole(message, defaultRole: "assistant");
+            var content = GetMessageContent(message);
+
+            if (content != null)
+            {
+                var parts = new List<GenAIItemPartViewModel>
+                {
+                    GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = content })
+                };
+
+                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.OutputMessage, parts, internalId: null));
+                currentIndex++;
+            }
+        }
+
+        // Extract role from message dictionary with fallback to message.role and default
+        static string GetMessageRole(Dictionary<string, string> message, string defaultRole)
+        {
+            return message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", defaultRole);
+        }
+
+        // Extract content from message dictionary with fallback to message.content
+        static string? GetMessageContent(Dictionary<string, string> message)
+        {
+            return message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
+        }
+    }
+
+    // Extract messages from indexed span attributes like gen_ai.prompt.0.role, gen_ai.prompt.0.content
+    private static Dictionary<int, Dictionary<string, string>> ExtractIndexedMessages(KeyValuePair<string, string>[] attributes, string prefix)
+    {
+        var messages = new Dictionary<int, Dictionary<string, string>>();
+
+        foreach (var attr in attributes)
+        {
+            if (attr.Key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                // Extract index and field name from attribute key
+                // Format: gen_ai.prompt.{index}.{field}
+                var remainder = attr.Key.AsSpan(prefix.Length);
+                var dotIndex = remainder.IndexOf('.');
+                
+                if (dotIndex > 0 && int.TryParse(remainder.Slice(0, dotIndex), out var messageIndex))
+                {
+                    var fieldName = remainder.Slice(dotIndex + 1).ToString();
+                    
+                    if (!messages.TryGetValue(messageIndex, out var message))
+                    {
+                        message = new Dictionary<string, string>();
+                        messages[messageIndex] = message;
+                    }
+
+                    message[fieldName] = attr.Value;
+                }
+            }
+        }
+
+        return messages;
     }
 
     private static GenAIItemViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIItemType type, List<GenAIItemPartViewModel> parts, long? internalId)

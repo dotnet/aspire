@@ -51,6 +51,10 @@ public static class MauiProjectExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(projectPath);
 
+        // Register MAUI-specific hosting services (lifecycle hooks, etc.)
+        // This is safe to call multiple times - it only registers once
+        builder.AddMauiHostingServices();
+
         // Create the MAUI project resource and configuration
         // Do not register the logical grouping resource with AddResource so it stays invisible in the dashboard
         // Only MAUI project targets added through their extension methods will show up

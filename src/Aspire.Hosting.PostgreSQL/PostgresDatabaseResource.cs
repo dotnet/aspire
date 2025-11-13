@@ -53,8 +53,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <remarks>
     /// Format: <c>postgresql://{user}:{password}@{host}:{port}/{database}</c>.
     /// </remarks>
-    public ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+    public ReferenceExpression UriExpression => Parent.BuildUri(DatabaseName);
 
     /// <summary>
     /// Gets the JDBC connection string for the PostgreSQL database.

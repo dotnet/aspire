@@ -4,17 +4,17 @@
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "docker.io/library/postgres:17.6",
+      "image": "docker.io/library/postgres:18.0",
       "volumes": [
         {
           "name": "testshop.apphost-48e1ce2b9b-postgres-data",
-          "target": "/var/lib/postgresql/data",
+          "target": "/var/lib/postgresql",
           "readOnly": false
         }
       ],
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
         "POSTGRES_USER": "postgres",
         "POSTGRES_PASSWORD": "{postgres-password.value}"
       },
@@ -73,7 +73,7 @@
         "CATALOGDB_PORT": "{postgres.bindings.tcp.port}",
         "CATALOGDB_USERNAME": "postgres",
         "CATALOGDB_PASSWORD": "{postgres-password.value}",
-        "CATALOGDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_URI": "postgresql://postgres:{postgres-password-uri-encoded.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
         "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
         "CATALOGDB_DATABASE": "catalogdb"
       },
@@ -104,7 +104,7 @@
         "CATALOGDB_PORT": "{postgres.bindings.tcp.port}",
         "CATALOGDB_USERNAME": "postgres",
         "CATALOGDB_PASSWORD": "{postgres-password.value}",
-        "CATALOGDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_URI": "postgresql://postgres:{postgres-password-uri-encoded.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
         "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
         "CATALOGDB_DATABASE": "catalogdb"
       },
@@ -124,7 +124,7 @@
     "messaging": {
       "type": "container.v0",
       "connectionString": "amqp://guest:{messaging-password-uri-encoded.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
-      "image": "docker.io/library/rabbitmq:4.1-management",
+      "image": "docker.io/library/rabbitmq:4.2-management",
       "volumes": [
         {
           "name": "testshop.apphost-48e1ce2b9b-messaging-data",

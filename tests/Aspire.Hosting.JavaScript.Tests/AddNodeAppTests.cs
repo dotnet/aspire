@@ -104,20 +104,39 @@ public class AddNodeAppTests
 
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
-        var expectedDockerfile = $"""
+        var expectedDockerfile = includePackageJson ?
+            """
             FROM node:22-alpine AS build
             
             WORKDIR /app
+            COPY package*.json ./
+            RUN --mount=type=cache,target=/root/.npm npm ci
             COPY . .
             
-            {(includePackageJson ? "RUN npm ci\n" : "")}
             FROM node:22-alpine AS runtime
             
             WORKDIR /app
             COPY --from=build /app /app
             
             ENV NODE_ENV=production
-            EXPOSE 3000
+            
+            USER node
+            
+            ENTRYPOINT ["node","app.js"]
+
+            """.Replace("\r\n", "\n") :
+            """
+            FROM node:22-alpine AS build
+            
+            WORKDIR /app
+            COPY . .
+            
+            FROM node:22-alpine AS runtime
+            
+            WORKDIR /app
+            COPY --from=build /app /app
+            
+            ENV NODE_ENV=production
             
             USER node
             
@@ -143,7 +162,10 @@ public class AddNodeAppTests
         File.WriteAllText(Path.Combine(appDir, "package.json"), "{}");
 
         var nodeApp = builder.AddNodeApp("js", appDir, "app.js")
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null, cacheMount: null)
+            {
+                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["myinstall"]))
             .WithBuildScript("mybuild");
 
@@ -155,9 +177,10 @@ public class AddNodeAppTests
             FROM node:22-alpine AS build
 
             WORKDIR /app
+            COPY package*.json ./
+            RUN mypm myinstall
             COPY . .
 
-            RUN mypm myinstall
             RUN mypm mybuild
 
             FROM node:22-alpine AS runtime
@@ -166,7 +189,6 @@ public class AddNodeAppTests
             COPY --from=build /app /app
 
             ENV NODE_ENV=production
-            EXPOSE 3000
 
             USER node
 

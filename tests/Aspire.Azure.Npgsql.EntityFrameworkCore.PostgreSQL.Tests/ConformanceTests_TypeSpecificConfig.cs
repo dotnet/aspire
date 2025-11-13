@@ -4,12 +4,13 @@
 using Aspire.Npgsql.Tests;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
+using Xunit;
 
 namespace Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
-    public ConformanceTests_TypeSpecificConfig(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
+    public ConformanceTests_TypeSpecificConfig(PostgreSQLContainerFixture containerFixture, ITestOutputHelper? output = null) : base(containerFixture, output)
     {
     }
 
