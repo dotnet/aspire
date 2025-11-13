@@ -1,4 +1,5 @@
 {
+    "dotnet.defaultSolution": "./Aspire.slnx",
     "dotnet.solution.autoOpen": "./Aspire.slnx",
     "dotnet.preview.enableSupportForSlnx": true,
     "dotnet.testWindow.useTestingPlatformProtocol": true,
