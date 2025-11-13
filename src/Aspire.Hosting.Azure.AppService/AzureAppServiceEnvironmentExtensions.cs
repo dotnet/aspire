@@ -158,22 +158,17 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 {
                     // Add aspire dashboard website slot
                     var webSiteSlot = AzureAppServiceEnvironmentUtility.AddDashboardSlot(infra, identity, plan.Id, deploymentSlotValue);
-
-                    infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
-                    {
-                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardSlotHostName(prefix, deploymentSlotValue)}.azurewebsites.net")
-                    });
                 }
                 else
                 {
                     // Add aspire dashboard website
                     var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
-
-                    infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
-                    {
-                        Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
-                    });
                 }
+
+                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                {
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix, deploymentSlotValue)}.azurewebsites.net")
+                });
             }
 
             if (resource.EnableApplicationInsights)
