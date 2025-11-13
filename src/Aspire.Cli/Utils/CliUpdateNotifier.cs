@@ -46,14 +46,14 @@ internal class CliUpdateNotifier(
             return;
         }
 
-        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(logger, currentVersion, _availablePackages);
 
         if (newerVersion is not null)
         {
-            var updateCommand = IsRunningAsDotNetTool() 
-                ? "dotnet tool update -g Aspire.Cli.Tool" 
+            var updateCommand = IsRunningAsDotNetTool()
+                ? "dotnet tool update -g Aspire.Cli.Tool"
                 : "aspire update";
-            
+
             interactionService.DisplayVersionUpdateNotification(newerVersion.ToString(), updateCommand);
         }
     }
@@ -71,7 +71,7 @@ internal class CliUpdateNotifier(
             return false;
         }
 
-        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(logger, currentVersion, _availablePackages);
         return newerVersion is not null;
     }
 

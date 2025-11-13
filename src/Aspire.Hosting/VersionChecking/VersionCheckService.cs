@@ -93,6 +93,8 @@ internal sealed class VersionCheckService : BackgroundService
             {
                 // Already checked within the last day.
                 checkForLatestVersion = false;
+
+                _logger.LogDebug("Last version check was performed on {CheckDate}, skipping version check.", checkDateString);
             }
         }
 
@@ -112,7 +114,7 @@ internal sealed class VersionCheckService : BackgroundService
 
         // Use known package versions to figure out what the newest valid version is.
         // Note: A pre-release version is only selected if the current app host version is pre-release.
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages ?? [], storedKnownLatestVersion);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_logger, _appHostVersion, packages ?? [], storedKnownLatestVersion);
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
         {
