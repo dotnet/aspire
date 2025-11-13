@@ -93,7 +93,7 @@ public class AzureRedisEnterpriseExtensionsTests
         Assert.Equal(12455, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("redis", endpoint.UriScheme);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
