@@ -89,12 +89,13 @@ internal sealed class VersionCheckService : BackgroundService
         if (_configuration[LastCheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
         {
-            if (now - checkDate < s_checkInterval)
+            var intervalSinceLastCheck = now - checkDate;
+            if (intervalSinceLastCheck < s_checkInterval)
             {
                 // Already checked within the last day.
                 checkForLatestVersion = false;
 
-                _logger.LogDebug("Last version check was performed on {CheckDate}, skipping version check.", checkDateString);
+                _logger.LogDebug("Last version check was performed {IntervalSinceLastCheck} ago on {CheckDate}, skipping version check.", intervalSinceLastCheck, checkDateString);
             }
         }
 
