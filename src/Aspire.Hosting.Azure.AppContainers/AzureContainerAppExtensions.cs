@@ -61,6 +61,27 @@ public static class AzureContainerAppExtensions
         {
             var appEnvResource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
 
+            // Check if this is an existing resource
+            if (appEnvResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var _))
+            {
+                // For existing resources, just add the reference and outputs
+                var existingEnvironment = (ContainerAppManagedEnvironment)appEnvResource.AddAsExistingResource(infra);
+
+                // Add the output that container apps need to reference the environment
+                infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", typeof(string))
+                {
+                    Value = existingEnvironment.Id
+                });
+
+                // Required for azd to output the dashboard URL
+                infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
+                {
+                    Value = existingEnvironment.DefaultDomain
+                });
+
+                return; // Skip creating all child resources
+            }
+
             // This tells azd to avoid creating infrastructure
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
             infra.Add(userPrincipalId);
