@@ -842,6 +842,10 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             {
                 ["principalId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
             },
+            string name when name.StartsWith("funcapp-containerapp") => new Dictionary<string, object>
+            {
+                ["id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/containerApps/funcapp" }
+            },
             string name when name.StartsWith("funcapp") => new Dictionary<string, object>
             {
                 ["identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
