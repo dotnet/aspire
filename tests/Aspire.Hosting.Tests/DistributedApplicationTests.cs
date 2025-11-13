@@ -1470,21 +1470,38 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+        var sslVal = redis.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}{sslVal}", env.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
-        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        if (redis.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, redisContainer.Spec.Ports!.Count);
+            Assert.Contains(redisContainer.Spec.Ports!, p => p.HostPort == 1234);
+        }
+        else
+        {
+            Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        }
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+        sslVal = redisNoPort.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}{sslVal}", otherRedisEnv.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
-
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
-        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        if (redisNoPort.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, otherRedisContainer.Spec.Ports!.Count);
+            Assert.Contains(otherRedisContainer.Spec.Ports!, p => p.HostPort == 6379);
+        }
+        else
+        {
+            Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        }
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
