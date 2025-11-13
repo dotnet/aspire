@@ -256,17 +256,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
         var sdkVersion = sdkVersionElement.GetString();
 
-        // Check if the current SDK version is a valid semantic version or wildcard
-        // Skip if it's a version range expression (e.g., "(9.4-*,9.5]" or "[1.0,2.0)")
-        if (!string.IsNullOrEmpty(sdkVersion) && !IsValidSemanticVersionOrWildcard(sdkVersion))
-        {
-            logger.LogInformation("Skipping App Host SDK with unparseable version '{Version}'. Only semantic versions and wildcards are supported for updates.", sdkVersion);
-            return;
-        }
-
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersion == latestSdkPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (!string.IsNullOrEmpty(sdkVersion) && IsValidSemanticVersion(sdkVersion) && sdkVersion == latestSdkPackage?.Version)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
@@ -450,17 +444,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        // Check if the current version is a valid semantic version or wildcard
-        // Skip if it's a version range expression (e.g., "(9.4-*,9.5]" or "[1.0,2.0)")
-        if (!IsValidSemanticVersionOrWildcard(packageVersion))
-        {
-            logger.LogInformation("Skipping package '{PackageId}' with unparseable version '{Version}'. Only semantic versions and wildcards are supported for updates.", packageId, packageVersion);
-            return;
-        }
-
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (packageVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(packageVersion) && packageVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -486,17 +474,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return;
         }
 
-        // Check if the current version is a valid semantic version or wildcard
-        // Skip if it's a version range expression (e.g., "(9.4-*,9.5]" or "[1.0,2.0)")
-        if (!IsValidSemanticVersionOrWildcard(currentVersion))
-        {
-            logger.LogInformation("Skipping package '{PackageId}' with unparseable version '{Version}'. Only semantic versions and wildcards are supported for updates.", packageId, currentVersion);
-            return;
-        }
-
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (currentVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(currentVersion) && currentVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -610,27 +592,6 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     private static bool IsValidSemanticVersion(string version)
     {
         return SemVersion.TryParse(version, SemVersionStyles.Strict, out _);
-    }
-
-    private static bool IsValidSemanticVersionOrWildcard(string version)
-    {
-        // Allow wildcard "*" as it's a special valid version
-        if (version == "*")
-        {
-            return true;
-        }
-
-        // Detect NuGet version range syntax: (min,max), [min,max], (min,max], [min,max)
-        // These contain parentheses, brackets, or commas
-        if (version.Contains('(') || version.Contains(')') || 
-            version.Contains('[') || version.Contains(']') || 
-            version.Contains(','))
-        {
-            return false;
-        }
-
-        // Try to parse as a semantic version
-        return IsValidSemanticVersion(version);
     }
 
     private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
