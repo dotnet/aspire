@@ -63,7 +63,7 @@ public sealed class LaunchConfigurationProducerOptions
     public required ILogger DebugConsoleLogger { get; init; }
 
     /// <summary>
-    /// Internal hook to allow further configuration of the launch configuration after creation.
+    /// Internal hook to allow further configuration of the launch configuration after creation, only for project resources.
     /// </summary>
     internal Action<ExecutableLaunchConfiguration>? AdditionalConfiguration { get; set; }
 }

@@ -877,12 +877,15 @@ public static class ProjectResourceBuilderExtensions
     {
         return builder.WithDebugSupport(options =>
         {
-            return new ProjectLaunchConfiguration
+            var configuration = new ProjectLaunchConfiguration
             {
                 ProjectPath = projectPath,
                 Mode = options.Mode,
                 DebuggerProperties = GetCSharpDebuggerProperties(projectPath, options.Mode, builder.ApplicationBuilder.Configuration),
             };
+
+            options.AdditionalConfiguration?.Invoke(configuration);
+            return configuration;
         }, "project");
     }
 
