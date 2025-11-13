@@ -38,8 +38,7 @@ internal static class ResourceDebugSupportExtensions
         {
             resourceWithArgs.WithArgs(async ctx =>
             {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
