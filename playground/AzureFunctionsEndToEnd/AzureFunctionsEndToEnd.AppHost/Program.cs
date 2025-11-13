@@ -46,7 +46,12 @@ builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(funcApp)
     .WithCSharpDebuggerProperties(props =>
     {
-        props.StopAtEntry = true;
+        props.Logging = new CSharpDebuggerProperties.LoggingOptions
+        {
+            ModuleLoad = false
+        };
+
+        props.RequireExactSource = false;
     });
 
 builder.Build().Run();
