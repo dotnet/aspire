@@ -112,7 +112,6 @@
     <!--The following is the list of the RIDs that we currently multitarget for DCP and Dashboard packages-->
     <ItemGroup>
       <_DashboardAndDCPSupportedTargetingRIDs Include="win-x64" />
-      <_DashboardAndDCPSupportedTargetingRIDs Include="win-x86" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="win-arm64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="linux-x64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="linux-arm64" />
