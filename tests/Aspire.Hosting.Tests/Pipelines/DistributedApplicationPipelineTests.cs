@@ -1566,7 +1566,7 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            foundSteps.AddRange(configContext.GetSteps("test-tag"));
+            foundSteps.AddRange(configContext.GetStepsByTag("test-tag"));
             return Task.CompletedTask;
         });
 
@@ -1863,9 +1863,9 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            var provisionSteps = configContext.GetSteps(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
-            var buildSteps = configContext.GetSteps(WellKnownPipelineTags.BuildCompute).ToList();
-            var deploySteps = configContext.GetSteps(WellKnownPipelineTags.DeployCompute).ToList();
+            var provisionSteps = configContext.GetStepsByTag(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
+            var buildSteps = configContext.GetStepsByTag(WellKnownPipelineTags.BuildCompute).ToList();
+            var deploySteps = configContext.GetStepsByTag(WellKnownPipelineTags.DeployCompute).ToList();
 
             foreach (var buildStep in buildSteps)
             {
