@@ -21,10 +21,6 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>c469ca52977a1b20f17c8592075e2d9f107a328b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.19.0">
-      <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>b4afe84b6753e4980335c5534a0b38f3d5df5028</Sha>
-    </Dependency>
     <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.19.1">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>c469ca52977a1b20f17c8592075e2d9f107a328b</Sha>

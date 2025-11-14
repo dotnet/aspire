@@ -47,7 +47,6 @@
     <BuildOs Condition="$([MSBuild]::IsOsPlatform('Linux'))">linux</BuildOs>
     <BuildOs Condition="$([MSBuild]::IsOsPlatform('OSX'))">darwin</BuildOs>
     <BuildOs Condition=" '$(BuildOs)' == '' ">windows</BuildOs>
-    <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86' ">386</BuildArch>
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
     <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64Version)/tools/</DcpDir>
