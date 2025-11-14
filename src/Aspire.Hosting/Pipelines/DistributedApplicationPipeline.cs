@@ -40,6 +40,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Name = WellKnownPipelineSteps.Deploy,
             Description = "Aggregation step for all deploy operations. All deploy steps should be required by this step.",
             Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.DeployCompute]
         });
 
         var parameterPromptingStep = new PipelineStep
@@ -134,7 +135,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         context.Options.RemoteImageTag = uniqueDeployTag;
                     }));
                 }
-            }
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
         });
 
         // Add a default "build" step
@@ -143,13 +145,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Name = WellKnownPipelineSteps.Build,
             Description = "Aggregation step for all build operations. All build steps should be required by this step.",
             Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.BuildCompute]
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.BuildPrereq,
             Description = "Prerequisite step that runs before any build operations.",
-            Action = context => Task.CompletedTask
+            Action = context => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.BuildCompute]
         });
 
         // Add a default "Push" meta-step that all push steps should be required by
@@ -239,7 +243,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             Name = WellKnownPipelineSteps.Publish,
             Description = "Aggregation step for all publish operations. All publish steps should be required by this step.",
-            Action = _ => Task.CompletedTask
+            Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.PushContainerImage]
         });
 
         _steps.Add(new PipelineStep
@@ -247,6 +252,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Name = WellKnownPipelineSteps.PublishPrereq,
             Description = "Prerequisite step that runs before any publish operations.",
             Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.PushContainerImage]
         });
 
         // Add diagnostic step for dependency graph analysis
