@@ -42,6 +42,77 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
+            var fetchHostNameStep = new PipelineStep
+            {
+                Name = $"fetch-hostname-{TargetResource.Name}",
+                Action = async ctx =>
+                {
+                    var (hostName, isAvailable) = await AzureEnvironmentResourceHelpers.GetDnlHostNameAsync(TargetResource, ctx).ConfigureAwait(false);
+
+                    if (!string.IsNullOrEmpty(hostName))
+                    {
+                        // Add DNL annotation to the resource
+                        TargetResource.Annotations.Add(new DynamicNetworkLocationAnnotation(hostName));
+
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Fetched App Service hostname: {hostName}", true);
+                    }
+                    else
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Warning, $"Could not fetch App Service hostname for {hostName}", true);
+                    }
+                },
+                Tags = ["fetch-hostname"]
+            };
+
+            steps.Add(fetchHostNameStep);
+
+            /*
+            var updateEndpointReferencesStep = new PipelineStep
+            {
+                Name = $"update-endpoint-references-{TargetResource.Name}",
+                Action = ctx =>
+                {
+                    // Find the DNL annotation on the target resource
+                    var dnlAnnotation = TargetResource.Annotations
+                        .OfType<DynamicNetworkLocationAnnotation>()
+                        .FirstOrDefault();
+
+                    if (dnlAnnotation is null || string.IsNullOrEmpty(dnlAnnotation.HostName))
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Warning, $"No DNL annotation found for {TargetResource.Name}, skipping endpoint update.", true);
+                        return Task.CompletedTask;
+                    }
+
+                    // Update EndpointReference for all compute resources in the model
+                    foreach (var resource in ctx.Model.GetComputeResources())
+                    {
+                        if (resource.TryGetEndpoints(out var endpoints))
+                        {
+                            foreach (var endpoint in endpoints)
+                            {
+                                // Update the endpoint's reference to use the DNL hostname
+                                // This assumes EndpointReference has a property or method to set the host.
+                                // If not, you may need to update the endpoint's Uri or a custom annotation.
+                                if (endpoint is EndpointReference endpointRef)
+                                {
+                                    endpointRef.Host = dnlAnnotation.HostName;
+                                }
+                                // If endpoints are not EndpointReference, but have a Host/Uri property, update accordingly:
+                                // endpoint.Host = dnlAnnotation.HostName;
+                            }
+                        }
+                    }
+
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Updated EndpointReference for all compute resources to use host: {dnlAnnotation.HostName}", true);
+                    return Task.CompletedTask;
+                },
+                Tags = ["update-endpoint-references"]
+            };
+
+            // Ensure this step runs after fetchHostNameStep
+            updateEndpointReferencesStep.DependsOn(fetchHostNameStep);
+            steps.Add(updateEndpointReferencesStep);*/
+
             if (targetResource.RequiresImageBuildAndPush())
             {
                 // Create push step for this deployment target
@@ -125,6 +196,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                 pushSteps.DependsOn(registryProvisionSteps);
             }
+
+            // Ensure fetch-hostname step is required by provision infrastructure
+            var fetchHostNameSteps = context.GetSteps(this, "fetch-hostname");
+            fetchHostNameSteps.RequiredBy(WellKnownPipelineTags.ProvisionInfrastructure);
 
             // The app deployment should depend on the push step
             provisionSteps.DependsOn(pushSteps);

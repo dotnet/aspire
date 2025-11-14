@@ -17,3 +17,28 @@ public sealed class AzureAppServiceWebsiteCustomizationAnnotation(Action<AzureRe
     /// </summary>
     public Action<AzureResourceInfrastructure, WebSite> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
 }
+
+/// <summary>
+/// Represents an annotation that dynamically specifies a network location by its host name.
+/// </summary>
+/// <remarks>This annotation is typically used to associate a resource with a network location that is identified
+/// by a host name.</remarks>
+public class DynamicNetworkLocationAnnotation : IResourceAnnotation
+{
+    /// <summary>
+    /// Host name of the dynamic network location.
+    /// </summary>
+    public string HostName { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DynamicNetworkLocationAnnotation"/> class with the specified host
+    /// name.
+    /// </summary>
+    /// <remarks>The <paramref name="hostName"/> parameter is used to identify the network location
+    /// dynamically. Ensure that the provided host name is valid and properly formatted.</remarks>
+    /// <param name="hostName">The host name associated with the network location. Cannot be null or empty.</param>
+    public DynamicNetworkLocationAnnotation(string hostName)
+    {
+        HostName = hostName;
+    }
+}
