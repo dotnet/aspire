@@ -126,7 +126,11 @@ internal static class AzureEnvironmentResourceHelpers
         // Prepare ARM endpoint and request
         var armEndpoint = "https://management.azure.com";
         var apiVersion = "2025-03-01";
-        var siteName = ($"{resource.Name.ToLowerInvariant()}-{websiteSuffix?.ToLowerInvariant()}").Substring(1, 60);
+        var siteName = $"{resource.Name.ToLowerInvariant()}-{websiteSuffix?.ToLowerInvariant()}";
+        if (siteName.Length > 60)
+        {
+            siteName = siteName.Substring(0, 60);
+        }
         var url = $"{armEndpoint}/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/CheckNameAvailability?api-version={apiVersion}";
         var requestBody = new
         {
