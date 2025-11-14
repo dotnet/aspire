@@ -185,9 +185,9 @@ public static class RedisBuilderExtensions
                     .WithArgs(ctx =>
                     {
                         ctx.Args.Add("--tls-port");
-                        ctx.Args.Add(ReferenceExpression.Create($"{redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port)}"));
+                        ctx.Args.Add(redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port));
                         ctx.Args.Add("--port");
-                        ctx.Args.Add(ReferenceExpression.Create($"{redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port)}"));
+                        ctx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
                     });
 
                 redis.TlsEnabled = true;

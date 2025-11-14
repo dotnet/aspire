@@ -80,7 +80,7 @@ public static class YarpResourceExtensions
                 // configure the environment variables to use it.
                 yarpBuilder
                     .WithHttpsEndpoint(targetPort: HttpsPort)
-                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", $"{resource.GetEndpoint("https").Property(EndpointProperty.Port)}")
+                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
                     .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
             }
 
@@ -91,9 +91,14 @@ public static class YarpResourceExtensions
         {
             yarpBuilder.WithEnvironment(ctx =>
             {
-                var options = ctx.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationOptions>();
-                if (options.AllowUnsecuredTransport)
+                var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+                if (!developerCertificateService.SupportsContainerTrust)
                 {
+                    // On systems without the ASP.NET DevCert updates introduced in .NET 10, YARP will not trust the cert used
+                    // by Aspire otlp endpoint when running locally. The Aspire otlp endpoint uses the dev cert, and prior to
+                    // .NET 10, it was only valid for localhost, but from the container perspective, the url will be something
+                    // like https://docker.host.internal, so it will NOT be valid. This is not necessary when using the latest
+                    // dev cert.
                     ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
                 }
             });

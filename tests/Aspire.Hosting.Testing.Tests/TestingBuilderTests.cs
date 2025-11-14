@@ -525,6 +525,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
             var redis1 = builder.CreateResourceBuilder<RedisResource>("redis1");
             // Disable certificates to avoid extra arguments being added
             redis1.WithoutCertificateKeyPair();
+            redis1.Resource.ShellExecution = false;
             redis1.WithImage("busybox:latest");
             redis1.WithEntrypoint("tail");
             redis1.WithArgs(a => { a.Args.Clear(); a.Args.AddRange(["-f", "/dev/null"]); });
