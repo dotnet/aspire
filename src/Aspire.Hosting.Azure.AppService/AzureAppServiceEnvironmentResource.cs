@@ -229,6 +229,19 @@ public class AzureAppServiceEnvironmentResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
+
+        // Try to find a DNL annotation with a resolved hostname
+        var dnlAnnotation = resource.Annotations
+            .OfType<DynamicNetworkLocationAnnotation>()
+            .FirstOrDefault();
+
+        if (dnlAnnotation is not null && !string.IsNullOrEmpty(dnlAnnotation.HostName))
+        {
+            // Use the dynamically discovered hostname
+            return ReferenceExpression.Create($"{dnlAnnotation.HostName}");
+        }
+
+        // Fallback to deterministic naming
         return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
     }
 
