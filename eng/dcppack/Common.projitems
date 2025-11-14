@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <DcpPlatform Condition=" '$(DcpPlatform)' == '' ">$([System.String]::Copy('$(DcpRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</DcpPlatform>
+    <DcpPlatform Condition=" '$(DcpPlatform)' == '' ">$([System.String]::Copy('$(DcpRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x64', '-amd64'))</DcpPlatform>
   </PropertyGroup>
 
   <PropertyGroup>
