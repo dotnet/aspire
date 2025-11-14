@@ -67,7 +67,7 @@ if ($restoreMaui) {
     $settings = New-Object System.Xml.XmlWriterSettings
     $settings.Indent = $true
     $settings.IndentChars = "  "
-    $settings.NewLineChars = "`n"
+    $settings.NewLineChars = [System.Environment]::NewLine
     $settings.NewLineHandling = [System.Xml.NewLineHandling]::Replace
     $settings.OmitXmlDeclaration = $true
     
