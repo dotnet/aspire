@@ -341,7 +341,7 @@ public static class KeycloakResourceBuilderExtensions
 
         // Opentelemetry support requires the opentelemetry feature to be enabled.
         builder.WithEnabledFeatures("opentelemetry");
-        OtlpConfigurationExtensions.WithOtlpExporter(builder);
+        OtlpConfigurationExtensions.WithOtlpExporter(builder, protocol);
 
         return builder;
     }
