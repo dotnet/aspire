@@ -199,10 +199,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             // Ensure fetch-hostname step is required by provision infrastructure
             var fetchHostNameSteps = context.GetSteps(this, "fetch-hostname");
-            fetchHostNameSteps.RequiredBy(WellKnownPipelineTags.ProvisionInfrastructure);
 
             // The app deployment should depend on the push step
             provisionSteps.DependsOn(pushSteps);
+            provisionSteps.DependsOn(fetchHostNameSteps);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
