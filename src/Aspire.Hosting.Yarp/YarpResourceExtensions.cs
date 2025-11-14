@@ -50,42 +50,39 @@ public static class YarpResourceExtensions
                           return Task.CompletedTask;
                       });
 
-        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        if (builder.ExecutionContext.IsRunMode)
         {
-            if (!builder.ExecutionContext.IsRunMode)
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
             {
-                // This configuration is only valid for run mode currently
-                return Task.CompletedTask;
-            }
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
-            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-            bool addHttps = false;
-            if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
-            {
-                if (developerCertificateService.DefaultTlsTerminationEnabled)
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
                 {
-                    // If no specific certificate is configured
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        // If no specific certificate is configured
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
                     addHttps = true;
                 }
-            }
-            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
-            {
-                addHttps = true;
-            }
 
-            if (addHttps)
-            {
-                // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
-                // configure the environment variables to use it.
-                yarpBuilder
-                    .WithHttpsEndpoint(targetPort: HttpsPort)
-                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
-                    .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
-            }
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    yarpBuilder
+                        .WithHttpsEndpoint(targetPort: HttpsPort)
+                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
+                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+                }
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {

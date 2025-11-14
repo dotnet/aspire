@@ -154,47 +154,45 @@ public static class RedisBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        if (builder.ExecutionContext.IsRunMode)
         {
-            if (!builder.ExecutionContext.IsRunMode)
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
             {
-                return Task.CompletedTask;
-            }
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
-            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-            bool addHttps = false;
-            if (!redis.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
-            {
-                if (developerCertificateService.DefaultTlsTerminationEnabled)
+                bool addHttps = false;
+                if (!redis.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
-            }
-            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
-            {
-                addHttps = true;
-            }
 
-            if (addHttps)
-            {
-                // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
-                // configure the environment variables to use it.
-                redisBuilder
-                    .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
-                    .WithArgs(ctx =>
-                    {
-                        ctx.Args.Add("--tls-port");
-                        ctx.Args.Add(redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port));
-                        ctx.Args.Add("--port");
-                        ctx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
-                    });
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    redisBuilder
+                        .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                        .WithArgs(ctx =>
+                        {
+                            ctx.Args.Add("--tls-port");
+                            ctx.Args.Add(redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port));
+                            ctx.Args.Add("--port");
+                            ctx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
+                        });
 
-                redis.TlsEnabled = true;
-            }
+                    redis.TlsEnabled = true;
+                }
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
+        }
 
         return redisBuilder;
     }

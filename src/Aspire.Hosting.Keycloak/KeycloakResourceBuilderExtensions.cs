@@ -104,39 +104,37 @@ public static class KeycloakResourceBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        if (builder.ExecutionContext.IsRunMode)
         {
-            if (!builder.ExecutionContext.IsRunMode)
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
             {
-                return Task.CompletedTask;
-            }
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
-            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-            bool addHttps = false;
-            if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
-            {
-                if (developerCertificateService.DefaultTlsTerminationEnabled)
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
-            }
-            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
-            {
-                addHttps = true;
-            }
 
-            if (addHttps)
-            {
-                // If a TLS certificate is configured, ensure the keycloak resource has an HTTPS endpoint and
-                // configure the environment variables to use it.
-                keycloak
-                    .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
-                    .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
-            }
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the keycloak resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    keycloak
+                        .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
+                        .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
+                }
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {
