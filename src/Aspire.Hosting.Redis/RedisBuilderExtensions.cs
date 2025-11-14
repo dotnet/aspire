@@ -320,7 +320,7 @@ public static class RedisBuilderExtensions
                     foreach (var redisInstance in redisInstances)
                     {
                         // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                        context.EnvironmentVariables[$"RI_REDIS_HOST{counter}"] = $"{redisInstance.Name}.dev.internal";
+                        context.EnvironmentVariables[$"RI_REDIS_HOST{counter}"] = redisInstance.PrimaryEndpoint.Property(EndpointProperty.Host);
                         context.EnvironmentVariables[$"RI_REDIS_PORT{counter}"] = redisInstance.PrimaryEndpoint.TargetPort!.Value;
                         context.EnvironmentVariables[$"RI_REDIS_ALIAS{counter}"] = redisInstance.Name;
                         if (redisInstance.TlsEnabled)

@@ -1674,7 +1674,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 new ContainerNetworkConnection
                 {
                     Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value,
-                    Aliases = [container.Name, $"{container.Name}.dev.internal"],
+                    Aliases = [container.Name, $"{container.Name}.dev.internal"], // Alias to .dev.internal to support dev cert trust
                 }
             };
 

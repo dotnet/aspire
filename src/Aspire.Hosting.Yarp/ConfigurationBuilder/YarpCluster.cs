@@ -78,7 +78,10 @@ public class YarpCluster
         var httpsEndpoint = resource.GetEndpoint("https");
         var httpEndpoint = resource.GetEndpoint("http");
 
-        var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
+        var hasTlsEndpoint = (httpsEndpoint.Exists && StringComparer.OrdinalIgnoreCase.Equals(httpsEndpoint.Scheme, "https")) || (httpEndpoint.Exists && StringComparer.OrdinalIgnoreCase.Equals(httpEndpoint.Scheme, "https"));
+        var hasNonTlsEndpoint = (httpsEndpoint.Exists && StringComparer.OrdinalIgnoreCase.Equals(httpsEndpoint.Scheme, "http")) || (httpEndpoint.Exists && StringComparer.OrdinalIgnoreCase.Equals(httpEndpoint.Scheme, "http"));
+
+        var scheme = (hasTlsEndpoint, hasNonTlsEndpoint) switch
         {
             (true, true) => "https+http",
             (true, false) => "https",
