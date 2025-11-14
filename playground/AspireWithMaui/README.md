@@ -28,6 +28,7 @@ Run the following commands from the repository root:
 This will:
 1. Restore all Aspire dependencies and set up the local .dotnet SDK
 2. Install the MAUI workload into the repository's local `.dotnet` folder (does not affect your global installation)
+3. Generate the `AspireWithMaui.slnx` solution file including the playground project
 
 > **Note:** The MAUI workload is installed only in the repository's local `.dotnet` folder and will not interfere with your system-wide .NET installation.
 > This also means that you will still need to do this even if you have the MAUI workload already installed in your system-wide .NET installation.
