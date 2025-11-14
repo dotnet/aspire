@@ -56,7 +56,14 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         Assert.Contains("OTEL_EXPORTER_OTLP_PROTOCOL", env);
         Assert.Contains("ASPNETCORE_ENVIRONMENT", env);
 
-        Assert.DoesNotContain("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
+        if (containerCertificateSupport)
+        {
+            Assert.DoesNotContain("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
+        }
+        else
+        {
+            Assert.Contains("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
+        }
     }
 
     [Fact]
