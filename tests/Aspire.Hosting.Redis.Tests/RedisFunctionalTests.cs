@@ -167,19 +167,19 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         db =>
         {
             Assert.Equal(redis1.Resource.Name, db.Name);
-            Assert.Equal(redis1.Resource.Name, db.Host);
+            Assert.Equal($"{redis1.Resource.Name}.dev.internal", db.Host);
             Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
         },
         db =>
         {
             Assert.Equal(redis2.Resource.Name, db.Name);
-            Assert.Equal(redis2.Resource.Name, db.Host);
+            Assert.Equal($"{redis2.Resource.Name}.dev.internal", db.Host);
             Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
         },
         db =>
         {
             Assert.Equal(redis3.Resource.Name, db.Name);
-            Assert.Equal(redis3.Resource.Name, db.Host);
+            Assert.Equal($"{redis3.Resource.Name}.dev.internal", db.Host);
             Assert.Equal(redis3.Resource.PrimaryEndpoint.TargetPort, db.Port);
         });
 
