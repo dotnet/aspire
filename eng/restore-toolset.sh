@@ -56,8 +56,9 @@ if [[ "$restoreMaui" == true ]]; then
     # Insert the Maui folder before the closing </Solution> tag
     sed -i.bak "/<\/Solution>/i\\$maui_folder" "$temp_file"
     rm -f "$temp_file.bak"
-    # Move the temp file to the output location
-    mv "$temp_file" "$output_slnx"
+    # Write UTF-8 BOM and append temp file to output location
+    printf '\xEF\xBB\xBF' > "$output_slnx"
+    cat "$temp_file" >> "$output_slnx"
     
     echo "Generated AspireWithMaui.slnx at: $output_slnx"
   fi
