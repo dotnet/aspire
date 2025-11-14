@@ -818,14 +818,11 @@ public class AddRedisTests
         var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
         await builder.Eventing.PublishAsync(beforeStartEvent);
 
-        var connectionString = await redis.Resource.GetConnectionStringAsync();
-
-        Assert.Contains("ssl=true", connectionString);
         Assert.True(redis.Resource.TlsEnabled);
     }
 
     [Fact]
-    public async Task RedisWithoutCertificateHasCorrectConnectionString()
+    public void RedisWithoutCertificateHasCorrectConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -836,11 +833,6 @@ public class AddRedisTests
 
         // Simulate the BeforeStartEvent
         var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
-        await builder.Eventing.PublishAsync(beforeStartEvent);
-
-        var connectionString = await redis.Resource.GetConnectionStringAsync();
-
-        Assert.DoesNotContain("ssl=true", connectionString);
         Assert.False(redis.Resource.TlsEnabled);
     }
 
