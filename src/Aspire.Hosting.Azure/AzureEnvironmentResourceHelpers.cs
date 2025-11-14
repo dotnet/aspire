@@ -98,7 +98,7 @@ internal static class AzureEnvironmentResourceHelpers
         }
     }
 
-    public static async Task<(string? HostName, bool IsAvailable)> GetDnlHostNameAsync(IResource resource, PipelineStepContext context)
+    public static async Task<(string? HostName, bool IsAvailable)> GetDnlHostNameAsync(IResource resource, string? websiteSuffix, PipelineStepContext context)
     {
         // Get required services
         var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
@@ -120,15 +120,14 @@ internal static class AzureEnvironmentResourceHelpers
         var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
         var subscriptionId = provisioningContext.Subscription.Id.SubscriptionId?.ToString()
             ?? throw new InvalidOperationException("SubscriptionId is required.");
-        var resourceGroup = provisioningContext.ResourceGroup.Name
-            ?? throw new InvalidOperationException("ResourceGroup name is required.");
+        var location = provisioningContext.Location.Name
+            ?? throw new InvalidOperationException("Location is required.");
 
         // Prepare ARM endpoint and request
         var armEndpoint = "https://management.azure.com";
-        var apiVersion = "2022-03-01";
-        var siteName = resource.Name.ToLowerInvariant();
-        var url = $"{armEndpoint}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Web/sites/CheckNameAvailability?api-version={apiVersion}";
-
+        var apiVersion = "2025-03-01";
+        var siteName = ($"{resource.Name.ToLowerInvariant()}-{websiteSuffix?.ToLowerInvariant()}").Substring(1, 60);
+        var url = $"{armEndpoint}/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/CheckNameAvailability?api-version={apiVersion}";
         var requestBody = new
         {
             name = siteName,

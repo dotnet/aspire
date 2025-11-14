@@ -47,7 +47,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Name = $"fetch-hostname-{TargetResource.Name}",
                 Action = async ctx =>
                 {
-                    var (hostName, isAvailable) = await AzureEnvironmentResourceHelpers.GetDnlHostNameAsync(TargetResource, ctx).ConfigureAwait(false);
+                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+
+                    var (hostName, isAvailable) = await AzureEnvironmentResourceHelpers.GetDnlHostNameAsync(TargetResource, websiteSuffix, ctx).ConfigureAwait(false);
 
                     if (!string.IsNullOrEmpty(hostName))
                     {
