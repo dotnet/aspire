@@ -576,6 +576,80 @@ app.MapGet("/genai-langchain-trace", async () =>
     return "Created LangChain GenAI trace";
 });
 
+app.MapGet("/genai-evaluations", async () =>
+{
+    var source = new ActivitySource("Services.Api", "1.0.0");
+
+    var activity = source.StartActivity("chat gpt with evaluations", ActivityKind.Client);
+    if (activity != null)
+    {
+        activity.SetTag("gen_ai.system", "gpt");
+        activity.SetTag("gen_ai.response.model", "gpt-4");
+        activity.SetTag("gen_ai.usage.input_tokens", 125);
+        activity.SetTag("gen_ai.usage.output_tokens", 89);
+        activity.SetTag("gen_ai.response.id", "chatcmpl-eval-123");
+
+        // Add evaluation result events
+        
+        // Evaluation 1: Relevance - passed
+        var eval1Tags = new ActivityTagsCollection
+        {
+            { "gen_ai.evaluation.name", "Relevance" },
+            { "gen_ai.evaluation.score.label", "relevant" },
+            { "gen_ai.evaluation.score.value", 0.95 },
+            { "gen_ai.evaluation.explanation", "The response directly addresses the user's question with accurate and comprehensive information." },
+            { "gen_ai.response.id", "chatcmpl-eval-123" }
+        };
+        activity.AddEvent(new ActivityEvent("gen_ai.evaluation.result", tags: eval1Tags));
+
+        // Evaluation 2: IntentResolution - passed
+        var eval2Tags = new ActivityTagsCollection
+        {
+            { "gen_ai.evaluation.name", "IntentResolution" },
+            { "gen_ai.evaluation.score.label", "correct" },
+            { "gen_ai.evaluation.score.value", 0.88 },
+            { "gen_ai.evaluation.explanation", "The AI correctly understood and resolved the user's intent." }
+        };
+        activity.AddEvent(new ActivityEvent("gen_ai.evaluation.result", tags: eval2Tags));
+
+        // Evaluation 3: Coherence - needs improvement
+        var eval3Tags = new ActivityTagsCollection
+        {
+            { "gen_ai.evaluation.name", "Coherence" },
+            { "gen_ai.evaluation.score.label", "pass" },
+            { "gen_ai.evaluation.score.value", 0.72 },
+            { "gen_ai.evaluation.explanation", "The response is mostly coherent but could be better structured." }
+        };
+        activity.AddEvent(new ActivityEvent("gen_ai.evaluation.result", tags: eval3Tags));
+
+        // Evaluation 4: Factuality - with error
+        var eval4Tags = new ActivityTagsCollection
+        {
+            { "gen_ai.evaluation.name", "Factuality" },
+            { "gen_ai.evaluation.score.label", "fail" },
+            { "gen_ai.evaluation.score.value", 0.45 },
+            { "gen_ai.evaluation.explanation", "Some facts could not be verified against the knowledge base." },
+            { "error.type", "verification_failed" }
+        };
+        activity.AddEvent(new ActivityEvent("gen_ai.evaluation.result", tags: eval4Tags));
+
+        // Evaluation 5: Minimal evaluation (only name and score)
+        var eval5Tags = new ActivityTagsCollection
+        {
+            { "gen_ai.evaluation.name", "Fluency" },
+            { "gen_ai.evaluation.score.value", 0.92 }
+        };
+        activity.AddEvent(new ActivityEvent("gen_ai.evaluation.result", tags: eval5Tags));
+    }
+
+    // Avoid zero seconds span.
+    await Task.Delay(100);
+
+    activity?.Stop();
+
+    return "Created GenAI trace with evaluations";
+});
+
 async Task SimulateWorkAsync(ActivitySource source, int index, int millisecondsDelay = 2)
 {
     using var activity = source.StartActivity($"WorkIteration{index + 1}");

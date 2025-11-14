@@ -242,6 +242,16 @@
                                         <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
                                     </Header>
                                 </FluentTab>
+                                @if (Content.Evaluations.Count > 0)
+                                {
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-overview-{OverviewViewKind.Evaluations}")">
+                                        <Header>
+                                            <span class="tab-text">Evaluations</span>
+                                            <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.Evaluations.Count</FluentBadge>
+                                        </Header>
+                                    </FluentTab>
+                                }
                             </FluentTabs>
                         </div>
                         @if (OverviewActiveView == OverviewViewKind.InputOutput)
@@ -351,6 +361,36 @@
                                 else
                                 {
                                     <p>@Loc[nameof(Dialogs.GenAINoTools)]</p>
+                                }
+                            </div>
+                        }
+                        @if (OverviewActiveView == OverviewViewKind.Evaluations)
+                        {
+                            <div class="tab-container">
+                                @* Don't need to check for empty collection because tab is only displayed if there are evaluations *@
+                                @foreach (var evaluation in Content.Evaluations)
+                                {
+                                    <div class="evaluation-container">
+                                        <div class="evaluation-header">
+                                            @evaluation.Name
+                                            <FluentDivider Orientation="Orientation.Vertical" Class="evaluation-divider" />
+                                            @(evaluation.ScoreValue is { } value ? FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, maxDecimalPlaces: 3) : "n/a")
+                                            <FluentDivider Orientation="Orientation.Vertical" Class="evaluation-divider" />
+                                            @(evaluation.ScoreLabel is { Length: > 0 } label ? label : "n/a")
+                                        </div>
+                                        @if (evaluation.Explanation is { Length: > 0 } explanation)
+                                        {
+                                            <div>
+                                                @explanation
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <span class="empty-data"></span>
+                                            </div>
+                                        }
+                                    </div>
                                 }
                             </div>
                         }

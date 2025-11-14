@@ -292,3 +292,26 @@
 ::deep .tab-container .tool-cell-nowrap {
     text-wrap: nowrap;
 }
+
+::deep .tab-container .evaluation-container {
+    padding: 12px;
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-hover);
+    border-radius: calc(var(--layer-corner-radius) * 0.5px);
+    width: 100%;
+    row-gap: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+::deep .tab-container .evaluation-header {
+    display: flex;
+    flex-direction: row;
+    column-gap: 8px;
+    align-items: center;
+    font-weight: 600;
+}
+
+::deep .tab-container .evaluation-divider {
+    height: 20px;
+    border-color: var(--neutral-stroke-hover);
+}

@@ -22,6 +22,18 @@ public static class GenAIHelpers
     public const string GenAIPromptPrefix = "gen_ai.prompt.";
     public const string GenAICompletionPrefix = "gen_ai.completion.";
 
+    // Event names
+    public const string GenAIEvaluationResultEventName = "gen_ai.evaluation.result";
+
+    // Evaluation result attributes (per OpenTelemetry specification)
+    public const string GenAIEvaluationName = "gen_ai.evaluation.name";
+    public const string GenAIEvaluationScoreLabel = "gen_ai.evaluation.score.label";
+    public const string GenAIEvaluationScoreValue = "gen_ai.evaluation.score.value";
+    public const string GenAIEvaluationExplanation = "gen_ai.evaluation.explanation";
+    public const string GenAIResponseId = "gen_ai.response.id";
+
+    public const string ErrorType = "error.type";
+
     public static bool IsGenAISpan(KeyValuePair<string, string>[] attributes)
     {
         return attributes.GetValueWithFallback(GenAISystem, GenAIProviderName) is { Length: > 0 };

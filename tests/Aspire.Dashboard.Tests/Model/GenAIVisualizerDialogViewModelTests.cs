@@ -1109,4 +1109,376 @@ public sealed class GenAIVisualizerDialogViewModelTests
             telemetryRepository: repository,
             () => [spanDetailsViewModel.Span]);
     }
+
+    [Fact]
+    public void Create_NoEvaluationResults_EmptyEvaluationsList()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Evaluations);
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsInLogEntries_ParsedCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "Relevance"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.label", "relevant"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.85"),
+                                    KeyValuePair.Create("gen_ai.evaluation.explanation", "The response is factually accurate and addresses the question."),
+                                    KeyValuePair.Create("gen_ai.response.id", "chatcmpl-123")
+                                ]),
+                            CreateLogRecord(
+                                time: s_testTime.AddSeconds(1),
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "IntentResolution"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.label", "incorrect"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.65"),
+                                    KeyValuePair.Create("error.type", "timeout")
+                                ])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Evaluations,
+            e =>
+            {
+                Assert.Equal("Relevance", e.Name);
+                Assert.Equal("relevant", e.ScoreLabel);
+                Assert.Equal(0.85, e.ScoreValue);
+                Assert.Equal("The response is factually accurate and addresses the question.", e.Explanation);
+                Assert.Equal("chatcmpl-123", e.ResponseId);
+                Assert.Null(e.ErrorType);
+            },
+            e =>
+            {
+                Assert.Equal("IntentResolution", e.Name);
+                Assert.Equal("incorrect", e.ScoreLabel);
+                Assert.Equal(0.65, e.ScoreValue);
+                Assert.Null(e.Explanation);
+                Assert.Null(e.ResponseId);
+                Assert.Equal("timeout", e.ErrorType);
+            });
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsInSpanEvents_ParsedCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var events = new List<Span.Types.Event>
+        {
+            CreateSpanEvent(
+                name: "gen_ai.evaluation.result",
+                startTime: 0,
+                attributes: new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("gen_ai.evaluation.name", "Relevance"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.label", "pass"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.95"),
+                    KeyValuePair.Create("gen_ai.evaluation.explanation", "Very accurate response"),
+                    KeyValuePair.Create("gen_ai.response.id", "chatcmpl-456")
+                }),
+            CreateSpanEvent(
+                name: "gen_ai.evaluation.result",
+                startTime: 1,
+                attributes: new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("gen_ai.evaluation.name", "IntentResolution"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.88")
+                })
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(
+                                traceId: "1",
+                                spanId: "1-1",
+                                startTime: s_testTime.AddMinutes(1),
+                                endTime: s_testTime.AddMinutes(10),
+                                events: events)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Evaluations,
+            e =>
+            {
+                Assert.Equal("Relevance", e.Name);
+                Assert.Equal("pass", e.ScoreLabel);
+                Assert.Equal(0.95, e.ScoreValue);
+                Assert.Equal("Very accurate response", e.Explanation);
+                Assert.Equal("chatcmpl-456", e.ResponseId);
+                Assert.Null(e.ErrorType);
+            },
+            e =>
+            {
+                Assert.Equal("IntentResolution", e.Name);
+                Assert.Null(e.ScoreLabel);
+                Assert.Equal(0.88, e.ScoreValue);
+                Assert.Null(e.Explanation);
+                Assert.Null(e.ResponseId);
+                Assert.Null(e.ErrorType);
+            });
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsMinimalData_ParsedCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "BasicMetric")
+                                ])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Single(vm.Evaluations);
+        Assert.Equal("BasicMetric", vm.Evaluations[0].Name);
+        Assert.Null(vm.Evaluations[0].ScoreLabel);
+        Assert.Null(vm.Evaluations[0].ScoreValue);
+        Assert.Null(vm.Evaluations[0].Explanation);
+        Assert.Null(vm.Evaluations[0].ResponseId);
+        Assert.Null(vm.Evaluations[0].ErrorType);
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsFromBothLogEntriesAndSpanEvents_AllParsed()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var events = new List<Span.Types.Event>
+        {
+            CreateSpanEvent(
+                name: "gen_ai.evaluation.result",
+                startTime: 0,
+                attributes: new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("gen_ai.evaluation.name", "SpanEventMetric"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.75")
+                })
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(
+                                traceId: "1",
+                                spanId: "1-1",
+                                startTime: s_testTime.AddMinutes(1),
+                                endTime: s_testTime.AddMinutes(10),
+                                events: events)
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "LogEntryMetric"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.65")
+                                ])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Equal(2, vm.Evaluations.Count);
+        Assert.Contains(vm.Evaluations, e => e.Name == "LogEntryMetric" && e.ScoreValue == 0.65);
+        Assert.Contains(vm.Evaluations, e => e.Name == "SpanEventMetric" && e.ScoreValue == 0.75);
+    }
 }
