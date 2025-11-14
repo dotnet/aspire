@@ -37,6 +37,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             Name = WellKnownPipelineSteps.Deploy,
             Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.DeployCompute]
         });
 
         _steps.Add(new PipelineStep
@@ -116,7 +117,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => uniqueDeployTag));
                 }
-            }
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
         });
 
         // Add a default "build" step
@@ -124,25 +126,29 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             Name = WellKnownPipelineSteps.Build,
             Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.BuildCompute]
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.BuildPrereq,
-            Action = context => Task.CompletedTask
+            Action = context => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.BuildCompute]
         });
 
         // Add a default "Publish" meta-step that all publish steps should be required by
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Publish,
-            Action = _ => Task.CompletedTask
+            Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.PushContainerImage]
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.PublishPrereq,
             Action = _ => Task.CompletedTask,
+            Tags = [WellKnownPipelineTags.PushContainerImage]
         });
 
         // Add diagnostic step for dependency graph analysis
