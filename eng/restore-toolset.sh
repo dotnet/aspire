@@ -54,8 +54,8 @@ if [[ "$restoreMaui" == true ]]; then
   </Folder>'
     
     # Insert the Maui folder before the closing </Solution> tag
-    sed -i "/<\/Solution>/i\\$maui_folder" "$temp_file"
-    
+    sed -i.bak "/<\/Solution>/i\\$maui_folder" "$temp_file"
+    rm -f "$temp_file.bak"
     # Move the temp file to the output location
     mv "$temp_file" "$output_slnx"
     
