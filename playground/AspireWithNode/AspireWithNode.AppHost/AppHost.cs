@@ -37,7 +37,7 @@ if (builder.Environment.IsDevelopment() && launchProfile == "https")
         .WithEnvironment(ctx =>
         {
             var httpsEndpoint = frontend.GetEndpoint("https");
-            ctx.EnvironmentVariables["HTTPS_REDIRECT_PORT"] = ReferenceExpression.Create($"{httpsEndpoint.Property(EndpointProperty.Port)}");
+            ctx.EnvironmentVariables["HTTPS_REDIRECT_PORT"] = httpsEndpoint.Property(EndpointProperty.Port);
         });
 }
 
