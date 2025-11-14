@@ -28,7 +28,7 @@
     Override OS detection (win, linux, linux-musl, osx)
 
 .PARAMETER Architecture
-    Override architecture detection (x64, x86, arm64)
+    Override architecture detection (x64, arm64)
 
 .PARAMETER HiveOnly
     Only install NuGet packages to the hive, skip CLI download
@@ -95,7 +95,7 @@ param(
     [string]$OS = "",
 
     [Parameter(HelpMessage = "Override architecture detection")]
-    [ValidateSet("", "x64", "x86", "arm64")]
+    [ValidateSet("", "x64", "arm64")]
     [string]$Architecture = "",
 
     [Parameter(HelpMessage = "Only install NuGet packages to the hive, skip CLI download")]
@@ -280,7 +280,6 @@ function Get-MachineArchitecture {
                 $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
                 switch ($runtimeArch) {
                     "X64" { return "x64" }
-                    "X86" { return "x86" }
                     "Arm64" { return "arm64" }
                     default {
                         Write-Message "Unknown runtime architecture: $runtimeArch" -Level Verbose
@@ -290,7 +289,6 @@ function Get-MachineArchitecture {
                             switch ($unameArch) {
                                 { @("x86_64", "amd64") -contains $_ } { return "x64" }
                                 { @("aarch64", "arm64") -contains $_ } { return "arm64" }
-                                { @("i386", "i686") -contains $_ } { return "x86" }
                                 default {
                                     throw "Architecture '$unameArch' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
                                 }
@@ -331,9 +329,6 @@ function Get-CLIArchitectureFromArchitecture {
     switch ($normalizedArch) {
         { @("amd64", "x64") -contains $_ } {
             return "x64"
-        }
-        { $_ -eq "x86" } {
-            return "x86"
         }
         { $_ -eq "arm64" } {
             return "arm64"
@@ -709,32 +704,32 @@ function Get-VersionSuffixFromPackages {
         [Parameter(Mandatory = $true)]
         [string]$DownloadDir
     )
-    
+
     if ($PSCmdlet.ShouldProcess("packages", "Extract version suffix from packages") -and $WhatIfPreference) {
         # Return a mock version for WhatIf
         return "pr.1234.a1b2c3d4"
     }
-    
+
     # Look for any .nupkg file and extract version from its name
     $nupkgFiles = Get-ChildItem -Path $DownloadDir -Filter "*.nupkg" -Recurse | Select-Object -First 1
-    
+
     if (-not $nupkgFiles) {
         Write-Message "No .nupkg files found to extract version from" -Level Verbose
         throw "No NuGet packages found to extract version information from"
     }
-    
+
     $filename = $nupkgFiles.Name
     Write-Message "Extracting version from package: $filename" -Level Verbose
-    
+
     # Extract version from package name using a more robust approach
     # Remove .nupkg extension first, then look for the specific version pattern
     $baseName = $filename -replace '\.nupkg$', ''
-    
+
     # Look for semantic version pattern with PR suffix (more specific and robust)
     if ($baseName -match '.*\.(\d+\.\d+\.\d+-pr\.\d+\.[0-9a-g]+)$') {
         $version = $Matches[1]
         Write-Message "Extracted version: $version" -Level Verbose
-        
+
         # Extract just the PR suffix part using more specific regex
         if ($version -match '(pr\.[0-9]+\.[0-9a-g]+)') {
             $versionSuffix = $Matches[1]

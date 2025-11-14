@@ -63,7 +63,7 @@ USAGE:
                                 CLI installs to: <install-path>/bin
                                 NuGet hive:      <install-path>/hives/pr-<PR_NUMBER>/packages
     --os OS                     Override OS detection (win, linux, linux-musl, osx)
-    --arch ARCH                 Override architecture detection (x64, x86, arm64)
+    --arch ARCH                 Override architecture detection (x64, arm64)
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
     --skip-extension.           Skip VS Code extension download and installation
     --use-insiders              Install extension to VS Code Insiders instead of VS Code
@@ -272,9 +272,6 @@ get_cli_architecture_from_architecture() {
         amd64|x64)
             printf "x64"
             ;;
-        x86)
-            printf "x86"
-            ;;
         arm64)
             printf "arm64"
             ;;
@@ -295,9 +292,6 @@ detect_architecture() {
             ;;
         aarch64|arm64)
             printf "arm64"
-            ;;
-        i386|i686)
-            printf "x86"
             ;;
         *)
             say_error "Architecture $uname_m not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
@@ -600,41 +594,41 @@ get_pr_head_sha() {
 # Function to extract version suffix from downloaded NuGet packages
 extract_version_suffix_from_packages() {
     local download_dir="$1"
-    
+
     if [[ "$DRY_RUN" == true ]]; then
         # Return a mock version for dry run
         printf "pr.1234.a1b2c3d4"
         return 0
     fi
-    
+
     # Look for any .nupkg file and extract version from its name
     local nupkg_file
     nupkg_file=$(find "$download_dir" -name "*.nupkg" | head -1)
-    
+
     if [[ -z "$nupkg_file" ]]; then
         say_verbose "No .nupkg files found to extract version from"
         return 1
     fi
-    
+
     local filename
     filename=$(basename "$nupkg_file")
     say_verbose "Extracting version from package: $filename"
-    
+
     # Extract version from package name using a more robust two-step approach
     # First remove the .nupkg extension, then extract the version part
     local base_name="${filename%.nupkg}"
     local version
-    
+
     # Look for semantic version pattern with PR suffix (more specific and robust)
     version=$(echo "$base_name" | sed -En 's/.*\.([0-9]+\.[0-9]+\.[0-9]+-pr\.[0-9]+\.[a-g0-9]+)/\1/p')
-    
+
     if [[ -z "$version" ]]; then
         say_verbose "Could not extract version from package name: $filename"
         return 1
     fi
-    
+
     say_verbose "Extracted full version: $version"
-    
+
     # Extract just the PR suffix part using bash regex for better compatibility
     if [[ "$version" =~ (pr\.[0-9]+\.[a-g0-9]+) ]]; then
         local version_suffix="${BASH_REMATCH[1]}"
