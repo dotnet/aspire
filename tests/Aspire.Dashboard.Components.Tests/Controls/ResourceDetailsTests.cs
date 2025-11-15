@@ -9,6 +9,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
 
 namespace Aspire.Dashboard.Components.Tests.Controls;
@@ -53,8 +54,14 @@ public class ResourceDetailsTests : DashboardTestContext
                 Assert.True(e.IsValueMasked);
             });
 
+        var actionsButton = cut.Find(".resource-details-actions");
+        await actionsButton.ClickAsync(new MouseEventArgs());
+
         var maskAllSwitch = cut.Find(".mask-all-switch");
-        await maskAllSwitch.ClickAsync(new MouseEventArgs());
+
+        // HACK. Calling OnClick on the element isn't triggering the event correctly. Instead, call OnClick on the component.
+        var item = cut.FindComponents<FluentMenuItem>().Single(s => s.Instance.Class == maskAllSwitch.Attributes["class"]!.Value);
+        await cut.InvokeAsync(() => item.Instance.OnClick.InvokeAsync(new MouseEventArgs()));
 
         Assert.Collection(cut.Instance.FilteredEnvironmentVariables,
             e =>
@@ -137,8 +144,14 @@ public class ResourceDetailsTests : DashboardTestContext
                 Assert.True(e.IsValueMasked);
             });
 
+        var actionsButton = cut.Find(".resource-details-actions");
+        await actionsButton.ClickAsync(new MouseEventArgs());
+
         var maskAllSwitch = cut.Find(".mask-all-switch");
-        await maskAllSwitch.ClickAsync(new MouseEventArgs());
+
+        // HACK. Calling OnClick on the element isn't triggering the event correctly. Instead, call OnClick on the component.
+        var item = cut.FindComponents<FluentMenuItem>().Single(s => s.Instance.Class == maskAllSwitch.Attributes["class"]!.Value);
+        await cut.InvokeAsync(() => item.Instance.OnClick.InvokeAsync(new MouseEventArgs()));
 
         Assert.Collection(cut.Instance.FilteredEnvironmentVariables,
             e =>

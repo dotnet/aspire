@@ -36,6 +36,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<DashboardTelemetryService>();
         context.Services.AddSingleton<ComponentTelemetryContextProvider>();
         context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
+        context.Services.AddSingleton<GlobalState>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
