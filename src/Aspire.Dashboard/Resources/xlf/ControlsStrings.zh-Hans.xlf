@@ -149,22 +149,22 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
         <source>Show all properties</source>
-        <target state="needs-review-translation">全部显示</target>
+        <target state="new">Show all properties</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
         <source>Show core properties</source>
-        <target state="needs-review-translation">仅显示规范</target>
+        <target state="new">Show core properties</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
         <source>Hide sensitive values</source>
-        <target state="needs-review-translation">隐藏值</target>
+        <target state="new">Hide sensitive values</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
         <source>Show sensitive values</source>
-        <target state="needs-review-translation">显示值</target>
+        <target state="new">Show sensitive values</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
