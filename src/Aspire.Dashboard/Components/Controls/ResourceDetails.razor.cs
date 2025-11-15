@@ -206,30 +206,6 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         _aiContext = CreateAIContext();
     }
 
-        //<FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName))" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
-
-        //@if (ShowSpecOnlyToggle)
-        //{
-        //    <FluentIconSwitch Appearance="Appearance.Lightweight"
-        //                      Disabled="IsSpecOnlyToggleDisabled"
-        //                      CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)]"
-        //                      UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowAll)]"
-        //                      OnToggle="@(() => _showAll = !_showAll)"
-        //                      CheckedIcon="@(new Icons.Regular.Size16.DocumentHeader())"
-        //                      UncheckedIcon="@(new Icons.Regular.Size16.DocumentOnePage())"
-        //                      slot="end"/>
-        //}
-
-        //<FluentIconSwitch @bind-Value="@IsMaskAllChecked"
-        //                  Appearance="Appearance.Lightweight"
-        //                  CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)]"
-        //                  UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)]"
-        //                  OnToggle="@OnMaskAllCheckedChanged"
-        //                  CheckedIcon="@(new Icons.Regular.Size16.Eye())"
-        //                  UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())"
-        //                  class="mask-all-switch"
-        //                  slot="end" />
-
     private void UpdateResourceActionsMenu()
     {
         _resourceActionsMenuItems.Clear();
