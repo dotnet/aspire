@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
         <source>The project argument was not specified and no app host project files were detected.</source>
-        <target state="needs-review-translation">프로젝트 인수가 지정되지 않았고 *.csproj 파일이 감지되지 않았습니다.</target>
+        <target state="translated">프로젝트 인수가 지정되지 않았고 앱 호스트 프로젝트 파일이 감지되지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
