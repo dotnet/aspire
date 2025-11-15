@@ -300,6 +300,36 @@ public class AzureRedisExtensionsTests
              .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public void WithAccessKeyAuthentication_SetsSecretOwner(string? kvName)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var redis = builder.AddAzureRedis("redis-cache");
+
+        // Act
+        if (kvName is null)
+        {
+            redis.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            redis.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        // Assert - Verify that the SecretOwner is set to the Redis resource
+        Assert.NotNull(redis.Resource.ConnectionStringSecretOutput);
+        Assert.Same(redis.Resource, redis.Resource.ConnectionStringSecretOutput.SecretOwner);
+        
+        // Also verify that References includes both the KeyVault and the Redis resource
+        var references = ((IValueWithReferences)redis.Resource.ConnectionStringSecretOutput).References.ToList();
+        Assert.Contains(redis.Resource, references);
+        Assert.Contains(redis.Resource.ConnectionStringSecretOutput.Resource, references);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

@@ -428,6 +428,44 @@ public class BicepUtilitiesTests
         Assert.NotEmpty(result);
     }
 
+    /// <summary>
+    /// Ensures that known parameters are not overwritten when calculating the checksum.
+    /// This is important because if these known parameters are overwritten, it means the "roles"
+    /// resources will be redeployed every time the app is run.
+    /// </summary>
+    [Fact]
+    public async Task GetCurrentChecksumAsync_DoesNotOverwriteKnownParameters()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = null;
+        bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = null;
+
+        var parameters = new JsonObject
+        {
+            [AzureBicepResource.KnownParameters.PrincipalType] = new JsonObject { ["value"] = "User" },
+            [AzureBicepResource.KnownParameters.PrincipalId] = new JsonObject { ["value"] = "1234" },
+        };
+
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters"] = parameters.ToJsonString()
+        });
+        var config = configurationBuilder.Build();
+
+        // Act
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+
+        // Assert
+        Assert.NotNull(result);
+
+        // verify the checksum is the same as using the config parameters directly
+        var expected = BicepUtilities.GetChecksum(bicep, parameters, scope: null);
+        Assert.Equal(expected, result);
+    }
+
     private sealed class ResourceWithConnectionString(string name, string connectionString) :
         Resource(name),
         IResourceWithConnectionString
