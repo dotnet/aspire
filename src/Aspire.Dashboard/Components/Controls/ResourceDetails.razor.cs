@@ -210,7 +210,6 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         _resourceActionsMenuItems.Clear();
 
-        // Add "View structured logs" at the top
         _resourceActionsMenuItems.Add(new MenuButtonItem
         {
             Text = Loc[nameof(Resources.Resources.ResourceDetailsViewConsoleLogs)],
