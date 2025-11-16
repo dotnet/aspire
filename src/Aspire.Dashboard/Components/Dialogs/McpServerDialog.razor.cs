@@ -81,12 +81,26 @@ public partial class McpServerDialog
         Debug.Assert(_mcpUrl != null);
 
         Dictionary<string, string>? headers = null;
+        List<McpInputModel>? inputs = null;
 
         if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
         {
+            // Use input reference instead of hardcoded API key
             headers = new Dictionary<string, string>
             {
-                [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = DashboardOptions.Value.Mcp.PrimaryApiKey!
+                [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = "${input:x_mcp_api_key}"
+            };
+
+            // Define the input for the API key
+            inputs = new List<McpInputModel>
+            {
+                new McpInputModel
+                {
+                    Id = "x_mcp_api_key",
+                    Type = "promptString",
+                    Description = "Enter x-mcp-api-key",
+                    Password = true
+                }
             };
         }
 
@@ -96,6 +110,7 @@ public partial class McpServerDialog
             new McpInstallButtonServerModel
             {
                 Name = name,
+                Inputs = inputs,
                 Type = "http",
                 Url = _mcpUrl,
                 Headers = headers
@@ -105,6 +120,7 @@ public partial class McpServerDialog
         var configFileJson = JsonSerializer.Serialize(
             new McpJsonFileServerModel
             {
+                Inputs = inputs,
                 Servers = new()
                 {
                     [name] = new()
