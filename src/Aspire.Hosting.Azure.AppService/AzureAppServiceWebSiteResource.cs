@@ -42,30 +42,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
-            var fetchHostNameStep = new PipelineStep
-            {
-                Name = $"fetch-hostname-{TargetResource.Name}",
-                Action = async ctx =>
-                {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-
-                    var (hostName, isAvailable) = await AzureEnvironmentResourceHelpers.GetDnlHostNameAsync(TargetResource, websiteSuffix, ctx).ConfigureAwait(false);
-
-                    if (!string.IsNullOrEmpty(hostName))
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Fetched App Service hostname: {hostName}", true);
-                    }
-                    else
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Warning, $"Could not fetch App Service hostname for {hostName}", true);
-                    }
-                },
-                Tags = ["fetch-hostname"]
-            };
-
-            steps.Add(fetchHostNameStep);
-
             if (targetResource.RequiresImageBuildAndPush())
             {
                 // Create push step for this deployment target
@@ -150,12 +126,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 pushSteps.DependsOn(registryProvisionSteps);
             }
 
-            // Ensure fetch-hostname step is required by provision infrastructure
-            var fetchHostNameSteps = context.GetSteps(this, "fetch-hostname");
-
             // The app deployment should depend on the push step
             provisionSteps.DependsOn(pushSteps);
-            provisionSteps.DependsOn(fetchHostNameSteps);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);

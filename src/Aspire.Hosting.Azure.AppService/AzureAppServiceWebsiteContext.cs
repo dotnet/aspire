@@ -505,15 +505,3 @@ internal sealed class AzureAppServiceWebsiteContext(
         KeyVault
     }
 }
-
-/// <summary>
-/// 
-/// </summary>
-// Define a holder class
-public sealed class HostNamePlaceholder
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    public string? Value { get; set; }
-}
