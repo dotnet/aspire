@@ -133,7 +133,7 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **`/extension`**: VS Code extension source code
 
 ### Key Configuration Files
-- **`global.json`**: Pins .NET SDK version (10.0.100-rc.1.25411.109) - never modify without explicit request
+- **`global.json`**: Pins .NET SDK version (10.0.100) - never modify without explicit request
 - **`.editorconfig`**: Code formatting rules, null annotations, diagnostic configurations
 - **`Directory.Build.props`**: Shared MSBuild properties across all projects
 - **`Directory.Packages.props`**: Centralized package version management

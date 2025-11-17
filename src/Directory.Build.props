@@ -4,7 +4,8 @@
     <!-- Enabling this rule will cause build failures on undocumented public APIs. -->
     <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
     <EnablePackageValidation Condition="'$(EnablePackageValidation)' == ''">true</EnablePackageValidation>
-    <PackageValidationBaselineVersion Condition="'$(EnablePackageValidation)' == 'true' and '$(PackageValidationBaselineVersion)' == ''">9.4.0</PackageValidationBaselineVersion>
+    <!-- Disable baseline validation for .NET 10 RTM since there's no 10.0.0 baseline yet -->
+    <DisablePackageBaselineValidation Condition="'$(DisablePackageBaselineValidation)' == ''">true</DisablePackageBaselineValidation>
   </PropertyGroup>
 
   <ItemGroup>
