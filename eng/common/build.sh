@@ -77,7 +77,7 @@ sign=false
 public=false
 ci=false
 clean=false
-restoreMaui=false
+restore_maui=false
 
 warn_as_error=true
 node_reuse=true
@@ -186,7 +186,7 @@ while [[ $# -gt 0 ]]; do
       build_check=true
       ;;
     -restoremaui|-restore-maui)
-      restoreMaui=true
+      restore_maui=true
       ;;
     -runtimesourcefeed)
       runtime_source_feed=$2
