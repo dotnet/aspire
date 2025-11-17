@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
+#pragma warning disable IDE0005 // IConfiguration is used in this file
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
@@ -91,11 +92,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
         new UnboundedChannelOptions { SingleReader = true });
+    private readonly IAppHostEnvironment _appHostEnvironment;
 
     public DcpExecutor(ILogger<DcpExecutor> logger,
                        ILogger<DistributedApplication> distributedApplicationLogger,
                        DistributedApplicationModel model,
-                       IHostEnvironment hostEnvironment,
+                       IAppHostEnvironment appHostEnvironment,
                        IKubernetesService kubernetesService,
                        IConfiguration configuration,
                        IDistributedApplicationEventing distributedApplicationEventing,
@@ -126,15 +128,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
-        _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
+        _normalizedApplicationName = NormalizeApplicationName(appHostEnvironment.ProjectName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _appHostEnvironment = appHostEnvironment;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
-    private string ContainerHostName => _configuration["AppHost:ContainerHostname"] ??
+    private string ContainerHostName => _appHostEnvironment.ContainerHostname ??
         (_options.Value.EnableAspireContainerTunnel ? KnownHostNames.DefaultContainerTunnelHostName : _dcpInfo?.Containers?.HostName ?? KnownHostNames.DockerDesktopHostBridge);
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
