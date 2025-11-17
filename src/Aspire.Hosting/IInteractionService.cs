@@ -705,7 +705,12 @@ public sealed class Interaction<TResult>
     private readonly Task<InteractionResult<TResult>> _resultTask;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
-    internal Interaction(Task<InteractionResult<TResult>> resultTask, CancellationTokenSource cancellationTokenSource)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Interaction{TResult}"/> class.
+    /// </summary>
+    /// <param name="resultTask">The task that represents the asynchronous operation.</param>
+    /// <param name="cancellationTokenSource">The cancellation token source for the interaction.</param>
+    public Interaction(Task<InteractionResult<TResult>> resultTask, CancellationTokenSource cancellationTokenSource)
     {
         _resultTask = resultTask;
         _cancellationTokenSource = cancellationTokenSource;
