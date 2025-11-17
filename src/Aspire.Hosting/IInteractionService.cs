@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -31,9 +32,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the message box interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing <c>true</c> if the user confirmed, <c>false</c> otherwise.
+    /// An <see cref="Interaction{TResult}"/> that can be awaited to get an <see cref="InteractionResult{T}"/> containing <c>true</c> if the user confirmed, <c>false</c> otherwise.
     /// </returns>
-    Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Interaction<bool> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prompts the user with a message box dialog.
@@ -43,9 +44,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the message box interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
+    /// An <see cref="Interaction{TResult}"/> that can be awaited to get an <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
     /// </returns>
-    Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Interaction<bool> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prompts the user for a single text input.
@@ -57,9 +58,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the input dialog interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing the user's input.
+    /// An <see cref="Interaction{TResult}"/> that can be awaited to get an <see cref="InteractionResult{T}"/> containing the user's input.
     /// </returns>
-    Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Interaction<InteractionInput> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prompts the user for a single input using a specified <see cref="InteractionInput"/>.
@@ -70,9 +71,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the input dialog interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing the user's input.
+    /// An <see cref="Interaction{TResult}"/> that can be awaited to get an <see cref="InteractionResult{T}"/> containing the user's input.
     /// </returns>
-    Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Interaction<InteractionInput> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prompts the user for multiple inputs.
@@ -83,9 +84,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the input dialog interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing the user's inputs as an <see cref="InteractionInputCollection"/>.
+    /// An <see cref="Interaction{TResult}"/> that can be awaited to get an <see cref="InteractionResult{T}"/> containing the user's inputs as an <see cref="InteractionInputCollection"/>.
     /// </returns>
-    Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Interaction<InteractionInputCollection> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prompts the user with a notification.
@@ -95,9 +96,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the notification interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
+    /// An <see cref="Interaction{TResult}"/> that can be awaited to get an <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
     /// </returns>
-    Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Interaction<bool> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
 internal record QueueLoadOptions(
@@ -691,6 +692,72 @@ public class InteractionResult<T>
     {
         Data = data;
         Canceled = canceled;
+    }
+}
+
+/// <summary>
+/// Represents an interaction that can be awaited and provides access to the result.
+/// </summary>
+/// <typeparam name="TResult">The type of the result returned by the interaction.</typeparam>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class Interaction<TResult>
+{
+    private readonly Task<InteractionResult<TResult>> _resultTask;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+
+    internal Interaction(Task<InteractionResult<TResult>> resultTask, CancellationTokenSource cancellationTokenSource)
+    {
+        _resultTask = resultTask;
+        _cancellationTokenSource = cancellationTokenSource;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the interaction has completed.
+    /// </summary>
+    public bool IsCompleted => _resultTask.IsCompleted;
+
+    /// <summary>
+    /// Gets the result of the interaction asynchronously.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the interaction result.</returns>
+    public Task<InteractionResult<TResult>> GetResultAsync()
+    {
+        return _resultTask;
+    }
+
+    /// <summary>
+    /// Cancels the interaction.
+    /// </summary>
+    public void Cancel()
+    {
+        _cancellationTokenSource.Cancel();
+    }
+
+    /// <summary>
+    /// Gets an awaiter used to await this interaction.
+    /// </summary>
+    /// <returns>An awaiter instance.</returns>
+    public TaskAwaiter<InteractionResult<TResult>> GetAwaiter()
+    {
+        return _resultTask.GetAwaiter();
+    }
+
+    /// <summary>
+    /// Configures an awaiter used to await this interaction.
+    /// </summary>
+    /// <param name="continueOnCapturedContext">
+    /// <see langword="true"/> to attempt to marshal the continuation back to the original context captured; 
+    /// otherwise, <see langword="false"/>.
+    /// </param>
+    /// <returns>An object used to await this interaction.</returns>
+    public ConfiguredTaskAwaitable<InteractionResult<TResult>> ConfigureAwait(bool continueOnCapturedContext)
+    {
+        return _resultTask.ConfigureAwait(continueOnCapturedContext);
+    }
+
+    internal CancellationTokenSource GetCancellationTokenSource()
+    {
+        return _cancellationTokenSource;
     }
 }
 

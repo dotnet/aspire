@@ -55,71 +55,100 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    public async Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public Interaction<bool> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
         options.Intent = MessageIntent.Confirmation;
         options.ShowDismiss ??= false;
         options.ShowSecondaryButton ??= true;
 
-        return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+        return PromptMessageBoxCore(title, message, options, cancellationToken);
     }
 
-    public async Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public Interaction<bool> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
         options.ShowSecondaryButton ??= false;
         options.ShowDismiss ??= false;
 
-        return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+        return PromptMessageBoxCore(title, message, options, cancellationToken);
     }
 
-    private async Task<InteractionResult<bool>> PromptMessageBoxCoreAsync(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
+    private Interaction<bool> PromptMessageBoxCore(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
     {
         EnsureServiceAvailable();
 
         cancellationToken.ThrowIfCancellationRequested();
-        using var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        try
+        var resultTask = Task.Run(async () =>
         {
-            options ??= MessageBoxInteractionOptions.CreateDefault();
-            options.ShowDismiss ??= false;
+            try
+            {
+                options ??= MessageBoxInteractionOptions.CreateDefault();
+                options.ShowDismiss ??= false;
 
-            var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(intent: options.Intent ?? MessageIntent.None), interactionCts.Token);
-            AddInteractionUpdate(newState);
+                var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(intent: options.Intent ?? MessageIntent.None), interactionCts.Token);
+                AddInteractionUpdate(newState);
 
-            using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
+                using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
-            var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-            var promptState = completion.State as bool?;
-            return promptState == null
-                ? InteractionResult.Cancel<bool>()
-                : InteractionResult.Ok(promptState.Value);
-        }
-        finally
-        {
-            interactionCts.Cancel();
-        }
+                var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
+                var promptState = completion.State as bool?;
+                return promptState == null
+                    ? InteractionResult.Cancel<bool>()
+                    : InteractionResult.Ok(promptState.Value);
+            }
+            finally
+            {
+                interactionCts.Cancel();
+            }
+        }, interactionCts.Token);
+
+        return new Interaction<bool>(resultTask, interactionCts);
     }
 
-    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public Interaction<InteractionInput> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await PromptInputAsync(title, message, new InteractionInput { Name = InteractionHelpers.LabelToName(inputLabel), InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, options, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var result = await PromptInputsAsync(title, message, [input], options, cancellationToken).ConfigureAwait(false);
-        if (result.Canceled)
+        var interaction = PromptInputsAsync(title, message, [new InteractionInput { Name = InteractionHelpers.LabelToName(inputLabel), InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }], options, cancellationToken);
+        
+        // Create a new Interaction that unwraps the collection to a single input
+        var resultTask = Task.Run(async () =>
         {
-            return InteractionResult.Cancel<InteractionInput>();
-        }
+            var result = await interaction.GetResultAsync().ConfigureAwait(false);
+            if (result.Canceled)
+            {
+                return InteractionResult.Cancel<InteractionInput>();
+            }
 
-        return InteractionResult.Ok(result.Data[0]);
+            return InteractionResult.Ok(result.Data[0]);
+        }, cancellationToken);
+
+        // Use the same CTS from the inputs interaction
+        return new Interaction<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
     }
 
-    public async Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public Interaction<InteractionInput> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var interaction = PromptInputsAsync(title, message, [input], options, cancellationToken);
+        
+        // Create a new Interaction that unwraps the collection to a single input
+        var resultTask = Task.Run(async () =>
+        {
+            var result = await interaction.GetResultAsync().ConfigureAwait(false);
+            if (result.Canceled)
+            {
+                return InteractionResult.Cancel<InteractionInput>();
+            }
+
+            return InteractionResult.Ok(result.Data[0]);
+        }, cancellationToken);
+
+        // Use the same CTS from the inputs interaction
+        return new Interaction<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
+    }
+
+    public Interaction<InteractionInputCollection> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
@@ -153,95 +182,105 @@ internal class InteractionService : IInteractionService
             }
         }
 
-        using var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        try
+        var resultTask = Task.Run(async () =>
         {
-            options ??= InputsDialogInteractionOptions.Default;
-
-            var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputCollection), interactionCts.Token);
-            AddInteractionUpdate(newState);
-
-            using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
-
-            foreach (var input in inputs)
+            try
             {
-                if (input.DynamicLoading is { } dynamic)
+                options ??= InputsDialogInteractionOptions.Default;
+
+                var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputCollection), interactionCts.Token);
+                AddInteractionUpdate(newState);
+
+                using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
+
+                foreach (var input in inputs)
                 {
-                    var dynamicState = new InputLoadingState(dynamic)
+                    if (input.DynamicLoading is { } dynamic)
                     {
-                        OnLoadComplete = (input) =>
+                        var dynamicState = new InputLoadingState(dynamic)
                         {
-                            // Options or value on a choice could have changed. Ensure the value is still valid.
-                            if (input.InputType == InputType.Choice)
+                            OnLoadComplete = (input) =>
                             {
-                                // Check that the previously specified value is in the new options.
-                                // If the value isn't in the new options then clear it.
-                                // Don't clear the value if a custom choice is allowed.
-                                if (!input.AllowCustomChoice && !string.IsNullOrEmpty(input.Value))
+                                // Options or value on a choice could have changed. Ensure the value is still valid.
+                                if (input.InputType == InputType.Choice)
                                 {
-                                    if (input.Options == null || !input.Options.Any(o => o.Key == input.Value))
+                                    // Check that the previously specified value is in the new options.
+                                    // If the value isn't in the new options then clear it.
+                                    // Don't clear the value if a custom choice is allowed.
+                                    if (!input.AllowCustomChoice && !string.IsNullOrEmpty(input.Value))
                                     {
-                                        input.Value = null;
+                                        if (input.Options == null || !input.Options.Any(o => o.Key == input.Value))
+                                        {
+                                            input.Value = null;
+                                        }
                                     }
                                 }
+
+                                // Notify the UI that the interaction has been updated.
+                                UpdateInteraction(newState);
                             }
+                        };
 
-                            // Notify the UI that the interaction has been updated.
-                            UpdateInteraction(newState);
+                        input.DynamicLoadingState = dynamicState;
+
+                        // Refresh input on start if:
+                        // -The dynamic input doesn't depend on other inputs, or
+                        // -Has been configured to always update
+                        if (dynamic.DependsOnInputs == null || dynamic.DependsOnInputs.Count == 0 || dynamic.AlwaysLoadOnStart)
+                        {
+                            var refreshOptions = new QueueLoadOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
+                            input.DynamicLoadingState.QueueLoad(refreshOptions);
                         }
-                    };
-
-                    input.DynamicLoadingState = dynamicState;
-
-                    // Refresh input on start if:
-                    // -The dynamic input doesn't depend on other inputs, or
-                    // -Has been configured to always update
-                    if (dynamic.DependsOnInputs == null || dynamic.DependsOnInputs.Count == 0 || dynamic.AlwaysLoadOnStart)
-                    {
-                        var refreshOptions = new QueueLoadOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
-                        input.DynamicLoadingState.QueueLoad(refreshOptions);
                     }
                 }
-            }
 
-            var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-            return completion.State is not IReadOnlyList<InteractionInput> inputState
-                ? InteractionResult.Cancel<InteractionInputCollection>()
-                : InteractionResult.Ok(new InteractionInputCollection(inputState));
-        }
-        finally
-        {
-            interactionCts.Cancel();
-        }
+                var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
+                return completion.State is not IReadOnlyList<InteractionInput> inputState
+                    ? InteractionResult.Cancel<InteractionInputCollection>()
+                    : InteractionResult.Ok(new InteractionInputCollection(inputState));
+            }
+            finally
+            {
+                interactionCts.Cancel();
+            }
+        }, interactionCts.Token);
+
+        return new Interaction<InteractionInputCollection>(resultTask, interactionCts);
     }
 
-    public async Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public Interaction<bool> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
         cancellationToken.ThrowIfCancellationRequested();
-        using var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        try
+        var resultTask = Task.Run(async () =>
         {
-            options ??= NotificationInteractionOptions.CreateDefault();
+            try
+            {
+                options ??= NotificationInteractionOptions.CreateDefault();
 
-            var newState = new Interaction(title, message, options, new Interaction.NotificationInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), interactionCts.Token);
-            AddInteractionUpdate(newState);
+                var newState = new Interaction(title, message, options, new Interaction.NotificationInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), interactionCts.Token);
+                AddInteractionUpdate(newState);
 
-            using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
+                using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
-            var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-            var promptState = completion.State as bool?;
-            return promptState == null
-                ? InteractionResult.Cancel<bool>()
-                : InteractionResult.Ok(promptState.Value);
-        }
-        finally
-        {
-            interactionCts.Cancel();
-        }
+                var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
+                var promptState = completion.State as bool?;
+                return promptState == null
+                    ? InteractionResult.Cancel<bool>()
+                    : InteractionResult.Ok(promptState.Value);
+            }
+            finally
+            {
+                interactionCts.Cancel();
+            }
+        }, interactionCts.Token);
+
+        return new Interaction<bool>(resultTask, interactionCts);
     }
 
     // For testing.
