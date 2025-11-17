@@ -137,6 +137,23 @@ public static class YarpResourceExtensions
     }
 
     /// <summary>
+    /// Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port.
+    /// This will only have effect if an HTTPS endpoint is configured on the YARP resource due to TLS termination being enabled.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<YarpResource> WithHostHttpsPort(this IResourceBuilder<YarpResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("https", endpoint =>
+        {
+            endpoint.Port = port;
+        }, createIfNotExists: false);
+    }
+
+    /// <summary>
     /// Enables static file serving in the YARP resource. Static files are served from the wwwroot folder.
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
