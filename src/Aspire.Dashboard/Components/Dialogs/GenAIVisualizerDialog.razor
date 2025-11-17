@@ -67,11 +67,13 @@
                                 <FluentTabs ActiveTabId="@($"tab-message-{selectedView}")" OnTabChange="@OnMessageTabChange" Size="null">
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-message-{ItemViewKind.Preview}")"
-                                               Label="@Loc[nameof(Dialogs.GenAIPreviewTabText)]">
+                                               Label="@Loc[nameof(Dialogs.GenAIPreviewTabText)]"
+                                               Icon="@(new Icons.Regular.Size24.PreviewLink())">
                                     </FluentTab>
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-message-{ItemViewKind.Raw}")"
-                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
+                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]"
+                                               Icon="@(new Icons.Regular.Size24.Code())">
                                     </FluentTab>
                                 </FluentTabs>
                             }
@@ -80,7 +82,8 @@
                                 <FluentTabs ActiveTabId="@($"tab-message-{ItemViewKind.Raw}")" Size="null">
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-message-{ItemViewKind.Raw}")"
-                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
+                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]"
+                                               Icon="@(new Icons.Regular.Size24.Code())">
                                     </FluentTab>
                                 </FluentTabs>
                             }
@@ -229,14 +232,17 @@
                             <FluentTabs ActiveTabId="@($"tab-overview-{OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
-                                           Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]">
+                                           Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]"
+                                           Icon="@(new Icons.Regular.Size24.Chat())">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.Details}")"
-                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]">
+                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]"
+                                           Icon="@(new Icons.Regular.Size24.Info())">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")">
+                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")"
+                                           Icon="@(new Icons.Regular.Size24.Wrench())">
                                     <Header>
                                         <span class="tab-text">@Loc[nameof(Dialogs.GenAIToolsTabText)]</span>
                                         <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
@@ -245,7 +251,8 @@
                                 @if (Content.Evaluations.Count > 0)
                                 {
                                     <FluentTab LabelClass="tab-label"
-                                               Id="@($"tab-overview-{OverviewViewKind.Evaluations}")">
+                                               Id="@($"tab-overview-{OverviewViewKind.Evaluations}")"
+                                               Icon="@(new Icons.Regular.Size24.Scales())">
                                         <Header>
                                             <span class="tab-text">@Loc[nameof(Dialogs.GenAIEvaluationsTabText)]</span>
                                             <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.Evaluations.Count</FluentBadge>
