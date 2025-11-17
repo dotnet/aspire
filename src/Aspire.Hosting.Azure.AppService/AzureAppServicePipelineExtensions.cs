@@ -23,7 +23,7 @@ public static class AzureAppServicePipelineExtensions
     /// <param name="pipeline"></param>
     public static void AddAzureAppServiceInfrastructure(this IDistributedApplicationPipeline pipeline)
     {
-        var step = new PipelineStep
+        var infraSetupStep = new PipelineStep
         {
             Name = "azure-appservice-infra",
             Action = async ctx => {
@@ -56,6 +56,7 @@ public static class AzureAppServicePipelineExtensions
                         }
                         ctx.ReportingStep.Log(LogLevel.Information, $"Starting hostname fetch", true);
 
+                        
                         //var websiteSuffix = await appServiceEnvironment.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                         var websiteSuffix = AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep();
                         ctx.ReportingStep.Log(LogLevel.Information, $"Using App Service hostname suffix: {websiteSuffix.Value}", true);
@@ -85,9 +86,11 @@ public static class AzureAppServicePipelineExtensions
                     }
                 }
             },
-            RequiredBySteps = new List<string> { "deploy-prereq", "publish-prereq" }
+            RequiredBySteps = new List<string> { "provision-azure-bicep-resources" },
+            DependsOnSteps = new List<string> { "create-provisioning-context" },
+
         };
 
-        pipeline.AddStep(step);
+        pipeline.AddStep(infraSetupStep);
     }
 }
