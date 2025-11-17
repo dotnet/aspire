@@ -15,12 +15,13 @@ internal static class InteractionCommands
             .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
-               var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
-               var resultTask2 = interactionService.PromptMessageBoxAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning, ShowSecondaryButton = true }, cancellationToken: commandContext.CancellationToken);
+               var interaction1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
+               var interaction2 = interactionService.PromptMessageBoxAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning, ShowSecondaryButton = true }, cancellationToken: commandContext.CancellationToken);
 
-               await Task.WhenAll(resultTask1, resultTask2);
+               var result1 = await interaction1;
+               var result2 = await interaction2;
 
-               if (resultTask1.Result.Data != true || resultTask2.Result.Data != true)
+               if (result1.Data != true || result2.Data != true)
                {
                    return CommandResults.Failure("Canceled");
                }
@@ -591,7 +592,7 @@ internal static class InteractionCommands
         return resource;
     }
 
-    private static void RunInteractionWithDismissValues(string title, Func<bool?, string, Task> action)
+    private static void RunInteractionWithDismissValues<T>(string title, Func<bool?, string, Interaction<T>> action)
     {
         // Don't wait for interactions to complete, i.e. await tasks.
         _ = action(null, $"{title} - ShowDismiss = null");
