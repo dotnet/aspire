@@ -7,6 +7,7 @@
 /src/Aspire.Hosting.Azure.AppService  @captainsafia @eerhardt
 /src/Aspire.Hosting.Docker            @captainsafia
 /src/Aspire.Hosting.Maui              @jfversluis
+/src/Aspire.ProjectTemplates/templates/aspire-maui-servicedefaults @jfversluis
 
 # tests
 
