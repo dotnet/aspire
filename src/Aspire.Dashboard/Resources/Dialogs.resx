@@ -389,6 +389,21 @@
   <data name="GenAINoTools" xml:space="preserve">
     <value>No tools found.</value>
   </data>
+  <data name="GenAIToolParameterName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="GenAIToolParameterType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="GenAIToolParameterDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="GenAIToolRequiredParameter" xml:space="preserve">
+    <value>Required parameter</value>
+  </data>
+  <data name="GenAIToolNoParameters" xml:space="preserve">
+    <value>No parameters</value>
+  </data>
   <data name="GenAIToolsTabText" xml:space="preserve">
     <value>Tools</value>
   </data>

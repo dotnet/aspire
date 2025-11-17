@@ -306,9 +306,9 @@
                                                         <table class="tool-parameters-table">
                                                             <thead>
                                                                 <tr>
-                                                                    <th class="tool-cell tool-cell-nowrap">Name</th>
-                                                                    <th class="tool-cell tool-cell-nowrap">Type</th>
-                                                                    <th class="tool-cell">Description</th>
+                                                                    <th class="tool-cell tool-cell-nowrap">@Loc[nameof(Dialogs.GenAIToolParameterName)]</th>
+                                                                    <th class="tool-cell tool-cell-nowrap">@Loc[nameof(Dialogs.GenAIToolParameterType)]</th>
+                                                                    <th class="tool-cell">@Loc[nameof(Dialogs.GenAIToolParameterDescription)]</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -335,13 +335,13 @@
                                                         @if (toolVM.ToolDefinition.Parameters.Required?.Count > 0)
                                                         {
                                                             <div class="tool-footer">
-                                                                <span style="color: var(--error);">*</span> Required parameter
+                                                                <span style="color: var(--error);">*</span> @Loc[nameof(Dialogs.GenAIToolRequiredParameter)]
                                                             </div>
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        <div class="tool-footer">No parameters</div>
+                                                        <div class="tool-footer">@Loc[nameof(Dialogs.GenAIToolNoParameters)]</div>
                                                     }
                                                 </ChildContent>
                                             </FluentAccordionItem>
