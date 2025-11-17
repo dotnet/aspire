@@ -6,8 +6,6 @@ using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using System.Text.RegularExpressions;
-
 namespace Microsoft.Extensions.Hosting;
 
 // Adds common Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
