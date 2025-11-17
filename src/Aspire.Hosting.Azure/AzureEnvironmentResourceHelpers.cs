@@ -12,6 +12,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -131,12 +132,16 @@ internal static class AzureEnvironmentResourceHelpers
         {
             siteName = siteName.Substring(0, 60);
         }
+
+        context.ReportingStep.Log(LogLevel.Information, $"Checking availability of site name: {resource.Name}", false);
         var url = $"{armEndpoint}/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/CheckNameAvailability?api-version={apiVersion}";
         var requestBody = new
         {
             name = siteName,
             type = "Microsoft.Web/sites"
         };
+
+        context.ReportingStep.Log(LogLevel.Information, $"Request url: {url}", false);
 
         var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
         // Get access token for ARM
@@ -154,9 +159,12 @@ internal static class AzureEnvironmentResourceHelpers
         using var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
+        context.ReportingStep.Log(LogLevel.Information, $"after ARM request: {resource.Name}", false);
+
         using var responseStream = await response.Content.ReadAsStreamAsync(context.CancellationToken).ConfigureAwait(false);
         using var doc = await System.Text.Json.JsonDocument.ParseAsync(responseStream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
 
+        context.ReportingStep.Log(LogLevel.Information, $"after json parse: {resource.Name}", false);
         var root = doc.RootElement;
         var isAvailable = root.GetProperty("nameAvailable").GetBoolean();
         var hostName = root.GetProperty("hostName").GetString();
