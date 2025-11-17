@@ -19,7 +19,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 {
     public IResource Resource => resource;
 
-    record struct EndpointMapping(string Scheme, BicepValue<string> WebSiteName, BicepValue<string> Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
+    record struct EndpointMapping(string Scheme, BicepValue<string> WebSiteName, ParameterResource? Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
 
     private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
 
@@ -37,12 +37,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     public BicepValue<string> WebSiteName =>
         BicepFunction.Take(
             BicepFunction.Interpolate($"{BicepFunction.ToLower(Resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
-
-    // Parameter to hold the hostname value
-    private readonly ParameterResource _hostNameParameter = new ParameterResource("hostname-" + resource.Name.ToLowerInvariant(), _ => "");
-
-    private ProvisioningParameter _hostNameProvisioningParameter =>
-        AllocateParameter(_hostNameParameter, secretType: SecretType.None);
 
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
@@ -137,7 +131,13 @@ internal sealed class AzureAppServiceWebsiteContext(
             _ => null
         };
 
-        resource.Annotations.Add(new HostNameParameterAnnotation(_hostNameProvisioningParameter));
+        var hostNamePlaceholder = new HostNamePlaceholder();
+        var hostNameParameter = new ParameterResource(
+            $"hostname-{resource.Name.ToLowerInvariant()}",
+            _ => hostNamePlaceholder.Value ?? string.Empty);
+
+        resource.Annotations.Add(new HostNameParameterAnnotation(hostNameParameter));
+        resource.Annotations.Add(new HostNamePlaceholderAnnotation(hostNamePlaceholder.Value)); // Add the holder as an annotation
 
         foreach (var endpoint in endpoints)
         {
@@ -150,7 +150,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
                 WebSiteName: WebSiteName,
-                Host: _hostNameProvisioningParameter,
+                Host: hostNameParameter,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
                 TargetPort: endpoint.TargetPort ?? fallbackTargetPort,
                 IsHttpIngress: true,
@@ -529,4 +529,16 @@ internal sealed class AzureAppServiceWebsiteContext(
         Normal,
         KeyVault
     }
+}
+
+/// <summary>
+/// 
+/// </summary>
+// Define a holder class
+public sealed class HostNamePlaceholder
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    public string? Value { get; set; }
 }

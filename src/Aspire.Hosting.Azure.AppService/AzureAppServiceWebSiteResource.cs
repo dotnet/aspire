@@ -8,7 +8,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
-using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -55,20 +54,41 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                     if (!string.IsNullOrEmpty(hostName))
                     {
-                        var hostNameAnnotation = TargetResource.Annotations
+                        var hostNameHolder = TargetResource.Annotations
+                            .OfType<HostNamePlaceholderAnnotation>()
+                            .FirstOrDefault();
+
+                        hostNameHolder?.Value = hostName; // Set the value for the parameter
+
+                        var hostNameParameter = TargetResource.Annotations
                             .OfType<HostNameParameterAnnotation>()
                             .FirstOrDefault();
 
-                        hostNameAnnotation?.Parameter.Value = new BicepValue<string>(hostName);
+                        if (hostNameParameter != null)
+                        {
+                            var value = await hostNameParameter.Parameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                            ctx.ReportingStep.Log(LogLevel.Information, $"HostNameParameterAnnotation value for {TargetResource.Name} is: {value}", true);
+                        }
+
+                        /*
+                        var hostNameParameter = TargetResource.Annotations
+                            .OfType<HostNameParameterAnnotation>()
+                            .FirstOrDefault();
+
+                        await hostNameParameter?.Parameter.GetValueAsync(ctx.CancellationToken).AsTask().ConfigureAwait(false);
+                        */
+
+                        //_ = await hostNameParameter?.Parameter.GetValueAsync(ctx.CancellationToken);
 
                         ctx.ReportingStep.Log(LogLevel.Information, $"Fetched App Service hostname: {hostName}", true);
-                        if (hostNameAnnotation is not null)
+                        if (hostNameHolder is not null)
                         {
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated HostNameParameterAnnotation for {TargetResource.Name} with hostname: {hostName}", true);
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated HostNamePlaceholderAnnotation for {TargetResource.Name} with hostname: {hostName}", true);
+
                         }
                         else
                         {
-                            ctx.ReportingStep.Log(LogLevel.Warning, $"HostNameParameterAnnotation not found on {TargetResource.Name}, could not update with hostname: {hostName}", true);
+                            ctx.ReportingStep.Log(LogLevel.Warning, $"HostNamePlaceholderAnnotation not found on {TargetResource.Name}, could not update with hostname: {hostName}", true);
                         }
                     }
                     else
