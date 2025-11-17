@@ -1,12 +1,13 @@
-#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -252,62 +253,46 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public void DockerComposeProjectNameIncludesAppHostShaInArguments()
     {
-        // This test verifies that when AppHost:PathSha256 is available, the correct project name
-        // format will be used in docker compose commands. The actual command execution with
-        // the project name logged is validated through the debug logging added to
-        // DockerComposeEnvironmentResource.DockerComposeUpAsync and DockerComposeDownAsync.
-        
         using var tempDir = new TempDirectory();
         var testSink = new TestSink();
-        
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        
-        // Add TestLoggerProvider to capture logs during publish
-        builder.Services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
-        
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: WellKnownPipelineSteps.Deploy);
+
+        // Add TestLoggerProvider to capture logs during publish, set minimum level to Debug
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddProvider(new TestLoggerProvider(testSink));
+            logging.SetMinimumLevel(LogLevel.Debug);
+        });
+
         // Set a known AppHost SHA in configuration
         const string testSha = "ABC123DEF456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABC";
         builder.Configuration["AppHost:PathSha256"] = testSha;
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
-        
+
         var composeEnv = builder.AddDockerComposeEnvironment("my-environment");
         builder.AddContainer("service", "nginx");
-        
+
         var app = builder.Build();
-        
-        // Verify configuration before running (since app.Run() disposes the service provider)
-        var configuration = app.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
-        var appHostSha = configuration["AppHost:PathSha256"];
-        Assert.Equal(testSha, appHostSha);
-        
+
         app.Run();
-        
+
         // Verify that docker-compose.yaml was created
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
-        
-        // The expected project name format is: aspire-{environmentName}-{first8CharsOfSha}
-        // With our test values: aspire-my-environment-abc123de
+
+        // Check for docker compose up command with project name
         var expectedProjectName = "aspire-my-environment-abc123de";
-        
-        // Verify the environment resource name
-        Assert.Equal("my-environment", composeEnv.Resource.Name);
-        
-        // Verify the SHA prefix that would be used in the project name
-        var expectedShaPrefix = testSha[..8].ToLowerInvariant();
-        Assert.Equal("abc123de", expectedShaPrefix);
-        
-        // Verify the full expected project name format matches what would be generated
-        Assert.Equal($"aspire-{composeEnv.Resource.Name.ToLowerInvariant()}-{expectedShaPrefix}", expectedProjectName);
-        
-        // Note: When docker compose up/down commands are executed (during actual deployment),
-        // the debug logs will show:
-        // "Running docker compose up with project name: aspire-my-environment-abc123de, arguments: compose -f \"...\" --project-name \"aspire-my-environment-abc123de\" up -d --remove-orphans"
-        // "Running docker compose down with project name: aspire-my-environment-abc123de, arguments: compose -f \"...\" --project-name \"aspire-my-environment-abc123de\" down"
-        //
-        // This test validates the project name generation logic. The actual docker compose command
-        // execution with the --project-name flag is logged via TestLogger for observability in real deployments.
+
+        // Check for docker compose up command with project name
+        var logMessages = testSink.Writes.Select(w => w.Message).ToList();
+        Assert.Contains(logMessages, msg =>
+            msg != null &&
+            msg.Contains("compose", StringComparison.OrdinalIgnoreCase) &&
+            msg.Contains("--project-name", StringComparison.OrdinalIgnoreCase) &&
+            msg.Contains(expectedProjectName, StringComparison.OrdinalIgnoreCase) &&
+            msg.Contains("up", StringComparison.OrdinalIgnoreCase));
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
