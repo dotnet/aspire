@@ -42,7 +42,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     private readonly ParameterResource _hostNameParameter = new ParameterResource("hostname-" + resource.Name.ToLowerInvariant(), _ => "");
 
     private ProvisioningParameter _hostNameProvisioningParameter =>
-        AllocateParameter(_hostNameParameter);
+        AllocateParameter(_hostNameParameter, secretType: SecretType.None);
 
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
