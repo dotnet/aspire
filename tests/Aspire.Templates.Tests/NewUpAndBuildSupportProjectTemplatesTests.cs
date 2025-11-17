@@ -162,3 +162,13 @@ public class MSTest_AspireVersionNext_NewUpAndBuildSupportProjectTemplatesTests(
         return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
     }
 }
+
+public class MauiServiceDefaults_AspireVersionNext_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : NewUpAndBuildSupportProjectTemplatesBase(testOutput)
+{
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["maui-aspire-servicedefaults", $"--aspire-version {AspireVersionNext}"])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
