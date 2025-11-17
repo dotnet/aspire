@@ -167,8 +167,16 @@ public class MauiServiceDefaults_AspireVersionNext_NewUpAndBuildSupportProjectTe
 {
     [Theory]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["maui-aspire-servicedefaults", $"--aspire-version {AspireVersionNext}"])]
-    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
-        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+        // MAUI templates require .NET 10.0 or later. Skip tests with earlier target frameworks,
+        // unless an error is expected (which means we're testing that the SDK correctly rejects it).
+        var tfmString = tfm.ToTFMString();
+        if ((tfmString == "net8.0" || tfmString == "net9.0") && string.IsNullOrEmpty(error))
+        {
+            Assert.Skip($"MAUI templates require .NET 10.0 or later, skipping TFM {tfmString}");
+        }
+
+        await CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
     }
 }
