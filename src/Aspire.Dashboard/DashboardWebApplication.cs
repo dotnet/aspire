@@ -471,9 +471,16 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.Use((context, next) =>
         {
-            // Don't run status code middleware for non-GET methods. This is to avoid interfering with API requests.
-            // TODO: Exclude all known API paths from status code middleware. There are some GET APIs so this isn't a perfect fix. Consider excluding all known API paths in the future if this causes issues.
-            if (context.Request.Method != HttpMethods.Get)
+            // Don't run status code middleware for API requests. This is to avoid interfering with API requests.
+            // We're using path segments to identify API requests instead of endpoint metadata because endpoints might be disabled based on configuration.
+            if (context.Request.Path.StartsWithSegments("/api", StringComparisons.UrlPath) || // Dashboard minimal APIs
+                context.Request.Path.StartsWithSegments("/authentication", StringComparisons.UrlPath) || // Dashboard minimal APIs
+                context.Request.Path.StartsWithSegments("/mcp", StringComparisons.UrlPath) || // MCP API
+                context.Request.Path.StartsWithSegments("/opentelemetry.proto.collector.trace.v1.TraceService", StringComparisons.UrlPath) || // OTLP gRPC API
+                context.Request.Path.StartsWithSegments("/opentelemetry.proto.collector.metrics.v1.MetricsService", StringComparisons.UrlPath) || // OTLP gRPC API
+                context.Request.Path.StartsWithSegments("/opentelemetry.proto.collector.logs.v1.LogsService", StringComparisons.UrlPath) || // OTLP gRPC API
+                context.Request.Path.StartsWithSegments("/v1", StringComparisons.UrlPath) // OTLP HTTP API
+            )
             {
                 // Must happen after UseStatusCodePagesWithReExecute so the feature is set.
                 if (context.Features.Get<IStatusCodePagesFeature>() is { } statusCodeFeature)
