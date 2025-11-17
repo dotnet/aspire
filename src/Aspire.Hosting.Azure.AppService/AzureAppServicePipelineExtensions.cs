@@ -55,6 +55,19 @@ public static class AzureAppServicePipelineExtensions
                             continue;
                         }
 
+                        var websiteSuffix = await appServiceEnvironment.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+
+                        var (hostName, isAvailable) = await AzureEnvironmentResourceHelpers.GetDnlHostNameAsync(resource, websiteSuffix, ctx).ConfigureAwait(false);
+
+                        if (!string.IsNullOrEmpty(hostName))
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Fetched App Service hostname: {hostName}", true);
+                        }
+                        else
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Warning, $"Could not fetch App Service hostname for {hostName}", true);
+                        }
+
                         var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, ctx.CancellationToken).ConfigureAwait(false);
 
                         resource.Annotations.Add(new DeploymentTargetAnnotation(website)
