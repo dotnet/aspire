@@ -510,7 +510,7 @@ public static class ResourceExtensions
         if (!certificates.Any())
         {
             logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (arguments, environmentVariables,scope, null);
+            return (arguments, environmentVariables, scope, null);
         }
 
         var bundlePath = bundlePathFactory(scope);
