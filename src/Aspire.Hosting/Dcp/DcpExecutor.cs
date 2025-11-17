@@ -1535,16 +1535,66 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         // Get args from app host model resource.
-        (var appHostArgs, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        var appHostArgs = await er.ModelResource.GatherArgumentValuesAsync(
+            _executionContext,
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
 
-        // Build environment variables
-        (var env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        var appHostEnv = await er.ModelResource.GatherEnvironmentVariableValuesAsync(
+            _executionContext,
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
 
-        // Build certificate trust configuration (args and env vars)
-        (var certificateArgs, var certificateEnv, var failedToApplyCertificateConfig) = await BuildExecutableCertificateTrustConfigAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        // Add certificate trust configuration to command line arguments and environment variables
+        (appHostArgs, appHostEnv) = await BuildExecutableCertificateTrustConfigAsync(resourceLogger, er.ModelResource, appHostArgs, appHostEnv, cancellationToken).ConfigureAwait(false);
 
-        appHostArgs.AddRange(certificateArgs);
-        var launchArgs = BuildLaunchArgs(er, spec, appHostArgs);
+        var failedToApplyConfig = false;
+
+        // Process the gathered command line argument values
+        var args = new List<(string Value, bool IsSensitive)>();
+        await er.ModelResource.ProcessGatheredArgumentValuesAsync(
+            _executionContext,
+            appHostArgs,
+            (unprocessed, value, ex, isSensitive) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], er.ModelResource.Name);
+                }
+                else if (value is { } argument)
+                {
+                    args.Add((argument, isSensitive));
+                }
+            },
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
+
+        // Process the gathered environment variable values
+        var env = new List<EnvVar>();
+        await er.ModelResource.ProcessGatheredEnvironmentVariableValuesAsync(
+            _executionContext,
+            appHostEnv,
+            (key, unprocessed, value, ex) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
+                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, er.ModelResource.Name);
+                }
+                else if (value is string s)
+                {
+                    env.Add(new EnvVar { Name = key, Value = s });
+                }
+            },
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
+
+        var launchArgs = BuildLaunchArgs(er, spec, args);
         var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
         if (executableArgs.Count > 0)
         {
@@ -1554,11 +1604,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // Arg annotations are what is displayed in the dashboard.
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-        env.AddRange(certificateEnv);
-
         spec.Env = env;
 
-        if (failedToApplyConfiguration || failedToApplyArgs || failedToApplyCertificateConfig)
+        if (failedToApplyConfig)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -1775,20 +1823,75 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
-        // Build the arguments to pass to the container entrypoint
-        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        // Get args from app host model resource.
+        var appHostArgs = await cr.ModelResource.GatherArgumentValuesAsync(
+            _executionContext,
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
 
-        // Build the environment variables to apply to the container
-        (var env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        // Get env vars from app host model resource.
+        var appHostEnv = await cr.ModelResource.GatherEnvironmentVariableValuesAsync(
+            _executionContext,
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
 
         // Build files that need to be created inside the container
         var createFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
         // Build certificate specific arguments, environment variables, and files
-        (var certificateArgs, var certificateEnv, var certificateFiles, var failedToApplyCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        (appHostArgs, appHostEnv, var certificateFiles) = await BuildContainerCertificateAuthorityTrustAsync(
+            resourceLogger,
+            modelContainerResource,
+            appHostArgs,
+            appHostEnv,
+            cancellationToken).ConfigureAwait(false);
 
-        args.AddRange(certificateArgs);
-        env.AddRange(certificateEnv);
+        var failedToApplyConfig = false;
+
+        // Process the gathered command line argument values
+        var args = new List<(string Value, bool IsSensitive)>();
+        await cr.ModelResource.ProcessGatheredArgumentValuesAsync(
+            _executionContext,
+            appHostArgs,
+            (unprocessed, value, ex, isSensitive) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], cr.ModelResource.Name);
+                }
+                else if (value is { } argument)
+                {
+                    args.Add((argument, isSensitive));
+                }
+            },
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
+
+        // Process the gathered environment variable values
+        var env = new List<EnvVar>();
+        await cr.ModelResource.ProcessGatheredEnvironmentVariableValuesAsync(
+            _executionContext,
+            appHostEnv,
+            (key, unprocessed, value, ex) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfig = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
+                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, cr.ModelResource.Name);
+                }
+                else if (value is string s)
+                {
+                    env.Add(new EnvVar { Name = key, Value = s });
+                }
+            },
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
+
         createFiles.AddRange(certificateFiles);
 
         // Set the final args, env vars, and create files on the container spec
@@ -1802,7 +1905,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             spec.Command = containerResource.Entrypoint;
         }
 
-        if (failedToApplyRunArgs || failedToApplyArgs || failedToApplyConfiguration || failedToApplyCertificateConfig)
+        if (failedToApplyRunArgs || failedToApplyConfig)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -2180,33 +2283,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task<(List<(string Value, bool IsSensitive)>, bool)> BuildArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
-    {
-        var failedToApplyArgs = false;
-        var args = new List<(string Value, bool IsSensitive)>();
-
-        await modelResource.ProcessArgumentValuesAsync(
-            _executionContext,
-            (unprocessed, value, ex, isSensitive) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyArgs = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
-                }
-                else if (value is { } argument)
-                {
-                    args.Add((argument, isSensitive));
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        return (args, failedToApplyArgs);
-    }
-
     private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(IResource modelResource, CancellationToken cancellationToken)
     {
         var createFiles = new List<ContainerCreateFileSystem>();
@@ -2235,32 +2311,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return createFiles;
-    }
-
-    private async Task<(List<EnvVar>, bool)> BuildEnvVarsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
-    {
-        var failedToApplyConfiguration = false;
-        var env = new List<EnvVar>();
-
-        await modelResource.ProcessEnvironmentVariableValuesAsync(
-            _executionContext,
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfiguration = true;
-                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
-                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, modelResource.Name);
-                }
-                else if (value is string s)
-                {
-                    env.Add(new EnvVar { Name = key, Value = s });
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        return (env, failedToApplyConfiguration);
     }
 
     private async Task<(List<string>, bool)> BuildRunArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
@@ -2294,51 +2344,25 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     /// <param name="resourceLogger">The logger for the resource.</param>
     /// <param name="modelResource">The executable IResource.</param>
+    /// <param name="arguments">The list of arguments for the executable.</param>
+    /// <param name="environmentVariables">The dictionary of environment variables for the executable.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    private async Task<(List<(string, bool)>, List<EnvVar>, bool)> BuildExecutableCertificateTrustConfigAsync(
+    private async Task<(List<object>, Dictionary<string, object>)> BuildExecutableCertificateTrustConfigAsync(
         ILogger resourceLogger,
         IResource modelResource,
+        List<object> arguments,
+        Dictionary<string, object> environmentVariables,
         CancellationToken cancellationToken)
     {
         var certificatesRootDir = Path.Join(_locations.DcpSessionDir, modelResource.Name);
         var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
         var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
 
-        bool failedToApplyConfig = false;
-        var args = new List<(string Value, bool IsSensitive)>();
-        var env = new List<EnvVar>();
-
-        (_, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
+        (arguments, environmentVariables, _, var certificates) = await modelResource.GatherCertificateTrustConfigAsync(
             _executionContext,
-            (unprocessed, value, ex, isSensitive) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
-                }
-                else if (value is { } argument)
-                {
-                    args.Add((argument, isSensitive));
-                }
-            },
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
-                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, modelResource.Name);
-                }
-                else if (value is string s)
-                {
-                    env.Add(new EnvVar { Name = key, Value = s });
-                }
-            },
+            arguments,
+            environmentVariables,
             resourceLogger,
             (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
             (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
@@ -2362,7 +2386,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             File.WriteAllText(bundleOutputPath, caBundleBuilder.ToString());
         }
 
-        return (args, env, failedToApplyConfig);
+        return (arguments, environmentVariables);
     }
 
     /// <summary>
@@ -2370,11 +2394,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     /// <param name="resourceLogger">The logger for the resource.</param>
     /// <param name="modelResource">The container IResource.</param>
+    /// <param name="arguments">The list of arguments for the container.</param>
+    /// <param name="environmentVariables">The dictionary of environment variables for the container.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    private async Task<(List<(string Value, bool isSensitive)>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(
+    private async Task<(List<object>, Dictionary<string, object>, List<ContainerCreateFileSystem>)> BuildContainerCertificateAuthorityTrustAsync(
         ILogger resourceLogger,
         IResource modelResource,
+        List<object> arguments,
+        Dictionary<string, object> environmentVariables,
         CancellationToken cancellationToken)
     {
         var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
@@ -2388,41 +2416,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             certificateDirsPaths = pathsAnnotation.DefaultCertificateDirectories ?? certificateDirsPaths;
         }
 
-        bool failedToApplyConfig = false;
-        var args = new List<(string Value, bool IsSensitive)>();
-        var env = new List<EnvVar>();
         var createFiles = new List<ContainerCreateFileSystem>();
 
-        (var scope, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
+        (arguments, environmentVariables, var scope, var certificates) = await modelResource.GatherCertificateTrustConfigAsync(
             _executionContext,
-            (unprocessed, value, ex, isSensitive) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
-                }
-                else if (value is { } argument)
-                {
-                    args.Add((argument, isSensitive));
-                }
-            },
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
-                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, modelResource.Name);
-                }
-                else if (value is string s)
-                {
-                    env.Add(new EnvVar { Name = key, Value = s });
-                }
-            },
+            arguments,
+            environmentVariables,
             resourceLogger,
             (scope) => ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
             (scope) =>
@@ -2501,7 +2500,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
 
-        return (args, env, createFiles, failedToApplyConfig);
+        return (arguments, environmentVariables, createFiles);
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(RenderedModelResource cr)

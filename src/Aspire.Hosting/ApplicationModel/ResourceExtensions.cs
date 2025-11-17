@@ -261,6 +261,66 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gather argument values, but do not resolve them. Used to allow multiple callbacks to contribute to
+    /// constructively contribute to the argument list before resolving.
+    /// </summary>
+    /// <param name="resource">The resource to retrieve argument values for.</param>
+    /// <param name="executionContext">The execution context used during the retrieval of argument values.</param>
+    /// <param name="logger">The logger used for logging information or errors during the retrieval of argument values.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A list of unprocessed argument values.</returns>
+    internal static async ValueTask<List<object>> GatherArgumentValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var args = new List<object>();
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        {
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
+            {
+                Logger = logger,
+                ExecutionContext = executionContext
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+        }
+
+        return args;
+    }
+
+    internal static async ValueTask ProcessGatheredArgumentValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        List<object> arguments,
+        // (unprocessed, processed, exception, isSensitive)
+        Action<object?, string?, Exception?, bool> processValue,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var a in arguments)
+        {
+            try
+            {
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
+
+                if (resolvedValue?.Value != null)
+                {
+                    processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
+                }
+            }
+            catch (Exception ex)
+            {
+                processValue(a, a.ToString(), ex, false);
+            }
+        }
+    }
+
+    /// <summary>
     /// Processes argument values for the specified resource in the given execution context.
     /// </summary>
     /// <param name="resource">The resource containing the argument values to process.</param>
@@ -280,35 +340,75 @@ public static class ResourceExtensions
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        var args = await GatherArgumentValuesAsync(resource, executionContext, logger, cancellationToken).ConfigureAwait(false);
+
+        await ProcessGatheredArgumentValuesAsync(resource, executionContext, args, processValue, logger, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gather environment variable values, but do not resolve them. Used to allow multiple callbacks to
+    /// contribute to the environment variable list before resolving.
+    /// </summary>
+    /// <param name="resource">The resource containing the environment variables to gather.</param>
+    /// <param name="executionContext">The execution context used during the gathering of environment variables.</param>
+    /// <param name="logger">The logger used for logging information or errors during the gathering process.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A dictionary of unprocessed environment variable values.</returns>
+    internal static async ValueTask<Dictionary<string, object>> GatherEnvironmentVariableValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var config = new Dictionary<string, object>();
+        if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
-            var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
+            var context = new EnvironmentCallbackContext(executionContext, resource, config, cancellationToken)
             {
-                Logger = logger,
-                ExecutionContext = executionContext
+                Logger = logger
             };
 
             foreach (var callback in callbacks)
             {
                 await callback.Callback(context).ConfigureAwait(false);
             }
+        }
 
-            foreach (var a in args)
+        return config;
+    }
+
+    /// <summary>
+    /// Processes pre-gathered environment variable values for the specified resource within the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource for which the environment variables are being processed.</param>
+    /// <param name="executionContext">The execution context used during the processing of environment variables.</param>
+    /// <param name="environmentVariables">The pre-gathered environment variable values to be processed.</param>
+    /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
+    /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    internal static async ValueTask ProcessGatheredEnvironmentVariableValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        Dictionary<string, object> environmentVariables,
+        Action<string, object?, string?, Exception?> processValue,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var (key, expr) in environmentVariables)
+        {
+            try
             {
-                try
-                {
-                    var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
 
-                    if (resolvedValue?.Value != null)
-                    {
-                        processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
-                    }
-                }
-                catch (Exception ex)
+                if (resolvedValue?.Value is not null)
                 {
-                    processValue(a, a.ToString(), ex, false);
+                    processValue(key, expr, resolvedValue.Value, null);
                 }
+            }
+            catch (Exception ex)
+            {
+                processValue(key, expr, expr?.ToString(), ex);
             }
         }
     }
@@ -329,36 +429,9 @@ public static class ResourceExtensions
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
-        if (resource.TryGetEnvironmentVariables(out var callbacks))
-        {
-            var config = new Dictionary<string, object>();
-            var context = new EnvironmentCallbackContext(executionContext, resource, config, cancellationToken)
-            {
-                Logger = logger
-            };
+        var config = await GatherEnvironmentVariableValuesAsync(resource, executionContext, logger, cancellationToken).ConfigureAwait(false);
 
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(context).ConfigureAwait(false);
-            }
-
-            foreach (var (key, expr) in config)
-            {
-                try
-                {
-                    var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
-
-                    if (resolvedValue?.Value is not null)
-                    {
-                        processValue(key, expr, resolvedValue.Value, null);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    processValue(key, expr, expr?.ToString(), ex);
-                }
-            }
-        }
+        await ProcessGatheredEnvironmentVariableValuesAsync(resource, executionContext, config, processValue, logger, cancellationToken).ConfigureAwait(false);
     }
 
     internal static NetworkIdentifier GetDefaultResourceNetwork(this IResource resource)
@@ -372,7 +445,7 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Processes trusted certificates configuration for the specified resource within the given execution context.
+    /// Gathers trusted certificates configuration for the specified resource within the given execution context.
     /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
     /// annotations on the resource to configure certificate trust as needed and therefore must be run before
     /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, CancellationToken)"/>
@@ -380,20 +453,18 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
     /// <param name="executionContext">The execution context used during the processing.</param>
-    /// <param name="processArgumentValue">A function that processes argument values.</param>
-    /// <param name="processEnvironmentVariableValue">A function that processes environment variable values.</param>
+    /// <param name="arguments">Existing arguments that will be used to initialize the context for the config callback.</param>
+    /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
     /// <param name="logger">The logger used for logging information during the processing.</param>
     /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
     /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    internal static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
+    internal static async ValueTask<(List<object>, Dictionary<string, object>, CertificateTrustScope, X509Certificate2Collection?)> GatherCertificateTrustConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
-        // (unprocessed, processed, exception, isSensitive)
-        Action<object?, string?, Exception?, bool> processArgumentValue,
-        // (key, unprocessed, processed, exception)
-        Action<string, object?, string?, Exception?> processEnvironmentVariableValue,
+        List<object> arguments,
+        Dictionary<string, object> environmentVariables,
         ILogger logger,
         Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
         Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
@@ -419,7 +490,7 @@ public static class ResourceExtensions
 
         if (scope == CertificateTrustScope.None)
         {
-            return (scope, null);
+            return (arguments, environmentVariables, scope, null);
         }
 
         if (scope == CertificateTrustScope.System)
@@ -439,21 +510,18 @@ public static class ResourceExtensions
         if (!certificates.Any())
         {
             logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (scope, null);
+            return (arguments, environmentVariables,scope, null);
         }
 
         var bundlePath = bundlePathFactory(scope);
         var certificateDirectoryPaths = certificateDirectoryPathsFactory(scope);
 
         // Apply default OpenSSL environment configuration for certificate trust
-        var environment = new Dictionary<string, object>()
-        {
-            { "SSL_CERT_DIR", certificateDirectoryPaths },
-        };
+        environmentVariables["SSL_CERT_DIR"] = certificateDirectoryPaths;
 
         if (scope != CertificateTrustScope.Append)
         {
-            environment["SSL_CERT_FILE"] = bundlePath;
+            environmentVariables["SSL_CERT_FILE"] = bundlePath;
         }
 
         var context = new CertificateTrustConfigurationCallbackAnnotationContext
@@ -463,8 +531,8 @@ public static class ResourceExtensions
             Scope = scope,
             CertificateBundlePath = bundlePath,
             CertificateDirectoriesPath = certificateDirectoryPaths,
-            Arguments = new(),
-            EnvironmentVariables = environment,
+            Arguments = arguments,
+            EnvironmentVariables = environmentVariables,
             CancellationToken = cancellationToken,
         };
 
@@ -476,52 +544,12 @@ public static class ResourceExtensions
             }
         }
 
-        if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
-        {
-            logger.LogInformation("No certificate trust configuration was provided for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (scope, null);
-        }
-
         if (scope == CertificateTrustScope.System)
         {
             logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
         }
 
-        foreach (var a in context.Arguments)
-        {
-            try
-            {
-                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
-
-                if (resolvedValue?.Value != null)
-                {
-                    processArgumentValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
-                }
-            }
-            catch (Exception ex)
-            {
-                processArgumentValue(a, a.ToString(), ex, false);
-            }
-        }
-
-        foreach (var (key, expr) in context.EnvironmentVariables)
-        {
-            try
-            {
-                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
-
-                if (resolvedValue?.Value is not null)
-                {
-                    processEnvironmentVariableValue(key, expr, resolvedValue.Value, null);
-                }
-            }
-            catch (Exception ex)
-            {
-                processEnvironmentVariableValue(key, expr, expr?.ToString(), ex);
-            }
-        }
-
-        return (scope, certificates);
+        return (context.Arguments, context.EnvironmentVariables, scope, certificates);
     }
 
     private static async ValueTask<ResolvedValue?> ResolveValueAsync(

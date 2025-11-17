@@ -223,7 +223,20 @@ public static class JavaScriptHostingExtensions
                 }
                 else
                 {
-                    ctx.Arguments.Add("--use-openssl-ca");
+                    if (ctx.EnvironmentVariables.TryGetValue("NODE_OPTIONS", out var existingOptionsObj))
+                    {
+                        ctx.EnvironmentVariables["NODE_OPTIONS"] = existingOptionsObj switch
+                        {
+                            // Attempt to append to existing NODE_OPTIONS if possible, otherwise overwrite
+                            string s when !string.IsNullOrEmpty(s) => $"{s} --use-openssl-ca",
+                            ReferenceExpression re => ReferenceExpression.Create($"{re} --use-openssl-ca"),
+                            _ => "--use-openssl-ca",
+                        };
+                    }
+                    else
+                    {
+                        ctx.EnvironmentVariables["NODE_OPTIONS"] = "--use-openssl-ca";
+                    }
                 }
 
                 return Task.CompletedTask;
