@@ -172,6 +172,7 @@
     padding: 0;
     overflow: initial;
     display: block;
+    width: 100%;
 }
 
 ::deep .property-grid-container {
@@ -314,4 +315,8 @@
 ::deep .tab-container .evaluation-divider {
     height: 20px;
     border-color: var(--neutral-stroke-hover);
+}
+
+::deep .tab-label > svg {
+    margin-right: calc(var(--design-unit) * 1px);
 }
