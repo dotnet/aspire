@@ -16,6 +16,7 @@ public static class GenAIHelpers
     public const string GenAIResponseModel = "gen_ai.response.model";
     public const string GenAIUsageInputTokens = "gen_ai.usage.input_tokens";
     public const string GenAIUsageOutputTokens = "gen_ai.usage.output_tokens";
+    public const string GenAIToolDefinitions = "gen_ai.tool.definitions";
 
     // LangSmith OpenTelemetry genai standard attributes (flattened format)
     public const string GenAIPromptPrefix = "gen_ai.prompt.";

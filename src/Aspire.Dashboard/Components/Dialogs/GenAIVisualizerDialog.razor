@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Microsoft.OpenApi.Any
 
 @implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
 
@@ -135,6 +136,39 @@
                                         {
                                             <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
                                         }
+
+                                        if (itemPart.MessagePart is ToolCallRequestPart toolCallPart && !string.IsNullOrEmpty(toolCallPart.Name))
+                                        {
+                                            if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallPart.Name) is { } toolVM)
+                                            {
+                                                <div class="tool-button-container">
+                                                    <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                        <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
+                                                        Tool definition
+                                                    </FluentButton>
+                                                </div>
+                                            }
+                                        }
+                                        else if (itemPart.MessagePart is ToolCallResponsePart toolCallResponsePart && !string.IsNullOrEmpty(toolCallResponsePart.Id))
+                                        {
+                                            if (TryGetToolCall(toolCallResponsePart.Id, out var itemVM, out var toolCallRequestPart))
+                                            {
+                                                <div class="tool-button-container">
+                                                    <FluentButton OnClick="@(() => OnViewItem(itemVM))">
+                                                        <FluentIcon Value="@s_toolIcon" Style="vertical-align: sub;" slot="start" />
+                                                        Tool call
+                                                    </FluentButton>
+
+                                                    @if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallRequestPart.Name) is { } toolVM)
+                                                    {
+                                                        <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                            <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
+                                                            Tool definition
+                                                        </FluentButton>
+                                                    }
+                                                </div>
+                                            }
+                                        }
                                     }
                                 }
                             </div>
@@ -201,6 +235,13 @@
                                            Id="@($"tab-overview-{OverviewViewKind.Details}")"
                                            Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]">
                                 </FluentTab>
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")">
+                                    <Header>
+                                        <span class="tab-text">@Loc[nameof(Dialogs.GenAIToolsTabText)]</span>
+                                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
+                                    </Header>
+                                </FluentTab>
                             </FluentTabs>
                         </div>
                         @if (OverviewActiveView == OverviewViewKind.InputOutput)
@@ -236,6 +277,81 @@
                         {
                             <div class="tab-container">
                                 <SpanDetails ViewModel="@Content.SpanDetailsViewModel" HideToolbar="true" />
+                            </div>
+                        }
+                        @if (OverviewActiveView == OverviewViewKind.Tools)
+                        {
+                            <div class="tab-container">
+                                @if (Content.ToolDefinitions.Count > 0)
+                                {
+                                    <FluentAccordion Class="tools-list">
+                                        @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function"))
+                                        {
+                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded">
+                                                <HeadingTemplate>
+                                                    <div class="tool-heading">
+                                                        <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">
+                                                            @toolVM.ToolDefinition.Type
+                                                        </FluentBadge>
+                                                        <strong>@toolVM.ToolDefinition.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
+                                                        {
+                                                            <span>@FormatHelpers.TruncateText(toolVM.ToolDefinition.Description, maxLength: 100)</span>
+                                                        }
+                                                    </div>
+                                                </HeadingTemplate>
+                                                <ChildContent>
+                                                    @if (toolVM.ToolDefinition.Parameters?.Properties.Count > 0)
+                                                    {
+                                                        <table class="tool-parameters-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th class="tool-cell tool-cell-nowrap">@Loc[nameof(Dialogs.GenAIToolParameterName)]</th>
+                                                                    <th class="tool-cell tool-cell-nowrap">@Loc[nameof(Dialogs.GenAIToolParameterType)]</th>
+                                                                    <th class="tool-cell">@Loc[nameof(Dialogs.GenAIToolParameterDescription)]</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var prop in toolVM.ToolDefinition.Parameters.Properties)
+                                                                {
+                                                                    <tr>
+                                                                        <td class="tool-cell tool-cell-nowrap">
+                                                                            <strong>@prop.Key</strong>
+                                                                            @if (toolVM.ToolDefinition.Parameters.Required?.Contains(prop.Key) == true)
+                                                                            {
+                                                                                <span style="color: var(--error);"> *</span>
+                                                                            }
+                                                                        </td>
+                                                                        <td class="tool-cell tool-cell-nowrap">
+                                                                            <code>@prop.Value.Type</code>
+                                                                        </td>
+                                                                        <td class="tool-cell">
+                                                                            @prop.Value.Description
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                        @if (toolVM.ToolDefinition.Parameters.Required?.Count > 0)
+                                                        {
+                                                            <div class="tool-footer">
+                                                                <span style="color: var(--error);">*</span> @Loc[nameof(Dialogs.GenAIToolRequiredParameter)]
+                                                            </div>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="tool-footer">@Loc[nameof(Dialogs.GenAIToolNoParameters)]</div>
+                                                    }
+                                                </ChildContent>
+                                            </FluentAccordionItem>
+                                        }
+                                    </FluentAccordion>
+                                }
+                                else
+                                {
+                                    <p>@Loc[nameof(Dialogs.GenAINoTools)]</p>
+                                }
                             </div>
                         }
                     }

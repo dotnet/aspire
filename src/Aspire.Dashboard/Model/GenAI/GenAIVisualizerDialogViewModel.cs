@@ -14,6 +14,8 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Models;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
@@ -36,6 +38,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> InputMessages { get; private set; } = default!;
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
+    public List<ToolDefinitionViewModel> ToolDefinitions { get; private set; } = new();
 
     // Used for error message from the dashboard when displaying GenAI telemetry.
     public string? DisplayErrorMessage { get; set; }
@@ -70,6 +73,49 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.ModelName = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIResponseModel);
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
+
+        // Parse tool definitions if present
+        var toolDefinitionsJson = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIToolDefinitions);
+        if (toolDefinitionsJson != null)
+        {
+            try
+            {
+                // Deserialize to intermediate format since OpenApiSchema doesn't work well with System.Text.Json
+                var jsonNode = JsonNode.Parse(toolDefinitionsJson);
+                if (jsonNode is JsonArray array)
+                {
+                    viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
+                    foreach (var item in array)
+                    {
+                        if (item is not JsonObject obj)
+                        {
+                            continue;
+                        }
+
+                        var toolDef = new ToolDefinition
+                        {
+                            Type = obj["type"]?.GetValue<string>() ?? "function",
+                            Name = obj["name"]?.GetValue<string>(),
+                            Description = obj["description"]?.GetValue<string>()
+                        };
+
+                        // Parse parameters if present
+                        if (obj["parameters"] is JsonObject paramsObj)
+                        {
+                            toolDef.Parameters = ParseOpenApiSchema(paramsObj);
+                        }
+
+                        viewModel.ToolDefinitions.Add(new ToolDefinitionViewModel { ToolDefinition = toolDef });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the entire view model creation
+                errorRecorder.RecordError($"Error parsing tool definitions for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
+                viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
+            }
+        }
 
         try
         {
@@ -270,7 +316,7 @@ public sealed class GenAIVisualizerDialogViewModel
     private static void ParseLangSmithFormat(GenAIVisualizerDialogViewModel viewModel, ref int currentIndex)
     {
         var attributes = viewModel.Span.Attributes;
-        
+
         // Group attributes by prefix (prompt or completion) and index
         var promptMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAIPromptPrefix);
         var completionMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAICompletionPrefix);
@@ -346,11 +392,11 @@ public sealed class GenAIVisualizerDialogViewModel
                 // Format: gen_ai.prompt.{index}.{field}
                 var remainder = attr.Key.AsSpan(prefix.Length);
                 var dotIndex = remainder.IndexOf('.');
-                
+
                 if (dotIndex > 0 && int.TryParse(remainder.Slice(0, dotIndex), out var messageIndex))
                 {
                     var fieldName = remainder.Slice(dotIndex + 1).ToString();
-                    
+
                     if (!messages.TryGetValue(messageIndex, out var message))
                     {
                         message = new Dictionary<string, string>();
@@ -480,6 +526,56 @@ public sealed class GenAIVisualizerDialogViewModel
         return args;
     }
 
+    private static OpenApiSchema? ParseOpenApiSchema(JsonObject schemaObj)
+    {
+        var schema = new OpenApiSchema
+        {
+            Type = schemaObj["type"]?.GetValue<string>(),
+            Description = schemaObj["description"]?.GetValue<string>()
+        };
+
+        // Parse properties
+        if (schemaObj["properties"] is JsonObject propsObj)
+        {
+            schema.Properties = new Dictionary<string, OpenApiSchema>();
+            foreach (var prop in propsObj)
+            {
+                if (prop.Value is JsonObject propSchemaObj)
+                {
+                    schema.Properties[prop.Key] = ParseOpenApiSchema(propSchemaObj);
+                }
+            }
+        }
+
+        // Parse required
+        if (schemaObj["required"] is JsonArray requiredArray)
+        {
+            schema.Required = new HashSet<string>();
+            foreach (var item in requiredArray)
+            {
+                if (item != null)
+                {
+                    schema.Required.Add(item.GetValue<string>());
+                }
+            }
+        }
+
+        // Parse enum
+        if (schemaObj["enum"] is JsonArray enumArray)
+        {
+            schema.Enum = new List<IOpenApiAny>();
+            foreach (var item in enumArray)
+            {
+                if (item != null)
+                {
+                    schema.Enum.Add(new OpenApiString(item.GetValue<string>()));
+                }
+            }
+        }
+
+        return schema;
+    }
+
     private static bool TryMapEventName(string name, [NotNullWhen(true)] out GenAIItemType? type)
     {
         type = name switch
@@ -519,6 +615,7 @@ public sealed class GenAIVisualizerDialogViewModel
 public enum OverviewViewKind
 {
     InputOutput,
+    Tools,
     Details
 }
 
