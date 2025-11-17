@@ -108,6 +108,12 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         {
             try
             {
+                // There is a bug in FluentDialogProvider that causes it to error if used immediately because it's still loading its own JavaScript.
+                // Wait a small amount of time for it to get ready. Add the delay here because it only impacts displaying dialogs. Still want to display message bars immediately.
+                //
+                // TODO: Remove when https://github.com/microsoft/fluentui-blazor/issues/4311 is fixed.
+                await Task.Delay(TimeSpan.FromSeconds(2));
+
                 await InteractionsDisplayAsync().ConfigureAwait(false);
             }
             catch (Exception ex) when (!_cts.IsCancellationRequested)
@@ -118,12 +124,6 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
         _watchInteractionsTask = Task.Run(async () =>
         {
-            // There is a bug in FluentDialogProvider that causes it to error if used immediately because it's still loading its own JavaScript.
-            // Wait a small amount of time for it to get ready.
-            //
-            // TODO: Remove when https://github.com/microsoft/fluentui-blazor/issues/4311 is fixed.
-            await Task.Delay(TimeSpan.FromSeconds(2));
-
             try
             {
                 await WatchInteractionsAsync().ConfigureAwait(false);
