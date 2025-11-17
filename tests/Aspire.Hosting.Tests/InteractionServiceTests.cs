@@ -166,11 +166,11 @@ public class InteractionServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+            async () => await interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+            async () => await interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+            async () => await interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
     }
 
     [Fact]
@@ -1003,7 +1003,7 @@ public class InteractionServiceTests
         };
 
         // Act
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() => interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs));
+        var ex = await Assert.ThrowsAnyAsync<Exception>(async () => await interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs));
 
         // Assert
         Assert.NotNull(ex);
@@ -1036,7 +1036,7 @@ public class InteractionServiceTests
         };
 
         // Act
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() => interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs));
+        var ex = await Assert.ThrowsAnyAsync<Exception>(async () => await interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs));
 
         // Assert
         Assert.NotNull(ex);
