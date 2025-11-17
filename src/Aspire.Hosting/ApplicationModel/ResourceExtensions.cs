@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
+using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -455,6 +456,142 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Holds the resolved configuration for a resource, including arguments, environment variables, and certificate trust settings.
+    /// </summary>
+    internal class ResourceConfigurationContext
+    {
+        /// <summary>
+        /// The resolved command-line arguments for the resource.
+        /// </summary>
+        public required List<(string Value, bool IsSensitive)> Arguments { get; init; }
+
+        /// <summary>
+        /// The resolved environment variables for the resource.
+        /// </summary>
+        public required List<EnvVar> EnvironmentVariables { get; init; }
+
+        /// <summary>
+        /// The trusted certificates for the resource, if any.
+        /// </summary>
+        public required X509Certificate2Collection TrustedCertificates { get; init; }
+
+        /// <summary>
+        /// The certificate trust scope for the resource, if any.
+        /// </summary>
+        public required CertificateTrustScope CertificateTrustScope { get; init; }
+
+        /// <summary>
+        /// Any exception that occurred during the configuration processing.
+        /// </summary>
+        public Exception? Exception { get; init; }
+    }
+
+    /// <summary>
+    /// Process arguments and environment variable values for the specified resource in the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource to process configuration values for.</param>
+    /// <param name="executionContext">The execution context used during the processing of configuration values.</param>
+    /// <param name="resourceLogger">The resource specific logger used for logging information or errors during the processing of configuration values.</param>
+    /// <param name="withCertificateTrust">Should certificate trust callbacks be applied during processing.</param>
+    /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource. Required if withCertificateTrust is true.</param>
+    /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource. Required if withCertificateTrust is true.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A <see cref="ResourceConfigurationContext"/> containing resolved configuration.</returns>
+    internal static async ValueTask<ResourceConfigurationContext> ProcessConfigurationValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger resourceLogger,
+        bool withCertificateTrust,
+        Func<CertificateTrustScope, ReferenceExpression>? bundlePathFactory = null,
+        Func<CertificateTrustScope, ReferenceExpression>? certificateDirectoryPathsFactory = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (withCertificateTrust)
+        {
+            ArgumentNullException.ThrowIfNull(bundlePathFactory);
+            ArgumentNullException.ThrowIfNull(certificateDirectoryPathsFactory);
+        }
+
+        var args = await GatherArgumentValuesAsync(resource, executionContext, resourceLogger, cancellationToken).ConfigureAwait(false);
+        var envVars = await GatherEnvironmentVariableValuesAsync(resource, executionContext, resourceLogger, cancellationToken).ConfigureAwait(false);
+
+        var trustedCertificates = new X509Certificate2Collection();
+        var certificateTrustScope = CertificateTrustScope.None;
+        if (withCertificateTrust)
+        {
+            // If certificate trust is requested, apply the additional required argument and environment variable configuration
+            (args, envVars, certificateTrustScope, trustedCertificates) = await resource.GatherCertificateTrustConfigAsync(
+                executionContext,
+                args,
+                envVars,
+                resourceLogger,
+                bundlePathFactory!,
+                certificateDirectoryPathsFactory!,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var resolvedArgs = new List<(string, bool)>();
+        var resolvedEnvVars = new List<EnvVar>();
+
+        List<Exception> exceptions = [];
+
+        await ProcessGatheredArgumentValuesAsync(
+            resource,
+            executionContext,
+            args,
+            (unprocessed, processed, ex, isSensitive) =>
+            {
+                if (ex is not null)
+                {
+                    exceptions.Add(ex);
+
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                }
+                else if (processed is { } argument)
+                {
+                    resolvedArgs.Add((argument, isSensitive));
+                }
+            },
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
+
+        await ProcessGatheredEnvironmentVariableValuesAsync(
+            resource,
+            executionContext,
+            envVars,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (ex is not null)
+                {
+                    exceptions.Add(ex);
+
+                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{EnvVarKey}'. A dependency may have failed to start.", key);
+                }
+                else if (processed is string s)
+                {
+                    resolvedEnvVars.Add(new EnvVar { Name = key, Value = s });
+                }
+            },
+            resourceLogger,
+            cancellationToken).ConfigureAwait(false);
+
+        Exception? exception = null;
+        if (exceptions.Any())
+        {
+            exception = new AggregateException("One or more errors occurred while processing resource configuration.", exceptions);
+        }
+
+        return new ResourceConfigurationContext
+        {
+            Arguments = resolvedArgs,
+            EnvironmentVariables = resolvedEnvVars,
+            CertificateTrustScope = certificateTrustScope,
+            TrustedCertificates = trustedCertificates!,
+            Exception = exception,
+        };
+    }
+
+    /// <summary>
     /// Gathers trusted certificates configuration for the specified resource within the given execution context.
     /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
     /// annotations on the resource to configure certificate trust as needed and therefore must be run before
@@ -470,7 +607,7 @@ public static class ResourceExtensions
     /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    internal static async ValueTask<(List<object>, Dictionary<string, object>, CertificateTrustScope, X509Certificate2Collection?)> GatherCertificateTrustConfigAsync(
+    internal static async ValueTask<(List<object>, Dictionary<string, object>, CertificateTrustScope, X509Certificate2Collection)> GatherCertificateTrustConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         List<object> arguments,
@@ -500,7 +637,7 @@ public static class ResourceExtensions
 
         if (scope == CertificateTrustScope.None)
         {
-            return (arguments, environmentVariables, scope, null);
+            return (arguments, environmentVariables, scope, new X509Certificate2Collection());
         }
 
         if (scope == CertificateTrustScope.System)
@@ -520,7 +657,7 @@ public static class ResourceExtensions
         if (!certificates.Any())
         {
             logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (arguments, environmentVariables, scope, null);
+            return (arguments, environmentVariables, scope, new X509Certificate2Collection());
         }
 
         var bundlePath = bundlePathFactory(scope);

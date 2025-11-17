@@ -761,71 +761,33 @@ public class DistributedApplicationTests
                             }
                         });
 
-                    Assert.NotNull(item.Spec.CreateFiles);
-                    Assert.Collection(item.Spec.CreateFiles.Where(cf => cf.Destination == expectedDestination),
-                        createCerts =>
+                    if (trustScope == CertificateTrustScope.None)
+                    {
+                        Assert.Empty(item.Spec?.PemCertificates?.Certificates ?? []);
+                        return;
+                    }
+
+                    foreach (var cert in dc.Certificates)
+                    {
+                        var foundCert = Assert.Single(item.Spec?.PemCertificates?.Certificates ?? [], c => string.Equals(c.Thumbprint, cert.Thumbprint, StringComparison.Ordinal));
+                        if (cert.IsAspNetCoreDevelopmentCertificate())
                         {
-                            Assert.NotNull(createCerts.Entries);
-                            Assert.Collection(createCerts.Entries,
-                                bundle =>
-                                {
-                                    Assert.Equal("cert.pem", bundle.Name);
-                                    Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
-                                    var certs = new X509Certificate2Collection();
-                                    certs.ImportFromPem(bundle.Contents);
-                                    Assert.Equal(dc.Certificates.Count, certs.Count);
-                                    Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
-                                },
-                                dir =>
-                                {
-                                    Assert.Equal("certs", dir.Name);
-                                    Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
-                                    Assert.NotNull(dir.Entries);
-                                    Assert.Equal(dc.Certificates.Count, dir.Entries.Count);
-                                    foreach (var devCert in dc.Certificates)
-                                    {
-                                        Assert.Contains(dir.Entries, (cert) =>
-                                        {
-                                            return cert.Type == ContainerFileSystemEntryType.OpenSSL && string.Equals(cert.Name, devCert.Thumbprint + ".pem", StringComparison.Ordinal) && string.Equals(cert.Contents, devCert.ExportCertificatePem(), StringComparison.Ordinal);
-                                        });
-                                    }
-                                });
-                        });
+                            Assert.True(X509Certificate2.CreateFromPem(foundCert.Contents).IsAspNetCoreDevelopmentCertificate());
+                        }
+                    }
 
                     if (trustScope == CertificateTrustScope.Override)
                     {
-                        foreach (var bundlePath in expectedDefaultBundleFiles!.Select(bp =>
+                        Assert.Equal(expectedDefaultBundleFiles.Count, item.Spec?.PemCertificates?.OverwriteBundlePaths?.Count ?? 0);
+                        foreach (var bundlePath in expectedDefaultBundleFiles)
                         {
-                            var filename = Path.GetFileName(bp);
-                            var dir = bp.Substring(0, bp.Length - filename.Length);
-                            return (dir, filename);
-                        }).GroupBy(parts => parts.dir))
-                        {
-                            Assert.Collection(item.Spec.CreateFiles.Where(cf => cf.Destination == bundlePath.Key),
-                                createCerts =>
-                                {
-                                    Assert.NotNull(createCerts.Entries);
-                                    Assert.Equal(bundlePath.Count(), createCerts.Entries.Count);
-                                    foreach (var expectedFile in bundlePath)
-                                    {
-                                        Assert.Collection(createCerts.Entries.Where(file => file.Name == expectedFile.filename),
-                                            bundle =>
-                                            {
-                                                Assert.Equal(expectedFile.filename, bundle.Name);
-                                                Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
-                                                var certs = new X509Certificate2Collection();
-                                                certs.ImportFromPem(bundle.Contents);
-                                                Assert.Equal(dc.Certificates.Count, certs.Count);
-                                                Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
-                                            });
-                                    }
-                                });
+                            Assert.Contains(bundlePath, item.Spec?.PemCertificates?.OverwriteBundlePaths ?? []);
                         }
                     }
                 }
                 else
                 {
-                    Assert.Empty(item.Spec.CreateFiles ?? []);
+                    Assert.Empty(item.Spec?.PemCertificates?.Certificates ?? []);
                 }
             });
 

@@ -91,6 +91,10 @@ internal sealed class ContainerSpec
 
     [JsonPropertyName("createFiles")]
     public List<ContainerCreateFileSystem>? CreateFiles { get; set; }
+
+    // List of public PEM certificates to be trusted by the container
+    [JsonPropertyName("pemCertificates")]
+    public ContainerPemCertificates? PemCertificates { get; set; }
 }
 
 internal sealed class BuildContext
@@ -437,6 +441,25 @@ internal static class ContainerFileSystemEntryType
     public const string File = "file";
 
     public const string OpenSSL = "openssl";
+}
+
+internal sealed class ContainerPemCertificates
+{
+    // The destination in the container the certificates should be written to
+    [JsonPropertyName("destination")]
+    public string? Destination { get; set; }
+
+    // The list of PEM encoded certificates to write
+    [JsonPropertyName("certificates")]
+    public List<PemCertificate>? Certificates { get; set; }
+
+    // Optional list of bundle paths to overwrite in the container with the generated CA bundle
+    [JsonPropertyName("overwriteBundlePaths")]
+    public List<string>? OverwriteBundlePaths { get; set; }
+
+    // Should resource creation continue if there are errors writing one or more certificates?
+    [JsonPropertyName("continueOnError")]
+    public bool ContinueOnError { get; set; }
 }
 
 internal sealed record ContainerStatus : V1Status

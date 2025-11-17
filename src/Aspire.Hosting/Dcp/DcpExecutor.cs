@@ -1534,67 +1534,40 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             spec.Args.AddRange(projectArgs);
         }
 
-        // Get args from app host model resource.
-        var appHostArgs = await er.ModelResource.GatherArgumentValuesAsync(
+        var certificatesRootDir = Path.Join(_locations.DcpSessionDir, exe.Name());
+        var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
+        var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
+
+        // Build the environment and args for the executable, including certificate trust configuration.
+        var configContext = await er.ModelResource.ProcessConfigurationValuesAsync(
             _executionContext,
             resourceLogger,
+            withCertificateTrust: true,
+            bundlePathFactory: (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
+            certificateDirectoryPathsFactory: (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
             cancellationToken).ConfigureAwait(false);
 
-        var appHostEnv = await er.ModelResource.GatherEnvironmentVariableValuesAsync(
-            _executionContext,
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        // Add certificate trust configuration to command line arguments and environment variables
-        (appHostArgs, appHostEnv) = await BuildExecutableCertificateTrustConfigAsync(resourceLogger, er.ModelResource, appHostArgs, appHostEnv, cancellationToken).ConfigureAwait(false);
-
-        var failedToApplyConfig = false;
-
-        // Process the gathered command line argument values
-        var args = new List<(string Value, bool IsSensitive)>();
-        await er.ModelResource.ProcessGatheredArgumentValuesAsync(
-            _executionContext,
-            appHostArgs,
-            (unprocessed, value, ex, isSensitive) =>
+        // Add the certificates to the executable spec so they'll be placed in the DCP config
+        ExecutablePemCertificates? pemCertificates = null;
+        if (configContext.CertificateTrustScope != CertificateTrustScope.None && configContext.TrustedCertificates?.Any() == true)
+        {
+            pemCertificates = new ExecutablePemCertificates
             {
-                if (ex is not null)
+                Certificates = configContext.TrustedCertificates.Select(c =>
                 {
-                    failedToApplyConfig = true;
+                    return new PemCertificate
+                    {
+                        Thumbprint = c.Thumbprint,
+                        Contents = c.ExportCertificatePem(),
+                    };
+                }).DistinctBy(cert => cert.Thumbprint).ToList(),
+                ContinueOnError = true,
+            };
+        }
 
-                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], er.ModelResource.Name);
-                }
-                else if (value is { } argument)
-                {
-                    args.Add((argument, isSensitive));
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
+        exe.Spec.PemCertificates = pemCertificates;
 
-        // Process the gathered environment variable values
-        var env = new List<EnvVar>();
-        await er.ModelResource.ProcessGatheredEnvironmentVariableValuesAsync(
-            _executionContext,
-            appHostEnv,
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
-                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, er.ModelResource.Name);
-                }
-                else if (value is string s)
-                {
-                    env.Add(new EnvVar { Name = key, Value = s });
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        var launchArgs = BuildLaunchArgs(er, spec, args);
+        var launchArgs = BuildLaunchArgs(er, spec, configContext.Arguments);
         var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
         if (executableArgs.Count > 0)
         {
@@ -1604,9 +1577,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // Arg annotations are what is displayed in the dashboard.
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-        spec.Env = env;
+        spec.Env = configContext.EnvironmentVariables;
 
-        if (failedToApplyConfig)
+        if (configContext.Exception is not null)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -1823,81 +1796,73 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
-        // Get args from app host model resource.
-        var appHostArgs = await cr.ModelResource.GatherArgumentValuesAsync(
+        var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
+        var bundlePaths = ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths.ToList();
+        var certificateDirsPaths = ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths.ToList();
+
+        if (cr.ModelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
+        {
+            certificatesDestination = pathsAnnotation.CustomCertificatesDestination ?? certificatesDestination;
+            bundlePaths = pathsAnnotation.DefaultCertificateBundles ?? bundlePaths;
+            certificateDirsPaths = pathsAnnotation.DefaultCertificateDirectories ?? certificateDirsPaths;
+        }
+
+        // Build the environment and args for the executable, including certificate trust configuration.
+        var configContext = await cr.ModelResource.ProcessConfigurationValuesAsync(
             _executionContext,
             resourceLogger,
+            withCertificateTrust: true,
+            bundlePathFactory: (scope) => ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
+            certificateDirectoryPathsFactory: (scope) =>
+            {
+                var dirs = new List<string> { certificatesDestination + "/certs" };
+                if (scope == CertificateTrustScope.Append)
+                {
+                    // When appending to the default trust store, include the default certificate directories
+                    dirs.AddRange(certificateDirsPaths!);
+                }
+
+                // Build Linux PATH style colon-separated list of directories
+                return ReferenceExpression.Create($"{string.Join(':', dirs)}");
+            },
             cancellationToken).ConfigureAwait(false);
 
-        // Get env vars from app host model resource.
-        var appHostEnv = await cr.ModelResource.GatherEnvironmentVariableValuesAsync(
-            _executionContext,
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
+        // Add the certificates to the executable spec so they'll be placed in the DCP config
+        ContainerPemCertificates? pemCertificates = null;
+        if (configContext.CertificateTrustScope != CertificateTrustScope.None && configContext.TrustedCertificates?.Any() == true)
+        {
+            pemCertificates = new ContainerPemCertificates
+            {
+                Certificates = configContext.TrustedCertificates.Select(c =>
+                {
+                    return new PemCertificate
+                    {
+                        Thumbprint = c.Thumbprint,
+                        Contents = c.ExportCertificatePem(),
+                    };
+                }).DistinctBy(cert => cert.Thumbprint).ToList(),
+                Destination = certificatesDestination,
+                ContinueOnError = true,
+            };
+
+            if (configContext.CertificateTrustScope != CertificateTrustScope.Append)
+            {
+                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
+                // used by common Linux distributions to make it easier to ensure applications pick it up.
+                // Group by common directory to avoid creating multiple file system entries for the same root directory.
+                pemCertificates.OverwriteBundlePaths = bundlePaths;
+            }
+        }
+
+        spec.PemCertificates = pemCertificates;
 
         // Build files that need to be created inside the container
         var createFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
-        // Build certificate specific arguments, environment variables, and files
-        (appHostArgs, appHostEnv, var certificateFiles) = await BuildContainerCertificateAuthorityTrustAsync(
-            resourceLogger,
-            modelContainerResource,
-            appHostArgs,
-            appHostEnv,
-            cancellationToken).ConfigureAwait(false);
-
-        var failedToApplyConfig = false;
-
-        // Process the gathered command line argument values
-        var args = new List<(string Value, bool IsSensitive)>();
-        await cr.ModelResource.ProcessGatheredArgumentValuesAsync(
-            _executionContext,
-            appHostArgs,
-            (unprocessed, value, ex, isSensitive) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], cr.ModelResource.Name);
-                }
-                else if (value is { } argument)
-                {
-                    args.Add((argument, isSensitive));
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        // Process the gathered environment variable values
-        var env = new List<EnvVar>();
-        await cr.ModelResource.ProcessGatheredEnvironmentVariableValuesAsync(
-            _executionContext,
-            appHostEnv,
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    failedToApplyConfig = true;
-
-                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
-                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, cr.ModelResource.Name);
-                }
-                else if (value is string s)
-                {
-                    env.Add(new EnvVar { Name = key, Value = s });
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        createFiles.AddRange(certificateFiles);
-
         // Set the final args, env vars, and create files on the container spec
-        spec.Args = args.Select(a => a.Value).ToList();
-        dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
-        spec.Env = env;
+        spec.Args = configContext.Arguments.Select(a => a.Value).ToList();
+        dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, configContext.Arguments.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+        spec.Env = configContext.EnvironmentVariables;
         spec.CreateFiles = createFiles;
 
         if (modelContainerResource is ContainerResource containerResource)
@@ -1905,7 +1870,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             spec.Command = containerResource.Entrypoint;
         }
 
-        if (failedToApplyRunArgs || failedToApplyConfig)
+        if (failedToApplyRunArgs || configContext.Exception is not null)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -2337,170 +2302,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
-    }
-
-    /// <summary>
-    /// Build up the certificate authority trust configuration for an executable.
-    /// </summary>
-    /// <param name="resourceLogger">The logger for the resource.</param>
-    /// <param name="modelResource">The executable IResource.</param>
-    /// <param name="arguments">The list of arguments for the executable.</param>
-    /// <param name="environmentVariables">The dictionary of environment variables for the executable.</param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    private async Task<(List<object>, Dictionary<string, object>)> BuildExecutableCertificateTrustConfigAsync(
-        ILogger resourceLogger,
-        IResource modelResource,
-        List<object> arguments,
-        Dictionary<string, object> environmentVariables,
-        CancellationToken cancellationToken)
-    {
-        var certificatesRootDir = Path.Join(_locations.DcpSessionDir, modelResource.Name);
-        var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
-        var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
-
-        (arguments, environmentVariables, _, var certificates) = await modelResource.GatherCertificateTrustConfigAsync(
-            _executionContext,
-            arguments,
-            environmentVariables,
-            resourceLogger,
-            (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
-            (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
-            cancellationToken).ConfigureAwait(false);
-
-        if (certificates?.Any() == true)
-        {
-            Directory.CreateDirectory(certificatesOutputPath);
-
-            // First build a CA bundle (concatenation of all certs in PEM format)
-            var caBundleBuilder = new StringBuilder();
-            foreach (var cert in certificates)
-            {
-                caBundleBuilder.Append(cert.ExportCertificatePem());
-                caBundleBuilder.Append('\n');
-
-                // TODO: Add support in DCP to generate OpenSSL compatible symlinks for executable resources
-                File.WriteAllText(Path.Join(certificatesOutputPath, cert.Thumbprint + ".pem"), cert.ExportCertificatePem());
-            }
-
-            File.WriteAllText(bundleOutputPath, caBundleBuilder.ToString());
-        }
-
-        return (arguments, environmentVariables);
-    }
-
-    /// <summary>
-    /// Build up the certificate authority trust configuration for a container.
-    /// </summary>
-    /// <param name="resourceLogger">The logger for the resource.</param>
-    /// <param name="modelResource">The container IResource.</param>
-    /// <param name="arguments">The list of arguments for the container.</param>
-    /// <param name="environmentVariables">The dictionary of environment variables for the container.</param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    private async Task<(List<object>, Dictionary<string, object>, List<ContainerCreateFileSystem>)> BuildContainerCertificateAuthorityTrustAsync(
-        ILogger resourceLogger,
-        IResource modelResource,
-        List<object> arguments,
-        Dictionary<string, object> environmentVariables,
-        CancellationToken cancellationToken)
-    {
-        var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
-        var bundlePaths = ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths.ToList();
-        var certificateDirsPaths = ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths.ToList();
-
-        if (modelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
-        {
-            certificatesDestination = pathsAnnotation.CustomCertificatesDestination ?? certificatesDestination;
-            bundlePaths = pathsAnnotation.DefaultCertificateBundles ?? bundlePaths;
-            certificateDirsPaths = pathsAnnotation.DefaultCertificateDirectories ?? certificateDirsPaths;
-        }
-
-        var createFiles = new List<ContainerCreateFileSystem>();
-
-        (arguments, environmentVariables, var scope, var certificates) = await modelResource.GatherCertificateTrustConfigAsync(
-            _executionContext,
-            arguments,
-            environmentVariables,
-            resourceLogger,
-            (scope) => ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
-            (scope) =>
-            {
-                var dirs = new List<string> { certificatesDestination + "/certs" };
-                if (scope == CertificateTrustScope.Append)
-                {
-                    // When appending to the default trust store, include the default certificate directories
-                    dirs.AddRange(certificateDirsPaths!);
-                }
-
-                // Build Linux PATH style colon-separated list of directories
-                return ReferenceExpression.Create($"{string.Join(':', dirs)}");
-            },
-            cancellationToken).ConfigureAwait(false);
-
-        if (certificates?.Any() == true)
-        {
-            // First build a CA bundle (concatenation of all certs in PEM format)
-            var caBundleBuilder = new StringBuilder();
-            var certificateFiles = new List<ContainerFileSystemEntry>();
-            foreach (var cert in certificates.OrderBy(c => c.Thumbprint))
-            {
-                caBundleBuilder.Append(cert.ExportCertificatePem());
-                caBundleBuilder.Append('\n');
-                certificateFiles.Add(new ContainerFileSystemEntry
-                {
-                    Name = cert.Thumbprint + ".pem",
-                    Type = ContainerFileSystemEntryType.OpenSSL,
-                    Contents = cert.ExportCertificatePem(),
-                    ContinueOnError = true,
-                });
-            }
-
-            createFiles.Add(new()
-            {
-                Destination = certificatesDestination,
-                Entries = [
-                    new ContainerFileSystemEntry
-                    {
-                        Name = "cert.pem",
-                        Contents = caBundleBuilder.ToString(),
-                    },
-                    new ContainerFileSystemEntry
-                    {
-                        Name = "certs",
-                        Type = ContainerFileSystemEntryType.Directory,
-                        Entries = certificateFiles.ToList(),
-                    }
-                ],
-            });
-
-            if (scope != CertificateTrustScope.Append)
-            {
-                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
-                // used by common Linux distributions to make it easier to ensure applications pick it up.
-                // Group by common directory to avoid creating multiple file system entries for the same root directory.
-                foreach (var bundlePath in bundlePaths!.Select(bp =>
-                {
-                    var filename = Path.GetFileName(bp);
-                    var dir = bp.Substring(0, bp.Length - filename.Length);
-                    return (dir, filename);
-                }).GroupBy(parts => parts.dir))
-                {
-                    createFiles.Add(new ContainerCreateFileSystem
-                    {
-                        Destination = bundlePath.Key,
-                        Entries = bundlePath.Select(bp =>
-                            new ContainerFileSystemEntry
-                            {
-                                Name = bp.filename,
-                                Contents = caBundleBuilder.ToString(),
-                            }).ToList(),
-                    });
-                }
-            }
-        }
-
-        return (arguments, environmentVariables, createFiles);
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(RenderedModelResource cr)
