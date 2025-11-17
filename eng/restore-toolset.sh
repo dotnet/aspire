@@ -44,17 +44,17 @@ if [[ "$restore_maui" == true ]]; then
     # Copy the source file
     cp "$source_slnx" "$temp_file"
     
-    # Create the Maui folder content
-    maui_folder='  <Folder Name="/playground/AspireWithMaui/">
-    <Project Path="playground/AspireWithMaui/AspireWithMaui.AppHost/AspireWithMaui.AppHost.csproj" />
-    <Project Path="playground/AspireWithMaui/AspireWithMaui.MauiClient/AspireWithMaui.MauiClient.csproj" />
-    <Project Path="playground/AspireWithMaui/AspireWithMaui.MauiServiceDefaults/AspireWithMaui.MauiServiceDefaults.csproj" />
-    <Project Path="playground/AspireWithMaui/AspireWithMaui.ServiceDefaults/AspireWithMaui.ServiceDefaults.csproj" />
-    <Project Path="playground/AspireWithMaui/AspireWithMaui.WeatherApi/AspireWithMaui.WeatherApi.csproj" />
-  </Folder>'
-    
     # Insert the Maui folder before the closing </Solution> tag
-    sed -i.bak "/<\/Solution>/i\\$maui_folder" "$temp_file"
+    # Using a here-doc approach for BSD sed compatibility
+    sed -i.bak '/<\/Solution>/i\
+  <Folder Name="/playground/AspireWithMaui/">\
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.AppHost/AspireWithMaui.AppHost.csproj" />\
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.MauiClient/AspireWithMaui.MauiClient.csproj" />\
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.MauiServiceDefaults/AspireWithMaui.MauiServiceDefaults.csproj" />\
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.ServiceDefaults/AspireWithMaui.ServiceDefaults.csproj" />\
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.WeatherApi/AspireWithMaui.WeatherApi.csproj" />\
+  </Folder>
+' "$temp_file"
     rm -f "$temp_file.bak"
     # Write UTF-8 BOM and append temp file to output location
     printf '\xEF\xBB\xBF' > "$output_slnx"
