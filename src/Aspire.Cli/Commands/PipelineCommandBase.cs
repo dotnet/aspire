@@ -242,17 +242,30 @@ internal abstract class PipelineCommandBase : BaseCommand
             await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
             var exitCode = await pendingRun;
 
-            if (exitCode == 0 && noFailuresReported)
+            // If the apphost returned a non-zero exit code, use it directly.
+            // This ensures we properly propagate apphost failures (e.g., exceptions, crashes).
+            if (exitCode != 0)
             {
-                return ExitCodeConstants.Success;
+                if (debugMode)
+                {
+                    InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                }
+                return exitCode;
             }
 
-            if (debugMode)
+            // If the apphost exited successfully (0) but reported failures via backchannel,
+            // return a failure exit code.
+            if (!noFailuresReported)
             {
-                InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                if (debugMode)
+                {
+                    InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                }
+                return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            return ExitCodeConstants.FailedToBuildArtifacts;
+            // Both apphost exit code and backchannel indicate success
+            return ExitCodeConstants.Success;
         }
         catch (OperationCanceledException)
         {

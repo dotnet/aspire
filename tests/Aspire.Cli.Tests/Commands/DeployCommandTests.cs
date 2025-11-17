@@ -461,7 +461,6 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     StepId = null
                 }
             };
-            await Task.CompletedTask;
         }
     }
 }
