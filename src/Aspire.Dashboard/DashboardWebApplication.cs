@@ -473,6 +473,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             // Don't run status code middleware for API requests. This is to avoid interfering with API requests.
             // We're using path segments to identify API requests instead of endpoint metadata because endpoints might be disabled based on configuration.
+            // If this approach has probems then we might be able to use endpoint metadata if we add hardcoded 404 endpoints when APIs are disabled.
+            // For example, if MCP is disabled, then add endpoints with skip status code metadata that return 404.
             if (context.Request.Path.StartsWithSegments("/api", StringComparisons.UrlPath) || // Dashboard minimal APIs
                 context.Request.Path.StartsWithSegments("/authentication", StringComparisons.UrlPath) || // Dashboard minimal APIs
                 context.Request.Path.StartsWithSegments("/mcp", StringComparisons.UrlPath) || // MCP API
