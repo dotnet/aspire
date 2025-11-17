@@ -8,6 +8,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -54,10 +55,21 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                     if (!string.IsNullOrEmpty(hostName))
                     {
-                        // Add DNL annotation to the resource
-                        TargetResource.Annotations.Add(new DynamicNetworkLocationAnnotation(hostName));
+                        var hostNameAnnotation = TargetResource.Annotations
+                            .OfType<HostNameParameterAnnotation>()
+                            .FirstOrDefault();
+
+                        hostNameAnnotation?.Parameter.Value = new BicepValue<string>(hostName);
 
                         ctx.ReportingStep.Log(LogLevel.Information, $"Fetched App Service hostname: {hostName}", true);
+                        if (hostNameAnnotation is not null)
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated HostNameParameterAnnotation for {TargetResource.Name} with hostname: {hostName}", true);
+                        }
+                        else
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Warning, $"HostNameParameterAnnotation not found on {TargetResource.Name}, could not update with hostname: {hostName}", true);
+                        }
                     }
                     else
                     {

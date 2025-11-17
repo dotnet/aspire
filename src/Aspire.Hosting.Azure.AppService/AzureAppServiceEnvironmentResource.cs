@@ -242,7 +242,7 @@ public class AzureAppServiceEnvironmentResource :
         }
 
         // Fallback to deterministic naming
-        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+        return ReferenceExpression.Create($"wxyz-{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
     }
 
     /// <inheritdoc/>

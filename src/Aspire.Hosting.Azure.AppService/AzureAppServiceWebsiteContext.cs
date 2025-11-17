@@ -37,7 +37,13 @@ internal sealed class AzureAppServiceWebsiteContext(
     public BicepValue<string> WebSiteName =>
         BicepFunction.Take(
             BicepFunction.Interpolate($"{BicepFunction.ToLower(Resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
-    
+
+    // Parameter to hold the hostname value
+    private readonly ParameterResource _hostNameParameter = new ParameterResource("hostname-" + resource.Name.ToLowerInvariant(), _ => "");
+
+    private ProvisioningParameter _hostNameProvisioningParameter =>
+        AllocateParameter(_hostNameParameter);
+
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
     public BicepValue<string> HostName
@@ -131,6 +137,8 @@ internal sealed class AzureAppServiceWebsiteContext(
             _ => null
         };
 
+        resource.Annotations.Add(new HostNameParameterAnnotation(_hostNameProvisioningParameter));
+
         foreach (var endpoint in endpoints)
         {
             if (!endpoint.IsExternal)
@@ -142,7 +150,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
                 WebSiteName: WebSiteName,
-                Host: HostName,
+                Host: _hostNameProvisioningParameter,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
                 TargetPort: endpoint.TargetPort ?? fallbackTargetPort,
                 IsHttpIngress: true,

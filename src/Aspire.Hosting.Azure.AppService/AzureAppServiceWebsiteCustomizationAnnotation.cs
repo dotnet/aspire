@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 
 namespace Aspire.Hosting.Azure;
@@ -41,4 +42,16 @@ public class DynamicNetworkLocationAnnotation : IResourceAnnotation
     {
         HostName = hostName;
     }
+}
+
+/// <summary>
+/// Host name parameter annotation.
+/// </summary>
+/// <param name="parameter"></param>
+public sealed class HostNameParameterAnnotation(ProvisioningParameter parameter) : IResourceAnnotation
+{
+    /// <summary>
+    /// Host name parameter resource.
+    /// </summary>
+    public ProvisioningParameter Parameter { get; internal set; } = parameter;
 }
