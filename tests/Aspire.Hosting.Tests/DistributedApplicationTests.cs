@@ -864,21 +864,26 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [RequiresDevCert]
     public async Task VerifyEnvironmentVariablesAvailableInCertificateTrustConfigCallback()
     {
-        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: false);
+        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: true);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
+        var value = "SomeValue";
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
             .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
+            .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
             .WithCertificateTrustConfiguration(ctx =>
             {
                 // Verify that the initial environment variable is accessible in the callback
-                Assert.True(ctx.EnvironmentVariables.ContainsKey("INITIAL_ENV_VAR"), "Initial environment variable should be present in callback context");
+                Assert.Contains("INITAL_ENV_VAR", ctx.EnvironmentVariables);
                 Assert.Equal("InitialValue", ctx.EnvironmentVariables["INITIAL_ENV_VAR"]);
 
                 // Add an additional environment variable in the callback
                 ctx.EnvironmentVariables["CALLBACK_ADDED_VAR"] = "CallbackValue";
+                var initialRE = Assert.IsType<ReferenceExpression>(ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"]);
+                ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"] = ReferenceExpression.Create($"{initialRE}_AppendedInCallback");
 
                 return Task.CompletedTask;
             });
@@ -900,6 +905,47 @@ public class DistributedApplicationTests
         // Verify both environment variables are present in the final container spec
         Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_ENV_VAR" && e.Value == "InitialValue");
         Assert.Single(redisContainer.Spec.Env, e => e.Name == "CALLBACK_ADDED_VAR" && e.Value == "CallbackValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_REFERENCE_EXPRESSION" && e.Value == $"{value}_AppendedInCallback");
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyEnvironmentVariablesAppliedWithoutCertificateTrustConfig()
+    {
+        // Don't apply developer certificate trust so the config callback shouldn't be invoked
+        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var value = "SomeValue";
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
+            .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
+            .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                Assert.Fail("Certificate trust configuration callback should not be invoked when developer certificate trust is not applied.");
+
+                return Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
+            s,
+            $"verify-env-vars-in-cert-callback-redis-{ReplicaIdRegex}-{suffix}",
+            r => r.Spec.Env != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.NotNull(redisContainer);
+        Assert.NotNull(redisContainer.Spec.Env);
+
+        // Verify both environment variables are present in the final container spec
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_ENV_VAR" && e.Value == "InitialValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_REFERENCE_EXPRESSION" && e.Value == $"{value}");
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
