@@ -21,6 +21,7 @@
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)EnvironmentVariableNameEncoder.cs" Link="ApplicationModel\EnvironmentVariableNameEncoder.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />

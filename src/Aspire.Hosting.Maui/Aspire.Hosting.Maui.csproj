@@ -18,6 +18,7 @@
   <ItemGroup>
     <Compile Include="..\Shared\PathNormalizer.cs" Link="Shared\PathNormalizer.cs" />
     <Compile Include="..\Shared\StringComparers.cs" Link="Shared\StringComparers.cs" />
+    <Compile Include="..\Shared\EnvironmentVariableNameEncoder.cs" Link="Shared\EnvironmentVariableNameEncoder.cs" />
   </ItemGroup>
   
   <ItemGroup>

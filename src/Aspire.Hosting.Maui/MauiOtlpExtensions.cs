@@ -158,7 +158,7 @@ public static class MauiOtlpExtensions
 
                 // Also remove the {RESOURCENAME}_{ENDPOINTNAME} format variable (e.g., MAUIAPP-OTLP_OTLP)
                 // The resource name keeps its case/dashes, endpoint name is uppercased
-                var directEndpointKey = $"{tunnelConfig.OtlpStub.Name.ToUpperInvariant()}_OTLP";
+                var directEndpointKey = $"{EnvironmentVariableNameEncoder.Encode(tunnelConfig.OtlpStub.Name).ToUpperInvariant()}_OTLP";
                 context.EnvironmentVariables.Remove(directEndpointKey);
             }
         });
