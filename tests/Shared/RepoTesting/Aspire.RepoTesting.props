@@ -27,6 +27,7 @@
 
   <!-- IsAspireHost property might not be available here, so allow infering that from the project name -->
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and ( $([System.String]::Copy($(MSBuildProjectName)).ToLowerInvariant().EndsWith('apphost')) or '$(IsAspireHost)' == 'true')">
+    <Import Project="$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.props" Condition="Exists('$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.props')" />
     <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props" Condition="Exists('$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props')" />
   </ImportGroup>
 </Project>
