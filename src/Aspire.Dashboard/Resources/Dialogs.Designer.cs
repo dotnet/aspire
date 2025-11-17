@@ -547,6 +547,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Evaluations.
+        /// </summary>
+        public static string GenAIEvaluationsTabText {
+            get {
+                return ResourceManager.GetString("GenAIEvaluationsTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Site-wide navigation.
         /// </summary>
         public static string HelpDialogCategoryNavigation {

@@ -247,7 +247,7 @@
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-overview-{OverviewViewKind.Evaluations}")">
                                         <Header>
-                                            <span class="tab-text">Evaluations</span>
+                                            <span class="tab-text">@Loc[nameof(Dialogs.GenAIEvaluationsTabText)]</span>
                                             <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.Evaluations.Count</FluentBadge>
                                         </Header>
                                     </FluentTab>
@@ -374,9 +374,9 @@
                                         <div class="evaluation-header">
                                             @evaluation.Name
                                             <FluentDivider Orientation="Orientation.Vertical" Class="evaluation-divider" />
-                                            @(evaluation.ScoreValue is { } value ? FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, maxDecimalPlaces: 3) : "n/a")
+                                            @(evaluation.ScoreValue is { } value ? FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, maxDecimalPlaces: 3) : Loc[nameof(Dialogs.GenAINAText)])
                                             <FluentDivider Orientation="Orientation.Vertical" Class="evaluation-divider" />
-                                            @(evaluation.ScoreLabel is { Length: > 0 } label ? label : "n/a")
+                                            @(evaluation.ScoreLabel is { Length: > 0 } label ? label : Loc[nameof(Dialogs.GenAINAText)])
                                         </div>
                                         @if (evaluation.Explanation is { Length: > 0 } explanation)
                                         {
