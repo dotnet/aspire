@@ -261,8 +261,8 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gather argument values, but do not resolve them. Used to allow multiple callbacks to contribute to
-    /// constructively contribute to the argument list before resolving.
+    /// Gather argument values, but do not resolve them. Used to allow multiple callbacks to constructively contribute to
+    /// the argument list before resolving.
     /// </summary>
     /// <param name="resource">The resource to retrieve argument values for.</param>
     /// <param name="executionContext">The execution context used during the retrieval of argument values.</param>
