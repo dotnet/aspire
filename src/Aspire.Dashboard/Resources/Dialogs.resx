@@ -407,6 +407,9 @@
   <data name="GenAIToolsTabText" xml:space="preserve">
     <value>Tools</value>
   </data>
+  <data name="GenAIEvaluationsTabText" xml:space="preserve">
+    <value>Evaluations</value>
+  </data>
   <data name="SettingsDialogDotNetRuntimeVersion" xml:space="preserve">
     <value>Runtime: {0}</value>
     <comment>{0} is the .NET runtime version</comment>
