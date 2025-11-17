@@ -53,7 +53,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="ResourceGroupDialogTitle">
         <source>Azure resource group</source>
-        <target state="new">Azure resource group</target>
+        <target state="translated">Azure 資源群組</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
@@ -63,12 +63,12 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="ResourceGroupPlaceholder">
         <source>Select or enter resource group</source>
-        <target state="new">Select or enter resource group</target>
+        <target state="translated">選取或輸入資源群組</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupSelectionMessage">
         <source>Select your Azure resource group or enter a new name:</source>
-        <target state="new">Select your Azure resource group or enter a new name:</target>
+        <target state="translated">選擇您的 Azure 資源群組，或輸入新的名稱:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">

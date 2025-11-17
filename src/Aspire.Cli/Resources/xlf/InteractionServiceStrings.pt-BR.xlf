@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
         <source>The project argument was not specified and no app host project files were detected.</source>
-        <target state="needs-review-translation">O argumento do projeto não foi especificado e nenhum arquivo *.csproj foi detectado.</target>
+        <target state="translated">O argumento do projeto não foi especificado e nenhum arquivo de projeto do host do aplicativo foi detectado.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
