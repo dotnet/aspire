@@ -13,12 +13,5 @@
     <PublishAot>false</PublishAot>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <!-- Allow users to disable the automatic treatment of ProjectReference items as Aspire resources.
-         This defaults to true for backward compatibility but can be set to false to disable the behavior.
-         This is particularly useful in file-based apps where metadata cannot be set on individual ProjectReference items. -->
-    <TreatProjectReferencesAsResources Condition="'$(TreatProjectReferencesAsResources)' == ''">true</TreatProjectReferencesAsResources>
-  </PropertyGroup>
-
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition=" '$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true' " />
 </Project>
