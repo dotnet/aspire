@@ -32,7 +32,7 @@ public class InteractionServiceTests
         // Act 2
         await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = true });
 
-        var result = await resultTask.DefaultTimeout();
+        var result = await resultTask.GetResultAsync().DefaultTimeout();
         Assert.True(result.Data);
 
         // Assert 2
@@ -57,7 +57,7 @@ public class InteractionServiceTests
         // Act 2
         cts.Cancel();
 
-        var result = await resultTask.DefaultTimeout();
+        var result = await resultTask.GetResultAsync().DefaultTimeout();
         Assert.True(result.Canceled);
 
         // Assert 2
@@ -96,7 +96,7 @@ public class InteractionServiceTests
 
         // Act & Assert 2
         await CompleteInteractionAsync(interactionService, id1.Value, new InteractionCompletionState { Complete = true, State = true });
-        var result1 = await resultTask1.DefaultTimeout();
+        var result1 = await resultTask1.GetResultAsync().DefaultTimeout();
         Assert.True(result1.Data);
         Assert.False(result1.Canceled);
         Assert.Collection(interactionService.GetCurrentInteractions(),
@@ -104,13 +104,13 @@ public class InteractionServiceTests
             interaction => Assert.Equal(interaction.InteractionId, id3));
 
         await CompleteInteractionAsync(interactionService, id2.Value, new InteractionCompletionState { Complete = true, State = false });
-        var result2 = await resultTask2.DefaultTimeout();
+        var result2 = await resultTask2.GetResultAsync().DefaultTimeout();
         Assert.False(result2.Data);
         Assert.False(result1.Canceled);
         Assert.Equal(id3.Value, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
 
         await CompleteInteractionAsync(interactionService, id3.Value, new InteractionCompletionState { Complete = true });
-        var result3 = await resultTask3.DefaultTimeout();
+        var result3 = await resultTask3.GetResultAsync().DefaultTimeout();
         Assert.True(result3.Canceled);
         Assert.Empty(interactionService.GetCurrentInteractions());
     }
@@ -143,7 +143,7 @@ public class InteractionServiceTests
         // Act & Assert 2
         var result1 = new InteractionCompletionState { Complete = true, State = true };
         await CompleteInteractionAsync(interactionService, interaction1.InteractionId, result1);
-        Assert.True((await resultTask1.DefaultTimeout()).Data);
+        Assert.True((await resultTask1.GetResultAsync().DefaultTimeout()).Data);
         Assert.Equal(interaction2.InteractionId, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
         var completedInteraction1 = await updates.Reader.ReadAsync().DefaultTimeout();
         Assert.True(completedInteraction1.CompletionTcs.Task.IsCompletedSuccessfully);
@@ -151,7 +151,7 @@ public class InteractionServiceTests
 
         var result2 = new InteractionCompletionState { Complete = true, State = false };
         await CompleteInteractionAsync(interactionService, interaction2.InteractionId, result2);
-        Assert.False((await resultTask2.DefaultTimeout()).Data);
+        Assert.False((await resultTask2.GetResultAsync().DefaultTimeout()).Data);
         Assert.Empty(interactionService.GetCurrentInteractions());
         var completedInteraction2 = await updates.Reader.ReadAsync().DefaultTimeout();
         Assert.True(completedInteraction2.CompletionTcs.Task.IsCompletedSuccessfully);
@@ -369,7 +369,7 @@ public class InteractionServiceTests
             new InteractionCompletionState { Complete = true, State = new[] { input } },
             inputs: [new InputDto("Value", "not-in-options", InputType.Choice)]);
 
-        var result = await resultTask.DefaultTimeout();
+        var result = await resultTask.GetResultAsync().DefaultTimeout();
         Assert.False(result.Canceled);
         Assert.Equal("not-in-options", result.Data.Value);
     }
@@ -787,7 +787,7 @@ public class InteractionServiceTests
                 new InputDto("Password", "testpass", InputType.SecretText)
             ]);
 
-        var result = await resultTask.DefaultTimeout();
+        var result = await resultTask.GetResultAsync().DefaultTimeout();
 
         // Assert
         Assert.False(result.Canceled);
@@ -969,7 +969,7 @@ public class InteractionServiceTests
                 new InputDto("Age", "25", InputType.Number)
             ]);
 
-        var result = await resultTask.DefaultTimeout();
+        var result = await resultTask.GetResultAsync().DefaultTimeout();
 
         // Assert
         Assert.True(validationCalled);

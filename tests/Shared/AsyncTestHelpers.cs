@@ -123,25 +123,6 @@ internal static class AsyncTestHelpers
         return task.AsTask().TimeoutAfter(timeout, filePath, lineNumber);
     }
 
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-    public static Task<Aspire.Hosting.InteractionResult<T>> DefaultTimeout<T>(this Aspire.Hosting.InteractionReference<T> interaction, int milliseconds = -1, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
-    {
-        if (milliseconds == -1)
-        {
-            milliseconds = TestConstants.DefaultTimeoutDuration;
-        }
-
-        return interaction.GetResultAsync().TimeoutAfter(TimeSpan.FromMilliseconds(milliseconds), filePath, lineNumber);
-    }
-
-    public static Task<Aspire.Hosting.InteractionResult<T>> DefaultTimeout<T>(this Aspire.Hosting.InteractionReference<T> interaction, TimeSpan timeout, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = default)
-    {
-        return interaction.GetResultAsync().TimeoutAfter(timeout, filePath, lineNumber);
-    }
-
-#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
     public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout,
         [CallerFilePath] string? filePath = null,
         [CallerLineNumber] int lineNumber = default)
