@@ -14,6 +14,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -101,6 +102,9 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+        Task<int>? pendingRun = null;
+
         // Send terminal infinite progress bar start sequence
         StartTerminalProgressBar();
 
@@ -199,7 +203,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
-            var pendingRun = _runner.RunAsync(
+            pendingRun = _runner.RunAsync(
                 effectiveAppHostFile,
                 false,
                 true,
@@ -222,8 +226,6 @@ internal abstract class PipelineCommandBase : BaseCommand
             });
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-
-            var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
             
             // Check if debug or trace logging is enabled
             var logLevel = parseResult.GetValue(_logLevelOption);
@@ -296,6 +298,14 @@ internal abstract class PipelineCommandBase : BaseCommand
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             InteractionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+        catch (ConnectionLostException ex)
+        {
+            // Occurs if the apphost RPC channel is lost unexpectedly.
+            StopTerminalProgressBar();
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
+            InteractionService.DisplayLines(operationOutputCollector.GetLines());
+            return pendingRun is { } && debugMode ? await pendingRun : ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
