@@ -2050,69 +2050,28 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ParameterPromptingStep_ExistsInPipeline()
+    public async Task ParameterPromptingStep_ValidatesBehavior()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
+        
+        // Add a parameter with a default value to trigger parameter processing
+        builder.AddParameter("test-param", () => "default-value");
+
         var pipeline = new DistributedApplicationPipeline();
         
-        var capturedSteps = new List<PipelineStep>();
-        pipeline.AddPipelineConfiguration((configContext) =>
-        {
-            capturedSteps.AddRange(configContext.Steps);
-            return Task.CompletedTask;
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        // Act
-        await pipeline.ExecuteAsync(context);
-
-        // Assert
-        Assert.Contains(capturedSteps, s => s.Name == WellKnownPipelineSteps.ParameterPrompting);
-    }
-
-    [Fact]
-    public async Task ParameterPromptingStep_IsRequiredByDeployPrereq()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
-        var pipeline = new DistributedApplicationPipeline();
-        
+        var executionTimes = new Dictionary<string, DateTime>();
+        var lockObject = new object();
         PipelineStep? parameterPromptingStep = null;
         PipelineStep? deployPrereqStep = null;
         
+        // Capture steps and track execution order
         pipeline.AddPipelineConfiguration((configContext) =>
         {
             parameterPromptingStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.ParameterPrompting);
             deployPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.DeployPrereq);
             return Task.CompletedTask;
         });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        // Act
-        await pipeline.ExecuteAsync(context);
-
-        // Assert
-        Assert.NotNull(parameterPromptingStep);
-        Assert.NotNull(deployPrereqStep);
-        Assert.Contains(WellKnownPipelineSteps.DeployPrereq, parameterPromptingStep.RequiredBySteps);
-    }
-
-    [Fact]
-    public async Task ParameterPromptingStep_ExecutesBeforeDeployPrereq()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
-        
-        var executionTimes = new Dictionary<string, DateTime>();
-        var lockObject = new object();
-        
-        // Add a parameter to trigger parameter processing
-        builder.AddParameter("test-param");
-
-        var pipeline = new DistributedApplicationPipeline();
         
         // Add steps that depend on ParameterPrompting and DeployPrereq to track their execution
         pipeline.AddStep("after-param-prompting", (context) =>
@@ -2132,29 +2091,20 @@ public class DistributedApplicationPipelineTests
         // Act
         await pipeline.ExecuteAsync(context);
 
-        // Assert - ParameterPrompting must complete before DeployPrereq starts
+        // Assert - Step exists in pipeline
+        Assert.NotNull(parameterPromptingStep);
+        Assert.NotNull(deployPrereqStep);
+        
+        // Assert - Dependency relationship is configured correctly
+        Assert.Contains(WellKnownPipelineSteps.DeployPrereq, parameterPromptingStep.RequiredBySteps);
+        
+        // Assert - Execution order is correct (ParameterPrompting before DeployPrereq)
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.ParameterPrompting));
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.DeployPrereq));
         Assert.True(executionTimes[WellKnownPipelineSteps.ParameterPrompting] <= executionTimes[WellKnownPipelineSteps.DeployPrereq], 
             "ParameterPrompting should complete before or at the same time as DeployPrereq");
-    }
-
-    [Fact]
-    public async Task ParameterPromptingStep_ProcessesParameters()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
         
-        // Add a parameter with a default value
-        var param = builder.AddParameter("test-param", () => "default-value");
-
-        var pipeline = new DistributedApplicationPipeline();
-        var context = CreateDeployingContext(builder.Build());
-
-        // Act
-        await pipeline.ExecuteAsync(context);
-
-        // Assert - parameter should be initialized
+        // Assert - Parameters are processed
         var paramResource = builder.Resources.OfType<ParameterResource>().FirstOrDefault(p => p.Name == "test-param");
         Assert.NotNull(paramResource);
         Assert.NotNull(paramResource.WaitForValueTcs);
