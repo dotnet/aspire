@@ -10,8 +10,7 @@
     <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
 
     <!-- Remove .py files from being signed. See https://github.com/dotnet/aspire/issues/13004 -->
-    <FileExtensionSignInfo Remove=".ps1;.psd1;.psm1;.psc1;.py" />
-    <FileExtensionSignInfo Include=".ps1;.psd1;.psm1;.psc1" CertificateName="Microsoft400" />
+    <FileExtensionSignInfo Remove=".py" />
   </ItemGroup>
 
   <ItemGroup>
