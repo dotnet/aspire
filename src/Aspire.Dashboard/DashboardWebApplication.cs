@@ -31,7 +31,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
@@ -450,11 +449,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
-        if (!_dashboardOptionsMonitor.CurrentValue.Mcp.Disabled.GetValueOrDefault())
-        {
-            _app.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
-        }
-
         // Configure the HTTP request pipeline.
         if (!_app.Environment.IsDevelopment())
         {
@@ -468,31 +462,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.UseResponseCompression();
 
         _app.UseStatusCodePagesWithReExecute("/error/{0}");
-
-        _app.Use((context, next) =>
-        {
-            // Don't run status code middleware for API requests. This is to avoid interfering with API requests.
-            // We're using path segments to identify API requests instead of endpoint metadata because endpoints might be disabled based on configuration.
-            // If this approach has probems then we might be able to use endpoint metadata if we add hardcoded 404 endpoints when APIs are disabled.
-            // For example, if MCP is disabled, then add endpoints with skip status code metadata that return 404.
-            if (context.Request.Path.StartsWithSegments("/api", StringComparisons.UrlPath) || // Dashboard minimal APIs
-                context.Request.Path.StartsWithSegments("/authentication", StringComparisons.UrlPath) || // Dashboard minimal APIs
-                context.Request.Path.StartsWithSegments("/mcp", StringComparisons.UrlPath) || // MCP API
-                context.Request.Path.StartsWithSegments("/opentelemetry.proto.collector.trace.v1.TraceService", StringComparisons.UrlPath) || // OTLP gRPC API
-                context.Request.Path.StartsWithSegments("/opentelemetry.proto.collector.metrics.v1.MetricsService", StringComparisons.UrlPath) || // OTLP gRPC API
-                context.Request.Path.StartsWithSegments("/opentelemetry.proto.collector.logs.v1.LogsService", StringComparisons.UrlPath) || // OTLP gRPC API
-                context.Request.Path.StartsWithSegments("/v1", StringComparisons.UrlPath) // OTLP HTTP API
-            )
-            {
-                // Must happen after UseStatusCodePagesWithReExecute so the feature is set.
-                if (context.Features.Get<IStatusCodePagesFeature>() is { } statusCodeFeature)
-                {
-                    statusCodeFeature.Enabled = false;
-                }
-            }
-
-            return next(context);
-        });
 
         if (isAllHttps)
         {
@@ -535,6 +504,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcTraceService>();
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
+        _app.MapDashboardMcp(dashboardOptions);
         _app.MapDashboardApi(dashboardOptions);
         _app.MapDashboardHealthChecks();
     }
