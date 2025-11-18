@@ -1751,7 +1751,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
 
         // Act & Assert - Verify each default step has the correct tag
         var deployStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Deploy);
-        Assert.Contains(WellKnownPipelineTags.DeployCompute, deployStep.Tags);
+        Assert.Empty(deployStep.Tags);
 
         var deployPrereqStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.DeployPrereq);
         Assert.Contains(WellKnownPipelineTags.ProvisionInfrastructure, deployPrereqStep.Tags);
@@ -1763,10 +1763,10 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.Contains(WellKnownPipelineTags.BuildCompute, buildPrereqStep.Tags);
 
         var publishStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Publish);
-        Assert.Contains(WellKnownPipelineTags.PushContainerImage, publishStep.Tags);
+        Assert.Empty(publishStep.Tags);
 
         var publishPrereqStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
-        Assert.Contains(WellKnownPipelineTags.PushContainerImage, publishPrereqStep.Tags);
+        Assert.Empty(publishPrereqStep.Tags);
 
         var diagnosticsStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Diagnostics);
         Assert.Empty(diagnosticsStep.Tags);
