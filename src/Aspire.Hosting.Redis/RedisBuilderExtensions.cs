@@ -104,21 +104,38 @@ public static class RedisBuilderExtensions
             })
             .WithArgs(context =>
             {
-                context.Args.Add("redis-server");
+                var additionalArgs = new List<string>
+                {
+                    "redis-server"
+                };
 
                 if (redis.PasswordParameter is not null)
                 {
-                    context.Args.Add("--requirepass");
-                    context.Args.Add("$REDIS_PASSWORD");
+                    additionalArgs.Add("--requirepass");
+                    additionalArgs.Add("$REDIS_PASSWORD");
                 }
 
                 if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
                 {
                     var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
 
-                    context.Args.Add("--save");
-                    context.Args.Add(interval);
-                    context.Args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                    additionalArgs.Add("--save");
+                    additionalArgs.Add(interval);
+                    additionalArgs.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                }
+
+                // This is a temporary workaround to allow the args list to be expanded dynamically at run time with additional server certificate arguments.
+                if (context.ExecutionContext.IsRunMode)
+                {
+                    foreach (var arg in additionalArgs)
+                    {
+                        context.Args.Add(arg);
+                    }
+                }
+                else
+                {
+                    context.Args.Add("-c");
+                    context.Args.Add(string.Join(' ', additionalArgs));
                 }
 
                 return Task.CompletedTask;

@@ -644,29 +644,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             Writer.WriteStartArray("args");
 
-            if (resource is ContainerResource containerResource && containerResource.ShellExecution == true)
+            foreach (var (unprocessed, expression) in args)
             {
-                // Format the arguments in shell execution form (so that environment variable references and other shell features can work)
-                Writer.WriteStringValue("-c");
-                var shellArgs = new List<string>();
-                foreach (var (unprocessed, expression) in args)
-                {
-                    shellArgs.Add(GetManifestExpression(unprocessed, expression));
+                var manifestExpression = GetManifestExpression(unprocessed, expression);
 
-                    TryAddDependentResources(unprocessed);
-                }
-                Writer.WriteStringValue(string.Join(' ', shellArgs));
-            }
-            else
-            {
-                foreach (var (unprocessed, expression) in args)
-                {
-                    var manifestExpression = GetManifestExpression(unprocessed, expression);
+                Writer.WriteStringValue(manifestExpression);
 
-                    Writer.WriteStringValue(manifestExpression);
-
-                    TryAddDependentResources(unprocessed);
-                }
+                TryAddDependentResources(unprocessed);
             }
 
             Writer.WriteEndArray();

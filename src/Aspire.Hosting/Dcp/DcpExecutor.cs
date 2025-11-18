@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECONTAINERSHELLEXECUTION001
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -1800,13 +1801,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         createFiles.AddRange(keyPairFiles);
 
         // Set the final args, env vars, and create files on the container spec
-        if (modelContainerResource is not ContainerResource container || container.ShellExecution != true)
+        if (modelContainerResource is ContainerResource { ShellExecution: true })
         {
-            spec.Args = args.Select(a => a.Value).ToList();
+            spec.Args = ["-c", $"{string.Join(' ', args.Select(a => a.Value))}"];
         }
         else
         {
-            spec.Args = ["-c", $"{string.Join(' ', args.Select(a => a.Value))}"];
+            spec.Args = args.Select(a => a.Value).ToList();
         }
 
         dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
