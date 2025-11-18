@@ -17,7 +17,8 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class McpServerDialog
 {
-    private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _vsCopyButtonId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _vsCodeCopyButtonId = $"copy-{Guid.NewGuid():N}";
 
     [CascadingParameter]
     public FluentDialog Dialog { get; set; } = default!;

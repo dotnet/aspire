@@ -25,3 +25,8 @@
     max-width: 100%;
     height: auto;
 }
+
+.mcp-server-dialog-content ::deep .mcp-more-info-container {
+    padding: 16px;
+    padding-bottom: 0;
+}
