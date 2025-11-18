@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Configuration
 @using Aspire.Dashboard.Mcp
 @using Aspire.Dashboard.Model.Markdown
+@using Aspire.Dashboard.Resources
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Options
 @using System.Globalization
@@ -14,21 +15,22 @@
     @if (McpEnabled)
     {
         <p>
-            @Loc[nameof(Resources.Dialogs.McpServerDialogIntroduction)]
-            For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Resources.Dialogs.McpServerDialogLearnMoreLink)]</a>.
+            @Loc[nameof(Dialogs.McpServerDialogIntroduction)]
+            For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
         </p>
         <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{McpToolView.VSCode}")"
-                       Label="@Loc[nameof(Resources.Dialogs.McpServerDialogVSCodeTab)]">
+                       Label="@Loc[nameof(Dialogs.McpServerDialogVSCodeTab)]"
+                       Icon="new Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.VSCode()">
                 <div class="mcp-tool-tab">
                     <p>
-                        @Loc[nameof(Resources.Dialogs.McpServerDialogQuicklyAddVSCode)]
+                        @Loc[nameof(Dialogs.McpServerDialogQuicklyAddVSCode)]
                     </p>
                     <p>
                         <a href="@($"vscode:mcp/install?{Uri.EscapeDataString(_mcpServerInstallButtonJson)}")">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="225" height="20" role="img" aria-label="@Loc[nameof(Resources.Dialogs.McpServerDialogInstallButtonAriaLabelVSCode)]">
-                                <title>@Loc[nameof(Resources.Dialogs.McpServerDialogInstallButtonAriaLabelVSCode)]</title>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="225" height="20" role="img" aria-label="@Loc[nameof(Dialogs.McpServerDialogInstallButtonAriaLabelVSCode)]">
+                                <title>@Loc[nameof(Dialogs.McpServerDialogInstallButtonAriaLabelVSCode)]</title>
                                 <g shape-rendering="crispEdges"><rect width="74" height="20" fill="#555" /><rect x="74" width="151" height="20" fill="#0098ff" /></g>
                                 <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><image x="5" y="3" width="14" height="14" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJ3aGl0ZSIgcm9sZT0iaW1nIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHRpdGxlPk1vZGVsIENvbnRleHQgUHJvdG9jb2w8L3RpdGxlPjxwYXRoIGQ9Ik0xMy44NSAwYTQuMTYgNC4xNiAwIDAgMC0yLjk1IDEuMjE3TDEuNDU2IDEwLjY2YS44MzUuODM1IDAgMCAwIDAgMS4xOC44MzUuODM1IDAgMCAwIDEuMTggMGw5LjQ0Mi05LjQ0MmEyLjQ5IDIuNDkgMCAwIDEgMy41NDEgMCAyLjQ5IDIuNDkgMCAwIDEgMCAzLjU0MUw4LjU5IDEyLjk3bC0uMS4xYS44MzUuODM1IDAgMCAwIDAgMS4xOC44MzUuODM1IDAgMCAwIDEuMTggMGwuMS0uMDk4IDcuMDMtNy4wMzRhMi40OSAyLjQ5IDAgMCAxIDMuNTQyIDBsLjA0OS4wNWEyLjQ5IDIuNDkgMCAwIDEgMCAzLjU0bC04LjU0IDguNTRhMS45NiAxLjk2IDAgMCAwIDAgMi43NTVsMS43NTMgMS43NTNhLjgzNS44MzUgMCAwIDAgMS4xOCAwIC44MzUuODM1IDAgMCAwIDAtMS4xOGwtMS43NTMtMS43NTNhLjI2Ni4yNjYgMCAwIDEgMC0uMzk0bDguNTQtOC41NGE0LjE4NSA0LjE4NSAwIDAgMCAwLTUuOWwtLjA1LS4wNWE0LjE2IDQuMTYgMCAwIDAtMi45NS0xLjIxOGMtLjIgMC0uNDAxLjAyLS42LjA0OGE0LjE3IDQuMTcgMCAwIDAtMS4xNy0zLjU1MkE0LjE2IDQuMTYgMCAwIDAgMTMuODUgMG0wIDMuMzMzYS44NC44NCAwIDAgMC0uNTkuMjQ1TDYuMjc1IDEwLjU2YTQuMTg2IDQuMTg2IDAgMCAwIDAgNS45MDIgNC4xODYgNC4xODYgMCAwIDAgNS45MDIgMEwxOS4xNiA5LjQ4YS44MzUuODM1IDAgMCAwIDAtMS4xOC44MzUuODM1IDAgMCAwLTEuMTggMGwtNi45ODUgNi45ODRhMi40OSAyLjQ5IDAgMCAxLTMuNTQgMCAyLjQ5IDIuNDkgMCAwIDEgMC0zLjU0bDYuOTgzLTYuOTg1YS44MzUuODM1IDAgMCAwIDAtMS4xOC44NC44NCAwIDAgMC0uNTktLjI0NSIvPjwvc3ZnPg==" /><text x="465" y="140" transform="scale(.1)" fill="#fff" textLength="470">VS Code</text><text x="1485" y="140" transform="scale(.1)" fill="#fff" textLength="1410">Install Aspire MCP Server</text></g>
                             </svg>
@@ -39,9 +41,9 @@
                         </a>
                         &nbsp;&nbsp;
                         <a href="@($"vscode-insiders:mcp/install?{Uri.EscapeDataString(_mcpServerInstallButtonJson)}")">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="273" height="20" role="img" aria-label="@Loc[nameof(Resources.Dialogs.McpServerDialogInstallButtonAriaLabelVSCodeInsiders)]">
-                                <title>@Loc[nameof(Resources.Dialogs.McpServerDialogInstallButtonAriaLabelVSCodeInsiders)]</title>
-                                <g shape-rendering="crispEdges"><rect width="122" height="20" fill="#555" /><rect x="122" width="151" height="20" fill="#65bba5" /></g>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="273" height="20" role="img" aria-label="@Loc[nameof(Dialogs.McpServerDialogInstallButtonAriaLabelVSCodeInsiders)]">
+                                <title>@Loc[nameof(Dialogs.McpServerDialogInstallButtonAriaLabelVSCodeInsiders)]</title>
+                                <g shape-rendering="crispEdges"><rect width="122" height="20" fill="#555" /><rect x="122" width="151" height="20" fill="#24bfa5" /></g>
                                 <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><image x="5" y="3" width="14" height="14" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJ3aGl0ZSIgcm9sZT0iaW1nIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHRpdGxlPk1vZGVsIENvbnRleHQgUHJvdG9jb2w8L3RpdGxlPjxwYXRoIGQ9Ik0xMy44NSAwYTQuMTYgNC4xNiAwIDAgMC0yLjk1IDEuMjE3TDEuNDU2IDEwLjY2YS44MzUuODM1IDAgMCAwIDAgMS4xOC44MzUuODM1IDAgMCAwIDEuMTggMGw5LjQ0Mi05LjQ0MmEyLjQ5IDIuNDkgMCAwIDEgMy41NDEgMCAyLjQ5IDIuNDkgMCAwIDEgMCAzLjU0MUw4LjU5IDEyLjk3bC0uMS4xYS44MzUuODM1IDAgMCAwIDAgMS4xOC44MzUuODM1IDAgMCAwIDEuMTggMGwuMS0uMDk4IDcuMDMtNy4wMzRhMi40OSAyLjQ5IDAgMCAxIDMuNTQyIDBsLjA0OS4wNWEyLjQ5IDIuNDkgMCAwIDEgMCAzLjU0bC04LjU0IDguNTRhMS45NiAxLjk2IDAgMCAwIDAgMi43NTVsMS43NTMgMS43NTNhLjgzNS44MzUgMCAwIDAgMS4xOCAwIC44MzUuODM1IDAgMCAwIDAtMS4xOGwtMS43NTMtMS43NTNhLjI2Ni4yNjYgMCAwIDEgMC0uMzk0bDguNTQtOC41NGE0LjE4NSA0LjE4NSAwIDAgMCAwLTUuOWwtLjA1LS4wNWE0LjE2IDQuMTYgMCAwIDAtMi45NS0xLjIxOGMtLjIgMC0uNDAxLjAyLS42LjA0OGE0LjE3IDQuMTcgMCAwIDAtMS4xNy0zLjU1MkE0LjE2IDQuMTYgMCAwIDAgMTMuODUgMG0wIDMuMzMzYS44NC44NCAwIDAgMC0uNTkuMjQ1TDYuMjc1IDEwLjU2YTQuMTg2IDQuMTg2IDAgMCAwIDAgNS45MDIgNC4xODYgNC4xODYgMCAwIDAgNS45MDIgMEwxOS4xNiA5LjQ4YS44MzUuODM1IDAgMCAwIDAtMS4xOC44MzUuODM1IDAgMCAwLTEuMTggMGwtNi45ODUgNi45ODRhMi40OSAyLjQ5IDAgMCAxLTMuNTQgMCAyLjQ5IDIuNDkgMCAwIDEgMC0zLjU0bDYuOTgzLTYuOTg1YS44MzUuODM1IDAgMCAwIDAtMS4xOC44NC44NCAwIDAgMC0uNTktLjI0NSIvPjwvc3ZnPg==" /><text x="705" y="140" transform="scale(.1)" fill="#fff" textLength="950">VS Code Insiders</text><text x="1965" y="140" transform="scale(.1)" fill="#fff" textLength="1410">Install Aspire MCP Server</text></g>
                             </svg>
                             @*
@@ -51,9 +53,29 @@
                         </a>
                     </p>
                     <p>
-                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVSCode)], "https://aka.ms/aspire/mcp-add-client-vscode"))
+                        The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.
                     </p>
-                    <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
+                    <p>
+                        <FluentInputLabel ForId="api-key-field" Label="Aspire MCP API key" />
+                        <div class="api-key-container">
+                            <FluentTextField id="api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
+                                             Style="width: 300px"
+                                             ReadOnly="true" />
+                            <FluentButton Id="@_copyButtonId"
+                                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(DashboardOptions.Value.Mcp.PrimaryApiKey, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                                <span slot="start">
+                                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                                </span>
+                                Copy
+                            </FluentButton>
+                        </div>
+                    </p>
+                    <p>
+                        <a href="/img/McpApiKeyExample.png" target="_blank">
+                            <img class="api-key-help-image" src="/img/McpApiKeyExample.png" alt="Screenshot of VS Code showing where to enter the Aspire MCP API key. A red box highlights the text box to enter the API key." />
+                        </a>
+                    </p>
                     @if (_isHttps)
                     {
                         <div class="block-warning">
@@ -62,29 +84,44 @@
                             </div>
 
                             <div class="block-warning-message">
-                                <span class="title">@Loc[nameof(Resources.Dialogs.McpServerDialogVSCodeWarningTitle)]</span>
-                                @Loc[nameof(Resources.Dialogs.McpServerDialogVSCodeWarningMessage)]
+                                <span class="title">@Loc[nameof(Dialogs.McpServerDialogVSCodeWarningTitle)]</span>
+                                @Loc[nameof(Dialogs.McpServerDialogVSCodeWarningMessage)]
                                 <br />
                                 <br />
-                                @((MarkupString)Loc[nameof(Resources.Dialogs.McpServerDialogVSCodeWarningInstructions)].ToString())
-                                <a href="https://aka.ms/aspire/mcp-vscode-limitations" target="_blank">@Loc[nameof(Resources.Dialogs.McpServerDialogVSCodeWarningMoreInfo)]</a>
+                                @((MarkupString)Loc[nameof(Dialogs.McpServerDialogVSCodeWarningInstructions)].ToString())
+                                <a href="https://aka.ms/aspire/mcp-vscode-limitations" target="_blank">@Loc[nameof(Dialogs.McpServerDialogVSCodeWarningMoreInfo)]</a>
                             </div>
                         </div>
+                        <br />
                     }
+                    <FluentAccordion>
+                        <FluentAccordionItem>
+                            <HeadingTemplate>
+                                Manually updating <code>mcp.json</code>
+                            </HeadingTemplate>
+                            <ChildContent>
+                                <p>
+                                    @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.McpServerDialogOtherOptionsVSCode)], "https://aka.ms/aspire/mcp-add-client-vscode"))
+                                </p>
+                                <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
+                            </ChildContent>
+                        </FluentAccordionItem>
+                    </FluentAccordion>
                 </div>
             </FluentTab>
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{McpToolView.VisualStudio}")"
-                       Label="@Loc[nameof(Resources.Dialogs.McpServerDialogVisualStudioTab)]">
+                       Label="@Loc[nameof(Dialogs.McpServerDialogVisualStudioTab)]"
+                       Icon="new Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.VisualStudio()">
                 <div class="mcp-tool-tab">
                     <p>
-                        @Loc[nameof(Resources.Dialogs.McpServerDialogQuicklyAddVisualStudio)]
+                        @Loc[nameof(Dialogs.McpServerDialogQuicklyAddVisualStudio)]
                     </p>
                     <p>
                         <a href="@($"vsweb+mcp:/install?{Uri.EscapeDataString(_mcpServerInstallButtonJson)}")">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="251" height="20" role="img" aria-label="@Loc[nameof(Resources.Dialogs.McpServerDialogInstallButtonAriaLabelVisualStudio)]">
-                                <title>@Loc[nameof(Resources.Dialogs.McpServerDialogInstallButtonAriaLabelVisualStudio)]</title>
-                                <g shape-rendering="crispEdges"><rect width="100" height="20" fill="#555" /><rect x="100" width="151" height="20" fill="#8863c5" /></g>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="251" height="20" role="img" aria-label="@Loc[nameof(Dialogs.McpServerDialogInstallButtonAriaLabelVisualStudio)]">
+                                <title>@Loc[nameof(Dialogs.McpServerDialogInstallButtonAriaLabelVisualStudio)]</title>
+                                <g shape-rendering="crispEdges"><rect width="100" height="20" fill="#555" /><rect x="100" width="151" height="20" fill="#c16fde" /></g>
                                 <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><image x="5" y="3" width="14" height="14" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJ3aGl0ZSIgcm9sZT0iaW1nIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHRpdGxlPk1vZGVsIENvbnRleHQgUHJvdG9jb2w8L3RpdGxlPjxwYXRoIGQ9Ik0xMy44NSAwYTQuMTYgNC4xNiAwIDAgMC0yLjk1IDEuMjE3TDEuNDU2IDEwLjY2YS44MzUuODM1IDAgMCAwIDAgMS4xOC44MzUuODM1IDAgMCAwIDEuMTggMGw5LjQ0Mi05LjQ0MmEyLjQ5IDIuNDkgMCAwIDEgMy41NDEgMCAyLjQ5IDIuNDkgMCAwIDEgMCAzLjU0MUw4LjU5IDEyLjk3bC0uMS4xYS44MzUuODM1IDAgMCAwIDAgMS4xOC44MzUuODM1IDAgMCAwIDEuMTggMGwuMS0uMDk4IDcuMDMtNy4wMzRhMi40OSAyLjQ5IDAgMCAxIDMuNTQyIDBsLjA0OS4wNWEyLjQ5IDIuNDkgMCAwIDEgMCAzLjU0bC04LjU0IDguNTRhMS45NiAxLjk2IDAgMCAwIDAgMi43NTVsMS43NTMgMS43NTNhLjgzNS44MzUgMCAwIDAgMS4xOCAwIC44MzUuODM1IDAgMCAwIDAtMS4xOGwtMS43NTMtMS43NTNhLjI2Ni4yNjYgMCAwIDEgMC0uMzk0bDguNTQtOC41NGE0LjE4NSA0LjE4NSAwIDAgMCAwLTUuOWwtLjA1LS4wNWE0LjE2IDQuMTYgMCAwIDAtMi45NS0xLjIxOGMtLjIgMC0uNDAxLjAyLS42LjA0OGE0LjE3IDQuMTcgMCAwIDAtMS4xNy0zLjU1MkE0LjE2IDQuMTYgMCAwIDAgMTMuODUgMG0wIDMuMzMzYS44NC44NCAwIDAgMC0uNTkuMjQ1TDYuMjc1IDEwLjU2YTQuMTg2IDQuMTg2IDAgMCAwIDAgNS45MDIgNC4xODYgNC4xODYgMCAwIDAgNS45MDIgMEwxOS4xNiA5LjQ4YS44MzUuODM1IDAgMCAwIDAtMS4xOC44MzUuODM1IDAgMCAwLTEuMTggMGwtNi45ODUgNi45ODRhMi40OSAyLjQ5IDAgMCAxLTMuNTQgMCAyLjQ5IDIuNDkgMCAwIDEgMC0zLjU0bDYuOTgzLTYuOTg1YS44MzUuODM1IDAgMCAwIDAtMS4xOC44NC44NCAwIDAgMC0uNTktLjI0NSIvPjwvc3ZnPg==" /><text x="595" y="140" transform="scale(.1)" fill="#fff" textLength="730">Visual Studio</text><text x="1745" y="140" transform="scale(.1)" fill="#fff" textLength="1410">Install Aspire MCP Server</text></g>
                             </svg>
                             @*
@@ -94,24 +131,25 @@
                         </a>
                     </p>
                     <p>
-                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.McpServerDialogOtherOptionsVisualStudio)], "https://aka.ms/aspire/mcp-add-client-vs"))
+                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.McpServerDialogOtherOptionsVisualStudio)], "https://aka.ms/aspire/mcp-add-client-vs"))
                     </p>
                     <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
                 </div>
             </FluentTab>
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{McpToolView.Other}")"
-                       Label="@Loc[nameof(Resources.Dialogs.McpServerDialogOtherTab)]">
+                       Label="@Loc[nameof(Dialogs.McpServerDialogOtherTab)]"
+                       Icon="new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.MoreCircle()">
                 <div class="mcp-tool-tab">
                     <p>
-                        @Loc[nameof(Resources.Dialogs.McpServerDialogOtherDescription)]
+                        @Loc[nameof(Dialogs.McpServerDialogOtherDescription)]
                     </p>
                     <p>
-                        @Loc[nameof(Resources.Dialogs.McpServerDialogOtherInstructions)]
+                        @Loc[nameof(Dialogs.McpServerDialogOtherInstructions)]
                     </p>
                     <div class="property-grid-container">
                         <FluentAccordion>
-                            <FluentAccordionItem Heading="@Loc[nameof(Resources.Dialogs.McpServerDialogConfigurationHeading)]" Expanded="true">
+                            <FluentAccordionItem Heading="@Loc[nameof(Dialogs.McpServerDialogConfigurationHeading)]" Expanded="true">
                                 <div slot="end">
                                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                                         @_mcpConfigProperties.Count()

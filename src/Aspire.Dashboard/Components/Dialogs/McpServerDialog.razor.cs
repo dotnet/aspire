@@ -17,6 +17,8 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class McpServerDialog
 {
+    private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
+
     [CascadingParameter]
     public FluentDialog Dialog { get; set; } = default!;
 
@@ -88,7 +90,7 @@ public partial class McpServerDialog
             // Use input reference instead of hardcoded API key
             headers = new Dictionary<string, string>
             {
-                [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = "${input:x_mcp_api_key}"
+                [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = "${input:aspire_mcp_api_key}"
             };
 
             // Define the input for the API key
@@ -96,9 +98,9 @@ public partial class McpServerDialog
             {
                 new McpInputModel
                 {
-                    Id = "x_mcp_api_key",
+                    Id = "aspire_mcp_api_key",
                     Type = "promptString",
-                    Description = "Enter x-mcp-api-key",
+                    Description = "Enter Aspire MCP API key",
                     Password = true
                 }
             };
