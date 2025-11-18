@@ -21,6 +21,7 @@ public sealed class ExternalServiceResource : Resource
     /// <param name="uri">The URI for the external service.</param>
     /// <remarks>
     /// The URI must be an absolute URI with the absolute path ending with '/'.
+    /// The URI cannot contain a fragment or query string.
     /// </remarks>
     public ExternalServiceResource(string name, Uri uri) : base(name)
     {
