@@ -703,18 +703,18 @@ public class InteractionResult<T>
 [DebuggerDisplay("Id = {Id}, IsCompleted = {IsCompleted}")]
 public sealed class InteractionReference<TResult>
 {
-    private static int s_nextId;
     private readonly Task<InteractionResult<TResult>> _resultTask;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InteractionReference{TResult}"/> class.
     /// </summary>
+    /// <param name="id">The unique identifier for this interaction.</param>
     /// <param name="resultTask">The task that represents the asynchronous operation.</param>
     /// <param name="cancellationTokenSource">The cancellation token source for the interaction.</param>
-    public InteractionReference(Task<InteractionResult<TResult>> resultTask, CancellationTokenSource cancellationTokenSource)
+    public InteractionReference(int id, Task<InteractionResult<TResult>> resultTask, CancellationTokenSource cancellationTokenSource)
     {
-        Id = Interlocked.Increment(ref s_nextId);
+        Id = id;
         _resultTask = resultTask;
         _cancellationTokenSource = cancellationTokenSource;
     }

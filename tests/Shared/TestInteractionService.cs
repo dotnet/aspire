@@ -11,6 +11,7 @@ internal sealed record InteractionData(string Title, string? Message, Interactio
 
 internal sealed class TestInteractionService : IInteractionService
 {
+    private static int s_nextId;
     public Channel<InteractionData> Interactions { get; } = Channel.CreateUnbounded<InteractionData>();
 
     public bool IsAvailable { get; set; } = true;
@@ -32,6 +33,7 @@ internal sealed class TestInteractionService : IInteractionService
 
     public InteractionReference<InteractionInputCollection> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
+        var id = Interlocked.Increment(ref s_nextId);
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var data = new InteractionData(title, message, new InteractionInputCollection(inputs), options, cancellationToken, new TaskCompletionSource<object>());
         Interactions.Writer.TryWrite(data);
@@ -49,11 +51,12 @@ internal sealed class TestInteractionService : IInteractionService
             return InteractionResult.Ok(new InteractionInputCollection(result.Data));
         }, cts.Token);
 
-        return new InteractionReference<InteractionInputCollection>(resultTask, cts);
+        return new InteractionReference<InteractionInputCollection>(id, resultTask, cts);
     }
 
     public InteractionReference<bool> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
+        var id = Interlocked.Increment(ref s_nextId);
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var data = new InteractionData(title, message, new InteractionInputCollection([]), options, cancellationToken, new TaskCompletionSource<object>());
         Interactions.Writer.TryWrite(data);
@@ -63,7 +66,7 @@ internal sealed class TestInteractionService : IInteractionService
             return (InteractionResult<bool>)await data.CompletionTcs.Task;
         }, cts.Token);
 
-        return new InteractionReference<bool>(resultTask, cts);
+        return new InteractionReference<bool>(id, resultTask, cts);
     }
 
     public InteractionReference<bool> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)

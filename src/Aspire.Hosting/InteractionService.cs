@@ -81,16 +81,16 @@ internal class InteractionService : IInteractionService
         cancellationToken.ThrowIfCancellationRequested();
         var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
+        options ??= MessageBoxInteractionOptions.CreateDefault();
+        options.ShowDismiss ??= false;
+
+        var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(intent: options.Intent ?? MessageIntent.None), interactionCts.Token);
+        AddInteractionUpdate(newState);
+
         var resultTask = Task.Run(async () =>
         {
             try
             {
-                options ??= MessageBoxInteractionOptions.CreateDefault();
-                options.ShowDismiss ??= false;
-
-                var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(intent: options.Intent ?? MessageIntent.None), interactionCts.Token);
-                AddInteractionUpdate(newState);
-
                 using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
                 var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
@@ -105,14 +105,14 @@ internal class InteractionService : IInteractionService
             }
         }, interactionCts.Token);
 
-        return new InteractionReference<bool>(resultTask, interactionCts);
+        return new InteractionReference<bool>(newState.InteractionId, resultTask, interactionCts);
     }
 
     public InteractionReference<InteractionInput> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var interaction = PromptInputsAsync(title, message, [new InteractionInput { Name = InteractionHelpers.LabelToName(inputLabel), InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }], options, cancellationToken);
         
-        // Create a new Interaction that unwraps the collection to a single input
+        // Create a new InteractionReference that unwraps the collection to a single input
         var resultTask = Task.Run(async () =>
         {
             var result = await interaction.GetResultAsync().ConfigureAwait(false);
@@ -124,15 +124,15 @@ internal class InteractionService : IInteractionService
             return InteractionResult.Ok(result.Data[0]);
         }, cancellationToken);
 
-        // Use the same CTS from the inputs interaction
-        return new InteractionReference<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
+        // Use the same ID and CTS from the inputs interaction
+        return new InteractionReference<InteractionInput>(interaction.Id, resultTask, interaction.GetCancellationTokenSource());
     }
 
     public InteractionReference<InteractionInput> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var interaction = PromptInputsAsync(title, message, [input], options, cancellationToken);
         
-        // Create a new Interaction that unwraps the collection to a single input
+        // Create a new InteractionReference that unwraps the collection to a single input
         var resultTask = Task.Run(async () =>
         {
             var result = await interaction.GetResultAsync().ConfigureAwait(false);
@@ -144,8 +144,8 @@ internal class InteractionService : IInteractionService
             return InteractionResult.Ok(result.Data[0]);
         }, cancellationToken);
 
-        // Use the same CTS from the inputs interaction
-        return new InteractionReference<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
+        // Use the same ID and CTS from the inputs interaction
+        return new InteractionReference<InteractionInput>(interaction.Id, resultTask, interaction.GetCancellationTokenSource());
     }
 
     public InteractionReference<InteractionInputCollection> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -184,15 +184,15 @@ internal class InteractionService : IInteractionService
 
         var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
+        options ??= InputsDialogInteractionOptions.Default;
+
+        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputCollection), interactionCts.Token);
+        AddInteractionUpdate(newState);
+
         var resultTask = Task.Run(async () =>
         {
             try
             {
-                options ??= InputsDialogInteractionOptions.Default;
-
-                var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputCollection), interactionCts.Token);
-                AddInteractionUpdate(newState);
-
                 using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
                 foreach (var input in inputs)
@@ -247,7 +247,7 @@ internal class InteractionService : IInteractionService
             }
         }, interactionCts.Token);
 
-        return new InteractionReference<InteractionInputCollection>(resultTask, interactionCts);
+        return new InteractionReference<InteractionInputCollection>(newState.InteractionId, resultTask, interactionCts);
     }
 
     public InteractionReference<bool> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -257,15 +257,15 @@ internal class InteractionService : IInteractionService
         cancellationToken.ThrowIfCancellationRequested();
         var interactionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
+        options ??= NotificationInteractionOptions.CreateDefault();
+
+        var newState = new Interaction(title, message, options, new Interaction.NotificationInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), interactionCts.Token);
+        AddInteractionUpdate(newState);
+
         var resultTask = Task.Run(async () =>
         {
             try
             {
-                options ??= NotificationInteractionOptions.CreateDefault();
-
-                var newState = new Interaction(title, message, options, new Interaction.NotificationInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), interactionCts.Token);
-                AddInteractionUpdate(newState);
-
                 using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
                 var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
@@ -280,7 +280,7 @@ internal class InteractionService : IInteractionService
             }
         }, interactionCts.Token);
 
-        return new InteractionReference<bool>(resultTask, interactionCts);
+        return new InteractionReference<bool>(newState.InteractionId, resultTask, interactionCts);
     }
 
     // For testing.
