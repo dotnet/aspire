@@ -7,6 +7,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// An annotation that indicates a resource wants to manage how it needs to be configured to use a specific TLS certificate pair.
 /// </summary>
 /// <param name="callback">The callback used to configure the resource to use a specific TLS certificate pair.</param>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class CertificateKeyPairConfigurationCallbackAnnotation(Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> callback) : IResourceAnnotation
 {
     /// <summary>
