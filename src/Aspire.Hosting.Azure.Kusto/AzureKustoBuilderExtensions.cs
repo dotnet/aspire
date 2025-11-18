@@ -14,7 +14,6 @@ using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
 using Kusto.Data.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -342,7 +341,7 @@ public static class AzureKustoBuilderExtensions
                 return ResourceCommandState.Hidden;
             }
 
-            return context.ResourceSnapshot.HealthStatus is HealthStatus.Healthy ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+            return context.ResourceSnapshot.State?.Text == KnownResourceStates.Running ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
         }
 
         static ResourceCommandState UpdateStateWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, UpdateCommandStateContext context)
@@ -353,7 +352,7 @@ public static class AzureKustoBuilderExtensions
                 return ResourceCommandState.Hidden;
             }
 
-            return context.ResourceSnapshot.HealthStatus is HealthStatus.Healthy ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+            return context.ResourceSnapshot.State?.Text == KnownResourceStates.Running ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
         }
 
         static async Task<ExecuteCommandResult> OnOpenInKustoExplorerDesktop(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
