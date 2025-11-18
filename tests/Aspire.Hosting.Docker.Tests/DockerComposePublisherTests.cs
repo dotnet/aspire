@@ -671,11 +671,6 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         {
             return Task.CompletedTask;
         }
-
-        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
     }
 
     private sealed class TestProject : IProjectMetadata

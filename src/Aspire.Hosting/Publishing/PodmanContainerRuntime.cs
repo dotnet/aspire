@@ -17,7 +17,23 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
     public override string Name => "Podman";
     private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
-        var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+        var arguments = $"build --file \"{dockerfilePath}\"";
+
+        // Add tags - support both single tag and multiple tags
+        if (!string.IsNullOrEmpty(options?.ImageTag))
+        {
+            // Support multiple tags separated by semicolons
+            var tags = options.ImageTag.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var tag in tags)
+            {
+                arguments += $" --tag \"{tag}\"";
+            }
+        }
+        else
+        {
+            // Fallback to the original imageName if no tag is specified
+            arguments += $" --tag \"{imageName}\"";
+        }
 
         // Add platform support if specified
         if (options?.TargetPlatform is not null)

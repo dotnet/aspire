@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
-/// Represents a container runtime (e.g., Docker, Podman) that can be used to build, tag, push, and manage container images.
+/// Represents a container runtime (e.g., Docker, Podman) that can be used to build, push, and manage container images.
 /// </summary>
 [Experimental("ASPIRECONTAINERRUNTIME001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IContainerRuntime
@@ -37,14 +37,6 @@ public interface IContainerRuntime
     /// <param name="stage">The target build stage.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
-    
-    /// <summary>
-    /// Tags a container image with a new name.
-    /// </summary>
-    /// <param name="localImageName">The current name of the image.</param>
-    /// <param name="targetImageName">The new name to assign to the image.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken);
     
     /// <summary>
     /// Removes a container image.

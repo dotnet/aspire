@@ -844,11 +844,6 @@ public class ProjectResourceTests
         Assert.Equal("projectName", builtImage.Name);
         Assert.False(mockImageBuilder.PushImageCalled);
 
-        Assert.True(fakeContainerRuntime.WasTagImageCalled);
-        var tagCall = Assert.Single(fakeContainerRuntime.TagImageCalls);
-        Assert.Equal("projectname", tagCall.localImageName);
-        Assert.StartsWith("projectname:temp-", tagCall.targetImageName);
-
         Assert.True(fakeContainerRuntime.WasBuildImageCalled);
         var buildCall = Assert.Single(fakeContainerRuntime.BuildImageCalls);
         Assert.Equal("projectname", buildCall.imageName);
@@ -860,7 +855,6 @@ public class ProjectResourceTests
         Assert.True(fakeContainerRuntime.WasRemoveImageCalled);
         var removeCall = Assert.Single(fakeContainerRuntime.RemoveImageCalls);
         Assert.StartsWith("projectname:temp-", removeCall);
-        Assert.Equal(tagCall.targetImageName, removeCall);
     }
 
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)

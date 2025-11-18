@@ -93,6 +93,11 @@ public class ContainerBuildOptions
     /// Gets the target platform for the container.
     /// </summary>
     public ContainerTargetPlatform? TargetPlatform { get; init; }
+
+    /// <summary>
+    /// Gets the image tag to apply during build. Can be a single tag or multiple tags separated by semicolons.
+    /// </summary>
+    public string? ImageTag { get; init; }
 }
 
 /// <summary>
@@ -117,14 +122,6 @@ public interface IResourceContainerImageBuilder
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
     Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Tags an existing container image with a new target name.
-    /// </summary>
-    /// <param name="localImageName">The name of the local image to tag.</param>
-    /// <param name="targetImageName">The target name for the image tag.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pushes a container image to a registry.
@@ -255,6 +252,11 @@ internal sealed class ResourceContainerImageBuilder(
         // Add additional arguments based on options
         if (options is not null)
         {
+            if (!string.IsNullOrEmpty(options.ImageTag))
+            {
+                arguments += $" /p:ContainerImageTag=\"{options.ImageTag}\"";
+            }
+
             if (!string.IsNullOrEmpty(options.OutputPath))
             {
                 arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
@@ -421,11 +423,6 @@ internal sealed class ResourceContainerImageBuilder(
             // and we should fallback to resolving it from environment variables.
             return null;
         }
-    }
-
-    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
-    {
-        await ContainerRuntime.TagImageAsync(localImageName, targetImageName, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)

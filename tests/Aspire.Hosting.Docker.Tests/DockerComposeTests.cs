@@ -243,11 +243,6 @@ public class DockerComposeTests(ITestOutputHelper output)
         {
             return Task.CompletedTask;
         }
-
-        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
     }
 
     [Fact]

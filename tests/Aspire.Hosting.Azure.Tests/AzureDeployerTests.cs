@@ -203,10 +203,10 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.BuildImageCalled);
         Assert.False(mockImageBuilder.BuildImagesCalled);
-        Assert.False(mockImageBuilder.TagImageCalled);
+        // Tagging is now done during build
         Assert.False(mockImageBuilder.PushImageCalled);
         Assert.Empty(mockImageBuilder.BuildImageResources);
-        Assert.Empty(mockImageBuilder.TagImageCalls);
+        // Tagging is now done during build
         Assert.Empty(mockImageBuilder.PushImageCalls);
     }
 
@@ -250,9 +250,9 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Assert - Verify MockImageBuilder tag and push methods were NOT called for existing container image
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
-        Assert.False(mockImageBuilder.TagImageCalled);
+        // Tagging is now done during build
         Assert.False(mockImageBuilder.PushImageCalled);
-        Assert.Empty(mockImageBuilder.TagImageCalls);
+        // Tagging is now done during build
         Assert.Empty(mockImageBuilder.PushImageCalls);
     }
 
@@ -299,14 +299,16 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
-        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.BuildImageCalled);
         Assert.True(mockImageBuilder.PushImageCalled);
 
-        // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
-        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName.StartsWith("api:") &&
-            call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+        // Tagging is now done during build via ImageTag option
+        // Verify build was called with the target image tag
+        Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
+            options != null &&
+            options.ImageTag != null &&
+            options.ImageTag.StartsWith("testregistry.azurecr.io/") &&
+            options.ImageTag.Contains("aspire-deploy-"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
@@ -357,14 +359,16 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
-        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.BuildImageCalled);
         Assert.True(mockImageBuilder.PushImageCalled);
 
-        // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
-        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api" &&
-            call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+        // Tagging is now done during build via ImageTag option
+        // Verify build was called with the target image tag
+        Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
+            options != null &&
+            options.ImageTag != null &&
+            options.ImageTag.StartsWith("testregistry.azurecr.io/") &&
+            options.ImageTag.Contains("aspire-deploy-"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
@@ -463,18 +467,21 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Assert - Verify MockImageBuilder tag and push methods were called for multiple registries
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
-        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.BuildImageCalled);
         Assert.True(mockImageBuilder.PushImageCalled);
 
-        // Verify tag calls were made for both registries with deployment tags
-        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api-service" &&
-            call.targetImageName.StartsWith("aasregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
-        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName.StartsWith("python-app:") &&
-            call.targetImageName.StartsWith("acaregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+        // Tagging is now done during build via ImageTag option
+        // Verify build was called with the target image tags for both registries
+        Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
+            options != null &&
+            options.ImageTag != null &&
+            options.ImageTag.StartsWith("aasregistry.azurecr.io/") &&
+            options.ImageTag.Contains("aspire-deploy-"));
+        Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
+            options != null &&
+            options.ImageTag != null &&
+            options.ImageTag.StartsWith("acaregistry.azurecr.io/") &&
+            options.ImageTag.Contains("aspire-deploy-"));
 
         // Verify push calls were made for both registries with deployment tags
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
@@ -484,8 +491,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             imageName.StartsWith("acaregistry.azurecr.io/") &&
             imageName.Contains("aspire-deploy-"));
 
-        // Verify that redis (existing container) was not tagged/pushed
-        Assert.DoesNotContain(mockImageBuilder.TagImageCalls, call => call.localImageName == "cache");
+        // Tagging is now done during build - redis should not have been built with an image tag
     }
 
     [Fact]
@@ -642,7 +648,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.BuildImageCalled);
-        Assert.False(mockImageBuilder.TagImageCalled);
+        // Tagging is now done during build
         Assert.False(mockImageBuilder.PushImageCalled);
 
         // Assert that ACR login was not called since Redis uses existing container image
@@ -687,7 +693,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.BuildImageCalled);
-        Assert.False(mockImageBuilder.TagImageCalled);
+        // Tagging is now done during build
         Assert.False(mockImageBuilder.PushImageCalled);
 
         // Assert that ACR login was not called since only Azure resources exist
@@ -897,14 +903,16 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Assert - Verify MockImageBuilder tag and push methods were called
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
-        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.BuildImageCalled);
         Assert.True(mockImageBuilder.PushImageCalled);
 
-        // Verify specific tag call was made (local "funcapp" to target in testregistry with deployment tag)
-        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "funcapp" &&
-            call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+        // Tagging is now done during build via ImageTag option
+        // Verify build was called with the target image tag
+        Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
+            options != null &&
+            options.ImageTag != null &&
+            options.ImageTag.StartsWith("testregistry.azurecr.io/") &&
+            options.ImageTag.Contains("aspire-deploy-"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>

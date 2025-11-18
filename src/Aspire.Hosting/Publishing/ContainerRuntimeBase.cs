@@ -38,19 +38,6 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
 
-    public virtual async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
-    {
-        var arguments = $"tag \"{localImageName}\" \"{targetImageName}\"";
-        
-        await ExecuteContainerCommandAsync(
-            arguments, 
-            $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} failed with exit code {{ExitCode}}.",
-            $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} succeeded.",
-            $"{Name} tag failed with exit code {{0}}.",
-            cancellationToken,
-            localImageName, targetImageName).ConfigureAwait(false);
-    }
-
     public virtual async Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
     {
         var arguments = $"rmi \"{imageName}\"";

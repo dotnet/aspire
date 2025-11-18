@@ -110,14 +110,11 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         // Get the built image name
         var originalImageName = Name.ToLowerInvariant();
 
-        // Tag the built image with a temporary tag
+        // Build the image with a temporary tag
         var tempTag = $"temp-{Guid.NewGuid():N}";
         var tempImageName = $"{originalImageName}:{tempTag}";
 
         var containerRuntime = ctx.Services.GetRequiredService<IContainerRuntime>();
-
-        logger.LogDebug("Tagging image {OriginalImageName} as {TempImageName}", originalImageName, tempImageName);
-        await containerRuntime.TagImageAsync(originalImageName, tempImageName, ctx.CancellationToken).ConfigureAwait(false);
 
         // Generate a Dockerfile that layers the container files on top
         var dockerfileBuilder = new DockerfileBuilder();

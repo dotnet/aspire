@@ -42,7 +42,23 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
 
         try
         {
-            var arguments = $"buildx build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+            var arguments = $"buildx build --file \"{dockerfilePath}\"";
+
+            // Add tags - support both single tag and multiple tags
+            if (!string.IsNullOrEmpty(options?.ImageTag))
+            {
+                // Support multiple tags separated by semicolons
+                var tags = options.ImageTag.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var tag in tags)
+                {
+                    arguments += $" --tag \"{tag}\"";
+                }
+            }
+            else
+            {
+                // Fallback to the original imageName if no tag is specified
+                arguments += $" --tag \"{imageName}\"";
+            }
 
             // Use the specific builder for OCI builds
             if (!string.IsNullOrEmpty(builderName))
