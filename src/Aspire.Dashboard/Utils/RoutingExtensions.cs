@@ -16,9 +16,9 @@ internal static class RoutingExtensions
         return builder;
     }
 
-    public static IEndpointConventionBuilder MapPostNotFound(this IEndpointRouteBuilder endpoints, string route)
+    public static IEndpointConventionBuilder MapPostNotFound(this IEndpointRouteBuilder endpoints, string pattern)
     {
-        return endpoints.MapPost(route, context =>
+        return endpoints.MapPost(pattern, context =>
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             return Task.CompletedTask;
