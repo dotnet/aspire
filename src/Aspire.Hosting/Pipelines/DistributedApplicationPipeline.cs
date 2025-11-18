@@ -36,8 +36,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Deploy,
-            Action = _ => Task.CompletedTask,
-            Tags = [WellKnownPipelineTags.DeployCompute]
+            Action = _ => Task.CompletedTask
         });
 
         _steps.Add(new PipelineStep
@@ -140,15 +139,13 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Publish,
-            Action = _ => Task.CompletedTask,
-            Tags = [WellKnownPipelineTags.PushContainerImage]
+            Action = _ => Task.CompletedTask
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.PublishPrereq,
-            Action = _ => Task.CompletedTask,
-            Tags = [WellKnownPipelineTags.PushContainerImage]
+            Action = _ => Task.CompletedTask
         });
 
         // Add diagnostic step for dependency graph analysis
