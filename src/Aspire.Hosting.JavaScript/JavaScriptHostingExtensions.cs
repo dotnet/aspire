@@ -1,8 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIRECERTIFICATES001
 
 using System.Globalization;
 using System.Text.Json;
@@ -24,6 +25,40 @@ namespace Aspire.Hosting;
 public static class JavaScriptHostingExtensions
 {
     private const string DefaultNodeVersion = "22";
+
+    // See https://github.com/vitejs/vite/blob/4f8171eb3046bd70c83964689897dab4c6b58bc0/packages/vite/src/node/constants.ts#L97
+    private static readonly string[] s_defaultConfigFiles = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs", "vite.config.mts", "vite.config.cts"];
+
+    private const string AspireViteConfig = @"import { defineConfig, UserConfig, UserConfigFnObject } from 'vite'
+import config from '%%ASPIRE_VITE_CONFIG_PATH%%'
+
+const wrapConfig = (innerConfig: UserConfig): UserConfig => ({
+    ...innerConfig,
+    server: {
+        ...innerConfig.server,
+        https: innerConfig.server?.https ? innerConfig.server.https : process.env['TLS_CONFIG_PFX'] ? {
+            pfx: process.env['TLS_CONFIG_PFX'],
+            passphrase: process.env['TLS_CONFIG_PASSWORD'],
+        } : undefined,
+    }
+})
+
+let finalConfig: UserConfig | UserConfigFnObject
+if (typeof config === 'function') {
+    finalConfig = defineConfig((cfg) => {
+        let innerConfig = config(cfg)
+
+        console.log('Overriding base config:', JSON.stringify(innerConfig, null, 2))
+        return wrapConfig(innerConfig)
+    });
+} else if (typeof config === 'object' && config !== null) {
+    let innerConfig = config as UserConfig
+    finalConfig = defineConfig(wrapConfig(innerConfig))
+} else {
+    throw new Error('Could not load inner config')
+}
+
+export default finalConfig";
 
     /// <summary>
     /// Adds a node application to the application model. Node should be available on the PATH.
@@ -436,7 +471,7 @@ public static class JavaScriptHostingExtensions
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new ViteAppResource(name, "npm", appDirectory);
 
-        return builder.CreateDefaultJavaScriptAppBuilder(
+        var resourceBuilder = builder.CreateDefaultJavaScriptAppBuilder(
             resource,
             appDirectory,
             runScriptName,
@@ -460,7 +495,98 @@ public static class JavaScriptHostingExtensions
                 c.Args.Add("--port");
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
             })
-            .WithHttpEndpoint(env: "PORT");
+            .WithHttpEndpoint(env: "PORT")
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                ctx.EnvironmentVariables["TLS_CONFIG_PFX"] = ctx.PfxPath;
+                ctx.EnvironmentVariables["TLS_CONFIG_PASSWORD"] = ctx.Password;
+
+                return Task.CompletedTask;
+            });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    string? configTarget = null;
+                    if (resource.TryGetLastAnnotation<ViteConfigAnnotation>(out var viteConfig) && !string.IsNullOrEmpty(viteConfig.ConfigPath))
+                    {
+                        configTarget = Path.GetRelativePath(Path.Join(appDirectory, "node_modules", ".bin"), Path.Join(appDirectory, viteConfig.ConfigPath));
+                    }
+                    else
+                    {
+                        foreach (var configFile in s_defaultConfigFiles)
+                        {
+                            var candidatePath = Path.Combine(appDirectory, configFile);
+                            if (File.Exists(candidatePath))
+                            {
+                                configTarget = Path.GetRelativePath(Path.Join(appDirectory, "node_modules", ".bin"), candidatePath);
+                                break;
+                            }
+                        }
+                    }
+
+                    if (configTarget is not null)
+                    {
+                        try
+                        {
+                            var aspireConfig = AspireViteConfig.Replace("%%ASPIRE_VITE_CONFIG_PATH%%", configTarget.Replace("\\", "/"), StringComparison.Ordinal);
+                            var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", "aspire.vite.config.ts");
+                            File.WriteAllText(aspireConfigPath, aspireConfig);
+
+                            resourceBuilder.WithArgs("--config", aspireConfigPath);
+                            resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
+                        }
+                        catch
+                        {
+                            // TODO: Log failure to write Aspire Vite config file
+                            if (!string.IsNullOrEmpty(viteConfig?.ConfigPath))
+                            {
+                                // Fallback to using the existing config file
+                                resourceBuilder.WithArgs("--config", viteConfig.ConfigPath);
+                            }
+                        }
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Configures the Vite app to use the specified Vite configuration file.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configPath">The path to the Vite configuration file. Relative to the service root.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<ViteAppResource> WithConfig(this IResourceBuilder<ViteAppResource> builder, string configPath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(configPath);
+
+        return builder.WithAnnotation(new ViteConfigAnnotation { ConfigPath = configPath }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
