@@ -80,7 +80,8 @@ public static class OtlpConfigurationExtensions
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
-            if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+            var appHostEnvironment = context.ExecutionContext.ServiceProvider.GetRequiredService<IAppHostEnvironment>();
+            if (appHostEnvironment.OtlpApiKey is { } otlpApiKey)
             {
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
             }

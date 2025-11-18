@@ -5,7 +5,6 @@
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,7 +16,7 @@ namespace Aspire.Hosting.Pipelines.Internal;
 /// </summary>
 internal sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
-    IConfiguration configuration,
+    IAppHostEnvironment appHostEnvironment,
     IHostEnvironment hostEnvironment,
     IOptions<PipelineOptions> pipelineOptions) : DeploymentStateManagerBase<FileDeploymentStateManager>(logger)
 {
@@ -27,8 +26,8 @@ internal sealed class FileDeploymentStateManager(
     /// <inheritdoc/>
     protected override string? GetStatePath()
     {
-        // Use PathSha256 for deployment state to disambiguate projects with the same name in different locations
-        var appHostSha = configuration["AppHost:PathSha256"];
+        // Use FullPathHash for deployment state to disambiguate projects with the same name in different locations
+        var appHostSha = appHostEnvironment.FullPathHash;
         if (string.IsNullOrEmpty(appHostSha))
         {
             return null;
