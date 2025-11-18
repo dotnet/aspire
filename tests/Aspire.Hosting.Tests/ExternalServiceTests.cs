@@ -53,9 +53,12 @@ public class ExternalServiceTests
     [Theory]
     [InlineData("not-a-url")]
     [InlineData("")]
-    [InlineData("https://example.com/path")]
-    [InlineData("https://example.com/path?query=value")]
-    [InlineData("https://example.com#fragment")]
+    [InlineData("https://example.com/path")]  // Invalid: missing trailing slash
+    [InlineData("https://example.com/path?query=value")]  // Invalid: has query string
+    [InlineData("https://example.com#fragment")]  // Invalid: has fragment
+    [InlineData("https://example.com/service")]  // Invalid: missing trailing slash
+    [InlineData("https://example.com/service/sub")]  // Invalid: missing trailing slash
+    [InlineData("https://example.com/?query=1")]  // Invalid: has query string
     public void AddExternalServiceThrowsWithInvalidUrl(string invalidUrl)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -75,19 +78,21 @@ public class ExternalServiceTests
     }
 
     [Fact]
-    public void AddExternalServiceThrowsWithUriWithPath()
+    public void AddExternalServiceThrowsWithUriWithoutTrailingSlash()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var uriWithPath = new Uri("https://api.example.com/api/v1");
         var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("nuget", uriWithPath));
-        Assert.Contains("absolute path must be \"/\"", ex.Message);
+        Assert.Contains("absolute path must end with '/'", ex.Message);
     }
 
     [Theory]
     [InlineData("https://nuget.org/")]
     [InlineData("http://localhost/")]
     [InlineData("https://example.com:8080/")]
+    [InlineData("https://gateway/orders-service/")]  // Path with trailing slash
+    [InlineData("https://gateway/api/v1/")]  // Nested path with trailing slash
     public void AddExternalServiceAcceptsValidUrls(string validUrl)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -277,7 +282,24 @@ public class ExternalServiceTests
         Assert.False(ExternalServiceResource.UrlIsValidForExternalService("https://nuget.org/path", out var pathUri, out var pathMessage));
         Assert.Null(pathUri);
         Assert.NotNull(pathMessage);
-        Assert.Contains("absolute path must be \"/\"", pathMessage);
+        Assert.Contains("absolute path must end with '/'", pathMessage);
+
+        // Test valid paths with trailing slash
+        Assert.True(ExternalServiceResource.UrlIsValidForExternalService("https://gateway/orders-service/", out var validPathUri, out var validPathMessage));
+        Assert.Equal("https://gateway/orders-service/", validPathUri!.ToString());
+        Assert.Null(validPathMessage);
+
+        // Test fragment rejection
+        Assert.False(ExternalServiceResource.UrlIsValidForExternalService("https://nuget.org/#fragment", out var fragmentUri, out var fragmentMessage));
+        Assert.Null(fragmentUri);
+        Assert.NotNull(fragmentMessage);
+        Assert.Contains("fragment", fragmentMessage);
+
+        // Test query string rejection
+        Assert.False(ExternalServiceResource.UrlIsValidForExternalService("https://nuget.org/?query=1", out var queryUri, out var queryMessage));
+        Assert.Null(queryUri);
+        Assert.NotNull(queryMessage);
+        Assert.Contains("query", queryMessage);
     }
 
     [Fact]
@@ -448,6 +470,100 @@ public class ExternalServiceTests
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
         await Verify(manifest.ToString(), extension: "json");
+    }
+
+    [Theory]
+    [InlineData("https://host/")]
+    [InlineData("https://host/service/")]
+    [InlineData("https://host/service/sub/")]
+    [InlineData("https://host/service/sub/deep/")]
+    [InlineData("http://gateway:8080/api/v1/")]
+    public void ExternalServiceAcceptsPathsWithTrailingSlash(string validUrl)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("service", validUrl);
+
+        Assert.Equal("service", externalService.Resource.Name);
+        Assert.Equal(validUrl, externalService.Resource.Uri?.ToString());
+    }
+
+    [Theory]
+    [InlineData("https://host/service")]
+    [InlineData("https://host/service/sub")]
+    [InlineData("https://host/api")]
+    [InlineData("https://host/service?query=1")]
+    public void ExternalServiceRejectsPathsWithoutTrailingSlash(string invalidUrl)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("service", invalidUrl));
+        Assert.Contains("absolute path must end with '/'", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("https://host/service/#frag")]
+    [InlineData("https://host/#fragment")]
+    [InlineData("https://host/service/#")]
+    public void ExternalServiceRejectsUrisWithFragment(string invalidUrl)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("service", invalidUrl));
+        Assert.Contains("fragment", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("https://host/service/?query=1")]
+    [InlineData("https://host/?query=value")]
+    [InlineData("https://host/service/?key=value&other=data")]
+    public void ExternalServiceRejectsUrisWithQueryString(string invalidUrl)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("service", invalidUrl));
+        Assert.Contains("query", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithPathCanBeReferenced()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("gateway", "https://gateway.example.com/orders-service/");
+        var project = builder.AddProject<TestProject>("project")
+                             .WithReference(externalService);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Check that service discovery information was injected with the full URL including path
+        Assert.Contains(config, kvp => kvp.Key == "services__gateway__https__0" && kvp.Value == "https://gateway.example.com/orders-service/");
+        Assert.Contains(config, kvp => kvp.Key == "GATEWAY" && kvp.Value == "https://gateway.example.com/orders-service/");
+    }
+
+    [Fact]
+    public void WithReferenceThrowsForUriWithoutTrailingSlash()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var project = builder.AddProject<TestProject>("project");
+
+        var uri = new Uri("https://api.example.com/service");
+        var ex = Assert.Throws<InvalidOperationException>(() => project.WithReference("api", uri));
+        Assert.Contains("absolute path must end with '/'", ex.Message);
+    }
+
+    [Fact]
+    public void WithReferenceAcceptsUriWithPathAndTrailingSlash()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var project = builder.AddProject<TestProject>("project");
+
+        var uri = new Uri("https://api.example.com/service/");
+        // Should not throw
+        project.WithReference("api", uri);
     }
 
     private sealed class TestProject : IProjectMetadata
