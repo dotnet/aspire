@@ -257,11 +257,8 @@ extends:
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
                   targetRids:
-                    # aot
                     - win-x64
                     - win-arm64
-                    # non-aot - single file builds
-                    - win-x86
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
           parameters:
