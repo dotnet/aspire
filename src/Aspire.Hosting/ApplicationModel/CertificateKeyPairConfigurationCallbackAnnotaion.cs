@@ -21,6 +21,7 @@ public sealed class CertificateKeyPairConfigurationCallbackAnnotation(Func<Certi
 /// <summary>
 /// Context provided to a <see cref="CertificateKeyPairConfigurationCallbackAnnotation"/> callback.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class CertificateKeyPairConfigurationCallbackAnnotationContext
 {
     /// <summary>

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -9,6 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// An annotation that associates a certificate pair (public/private key) with a resource.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class CertificateKeyPairAnnotation : IResourceAnnotation
 {
     private X509Certificate2? _certificate;
