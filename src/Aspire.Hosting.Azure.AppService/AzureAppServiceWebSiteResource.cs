@@ -32,13 +32,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         // Add pipeline step annotation for push
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
+            /* TODO: removing this check temporarily
             // Get the registry from the target resource's deployment target annotation
             var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
             if (deploymentTargetAnnotation?.ContainerRegistry is not IContainerRegistry registry)
             {
                 // No registry available, skip push
                 return [];
-            }
+            }*/
 
             var steps = new List<PipelineStep>();
 
@@ -51,6 +52,17 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     Action = async ctx =>
                     {
                         var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+                        var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
+                        if (deploymentTargetAnnotation?.ContainerRegistry is not IContainerRegistry registry)
+                        {
+                            ctx.ReportingStep.Log(
+                                LogLevel.Warning,
+                                $"No container registry available for resource **{targetResource.Name}**, skipping image push.",
+                                enableMarkdown: false);
+                            // No registry available, skip push
+                            return;
+                        }
 
                         await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
                             registry,
@@ -74,6 +86,15 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Name = $"print-{targetResource.Name}-summary",
                 Action = async ctx =>
                 {
+                    var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
+                    if ( deploymentTargetAnnotation is null)
+                    {
+                        ctx.ReportingStep.Log(
+                                LogLevel.Warning,
+                                $"No container registry available for resource **{targetResource.Name}**, skipping image push.",
+                                enableMarkdown: false);
+                        return;
+                    }
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
                     var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
