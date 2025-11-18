@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Xunit;
 
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECONTAINERSHELLEXECUTION001
 
 namespace Aspire.Hosting.Testing.Tests;
 
