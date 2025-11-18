@@ -10,9 +10,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
-using Azure.Core;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -97,79 +95,6 @@ internal static class AzureEnvironmentResourceHelpers
                 throw;
             }
         }
-    }
-
-    public static async Task<(string? HostName, bool IsAvailable)> GetDnlHostNameAsync(IResource resource, string? websiteSuffix, PipelineStepContext context)
-    {
-        // Get required services
-        var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
-
-        if (httpClientFactory is null)
-        {
-            throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
-        }
-
-        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
-
-        // Find the AzureEnvironmentResource from the application model
-        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment == null)
-        {
-            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
-        }
-
-        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
-        var subscriptionId = provisioningContext.Subscription.Id.SubscriptionId?.ToString()
-            ?? throw new InvalidOperationException("SubscriptionId is required.");
-        var location = provisioningContext.Location.Name
-            ?? throw new InvalidOperationException("Location is required.");
-
-        // Prepare ARM endpoint and request
-        var armEndpoint = "https://management.azure.com";
-        var apiVersion = "2025-03-01";
-        var siteName = $"{resource.Name.ToLowerInvariant()}-{websiteSuffix?.ToLowerInvariant()}";
-        if (siteName.Length > 60)
-        {
-            siteName = siteName.Substring(0, 60);
-        }
-
-        context.ReportingStep.Log(LogLevel.Information, $"Checking availability of site name: {resource.Name}", false);
-        var url = $"{armEndpoint}/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/CheckNameAvailability?api-version={apiVersion}";
-        var requestBody = new
-        {
-            name = siteName,
-            type = "Microsoft.Web/sites"
-        };
-
-        context.ReportingStep.Log(LogLevel.Information, $"Request url: {url}", false);
-
-        var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
-        // Get access token for ARM
-        var token = await tokenCredentialProvider.TokenCredential
-            .GetTokenAsync(tokenRequest, context.CancellationToken)
-            .ConfigureAwait(false);
-
-        var httpClient = httpClientFactory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
-        {
-            Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json")
-        };
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
-
-        using var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-
-        context.ReportingStep.Log(LogLevel.Information, $"after ARM request: {resource.Name}", false);
-
-        using var responseStream = await response.Content.ReadAsStreamAsync(context.CancellationToken).ConfigureAwait(false);
-        using var doc = await System.Text.Json.JsonDocument.ParseAsync(responseStream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
-
-        context.ReportingStep.Log(LogLevel.Information, $"after json parse: {resource.Name}", false);
-        var root = doc.RootElement;
-        var isAvailable = root.GetProperty("nameAvailable").GetBoolean();
-        var hostName = root.GetProperty("hostName").GetString();
-
-        return (hostName, isAvailable);
     }
 
     private static async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken, IResourceContainerImageBuilder containerImageBuilder)

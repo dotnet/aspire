@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
 
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
@@ -215,7 +216,7 @@ public class AzureAppServiceEnvironmentResource :
         new("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", this);
 
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
-        BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
+        BicepFunction.ToLower(BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id));
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId =>
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
@@ -259,5 +260,49 @@ public class AzureAppServiceEnvironmentResource :
 
         infra.Add(plan);
         return plan;
+    }
+
+    /// <summary>
+    /// FNV-1 hashing to generate a unique website suffix based on subscription ID and resource group name.
+    /// </summary>
+    /// <param name="subscriptionId"></param>
+    /// <param name="resourceGroupName"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
+    internal static string GetWebSiteSuffix(string subscriptionId, string resourceGroupName, int length = 13)
+    {
+        // 32-bit FNV-1 constants
+        const uint Fnv32Offset = 2166136261;
+        const uint Fnv32Prime = 16777619;
+
+        var input = $"{subscriptionId}:{resourceGroupName}";
+        var sb = new StringBuilder();
+        int hashCount = 0;
+        while (sb.Length < length)
+        {
+            uint hash = Fnv32Offset;
+            var bytes = Encoding.UTF8.GetBytes(hashCount == 0 ? input : $"{input}:{hashCount}");
+            foreach (byte b in bytes)
+            {
+                hash *= Fnv32Prime;
+                hash ^= b;
+            }
+            sb.Append(Base32Encode(hash));
+            hashCount++;
+        }
+        return sb.ToString().ToLowerInvariant().Substring(0, length);
+    }
+
+    // Encodes a 32-bit value to 7 base32 chars
+    private static string Base32Encode(uint value)
+    {
+        const string Base32Alphabet = "abcdefghijklmnopqrstuvwxyz234567";
+        char[] chars = new char[7];
+        for (int i = 6; i >= 0; i--)
+        {
+            chars[i] = Base32Alphabet[(int)(value & 0x1F)];
+            value >>= 5;
+        }
+        return new string(chars);
     }
 }

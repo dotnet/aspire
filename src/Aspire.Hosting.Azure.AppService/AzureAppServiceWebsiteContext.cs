@@ -121,11 +121,13 @@ internal sealed class AzureAppServiceWebsiteContext(
                 throw new NotSupportedException($"The endpoint '{endpoint.Name}' on resource '{resource.Name}' is not external. App Service only supports external endpoints.");
             }
 
+            var annotation = resource.Annotations.OfType<AzureAppServiceHostNameAnnotation>().FirstOrDefault();
+
             // For App Service, we ignore port mappings since ports are handled by the platform
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
-                WebSiteName: WebSiteName,
-                Host: HostName,
+                WebSiteName: annotation?.WebsiteName ?? WebSiteName,
+                Host: annotation?.HostName ?? HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
                 TargetPort: endpoint.TargetPort ?? fallbackTargetPort,
                 IsHttpIngress: true,
