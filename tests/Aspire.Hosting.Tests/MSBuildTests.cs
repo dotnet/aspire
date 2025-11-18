@@ -145,7 +145,6 @@ public class MSBuildTests
             <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
           </PropertyGroup>
 
-          <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.props" />
           <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
         </Project>
         """);
