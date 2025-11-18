@@ -21,7 +21,7 @@ internal static partial class EnvironmentVariableNameEncoder
     {
         if (string.IsNullOrEmpty(name))
         {
-            return "_";
+            return "";
         }
 
         if (ValidNameRegex().IsMatch(name))
