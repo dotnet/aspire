@@ -592,7 +592,7 @@ internal static class InteractionCommands
         return resource;
     }
 
-    private static void RunInteractionWithDismissValues<T>(string title, Func<bool?, string, Interaction<T>> action)
+    private static void RunInteractionWithDismissValues<T>(string title, Func<bool?, string, InteractionReference<T>> action)
     {
         // Don't wait for interactions to complete, i.e. await tasks.
         _ = action(null, $"{title} - ShowDismiss = null");

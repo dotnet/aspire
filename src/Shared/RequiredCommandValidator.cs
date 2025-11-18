@@ -26,7 +26,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     private readonly IInteractionService _interactionService = interactionService;
     private readonly ILogger _logger = logger;
 
-    private Interaction<bool>? _notificationTask;
+    private InteractionReference<bool>? _notificationTask;
     private string? _notificationMessage;
     private bool _throwOnFailure = true;
 

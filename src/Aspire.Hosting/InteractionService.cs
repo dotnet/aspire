@@ -55,7 +55,7 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    public Interaction<bool> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public InteractionReference<bool> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
         options.Intent = MessageIntent.Confirmation;
@@ -65,7 +65,7 @@ internal class InteractionService : IInteractionService
         return PromptMessageBoxCore(title, message, options, cancellationToken);
     }
 
-    public Interaction<bool> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public InteractionReference<bool> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
         options.ShowSecondaryButton ??= false;
@@ -74,7 +74,7 @@ internal class InteractionService : IInteractionService
         return PromptMessageBoxCore(title, message, options, cancellationToken);
     }
 
-    private Interaction<bool> PromptMessageBoxCore(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
+    private InteractionReference<bool> PromptMessageBoxCore(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
     {
         EnsureServiceAvailable();
 
@@ -105,10 +105,10 @@ internal class InteractionService : IInteractionService
             }
         }, interactionCts.Token);
 
-        return new Interaction<bool>(resultTask, interactionCts);
+        return new InteractionReference<bool>(resultTask, interactionCts);
     }
 
-    public Interaction<InteractionInput> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public InteractionReference<InteractionInput> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var interaction = PromptInputsAsync(title, message, [new InteractionInput { Name = InteractionHelpers.LabelToName(inputLabel), InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }], options, cancellationToken);
         
@@ -125,10 +125,10 @@ internal class InteractionService : IInteractionService
         }, cancellationToken);
 
         // Use the same CTS from the inputs interaction
-        return new Interaction<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
+        return new InteractionReference<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
     }
 
-    public Interaction<InteractionInput> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public InteractionReference<InteractionInput> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var interaction = PromptInputsAsync(title, message, [input], options, cancellationToken);
         
@@ -145,10 +145,10 @@ internal class InteractionService : IInteractionService
         }, cancellationToken);
 
         // Use the same CTS from the inputs interaction
-        return new Interaction<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
+        return new InteractionReference<InteractionInput>(resultTask, interaction.GetCancellationTokenSource());
     }
 
-    public Interaction<InteractionInputCollection> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public InteractionReference<InteractionInputCollection> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
@@ -247,10 +247,10 @@ internal class InteractionService : IInteractionService
             }
         }, interactionCts.Token);
 
-        return new Interaction<InteractionInputCollection>(resultTask, interactionCts);
+        return new InteractionReference<InteractionInputCollection>(resultTask, interactionCts);
     }
 
-    public Interaction<bool> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public InteractionReference<bool> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
@@ -280,7 +280,7 @@ internal class InteractionService : IInteractionService
             }
         }, interactionCts.Token);
 
-        return new Interaction<bool>(resultTask, interactionCts);
+        return new InteractionReference<bool>(resultTask, interactionCts);
     }
 
     // For testing.
