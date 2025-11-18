@@ -14,6 +14,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -101,6 +102,9 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+        Task<int>? pendingRun = null;
+
         // Send terminal infinite progress bar start sequence
         StartTerminalProgressBar();
 
@@ -199,7 +203,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
-            var pendingRun = _runner.RunAsync(
+            pendingRun = _runner.RunAsync(
                 effectiveAppHostFile,
                 false,
                 true,
@@ -222,8 +226,6 @@ internal abstract class PipelineCommandBase : BaseCommand
             });
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-
-            var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
             
             // Check if debug or trace logging is enabled
             var logLevel = parseResult.GetValue(_logLevelOption);
@@ -242,17 +244,30 @@ internal abstract class PipelineCommandBase : BaseCommand
             await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
             var exitCode = await pendingRun;
 
-            if (exitCode == 0 && noFailuresReported)
+            // If the apphost returned a non-zero exit code, use it directly.
+            // This ensures we properly propagate apphost failures (e.g., exceptions, crashes).
+            if (exitCode != 0)
             {
-                return ExitCodeConstants.Success;
+                if (debugMode)
+                {
+                    InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                }
+                return exitCode;
             }
 
-            if (debugMode)
+            // If the apphost exited successfully (0) but reported failures via backchannel,
+            // return a failure exit code.
+            if (!noFailuresReported)
             {
-                InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                if (debugMode)
+                {
+                    InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                }
+                return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            return ExitCodeConstants.FailedToBuildArtifacts;
+            // Both apphost exit code and backchannel indicate success
+            return ExitCodeConstants.Success;
         }
         catch (OperationCanceledException)
         {
@@ -283,6 +298,14 @@ internal abstract class PipelineCommandBase : BaseCommand
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             InteractionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+        catch (ConnectionLostException ex)
+        {
+            // Occurs if the apphost RPC channel is lost unexpectedly.
+            StopTerminalProgressBar();
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
+            InteractionService.DisplayLines(operationOutputCollector.GetLines());
+            return pendingRun is { } && debugMode ? await pendingRun : ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
