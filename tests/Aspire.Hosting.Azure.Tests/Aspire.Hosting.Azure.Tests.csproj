@@ -4,8 +4,9 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <!--
       CS8002: Referenced assembly does not have a strong name
+      CS0618: Type or member is obsolete (for AddAzureRedis obsolete methods in tests)
     -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <NoWarn>$(NoWarn);CS8002;CS0618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

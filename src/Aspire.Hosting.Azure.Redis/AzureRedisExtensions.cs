@@ -111,6 +111,7 @@ public static class AzureRedisExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis and deploys significantly faster.")]
     public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)

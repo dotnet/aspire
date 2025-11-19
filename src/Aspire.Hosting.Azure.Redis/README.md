@@ -1,6 +1,8 @@
 # Aspire.Hosting.Azure.Redis library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Cache for Redis.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Cache for Redis and Azure Managed Redis.
+
+> **Note**: The `AddAzureRedis` method is obsolete. Use `AddAzureRedisEnterprise` instead, which provisions Azure Managed Redis and deploys significantly faster. Azure Cache for Redis can take 30+ minutes to provision, while Azure Managed Redis provisions much more quickly.
 
 ## Getting started
 
@@ -38,7 +40,20 @@ automatically.
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, register a Redis server and consume the connection using the following methods:
+### Using Azure Managed Redis (Recommended)
+
+Then, in the _AppHost.cs_ file of `AppHost`, register an Azure Managed Redis resource using the following methods:
+
+```csharp
+var redis = builder.AddAzureRedisEnterprise("cache");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(redis);
+```
+
+### Using Azure Cache for Redis (Legacy)
+
+> **Note**: `AddAzureRedis` is obsolete and will be removed in a future version. Use `AddAzureRedisEnterprise` instead.
 
 ```csharp
 var redis = builder.AddAzureRedis("cache");
@@ -47,7 +62,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(redis);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `cache`. By default, `AddAzureRedis` configures [Microsoft Entra ID](https://learn.microsoft.com/azure/azure-cache-for-redis/cache-azure-active-directory-for-authentication) authentication. This requires changes to applications that need to connect to these resources. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using the client library [Aspire.StackExchange.Redis](https://www.nuget.org/packages/Aspire.StackExchange.Redis) and [Microsoft.Azure.StackExchangeRedis](https://www.nuget.org/packages/Microsoft.Azure.StackExchangeRedis):
+The `WithReference` method configures a connection in the `MyService` project named `cache`. By default, both methods configure [Microsoft Entra ID](https://learn.microsoft.com/azure/azure-cache-for-redis/cache-azure-active-directory-for-authentication) authentication. This requires changes to applications that need to connect to these resources. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using the client library [Aspire.StackExchange.Redis](https://www.nuget.org/packages/Aspire.StackExchange.Redis) and [Microsoft.Azure.StackExchangeRedis](https://www.nuget.org/packages/Microsoft.Azure.StackExchangeRedis):
 
 ```csharp
 var azureOptionsProvider = new AzureOptionsProvider();
