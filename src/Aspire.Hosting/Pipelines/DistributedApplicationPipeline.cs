@@ -67,7 +67,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         {
                             var result = await interactionService.PromptNotificationAsync(
                                 "Clear Deployment State",
-                                $"The deployment state for the '{hostEnvironment.EnvironmentName}' environment will be deleted. All Azure resources will be re-provisioned. Do you want to continue?",
+                                $"The deployment state for the '{hostEnvironment.EnvironmentName}' environment will be deleted. Resources might be re-provisioned. Do you want to continue?",
                                 new NotificationInteractionOptions
                                 {
                                     Intent = MessageIntent.Confirmation,
