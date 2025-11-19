@@ -8,6 +8,23 @@
     <_GeneratedClassNameFixupRegex>(((?&lt;=\.)|^)(?=\d)|\W)</_GeneratedClassNameFixupRegex>
   </PropertyGroup>
 
+  <!-- Determine the path to the MSBuild tasks assembly based on MSBuild version -->
+  <PropertyGroup>
+    <!-- MSBuild 17+ (VS 2022+, .NET 8+) uses net8.0, older versions use net472 -->
+    <_AspireTasksTfm Condition="'$(MSBuildVersion)' != '' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '17.0'))">net8.0</_AspireTasksTfm>
+    <_AspireTasksTfm Condition="'$(_AspireTasksTfm)' == ''">net472</_AspireTasksTfm>
+    
+    <!-- Try package location first (when consumed from NuGet) -->
+    <_AspireTasksAssembly>$(MSBuildThisFileDirectory)..\tools\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
+    
+    <!-- Fall back to build output location (when building from source) -->
+    <_AspireTasksAssembly Condition="!Exists('$(_AspireTasksAssembly)')">$(MSBuildThisFileDirectory)..\..\Aspire.Hosting.Tasks\bin\$(Configuration)\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
+    <_AspireTasksAssembly Condition="!Exists('$(_AspireTasksAssembly)')">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\Aspire.Hosting.Tasks\$(Configuration)\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
+  </PropertyGroup>
+
+  <!-- Load the compiled MSBuild task -->
+  <UsingTask TaskName="Aspire.Hosting.Tasks.GetNonExecutableReferences" AssemblyFile="$(_AspireTasksAssembly)" />
+
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
     <ProjectCapability Include="Aspire_@VERSION@" Condition=" '$(IsAspireHost)' == 'true' " />
@@ -137,48 +154,6 @@ namespace Projects%3B
   <Target Name="_WarnOnUnsupportedLanguage" Condition="'$(Language)' != 'C#'">
     <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." HelpLink="https://aka.ms/aspire/diagnostics/aspire001" />
   </Target>
-
-  <!--
-  Gets the references in 'AppProjectTargetFramework' that aren't executable projects.
-  -->
-  <UsingTask TaskName="GetNonExecutableReferences"
-             TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <AppProjectTargetFramework ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
-      <NonExecutableReferences ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.Xml.Linq" />
-      <Code Type="Fragment" Language="cs">
-        <![CDATA[
-          HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
-
-          foreach (var appProject in AppProjectTargetFramework)
-          {
-            var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
-            if (string.IsNullOrEmpty(additionalProperties))
-            {
-              // Skip any projects that don't contain the right metadata
-              continue;
-            }
-
-            var additionalPropertiesXml = XElement.Parse(additionalProperties);
-            foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
-            {
-              var isExe = targetFrameworkElement.Element("_IsExecutable");
-              if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
-              {
-                nonExecutableReferences.Add(appProject);
-              }
-            }
-          }
-
-          NonExecutableReferences = nonExecutableReferences.ToArray();
-        ]]>
-      </Code>
-    </Task>
-  </UsingTask>
 
   <!--
   Validates that all the ProjectReferences of an Aspire AppHost project are executables and
