@@ -28,20 +28,22 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     internal static IResourceBuilder<T> EnsureBuildPipelineStepAnnotation<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
+        // Add default container image options if not already set
+        if (!builder.Resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
+        {
+            builder.WithContainerImageOptions(_ => new ContainerImageOptions
+            {
+                TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
+                ImageTag = $"aspire-{DateTime.UtcNow:yyyyMMddHHmmss}"
+            });
+        }
+
         // Use replace semantics to ensure we only have one PipelineStepAnnotation for building
         return builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
         {
             if (!builder.Resource.RequiresImageBuild() || builder.Resource.IsExcludedFromPublish())
             {
                 return [];
-            }
-
-            if (!builder.Resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
-            {
-                builder.Resource.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
-                {
-                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                }));
             }
 
             var buildStep = new PipelineStep

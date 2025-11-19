@@ -61,6 +61,13 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 }
             }
         }));
+
+        // Add default container image options
+        Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
+        {
+            TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
+            ImageTag = $"aspire-{DateTime.UtcNow:yyyyMMddHHmmss}"
+        }));
     }
     // Keep track of the config host for each Kestrel endpoint annotation
     internal Dictionary<EndpointAnnotation, string> KestrelEndpointAnnotationHosts { get; } = new();
@@ -91,15 +98,6 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
     {
         var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var logger = ctx.Logger;
-
-        // Set build options as an annotation if not already set
-        if (!this.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
-        {
-            this.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
-            {
-                TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-            }));
-        }
 
         // Build the container image for the project first
         await containerImageBuilder.BuildImageAsync(this, ctx.CancellationToken).ConfigureAwait(false);

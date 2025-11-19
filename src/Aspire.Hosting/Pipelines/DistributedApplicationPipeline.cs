@@ -11,7 +11,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -107,25 +106,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                             File.Delete(stateFilePath);
                         }
                     }
-                }
-
-                var computeResources = context.Model.Resources
-                        .Where(r => r.RequiresImageBuild())
-                        .ToList();
-
-                var uniqueDeployTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
-
-                context.Logger.LogInformation("Setting default deploy tag '{Tag}' for compute resource(s).", uniqueDeployTag);
-
-                // Resources that were built, will get this tag unless they have custom ContainerImageOptions
-                foreach (var resource in context.Model.GetBuildResources())
-                {
-                    if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
-                    {
-                        continue;
-                    }
-
-                    resource.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions { ImageTag = uniqueDeployTag }));
                 }
             }
         });

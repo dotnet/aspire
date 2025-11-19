@@ -34,7 +34,7 @@ internal static class AzureEnvironmentResourceHelpers
 
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                          throw new InvalidOperationException("Failed to retrieve container registry information.");
-        
+
         var registryEndpoint = await registry.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                               throw new InvalidOperationException("Failed to retrieve container registry endpoint.");
 
@@ -82,13 +82,6 @@ internal static class AzureEnvironmentResourceHelpers
                 {
                     throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
                 }
-
-                // Set the build options as an annotation
-                resource.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
-                {
-                    ImageTag = targetTag,
-                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                }));
 
                 await containerImageBuilder.BuildImageAsync(resource, context.CancellationToken).ConfigureAwait(false);
                 await containerImageBuilder.PushImageAsync(targetTag, context.CancellationToken).ConfigureAwait(false);

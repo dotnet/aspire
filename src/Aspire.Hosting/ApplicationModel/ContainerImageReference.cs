@@ -59,7 +59,7 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
         {
             tag = "latest";
         }
-        
+
         return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:{tag}";
     }
 }
