@@ -95,6 +95,8 @@ public partial class McpServerDialog
             };
 
             // Define the input for the API key
+            // Don't localize the description here because this value flows out from the dashboard and is persisted.
+            // I don't think we should use the value of the dashboard's culture at the moment the button is clicked. Leave it as a static English value.
             inputs = new List<McpInputModel>
             {
                 new McpInputModel
