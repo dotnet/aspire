@@ -53,10 +53,10 @@
                         </a>
                     </p>
                     <p>
-                        The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.
+                        @Loc[nameof(Dialogs.McpServerDialogVSCodeApiKeyInstructions)]
                     </p>
                     <p class="input-container">
-                        <FluentInputLabel ForId="vscode-api-key-field" Label="Aspire MCP API key" />
+                        <FluentInputLabel ForId="vscode-api-key-field" Label="@Loc[nameof(Dialogs.McpServerDialogApiKeyLabel)]" />
                         <div class="api-key-container">
                             <FluentTextField id="vscode-api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
                                              Style="width: 300px"
@@ -67,7 +67,7 @@
                                     <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
                                     <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
                                 </span>
-                                Copy
+                                @Loc[nameof(Dialogs.McpServerDialogCopyButton)]
                             </FluentButton>
                         </div>
                     </p>
@@ -96,7 +96,7 @@
                         <FluentAccordion>
                             <FluentAccordionItem>
                                 <HeadingTemplate>
-                                    Manually updating <code>mcp.json</code>
+                                    @((MarkupString)Loc[nameof(Dialogs.McpServerDialogManuallyUpdatingAccordionHeading)].ToString())
                                 </HeadingTemplate>
                                 <ChildContent>
                                     <div class="mcp-more-info-container">
@@ -133,10 +133,10 @@
                         </a>
                     </p>
                     <p>
-                        You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.
+                        @Loc[nameof(Dialogs.McpServerDialogVisualStudioApiKeyInstructions)]
                     </p>
                     <p class="input-container">
-                        <FluentInputLabel ForId="vs-api-key-field" Label="Aspire MCP API key" />
+                        <FluentInputLabel ForId="vs-api-key-field" Label="@Loc[nameof(Dialogs.McpServerDialogApiKeyLabel)]" />
                         <div class="api-key-container">
                             <FluentTextField id="vs-api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
                                              Style="width: 300px"
@@ -147,7 +147,7 @@
                                     <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
                                     <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
                                 </span>
-                                Copy
+                                @Loc[nameof(Dialogs.McpServerDialogCopyButton)]
                             </FluentButton>
                         </div>
                     </p>
@@ -158,7 +158,7 @@
                         <FluentAccordion>
                             <FluentAccordionItem>
                                 <HeadingTemplate>
-                                    Manually updating <code>mcp.json</code>
+                                    @((MarkupString)Loc[nameof(Dialogs.McpServerDialogManuallyUpdatingAccordionHeading)].ToString())
                                 </HeadingTemplate>
                                 <ChildContent>
                                     <div class="mcp-more-info-container">
