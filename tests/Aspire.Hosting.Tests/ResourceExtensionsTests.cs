@@ -369,7 +369,7 @@ public class ResourceExtensionsTests
             .WithContainerImageOptions(_ => new ContainerImageOptions { ImageTag = "tag2" });
 
         var annotations = containerResource.Resource.Annotations.OfType<ContainerImageOptionsCallbackAnnotation>().ToList();
-        Assert.Equal(2, annotations.Count);
+        var annotation = Assert.Single(annotations);
 
         var context = new ContainerImageOptionsCallbackAnnotationContext
         {
@@ -377,8 +377,7 @@ public class ResourceExtensionsTests
             CancellationToken = CancellationToken.None,
         };
 
-        Assert.Equal("tag1", (await annotations[0].Callback(context)).ImageTag);
-        Assert.Equal("tag2", (await annotations[1].Callback(context)).ImageTag);
+        Assert.Equal("tag2", (await annotation.Callback(context)).ImageTag);
     }
 
     [Fact]

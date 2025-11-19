@@ -66,7 +66,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
         {
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
-            ImageTag = $"aspire-{DateTime.UtcNow:yyyyMMddHHmmss}"
+            ImageTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}"
         }));
     }
     // Keep track of the config host for each Kestrel endpoint annotation

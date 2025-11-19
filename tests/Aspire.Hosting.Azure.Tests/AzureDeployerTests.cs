@@ -307,8 +307,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
             options != null &&
             options.ImageTag != null &&
-            options.ImageTag.StartsWith("testregistry.azurecr.io/") &&
-            options.ImageTag.Contains("aspire-deploy-"));
+            options.ImageTag.StartsWith("aspire-deploy"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
@@ -367,8 +366,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
             options != null &&
             options.ImageTag != null &&
-            options.ImageTag.StartsWith("testregistry.azurecr.io/") &&
-            options.ImageTag.Contains("aspire-deploy-"));
+            options.ImageTag.StartsWith("aspire-deploy-"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
@@ -475,13 +473,11 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
             options != null &&
             options.ImageTag != null &&
-            options.ImageTag.StartsWith("aasregistry.azurecr.io/") &&
-            options.ImageTag.Contains("aspire-deploy-"));
+            options.ImageTag.StartsWith("aspire-deploy-"));
         Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
             options != null &&
             options.ImageTag != null &&
-            options.ImageTag.StartsWith("acaregistry.azurecr.io/") &&
-            options.ImageTag.Contains("aspire-deploy-"));
+            options.ImageTag.StartsWith("aspire-deploy-"));
 
         // Verify push calls were made for both registries with deployment tags
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
@@ -911,8 +907,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(mockImageBuilder.BuildImageOptions, options =>
             options != null &&
             options.ImageTag != null &&
-            options.ImageTag.StartsWith("testregistry.azurecr.io/") &&
-            options.ImageTag.Contains("aspire-deploy-"));
+            options.ImageTag.StartsWith("aspire-deploy-"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>

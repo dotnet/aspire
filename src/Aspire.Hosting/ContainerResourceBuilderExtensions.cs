@@ -34,7 +34,7 @@ public static class ContainerResourceBuilderExtensions
             builder.WithContainerImageOptions(_ => new ContainerImageOptions
             {
                 TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
-                ImageTag = $"aspire-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                ImageTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}"
             });
         }
 

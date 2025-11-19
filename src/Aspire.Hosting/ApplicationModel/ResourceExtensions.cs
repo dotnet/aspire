@@ -993,7 +993,7 @@ public static class ResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback));
+        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -1009,6 +1009,6 @@ public static class ResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback));
+        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 }
