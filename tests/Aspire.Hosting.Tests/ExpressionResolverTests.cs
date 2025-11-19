@@ -252,7 +252,7 @@ public class ExpressionResolverTests
 
         await Assert.ThrowsAsync<TimeoutException>(async () =>
         {
-            _ = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).AsTask().TimeoutAfter(TimeSpan.FromSeconds(20000));
+            _ = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).AsTask().TimeoutAfter(TimeSpan.FromSeconds(2));
         });
         
 
