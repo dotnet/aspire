@@ -7,6 +7,7 @@ using System.Formats.Tar;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
@@ -130,7 +131,7 @@ internal sealed class UpdateCommand : BaseCommand
             {
                 // Try to find a channel matching the provided channel/quality
                 channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
-                    ?? throw new InvalidOperationException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
+                    ?? throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
             }
             else
             {
@@ -165,7 +166,7 @@ internal sealed class UpdateCommand : BaseCommand
             InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("No channel found matching"))
+        catch (ChannelNotFoundException ex)
         {
             var message = Markup.Escape(ex.Message);
             InteractionService.DisplayError(message);
