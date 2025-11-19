@@ -34,7 +34,7 @@ public static class AzureResourceExtensions
         Infrastructure.NormalizeBicepIdentifier(resource.Name);
 
     /// <summary>
-    /// Disables role assignments for the specified Azure resource.
+    /// Clears all default role assignments for the specified Azure resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -45,31 +45,31 @@ public static class AzureResourceExtensions
     /// existing resources in subscriptions where you don't have permissions to create role assignments.
     /// </para>
     /// <para>
-    /// This method removes the <see cref="DefaultRoleAssignmentsAnnotation"/> from the resource, preventing
+    /// This method removes all <see cref="DefaultRoleAssignmentsAnnotation"/> instances from the resource, preventing
     /// automatic role assignment creation during provisioning.
     /// </para>
     /// </remarks>
     /// <example>
-    /// Disable role assignments for an Azure Key Vault resource:
+    /// Clear default role assignments for an Azure Key Vault resource:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var keyVault = builder.AddAzureKeyVault("keyvault")
-    ///     .WithoutRoleAssignments();
+    ///     .ClearDefaultRoleAssignments();
     ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///     .WithReference(keyVault);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithoutRoleAssignments<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> ClearDefaultRoleAssignments<T>(this IResourceBuilder<T> builder)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var defaultRoleAssignmentAnnotation = builder.Resource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().FirstOrDefault();
-        if (defaultRoleAssignmentAnnotation is not null)
+        var annotations = builder.Resource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToList();
+        foreach (var annotation in annotations)
         {
-            builder.Resource.Annotations.Remove(defaultRoleAssignmentAnnotation);
+            builder.Resource.Annotations.Remove(annotation);
         }
 
         return builder;

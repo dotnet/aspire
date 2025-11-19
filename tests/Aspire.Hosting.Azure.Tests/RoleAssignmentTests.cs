@@ -222,13 +222,13 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
-    public async Task WithoutRoleAssignmentsRemovesDefaultAnnotation()
+    public async Task ClearDefaultRoleAssignmentsRemovesDefaultAnnotation()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
 
         var keyvault = builder.AddAzureKeyVault("keyvault")
-            .WithoutRoleAssignments();
+            .ClearDefaultRoleAssignments();
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithReference(keyvault);
@@ -247,16 +247,16 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
-    public async Task WithoutRoleAssignmentsOnMultipleResources()
+    public async Task ClearDefaultRoleAssignmentsOnMultipleResources()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
 
         var keyvault = builder.AddAzureKeyVault("keyvault")
-            .WithoutRoleAssignments();
+            .ClearDefaultRoleAssignments();
 
         var sb = builder.AddAzureServiceBus("sb")
-            .WithoutRoleAssignments();
+            .ClearDefaultRoleAssignments();
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithReference(keyvault)
@@ -280,13 +280,13 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
-    public async Task WithoutRoleAssignmentsDoesNotAffectExplicitRoleAssignments()
+    public async Task ClearDefaultRoleAssignmentsDoesNotAffectExplicitRoleAssignments()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
 
         var keyvault = builder.AddAzureKeyVault("keyvault")
-            .WithoutRoleAssignments();
+            .ClearDefaultRoleAssignments();
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithRoleAssignments(keyvault, KeyVaultBuiltInRole.KeyVaultSecretsUser)
@@ -297,7 +297,7 @@ public class RoleAssignmentTests()
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        // Verify that explicit role assignments still work even after WithoutRoleAssignments
+        // Verify that explicit role assignments still work even after ClearDefaultRoleAssignments
         var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-keyvault");
         Assert.NotNull(projRoles);
     }
