@@ -10,6 +10,7 @@ using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.AppService;
 
@@ -291,6 +292,9 @@ internal sealed class AzureAppServiceWebsiteContext(
             webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
         }
 
+        // Validate environment variable names for dashes before adding them to AppSettings
+        ValidateEnvironmentVariableNames();
+
         foreach (var kv in EnvironmentVariables)
         {
             var (val, secretType) = ProcessValue(kv.Value);
@@ -488,6 +492,40 @@ internal sealed class AzureAppServiceWebsiteContext(
             Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
             Value = "~3"
         });
+    }
+
+    private void ValidateEnvironmentVariableNames()
+    {
+        // Check for environment variable names with dashes
+        var variablesWithDashes = EnvironmentVariables.Keys
+            .Where(name => name.Contains('-'))
+            .OrderBy(name => name)
+            .ToList();
+
+        if (variablesWithDashes.Count == 0)
+        {
+            return;
+        }
+
+        var variableList = string.Join(", ", variablesWithDashes.Select(name => $"'{name}'"));
+
+        if (!environmentContext.Environment.AllowEnvironmentVariablesWithDashes)
+        {
+            throw new InvalidOperationException(
+                $"Aspire deployment failed: Environment variable name(s) {variableList} contain dashes. " +
+                $"Azure App Service removes dashes from environment variable names during deployment, " +
+                $"which may cause client integrations to fail when attempting to resolve the original variable names. " +
+                $"To allow deployment with these environment variables and accept the risk, " +
+                $"call WithAllowEnvironmentVariablesWithDashes() on the Azure App Service environment resource.");
+        }
+
+        // If AllowEnvironmentVariablesWithDashes is true, log a warning
+        environmentContext.Logger.LogWarning(
+            "Environment variable name(s) {VariableNames} contain dashes. " +
+            "Azure App Service will remove these dashes during deployment, " +
+            "which may cause client integrations to fail. " +
+            "Consider renaming these variables to use underscores instead of dashes.",
+            variableList);
     }
 
     enum SecretType

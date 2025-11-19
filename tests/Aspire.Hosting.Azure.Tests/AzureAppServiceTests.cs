@@ -806,6 +806,138 @@ public class AzureAppServiceTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    public async Task EnvironmentVariableWithDashThrowsException()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("MY-VARIABLE", "value");
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Contains("MY-VARIABLE", ex.Message);
+        Assert.Contains("Aspire deployment failed", ex.Message);
+        Assert.Contains("Azure App Service removes dashes", ex.Message);
+        Assert.Contains("WithAllowEnvironmentVariablesWithDashes", ex.Message);
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    public async Task MultipleEnvironmentVariablesWithDashesThrowsException()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("FIRST-VAR", "value1")
+            .WithEnvironment("SECOND-VAR", "value2")
+            .WithEnvironment("THIRD_VAR", "value3"); // This one is OK
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Contains("FIRST-VAR", ex.Message);
+        Assert.Contains("SECOND-VAR", ex.Message);
+        Assert.DoesNotContain("THIRD_VAR", ex.Message);
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    public async Task EnvironmentVariableWithDashAllowedWithOptOut()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env")
+            .WithAllowEnvironmentVariablesWithDashes();
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("MY-VARIABLE", "value");
+
+        using var app = builder.Build();
+
+        // Should not throw
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var project = Assert.Single(model.GetProjectResources());
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    public async Task EnvironmentVariableWithoutDashDoesNotThrow()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("MY_VARIABLE", "value")
+            .WithEnvironment("ANOTHER_VAR", "value2");
+
+        using var app = builder.Build();
+
+        // Should not throw
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var project = Assert.Single(model.GetProjectResources());
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+    }
+
+    [Fact]
+    public void WithAllowEnvironmentVariablesWithDashesSetsProperty()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env")
+            .WithAllowEnvironmentVariablesWithDashes();
+
+        Assert.True(env.Resource.AllowEnvironmentVariablesWithDashes);
+    }
+
+    [Fact]
+    public void WithAllowEnvironmentVariablesWithDashesCanBeSetToFalse()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env")
+            .WithAllowEnvironmentVariablesWithDashes(false);
+
+        Assert.False(env.Resource.AllowEnvironmentVariablesWithDashes);
+    }
+
+    [Fact]
+    public void AllowEnvironmentVariablesWithDashesDefaultsToFalse()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env");
+
+        Assert.False(env.Resource.AllowEnvironmentVariablesWithDashes);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 

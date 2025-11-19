@@ -193,6 +193,14 @@ public class AzureAppServiceEnvironmentResource :
     internal bool EnableAutomaticScaling { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether environment variable names with dashes are allowed.
+    /// When false (default), deployment will fail if any environment variable name contains a dash.
+    /// When true, deployment will proceed with a warning.
+    /// Azure App Service removes dashes from environment variable names, which may cause client integrations to fail.
+    /// </summary>
+    public bool AllowEnvironmentVariablesWithDashes { get; set; }
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
