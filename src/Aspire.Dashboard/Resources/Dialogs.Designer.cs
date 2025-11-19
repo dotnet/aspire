@@ -268,6 +268,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Evaluations.
+        /// </summary>
+        public static string GenAIEvaluationsTabText {
+            get {
+                return ResourceManager.GetString("GenAIEvaluationsTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Input.
         /// </summary>
         public static string GenAIInputHeaderText {
@@ -327,6 +336,15 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAIMessageCategoryToolCalls {
             get {
                 return ResourceManager.GetString("GenAIMessageCategoryToolCalls", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tool response.
+        /// </summary>
+        public static string GenAIMessageCategoryToolResponse {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryToolResponse", resourceCulture);
             }
         }
         
@@ -421,6 +439,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No tools found..
+        /// </summary>
+        public static string GenAINoTools {
+            get {
+                return ResourceManager.GetString("GenAINoTools", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Output.
         /// </summary>
         public static string GenAIOutputHeaderText {
@@ -471,6 +498,60 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAITokensLabel {
             get {
                 return ResourceManager.GetString("GenAITokensLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No parameters.
+        /// </summary>
+        public static string GenAIToolNoParameters {
+            get {
+                return ResourceManager.GetString("GenAIToolNoParameters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Description.
+        /// </summary>
+        public static string GenAIToolParameterDescription {
+            get {
+                return ResourceManager.GetString("GenAIToolParameterDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Name.
+        /// </summary>
+        public static string GenAIToolParameterName {
+            get {
+                return ResourceManager.GetString("GenAIToolParameterName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type.
+        /// </summary>
+        public static string GenAIToolParameterType {
+            get {
+                return ResourceManager.GetString("GenAIToolParameterType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Required parameter.
+        /// </summary>
+        public static string GenAIToolRequiredParameter {
+            get {
+                return ResourceManager.GetString("GenAIToolRequiredParameter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tools.
+        /// </summary>
+        public static string GenAIToolsTabText {
+            get {
+                return ResourceManager.GetString("GenAIToolsTabText", resourceCulture);
             }
         }
         

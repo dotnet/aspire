@@ -51,9 +51,24 @@ Para más información, consulte la [documentación de aprovisionamiento de Azur
         <target state="translated">Aprovisionamiento de Azure</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupDialogTitle">
+        <source>Azure resource group</source>
+        <target state="translated">Grupo de recursos de Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
         <target state="translated">Grupo de recursos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="translated">Seleccionar o introducir un grupo de recursos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupSelectionMessage">
+        <source>Select your Azure resource group or enter a new name:</source>
+        <target state="translated">Seleccione su grupo de recursos de Azure o escriba un nombre nuevo:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">

@@ -266,9 +266,8 @@ public class Program
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
         {
-            EnableDefaultExceptionHandler = true,
-            // HACK: Workaround until we get 10.0 RC2: https://github.com/dotnet/command-line-api/pull/2674/files
-            ProcessTerminationTimeout = TimeSpan.FromSeconds(2)
+            ProcessTerminationTimeout = TimeSpan.FromSeconds(2),
+            EnableDefaultExceptionHandler = true
         };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();

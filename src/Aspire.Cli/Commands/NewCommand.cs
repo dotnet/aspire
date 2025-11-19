@@ -243,18 +243,22 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheOutputPath,
-            defaultValue: path,
+            defaultValue: path.EscapeMarkup(),
             cancellationToken: cancellationToken
             );
     }
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the default name to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
-            defaultValue: defaultName,
+            defaultValue: defaultName.EscapeMarkup(),
             validator: name => ProjectNameValidator.IsProjectNameValid(name)
                 ? ValidationResult.Success()
                 : ValidationResult.Error(NewCommandStrings.InvalidProjectName),

@@ -83,7 +83,14 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
 
         if (PasswordParameter is not null)
         {
-            builder.Append($"{UserNameReference:uri}:{PasswordParameter:uri}@");
+            if (UserNameParameter is not null)
+            {
+                builder.Append($"{UserNameParameter:uri}:{PasswordParameter:uri}@");
+            }
+            else
+            {
+                builder.Append($"{DefaultUserName:uri}:{PasswordParameter:uri}@");
+            }
         }
 
         builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");

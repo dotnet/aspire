@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
+using Microsoft.OpenApi.Any;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -666,6 +667,437 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.True(vm.NoMessageContent);
     }
 
+    [Fact]
+    public void Create_LangSmithFormat_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // LangSmith uses flattened attributes with indexed format
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            // Prompt messages
+            KeyValuePair.Create("gen_ai.prompt.0.role", "system"),
+            KeyValuePair.Create("gen_ai.prompt.0.content", "You are a helpful assistant."),
+            KeyValuePair.Create("gen_ai.prompt.1.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.1.content", "Hello, how are you?"),
+            // Completion messages
+            KeyValuePair.Create("gen_ai.completion.0.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.0.content", "I'm doing well, thank you!")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("You are a helpful assistant.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Hello, how are you?", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("I'm doing well, thank you!", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.ModelName);
+        Assert.Null(vm.InputTokens);
+        Assert.Null(vm.OutputTokens);
+    }
+
+    [Fact]
+    public void Create_LangSmithFormat_MessageRoleContentFallback_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // LangSmith format with message.role and message.content as fallback
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            // Prompt messages using message.role and message.content
+            KeyValuePair.Create("gen_ai.prompt.0.message.role", "system"),
+            KeyValuePair.Create("gen_ai.prompt.0.message.content", "You are a coding assistant."),
+            KeyValuePair.Create("gen_ai.prompt.1.message.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.1.message.content", "Write a hello world program."),
+            // Completion messages using message.role and message.content
+            KeyValuePair.Create("gen_ai.completion.0.message.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.0.message.content", "Here's a simple hello world program...")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("You are a coding assistant.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Write a hello world program.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Here's a simple hello world program...", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.ModelName);
+        Assert.Null(vm.InputTokens);
+        Assert.Null(vm.OutputTokens);
+    }
+
+    [Fact]
+    public void Create_LangSmithFormat_WithGapsInIndices_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // LangSmith format with gaps in indices (0, 2, 5 instead of consecutive 0, 1, 2)
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            // Prompt messages with gaps in indices
+            KeyValuePair.Create("gen_ai.prompt.0.role", "system"),
+            KeyValuePair.Create("gen_ai.prompt.0.content", "You are a helpful assistant."),
+            // Skip index 1
+            KeyValuePair.Create("gen_ai.prompt.2.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.2.content", "What is 2+2?"),
+            // Skip indices 3 and 4
+            KeyValuePair.Create("gen_ai.prompt.5.role", "user"),
+            KeyValuePair.Create("gen_ai.prompt.5.content", "Follow up question."),
+            // Completion messages with gaps
+            KeyValuePair.Create("gen_ai.completion.0.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.0.content", "The answer is 4."),
+            // Skip index 1
+            KeyValuePair.Create("gen_ai.completion.3.role", "assistant"),
+            KeyValuePair.Create("gen_ai.completion.3.content", "Follow up answer.")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        // Messages should be parsed in order of their indices (0, 2, 5 for prompts; 0, 3 for completions)
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("You are a helpful assistant.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("What is 2+2?", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Follow up question.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("The answer is 4.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Follow up answer.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.ModelName);
+        Assert.Null(vm.InputTokens);
+        Assert.Null(vm.OutputTokens);
+    }
+
+    [Fact]
+    public void Create_GenAIToolDefinitions_ParsesToolDefinitions()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Create tool definitions JSON manually since OpenApiSchema doesn't serialize well with System.Text.Json
+        var toolDefinitionsJson = """
+        [
+          {
+            "type": "function",
+            "name": "get_current_weather",
+            "description": "Get the current weather in a given location",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "location": {
+                  "type": "string",
+                  "description": "The city and state, e.g. San Francisco, CA"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": ["celsius", "fahrenheit"]
+                }
+              },
+              "required": ["location", "unit"]
+            }
+          }
+        ]
+        """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create(GenAIHelpers.GenAIToolDefinitions, toolDefinitionsJson)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.ToolDefinitions,
+            tool =>
+            {
+                Assert.Equal("function", tool.ToolDefinition.Type);
+                Assert.Equal("get_current_weather", tool.ToolDefinition.Name);
+                Assert.Equal("Get the current weather in a given location", tool.ToolDefinition.Description);
+                Assert.NotNull(tool.ToolDefinition.Parameters);
+                Assert.Equal("object", tool.ToolDefinition.Parameters.Type);
+                Assert.NotNull(tool.ToolDefinition.Parameters.Properties);
+                Assert.Equal(2, tool.ToolDefinition.Parameters.Properties.Count);
+
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("location"));
+                var locationProp = tool.ToolDefinition.Parameters.Properties["location"];
+                Assert.Equal("string", locationProp.Type);
+                Assert.Equal("The city and state, e.g. San Francisco, CA", locationProp.Description);
+
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("unit"));
+                var unitProp = tool.ToolDefinition.Parameters.Properties["unit"];
+                Assert.Equal("string", unitProp.Type);
+                Assert.NotNull(unitProp.Enum);
+                Assert.Equal(2, unitProp.Enum.Count);
+                Assert.Equal("celsius", ((OpenApiString)unitProp.Enum[0]).Value);
+                Assert.Equal("fahrenheit", ((OpenApiString)unitProp.Enum[1]).Value);
+
+                Assert.NotNull(tool.ToolDefinition.Parameters.Required);
+                Assert.Equal(2, tool.ToolDefinition.Parameters.Required.Count);
+                Assert.Contains("location", tool.ToolDefinition.Parameters.Required);
+                Assert.Contains("unit", tool.ToolDefinition.Parameters.Required);
+            });
+    }
+
+    [Fact]
+    public void Create_GenAIToolDefinitions_InvalidJson_EmptyToolDefinitions()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create(GenAIHelpers.GenAIToolDefinitions, "invalid json")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.ToolDefinitions);
+    }
+
+    [Fact]
+    public void Create_NoToolDefinitions_EmptyToolDefinitions()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.ToolDefinitions);
+    }
+
     private static GenAIVisualizerDialogViewModel Create(
         TelemetryRepository repository,
         SpanDetailsViewModel spanDetailsViewModel)
@@ -676,5 +1108,377 @@ public sealed class GenAIVisualizerDialogViewModelTests
             errorRecorder: new TestTelemetryErrorRecorder(),
             telemetryRepository: repository,
             () => [spanDetailsViewModel.Span]);
+    }
+
+    [Fact]
+    public void Create_NoEvaluationResults_EmptyEvaluationsList()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Evaluations);
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsInLogEntries_ParsedCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "Relevance"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.label", "relevant"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.85"),
+                                    KeyValuePair.Create("gen_ai.evaluation.explanation", "The response is factually accurate and addresses the question."),
+                                    KeyValuePair.Create("gen_ai.response.id", "chatcmpl-123")
+                                ]),
+                            CreateLogRecord(
+                                time: s_testTime.AddSeconds(1),
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "IntentResolution"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.label", "incorrect"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.65"),
+                                    KeyValuePair.Create("error.type", "timeout")
+                                ])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Evaluations,
+            e =>
+            {
+                Assert.Equal("Relevance", e.Name);
+                Assert.Equal("relevant", e.ScoreLabel);
+                Assert.Equal(0.85, e.ScoreValue);
+                Assert.Equal("The response is factually accurate and addresses the question.", e.Explanation);
+                Assert.Equal("chatcmpl-123", e.ResponseId);
+                Assert.Null(e.ErrorType);
+            },
+            e =>
+            {
+                Assert.Equal("IntentResolution", e.Name);
+                Assert.Equal("incorrect", e.ScoreLabel);
+                Assert.Equal(0.65, e.ScoreValue);
+                Assert.Null(e.Explanation);
+                Assert.Null(e.ResponseId);
+                Assert.Equal("timeout", e.ErrorType);
+            });
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsInSpanEvents_ParsedCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var events = new List<Span.Types.Event>
+        {
+            CreateSpanEvent(
+                name: "gen_ai.evaluation.result",
+                startTime: 0,
+                attributes: new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("gen_ai.evaluation.name", "Relevance"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.label", "pass"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.95"),
+                    KeyValuePair.Create("gen_ai.evaluation.explanation", "Very accurate response"),
+                    KeyValuePair.Create("gen_ai.response.id", "chatcmpl-456")
+                }),
+            CreateSpanEvent(
+                name: "gen_ai.evaluation.result",
+                startTime: 1,
+                attributes: new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("gen_ai.evaluation.name", "IntentResolution"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.88")
+                })
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(
+                                traceId: "1",
+                                spanId: "1-1",
+                                startTime: s_testTime.AddMinutes(1),
+                                endTime: s_testTime.AddMinutes(10),
+                                events: events)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Evaluations,
+            e =>
+            {
+                Assert.Equal("Relevance", e.Name);
+                Assert.Equal("pass", e.ScoreLabel);
+                Assert.Equal(0.95, e.ScoreValue);
+                Assert.Equal("Very accurate response", e.Explanation);
+                Assert.Equal("chatcmpl-456", e.ResponseId);
+                Assert.Null(e.ErrorType);
+            },
+            e =>
+            {
+                Assert.Equal("IntentResolution", e.Name);
+                Assert.Null(e.ScoreLabel);
+                Assert.Equal(0.88, e.ScoreValue);
+                Assert.Null(e.Explanation);
+                Assert.Null(e.ResponseId);
+                Assert.Null(e.ErrorType);
+            });
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsMinimalData_ParsedCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "BasicMetric")
+                                ])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Single(vm.Evaluations);
+        Assert.Equal("BasicMetric", vm.Evaluations[0].Name);
+        Assert.Null(vm.Evaluations[0].ScoreLabel);
+        Assert.Null(vm.Evaluations[0].ScoreValue);
+        Assert.Null(vm.Evaluations[0].Explanation);
+        Assert.Null(vm.Evaluations[0].ResponseId);
+        Assert.Null(vm.Evaluations[0].ErrorType);
+    }
+
+    [Fact]
+    public void Create_EvaluationResultsFromBothLogEntriesAndSpanEvents_AllParsed()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var events = new List<Span.Types.Event>
+        {
+            CreateSpanEvent(
+                name: "gen_ai.evaluation.result",
+                startTime: 0,
+                attributes: new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("gen_ai.evaluation.name", "SpanEventMetric"),
+                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.75")
+                })
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(
+                                traceId: "1",
+                                spanId: "1-1",
+                                startTime: s_testTime.AddMinutes(1),
+                                endTime: s_testTime.AddMinutes(10),
+                                events: events)
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [
+                                    KeyValuePair.Create("event.name", "gen_ai.evaluation.result"),
+                                    KeyValuePair.Create("gen_ai.evaluation.name", "LogEntryMetric"),
+                                    KeyValuePair.Create("gen_ai.evaluation.score.value", "0.65")
+                                ])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Equal(2, vm.Evaluations.Count);
+        Assert.Contains(vm.Evaluations, e => e.Name == "LogEntryMetric" && e.ScoreValue == 0.65);
+        Assert.Contains(vm.Evaluations, e => e.Name == "SpanEventMetric" && e.ScoreValue == 0.75);
     }
 }

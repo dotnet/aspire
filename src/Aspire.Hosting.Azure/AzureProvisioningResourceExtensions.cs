@@ -90,6 +90,9 @@ public static class AzureProvisioningResourceExtensions
 
         if (kvs is null)
         {
+            // Ensure the secret reference is tracked in the infrastructure for dependency discovery
+            infrastructure.AspireResource.References.Add(secretReference);
+
             kvs = KeyVaultSecret.FromExisting(kvsName);
             kvs.Name = secretReference.SecretName;
             kvs.Parent = kv;

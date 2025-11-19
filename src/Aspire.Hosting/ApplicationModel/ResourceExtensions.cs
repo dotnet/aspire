@@ -524,7 +524,7 @@ public static class ResourceExtensions
         return (scope, certificates);
     }
 
-    private static async ValueTask<ResolvedValue?> ResolveValueAsync(
+    internal static async ValueTask<ResolvedValue?> ResolveValueAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,

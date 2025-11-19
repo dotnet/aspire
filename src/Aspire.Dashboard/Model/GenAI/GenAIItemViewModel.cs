@@ -50,6 +50,10 @@ public class GenAIItemViewModel
         {
             return new BadgeDetail(loc[nameof(Dialogs.GenAIMessageCategoryToolCalls)], "tool-calls", s_toolCallsIcon);
         }
+        if (ItemParts.Any(p => p.MessagePart?.Type == MessagePart.ToolCallResponseType))
+        {
+            return new BadgeDetail(loc[nameof(Dialogs.GenAIMessageCategoryToolResponse)], "tool-response", s_messageIcon);
+        }
 
         return new BadgeDetail(loc[nameof(Dialogs.GenAIMessageCategoryMessage)], "message", s_messageIcon);
     }

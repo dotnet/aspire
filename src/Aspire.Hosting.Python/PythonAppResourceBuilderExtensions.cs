@@ -8,12 +8,14 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001
 
 namespace Aspire.Hosting;
 
@@ -293,7 +295,54 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     c.Args.Add("--reload");
                 }
+            })
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--ssl-keyfile");
+                ctx.Arguments.Add(ctx.KeyPath);
+                ctx.Arguments.Add("--ssl-certfile");
+                ctx.Arguments.Add(ctx.CertificatePath);
+                if (ctx.Password is not null)
+                {
+                    ctx.Arguments.Add("--ssl-keyfile-password");
+                    ctx.Arguments.Add(ctx.Password);
+                }
+
+                return Task.CompletedTask;
             });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
+                    // Uvicorn only supports binding to a single port
+                    resourceBuilder
+                        .WithEndpoint("http", ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         return resourceBuilder;
     }
@@ -316,6 +365,8 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
+        // Register Python environment validation services (once per builder)
+        builder.Services.TryAddSingleton<PythonInstallationManager>();
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -1183,6 +1234,9 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Register UV validation service
+        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
@@ -1271,6 +1325,20 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder.Resource)
                 .ExcludeFromManifest();
 
+            // Add validation for the installer command (uv or python)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Check which command this installer is using (set by BeforeStartEvent)
+                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
+                    executable.Command == "uv")
+                {
+                    // Validate that uv is installed - don't throw so the app fails as it normally would
+                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
+            });
+
             builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // Set the installer's working directory to match the resource's working directory
@@ -1344,7 +1412,13 @@ public static class PythonAppResourceBuilderExtensions
             .WithArgs(["-m", "venv", venvPath])
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
-            .ExcludeFromManifest();
+            .ExcludeFromManifest()
+            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
+            {
+                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
+                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
+                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
 
         // Wait relationships will be set up dynamically in SetupDependencies
     }

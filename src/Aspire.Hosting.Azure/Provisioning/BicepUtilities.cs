@@ -14,16 +14,33 @@ namespace Aspire.Hosting.Azure.Provisioning;
 /// </summary>
 internal static class BicepUtilities
 {
+    // Known values since they will be filled in by the provisioner
+    private static readonly string[] s_knownParameterNames =
+    [
+        AzureBicepResource.KnownParameters.PrincipalName,
+        AzureBicepResource.KnownParameters.PrincipalId,
+        AzureBicepResource.KnownParameters.PrincipalType,
+        AzureBicepResource.KnownParameters.UserPrincipalId,
+        AzureBicepResource.KnownParameters.Location,
+    ];
+
     /// <summary>
     /// Converts the parameters to a JSON object compatible with the ARM template.
     /// </summary>
-    public static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, CancellationToken cancellationToken = default)
+    public static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false, CancellationToken cancellationToken = default)
     {
         // Convert the parameters to a JSON object
         foreach (var parameter in resource.Parameters)
         {
             // Execute parameter values which are deferred.
             var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
+            // Skip known parameters with 'null' values, like PrincipalType and PrincipalId, since they are filled in by the provisioner
+            // and are not available at this time. If we don't do this, the "roles" resources will be re-deployed every run.
+            if (skipKnownValues && s_knownParameterNames.Contains(parameter.Key) && parameterValue is null)
+            {
+                continue;
+            }
 
             parameters[parameter.Key] = new JsonObject()
             {
@@ -109,7 +126,7 @@ internal static class BicepUtilities
             _ = resource.GetBicepTemplateString();
 
             // Now overwrite with live object values skipping known values.
-            await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SetParametersAsync(parameters, resource, skipKnownValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (scope is not null)
             {
                 await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);

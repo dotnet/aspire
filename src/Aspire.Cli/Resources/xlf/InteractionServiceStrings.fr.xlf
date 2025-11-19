@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../InteractionServiceStrings.resx">
     <body>
+      <trans-unit id="AppHostConnectionLost">
+        <source>The connection to the app host was lost: {0}.</source>
+        <target state="new">The connection to the app host was lost: {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
         <target state="translated">La version de l’AppHost n’est pas compatible. Veuillez mettre à jour l’AppHost ou l’interface CLI Aspire.</target>
@@ -108,8 +113,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
-        <source>The project argument was not specified and no *.csproj files were detected.</source>
-        <target state="translated">L’argument de projet n’a pas été spécifié et aucun fichier *.csproj n’a été détecté.</target>
+        <source>The project argument was not specified and no app host project files were detected.</source>
+        <target state="translated">L'argument de projet n'a pas été spécifié et aucun fichier de projet hôte d'application n'a été détecté.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">

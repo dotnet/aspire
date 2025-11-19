@@ -13,11 +13,15 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 {
+    private static readonly Icon s_wrenchIcon = new Icons.Regular.Size16.Wrench();
+    private static readonly Icon s_toolIcon = new Icons.Regular.Size16.Code();
+
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
 
     private MarkdownProcessor _markdownProcess = default!;
@@ -55,6 +59,9 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     [Inject]
     public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
 
+    public bool NoPreviousGenAISpan => _currentSpanContextIndex == 0;
+    public bool NoNextGenAISpan => _currentSpanContextIndex >= _contextSpans.Count - 1;
+
     protected override void OnInitialized()
     {
         _markdownProcess = GenAIMarkdownHelper.CreateProcessor(ControlsStringsLoc);
@@ -80,20 +87,58 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private async Task UpdateDialogData()
     {
+        // Multiple threads can call this. Run check inside InvokeAsync to avoid concurrency issues.
         await InvokeAsync(() =>
         {
-            _contextSpans = Content.GetContextGenAISpans();
-            var span = _contextSpans.Find(s => s.SpanId == Content.Span.SpanId)!;
-            _currentSpanContextIndex = _contextSpans.IndexOf(span);
+            var hasUpdatedTrace = TelemetryRepository.HasUpdatedTrace(Content.Span.Trace);
+            var newContextSpans = Content.GetContextGenAISpans();
 
-            TryUpdateViewedGenAISpan(span);
-            StateHasChanged();
+            // Only update dialog data if the current trace has been updated,
+            // or if there are new context spans (for the next/previous buttons).
+            var newData = (hasUpdatedTrace || newContextSpans.Count > _contextSpans.Count);
+            if (newData)
+            {
+                var span = newContextSpans.Find(s => s.SpanId == Content.Span.SpanId)!;
+
+                _contextSpans = newContextSpans;
+                _currentSpanContextIndex = _contextSpans.IndexOf(span);
+
+                TryUpdateViewedGenAISpan(span);
+                StateHasChanged();
+            }
         });
     }
 
     private void OnViewItem(GenAIItemViewModel viewModel)
     {
         SelectedItem = viewModel;
+    }
+
+    private void ViewToolDefinition(ToolDefinitionViewModel toolDefinition)
+    {
+        SelectedItem = null;
+        OverviewActiveView = OverviewViewKind.Tools;
+        toolDefinition.Expanded = true;
+    }
+
+    private bool TryGetToolCall(string id, [NotNullWhen(true)] out GenAIItemViewModel? itemVM, [NotNullWhen(true)] out ToolCallRequestPart? toolCallRequestPart)
+    {
+        foreach (var messages in Content.InputMessages)
+        {
+            foreach (var part in messages.ItemParts)
+            {
+                if (part.MessagePart is ToolCallRequestPart { } p && p.Id == id)
+                {
+                    itemVM = messages;
+                    toolCallRequestPart = p;
+                    return true;
+                }
+            }
+        }
+
+        itemVM = null;
+        toolCallRequestPart = null;
+        return false;
     }
 
     private Task HandleSelectedTreeItemChangedAsync()

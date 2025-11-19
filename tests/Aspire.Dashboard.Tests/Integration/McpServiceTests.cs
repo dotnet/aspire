@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
@@ -62,7 +63,7 @@ public class McpServiceTests
         var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Assert
-        Assert.False(responseMessage.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, responseMessage.StatusCode);
     }
 
     [Fact]
@@ -85,7 +86,7 @@ public class McpServiceTests
         var responseMessage = await httpClient.SendAsync(requestMessage).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Assert
-        Assert.False(responseMessage.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
     }
 
     [Fact]
@@ -201,7 +202,7 @@ public class McpServiceTests
         var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Assert
-        Assert.False(responseMessage.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
     }
 
     [Fact]

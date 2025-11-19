@@ -132,9 +132,9 @@ public class ContainerResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
-            arg => Assert.Equal("http://c1:2234", arg), 
+            arg => Assert.Equal("http://c1.dev.internal:2234", arg),
             arg => Assert.Equal("connectionString", arg),
-            arg => Assert.Equal("http://container:5678", arg));
+            arg => Assert.Equal("http://container.dev.internal:5678", arg));
 
         // We don't yet process relationships set via the callbacks
         // so we don't see the testResource2 nor exe1

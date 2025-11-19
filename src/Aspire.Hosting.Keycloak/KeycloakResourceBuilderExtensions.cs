@@ -1,8 +1,11 @@
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -14,9 +17,13 @@ public static class KeycloakResourceBuilderExtensions
     private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
     private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+    private const string EnabledFeaturesEnvVarName = "KC_FEATURES";
+    private const string DisabledFeaturesEnvVarName = "KC_FEATURES_DISABLED";
 
     private const int DefaultContainerPort = 8080;
+    private const int DefaultHttpsPort = 8443;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
+
     private const string ManagementEndpointName = "management";
     private const string KeycloakImportDirectory = "/opt/keycloak/data/import";
 
@@ -64,13 +71,70 @@ public static class KeycloakResourceBuilderExtensions
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
             .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
             .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
+            .WithOtlpExporter()
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
+                if (resource.EnabledFeatures.Any())
+                {
+                    context.EnvironmentVariables[EnabledFeaturesEnvVarName] = string.Join(',', resource.EnabledFeatures);
+                }
+                if (resource.DisabledFeatures.Any())
+                {
+                    context.EnvironmentVariables[DisabledFeaturesEnvVarName] = string.Join(',', resource.DisabledFeatures);
+                }
             })
-            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
+            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly)
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                if (ctx.Password is null)
+                {
+                    ctx.EnvironmentVariables["KC_HTTPS_CERTIFICATE_FILE"] = ctx.CertificatePath;
+                    ctx.EnvironmentVariables["KC_HTTPS_CERTIFICATE_KEY_FILE"] = ctx.KeyPath;
+                }
+                else
+                {
+                    ctx.EnvironmentVariables["KC_HTTPS_KEY_STORE_FILE"] = ctx.PfxPath;
+                    ctx.EnvironmentVariables["KC_HTTPS_KEY_STORE_TYPE"] = "pkcs12";
+                    ctx.EnvironmentVariables["KC_HTTPS_KEY_STORE_PASSWORD"] = ctx.Password;
+                }
+
+                return Task.CompletedTask;
+            });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the keycloak resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    keycloak
+                        .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
+                        .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -193,5 +257,90 @@ public static class KeycloakResourceBuilderExtensions
             KeycloakImportDirectory,
             importFullPath,
             defaultOwner: KeycloakContainerImageTags.ContainerUser);
+    }
+
+    /// <summary>
+    /// Additional feature names to enable for the keycloak resource
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="features">Names of features to enable for the keycloak resource</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<KeycloakResource> WithEnabledFeatures(
+        this IResourceBuilder<KeycloakResource> builder,
+        params string[] features)
+    {
+        foreach (var feature in features)
+        {
+            // Add the feature to the enabled features set (and ensure it isn't in the disabled features set)
+            builder.Resource.EnabledFeatures.Add(feature);
+            builder.Resource.DisabledFeatures.Remove(feature);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Additional feature names to disable for the keycloak resource
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="features">Names of features to disable for the keycloak resource</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<KeycloakResource> WithDisabledFeatures(
+        this IResourceBuilder<KeycloakResource> builder,
+        params string[] features)
+    {
+        foreach (var feature in features)
+        {
+            // Add the feature to the disabled features set (and ensure it isn't in the enabled features set)
+            builder.Resource.DisabledFeatures.Add(feature);
+            builder.Resource.EnabledFeatures.Remove(feature);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Injects the appropriate environment variables to allow the resource to enable sending telemetry to the dashboard.
+    /// <list type="number">
+    ///   <item>It ensures the "opentelemetry" Keycloak feature is enabled</item>
+    ///   <item>It sets the OTLP endpoint to the value of the <c>ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL</c> environment variable.</item>
+    ///   <item>It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.</item>
+    ///   <item>It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.</item>
+    /// </list>
+    /// </summary>
+    /// <param name="builder">The keycloak resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{KeycloakResource}"/>.</returns>
+    public static IResourceBuilder<KeycloakResource> WithOtlpExporter(this IResourceBuilder<KeycloakResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Opentelemetry support requires the opentelemetry feature to be enabled.
+        builder.WithEnabledFeatures("opentelemetry");
+        OtlpConfigurationExtensions.WithOtlpExporter(builder);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Injects the appropriate environment variables to allow the resource to enable sending telemetry to the dashboard.
+    /// <list type="number">
+    ///   <item>It ensures the "opentelemetry" Keycloak feature is enabled</item>
+    ///   <item>It sets the OTLP endpoint to the value of the <c>ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL</c> environment variable.</item>
+    ///   <item>It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.</item>
+    ///   <item>It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.</item>
+    /// </list>
+    /// </summary>
+    /// <param name="builder">The keycloak resource builder.</param>
+    /// <param name="protocol">The protocol to use for the OTLP exporter. If not set, it will try gRPC then Http.</param>
+    /// <returns>The <see cref="IResourceBuilder{KeycloakResource}"/>.</returns>
+    public static IResourceBuilder<KeycloakResource> WithOtlpExporter(this IResourceBuilder<KeycloakResource> builder, OtlpProtocol protocol)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Opentelemetry support requires the opentelemetry feature to be enabled.
+        builder.WithEnabledFeatures("opentelemetry");
+        OtlpConfigurationExtensions.WithOtlpExporter(builder, protocol);
+
+        return builder;
     }
 }

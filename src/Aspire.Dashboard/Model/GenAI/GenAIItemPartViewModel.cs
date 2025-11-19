@@ -63,7 +63,15 @@ public sealed class GenAIItemPartViewModel
         }
         if (p is ToolCallRequestPart toolCallRequestPart)
         {
-            return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({toolCallRequestPart.Arguments?.ToJsonString()})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
+            var argumentsText = toolCallRequestPart.Arguments switch
+            {
+                null => string.Empty,
+                JsonObject obj when obj.Count == 0 => string.Empty,
+                JsonArray arr when arr.Count == 0 => string.Empty,
+                _ => toolCallRequestPart.Arguments.ToJsonString()
+            };
+
+            return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({argumentsText})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
         }
         if (p is ToolCallResponsePart toolCallResponsePart)
         {

@@ -51,9 +51,24 @@ Per altre informazioni, vedere la [documentazione sul provisioning di Azure](htt
         <target state="translated">Provisioning Azure</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupDialogTitle">
+        <source>Azure resource group</source>
+        <target state="translated">Gruppo di risorse di Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
         <target state="translated">Gruppo di risorse</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="translated">Selezionare o immettere un gruppo di risorse</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupSelectionMessage">
+        <source>Select your Azure resource group or enter a new name:</source>
+        <target state="translated">Selezionare il gruppo di risorse di Azure o immettere un nuovo nome:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">

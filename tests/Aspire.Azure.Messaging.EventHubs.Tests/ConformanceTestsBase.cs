@@ -55,6 +55,10 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
              ($$"""{"Aspire": { "Azure": { "Messaging" :{ "EventHubs": { "{{typeof(TService).Name}}": { "DisableHealthChecks": "true" } } } } } }""", "Value is \"string\" but should be \"boolean\""),
         ];
 
+    public ConformanceTestsBase(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     => configuration.AddInMemoryCollection(
     [

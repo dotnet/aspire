@@ -14,120 +14,170 @@ namespace Aspire.Hosting.Azure.Tests;
 public class DefaultTokenCredentialProviderTests
 {
     [Fact]
-    public void Constructor_NoCredentialSource_UsesDefaultAzureCredential()
+    public void Constructor_PublishMode_NoCredentialSource_UsesAzureCli()
     {
         // Arrange
         var azureOptions = CreateAzureOptions(credentialSource: null);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
 
         // Act
         var provider = new DefaultTokenCredentialProvider(
             NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
-
-        // Assert
-        Assert.IsType<DefaultAzureCredential>(provider.TokenCredential);
-    }
-
-    [Fact]
-    public void Constructor_ExplicitDefaultCredentialSource_UsesDefaultAzureCredential()
-    {
-        // Arrange
-        var azureOptions = CreateAzureOptions(credentialSource: "Default");
-
-        // Act
-        var provider = new DefaultTokenCredentialProvider(
-            NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
-
-        // Assert
-        Assert.IsType<DefaultAzureCredential>(provider.TokenCredential);
-    }
-
-    [Fact]
-    public void Constructor_ExplicitNonDefaultCredentialSource_RespectsSource()
-    {
-        // Arrange
-        var azureOptions = CreateAzureOptions(credentialSource: "AzurePowerShell");
-
-        // Act
-        var provider = new DefaultTokenCredentialProvider(
-            NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
-
-        // Assert
-        Assert.IsType<AzurePowerShellCredential>(provider.TokenCredential);
-    }
-
-    [Fact]
-    public void Constructor_ExplicitCredentialSource_RespectsSource()
-    {
-        // Arrange
-        var azureOptions = CreateAzureOptions(credentialSource: "VisualStudio");
-
-        // Act
-        var provider = new DefaultTokenCredentialProvider(
-            NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
-
-        // Assert
-        Assert.IsType<VisualStudioCredential>(provider.TokenCredential);
-    }
-
-    [Fact]
-    public void Constructor_InvalidCredentialSource_UsesDefaultAzureCredential()
-    {
-        // Arrange
-        var azureOptions = CreateAzureOptions(credentialSource: "InvalidSource");
-
-        // Act
-        var provider = new DefaultTokenCredentialProvider(
-            NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
-
-        // Assert
-        Assert.IsType<DefaultAzureCredential>(provider.TokenCredential);
-    }
-
-    [Fact]
-    public void Constructor_AzureCliCredentialSource_UsesAzureCliCredential()
-    {
-        // Arrange
-        var azureOptions = CreateAzureOptions(credentialSource: "AzureCli");
-
-        // Act
-        var provider = new DefaultTokenCredentialProvider(
-            NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
+            azureOptions,
+            executionContext);
 
         // Assert
         Assert.IsType<AzureCliCredential>(provider.TokenCredential);
     }
 
     [Fact]
-    public void Constructor_AzureDeveloperCliCredentialSource_UsesAzureDeveloperCliCredential()
+    public void Constructor_RunMode_NoCredentialSource_UsesDefaultAzureCredential()
     {
         // Arrange
-        var azureOptions = CreateAzureOptions(credentialSource: "AzureDeveloperCli");
+        var azureOptions = CreateAzureOptions(credentialSource: null);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
 
         // Act
         var provider = new DefaultTokenCredentialProvider(
             NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<DefaultAzureCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_PublishMode_ExplicitDefaultCredentialSource_UsesAzureCli()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "Default");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<AzureCliCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_RunMode_ExplicitDefaultCredentialSource_UsesDefaultAzureCredential()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "Default");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<DefaultAzureCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_PublishMode_ExplicitNonDefaultCredentialSource_RespectsSource()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "AzurePowerShell");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<AzurePowerShellCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_RunMode_ExplicitCredentialSource_RespectsSource()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "VisualStudio");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<VisualStudioCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_RunMode_InvalidCredentialSource_UsesDefaultAzureCredential()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "InvalidSource");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<DefaultAzureCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_RunMode_AzureCliCredentialSource_UsesAzureCliCredential()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "AzureCli");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
+
+        // Assert
+        Assert.IsType<AzureCliCredential>(provider.TokenCredential);
+    }
+
+    [Fact]
+    public void Constructor_RunMode_AzureDeveloperCliCredentialSource_UsesAzureDeveloperCliCredential()
+    {
+        // Arrange
+        var azureOptions = CreateAzureOptions(credentialSource: "AzureDeveloperCli");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+
+        // Act
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            azureOptions,
+            executionContext);
 
         // Assert
         Assert.IsType<AzureDeveloperCliCredential>(provider.TokenCredential);
     }
 
     [Fact]
-    public void Constructor_InteractiveBrowserCredentialSource_UsesInteractiveBrowserCredential()
+    public void Constructor_RunMode_InteractiveBrowserCredentialSource_UsesInteractiveBrowserCredential()
     {
         // Arrange
         var azureOptions = CreateAzureOptions(credentialSource: "InteractiveBrowser");
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
 
         // Act
         var provider = new DefaultTokenCredentialProvider(
             NullLogger<DefaultTokenCredentialProvider>.Instance,
-            azureOptions);
+            azureOptions,
+            executionContext);
 
         // Assert
         Assert.IsType<InteractiveBrowserCredential>(provider.TokenCredential);
@@ -137,7 +187,8 @@ public class DefaultTokenCredentialProviderTests
     {
         var options = new AzureProvisionerOptions
         {
-            CredentialSource = credentialSource ?? "Default"
+            // Intentionally allow CredentialSource to be null for tests that verify null handling.
+            CredentialSource = credentialSource!
         };
         return Options.Create(options);
     }
