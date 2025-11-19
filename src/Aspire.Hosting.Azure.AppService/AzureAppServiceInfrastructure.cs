@@ -46,9 +46,7 @@ internal sealed class AzureAppServiceInfrastructure(
                     continue;
                 }
 
-                var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
-
-                resource.Annotations.Add(new DeploymentTargetAnnotation(website)
+                resource.Annotations.Add(new DeploymentTargetAnnotation(resource)
                 {
                     ContainerRegistry = appServiceEnvironment,
                     ComputeEnvironment = appServiceEnvironment

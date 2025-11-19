@@ -32,14 +32,13 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         // Add pipeline step annotation for push
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
-            /* TODO: removing this check temporarily
             // Get the registry from the target resource's deployment target annotation
             var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
             if (deploymentTargetAnnotation?.ContainerRegistry is not IContainerRegistry registry)
             {
                 // No registry available, skip push
                 return [];
-            }*/
+            }
 
             var steps = new List<PipelineStep>();
 

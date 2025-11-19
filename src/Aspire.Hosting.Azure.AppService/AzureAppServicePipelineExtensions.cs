@@ -97,11 +97,13 @@ public static class AzureAppServicePipelineExtensions
                         var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, ctx.CancellationToken).ConfigureAwait(false);
                         ctx.ReportingStep.Log(LogLevel.Information, $"Created App Service async", true);
 
-                        resource.Annotations.Add(new DeploymentTargetAnnotation(website)
-                        {
-                            ContainerRegistry = appServiceEnvironment,
-                            ComputeEnvironment = appServiceEnvironment
-                        });
+                        var deploymentTargetAnnotation = resource.Annotations
+                            .OfType<DeploymentTargetAnnotation>()
+                            .FirstOrDefault();
+
+                        // Use deploymentTargetAnnotation as needed
+                        deploymentTargetAnnotation?.DeploymentTarget = website;
+
                         ctx.ReportingStep.Log(LogLevel.Information, $"Added deployment target annotations", true);
                     }
                 }
