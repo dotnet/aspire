@@ -26,6 +26,24 @@ public static class DurableTaskResourceExtensions
     }
 
     /// <summary>
+    /// Configures the Durable Task scheduler to use an existing scheduler instance referenced by the provided connection string.
+    /// No new scheduler resource is provisioned.
+    /// </summary>
+    /// <param name="builder">The scheduler resource builder.</param>
+    /// <param name="connectionString">The connection string referencing the existing Durable Task scheduler instance.</param>
+    /// <returns>The same <see cref="IResourceBuilder{DurableTaskSchedulerResource}"/> instance for fluent chaining.</returns>
+    /// <remarks>The existing resource annotation is only applied when the execution context is not in publish mode.</remarks>
+    public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, string connectionString)
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithAnnotation(new DurableTaskSchedulerConnectionStringAnnotation(connectionString));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Configures the Durable Task scheduler to run using the local emulator (only in non-publish modes).
     /// </summary>
     /// <param name="builder">The resource builder for the scheduler.</param>
