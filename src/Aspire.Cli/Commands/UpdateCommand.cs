@@ -63,7 +63,7 @@ internal sealed class UpdateCommand : BaseCommand
             Options.Add(selfOption);
 
             var qualityOption = new Option<string?>("--quality");
-            qualityOption.Description = "Quality level to update to when using --self (stable, staging, daily)";
+            qualityOption.Description = "Quality level to update to (stable, staging, daily)";
             Options.Add(qualityOption);
         }
     }
@@ -111,12 +111,26 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
-
-            var channel = await InteractionService.PromptForSelectionAsync(
-                UpdateCommandStrings.SelectChannelPrompt,
-                channels,
-                (c) => $"{c.Name} ({c.SourceDetails})",
-                cancellationToken);
+            
+            // Check if quality option was provided
+            var quality = parseResult.GetValue<string?>("--quality");
+            PackageChannel channel;
+            
+            if (!string.IsNullOrEmpty(quality))
+            {
+                // Try to find a channel matching the provided quality
+                channel = channels.FirstOrDefault(c => string.Equals(c.Name, quality, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidOperationException($"No channel found matching quality '{quality}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
+            }
+            else
+            {
+                // Prompt for channel selection
+                channel = await InteractionService.PromptForSelectionAsync(
+                    UpdateCommandStrings.SelectChannelPrompt,
+                    channels,
+                    (c) => $"{c.Name} ({c.SourceDetails})",
+                    cancellationToken);
+            }
 
             await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
             
@@ -136,6 +150,12 @@ internal sealed class UpdateCommand : BaseCommand
             }
         }
         catch (ProjectUpdaterException ex)
+        {
+            var message = Markup.Escape(ex.Message);
+            InteractionService.DisplayError(message);
+            return ExitCodeConstants.FailedToUpgradeProject;
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("No channel found matching quality"))
         {
             var message = Markup.Escape(ex.Message);
             InteractionService.DisplayError(message);

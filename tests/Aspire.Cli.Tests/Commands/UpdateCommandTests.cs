@@ -307,6 +307,133 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         Assert.False(promptForSelectionInvoked, "Quality prompt should not be shown when --quality is provided");
         Assert.Equal("daily", capturedQuality);
     }
+
+    [Fact]
+    public async Task UpdateCommand_ProjectUpdate_WithQualityOption_DoesNotPromptForChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        PackageChannel? capturedChannel = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    // If this is called, it means the channel prompt was shown
+                    Assert.Fail("Channel prompt should not be shown when --quality option is provided");
+                    return choices.Cast<PackageChannel>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    capturedChannel = channel;
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = true });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    // Create test channels matching the expected names
+                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
+                    var dailyChannel = new PackageChannel("daily", PackageChannelQuality.Prerelease, null, null!);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel, dailyChannel });
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --quality daily");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown when --quality is provided");
+        Assert.NotNull(capturedChannel);
+        Assert.Equal("daily", capturedChannel.Name);
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_ProjectUpdate_WithInvalidQuality_DisplaysError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var errorDisplayed = false;
+        string? errorMessage = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                DisplayErrorCallback = (message) =>
+                {
+                    errorDisplayed = true;
+                    errorMessage = message;
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater();
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    // Create test channels matching the expected names
+                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
+                    var dailyChannel = new PackageChannel("daily", PackageChannelQuality.Prerelease, null, null!);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel, dailyChannel });
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --quality invalid");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.True(errorDisplayed, "Error should be displayed for invalid quality");
+        Assert.NotNull(errorMessage);
+        Assert.Contains("invalid", errorMessage);
+        Assert.Contains("stable", errorMessage);
+        Assert.Contains("daily", errorMessage);
+        Assert.Equal(ExitCodeConstants.FailedToUpgradeProject, exitCode);
+    }
 }
 
 // Test implementation of ICliUpdateNotifier
