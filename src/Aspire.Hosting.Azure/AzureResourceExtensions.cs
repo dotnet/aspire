@@ -62,7 +62,7 @@ public static class AzureResourceExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<T> ClearDefaultRoleAssignments<T>(this IResourceBuilder<T> builder)
-        where T : IResource
+        where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
