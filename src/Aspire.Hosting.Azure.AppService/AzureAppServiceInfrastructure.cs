@@ -5,13 +5,13 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+//using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.AppService;
 
 internal sealed class AzureAppServiceInfrastructure(
     ILogger<AzureAppServiceInfrastructure> logger,
-    IOptions<AzureProvisioningOptions> provisioningOptions,
+   // IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext) :
     IDistributedApplicationEventingSubscriber
 {
