@@ -704,7 +704,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new aspire-starter --name TestApp --output testoutput --use-redis-cache --test-framework None");
+        var testoutputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "testoutput");
+        var result = command.Parse($"new aspire-starter --name TestApp --output {testoutputPath} --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
