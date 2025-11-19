@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
+#pragma warning disable ASPIRECERTIFICATES001
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.Configuration["ConnectionStrings:cs"] = "testconnection";
@@ -15,7 +17,10 @@ builder.AddConnectionString("cs2", ReferenceExpression.Create($"Value={builder.A
 
 if (args.Contains("--add-redis"))
 {
-    builder.AddRedis("redis1");
+    builder.AddRedis("redis1")
+        // Disable certificate features to avoid extra arguments
+        .WithoutCertificateKeyPair()
+        .WithCertificateTrustScope(CertificateTrustScope.None);
 }
 
 var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
