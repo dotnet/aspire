@@ -262,6 +262,53 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UpdateCommand_SelfUpdate_WithChannelOption_DoesNotPromptForChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        string? capturedChannel = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    // If this is called, it means the channel prompt was shown
+                    Assert.Fail("Channel prompt should not be shown when --channel option is provided");
+                    return "stable";
+                }
+            };
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    capturedChannel = channel;
+                    // Create a fake archive file
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self --channel daily");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown when --channel is provided");
+        Assert.Equal("daily", capturedChannel);
+    }
+
+    [Fact]
     public async Task UpdateCommand_SelfUpdate_WithQualityOption_DoesNotPromptForQuality()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -306,6 +353,73 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.False(promptForSelectionInvoked, "Quality prompt should not be shown when --quality is provided");
         Assert.Equal("daily", capturedQuality);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_ProjectUpdate_WithChannelOption_DoesNotPromptForChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        PackageChannel? capturedChannel = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    // If this is called, it means the channel prompt was shown
+                    Assert.Fail("Channel prompt should not be shown when --channel option is provided");
+                    return choices.Cast<PackageChannel>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    capturedChannel = channel;
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = true });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    // Create test channels matching the expected names
+                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
+                    var dailyChannel = new PackageChannel("daily", PackageChannelQuality.Prerelease, null, null!);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel, dailyChannel });
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --channel daily");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown when --channel is provided");
+        Assert.NotNull(capturedChannel);
+        Assert.Equal("daily", capturedChannel.Name);
+        Assert.Equal(0, exitCode);
     }
 
     [Fact]
@@ -433,6 +547,71 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("stable", errorMessage);
         Assert.Contains("daily", errorMessage);
         Assert.Equal(ExitCodeConstants.FailedToUpgradeProject, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_ProjectUpdate_ChannelTakesPrecedenceOverQuality()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        PackageChannel? capturedChannel = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    Assert.Fail("Channel prompt should not be shown when --channel option is provided");
+                    return choices.Cast<PackageChannel>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    capturedChannel = channel;
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = true });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
+                    var dailyChannel = new PackageChannel("daily", PackageChannelQuality.Prerelease, null, null!);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel, dailyChannel });
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act - specify both --channel and --quality, --channel should win
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --channel stable --quality daily");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert - should use "stable" from --channel, not "daily" from --quality
+        Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown");
+        Assert.NotNull(capturedChannel);
+        Assert.Equal("stable", capturedChannel.Name);
+        Assert.Equal(0, exitCode);
     }
 }
 

@@ -62,8 +62,18 @@ internal sealed class UpdateCommand : BaseCommand
             selfOption.Description = "Update the Aspire CLI itself to the latest version";
             Options.Add(selfOption);
 
-            var qualityOption = new Option<string?>("--quality");
-            qualityOption.Description = "Quality level to update to (stable, staging, daily)";
+            var channelOption = new Option<string?>("--channel")
+            {
+                Description = "Channel to update to (stable, staging, daily)"
+            };
+            Options.Add(channelOption);
+
+            // Keep --quality for backward compatibility but hide it
+            var qualityOption = new Option<string?>("--quality")
+            {
+                Description = "Quality level to update to (stable, staging, daily)",
+                Hidden = true
+            };
             Options.Add(qualityOption);
         }
     }
@@ -112,15 +122,15 @@ internal sealed class UpdateCommand : BaseCommand
 
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
             
-            // Check if quality option was provided
-            var quality = parseResult.GetValue<string?>("--quality");
+            // Check if channel or quality option was provided (channel takes precedence)
+            var channelName = parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
             PackageChannel channel;
             
-            if (!string.IsNullOrEmpty(quality))
+            if (!string.IsNullOrEmpty(channelName))
             {
-                // Try to find a channel matching the provided quality
-                channel = channels.FirstOrDefault(c => string.Equals(c.Name, quality, StringComparison.OrdinalIgnoreCase))
-                    ?? throw new InvalidOperationException($"No channel found matching quality '{quality}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
+                // Try to find a channel matching the provided channel/quality
+                channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidOperationException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
             }
             else
             {
@@ -155,7 +165,7 @@ internal sealed class UpdateCommand : BaseCommand
             InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("No channel found matching quality"))
+        catch (InvalidOperationException ex) when (ex.Message.Contains("No channel found matching"))
         {
             var message = Markup.Escape(ex.Message);
             InteractionService.DisplayError(message);
@@ -187,17 +197,17 @@ internal sealed class UpdateCommand : BaseCommand
         return 0;
     }
 
-    private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken, string? selectedQuality = null)
+    private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken, string? selectedChannel = null)
     {
-        var quality = selectedQuality ?? parseResult.GetValue<string?>("--quality");
+        var channel = selectedChannel ?? parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
 
-        // If quality is not specified, prompt the user
-        if (string.IsNullOrEmpty(quality))
+        // If channel is not specified, prompt the user
+        if (string.IsNullOrEmpty(channel))
         {
-            var qualities = new[] { "stable", "staging", "daily" };
-            quality = await InteractionService.PromptForSelectionAsync(
-                "Select the quality level to update to:",
-                qualities,
+            var channels = new[] { "stable", "staging", "daily" };
+            channel = await InteractionService.PromptForSelectionAsync(
+                "Select the channel to update to:",
+                channels,
                 q => q,
                 cancellationToken);
         }
@@ -213,10 +223,10 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             InteractionService.DisplayMessage("package", $"Current CLI location: {currentExePath}");
-            InteractionService.DisplayMessage("up_arrow", $"Updating to quality level: {quality}");
+            InteractionService.DisplayMessage("up_arrow", $"Updating to channel: {channel}");
 
             // Download the latest CLI
-            var archivePath = await _cliDownloader!.DownloadLatestCliAsync(quality, cancellationToken);
+            var archivePath = await _cliDownloader!.DownloadLatestCliAsync(channel, cancellationToken);
 
             // Extract and update to $HOME/.aspire/bin
             await ExtractAndUpdateAsync(archivePath, cancellationToken);
