@@ -254,10 +254,6 @@ public class ExpressionResolverTests
         {
             _ = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).AsTask().TimeoutAfter(TimeSpan.FromSeconds(2));
         });
-        
-
-        // Assert.That(envVars["services__fake__http__0"], Is.EqualTo("http://localhost:1234"));
-        // Actual: `http://:`
     }
 }
 
