@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -29,19 +30,18 @@ internal static partial class EnvironmentVariableNameEncoder
             return name;
         }
 
-        var buffer = name.Length < 256 ? stackalloc char[name.Length] : new char[name.Length];
-        var index = 0;
+        var builder = new StringBuilder(name.Length + 1);
 
         if (char.IsAsciiDigit(name[0]))
         {
-            buffer[index++] = '_';
+            builder.Append('_');
         }
 
         foreach (var c in name)
         {
-            buffer[index++] = char.IsAsciiLetterOrDigit(c) ? c : '_';
+            builder.Append(char.IsAsciiLetterOrDigit(c) ? c : '_');
         }
 
-        return new string(buffer[..index]);
+        return builder.ToString();
     }
 }
