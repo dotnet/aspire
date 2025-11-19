@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES003
-#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -12,93 +13,6 @@ using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
-
-/// <summary>
-/// Specifies the format for container images.
-/// </summary>
-[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public enum ContainerImageFormat
-{
-    /// <summary>
-    /// Docker format (default).
-    /// </summary>
-    Docker,
-
-    /// <summary>
-    /// OCI format.
-    /// </summary>
-    Oci
-}
-
-/// <summary>
-/// Specifies the target platform for container images.
-/// </summary>
-[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-[Flags]
-public enum ContainerTargetPlatform
-{
-    /// <summary>
-    /// Linux AMD64 (linux/amd64).
-    /// </summary>
-    LinuxAmd64 = 1,
-
-    /// <summary>
-    /// Linux ARM64 (linux/arm64).
-    /// </summary>
-    LinuxArm64 = 2,
-
-    /// <summary>
-    /// Linux ARM (linux/arm).
-    /// </summary>
-    LinuxArm = 4,
-
-    /// <summary>
-    /// Linux 386 (linux/386).
-    /// </summary>
-    Linux386 = 8,
-
-    /// <summary>
-    /// Windows AMD64 (windows/amd64).
-    /// </summary>
-    WindowsAmd64 = 16,
-
-    /// <summary>
-    /// Windows ARM64 (windows/arm64).
-    /// </summary>
-    WindowsArm64 = 32,
-
-    /// <summary>
-    /// All Linux platforms (AMD64 and ARM64).
-    /// </summary>
-    AllLinux = LinuxAmd64 | LinuxArm64
-}
-
-/// <summary>
-/// Options for building container images.
-/// </summary>
-[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class ContainerBuildOptions
-{
-    /// <summary>
-    /// Gets the output path for the container archive.
-    /// </summary>
-    public string? OutputPath { get; init; }
-
-    /// <summary>
-    /// Gets the container image format.
-    /// </summary>
-    public ContainerImageFormat? ImageFormat { get; init; }
-
-    /// <summary>
-    /// Gets the target platform for the container.
-    /// </summary>
-    public ContainerTargetPlatform? TargetPlatform { get; init; }
-
-    /// <summary>
-    /// Gets the image tag to apply during build. Can be a single tag or multiple tags separated by semicolons.
-    /// </summary>
-    public string? ImageTag { get; init; }
-}
 
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
@@ -110,18 +24,16 @@ public interface IResourceContainerImageBuilder
     /// Builds a container that represents the specified resource.
     /// </summary>
     /// <param name="resource">The resource to build.</param>
-    /// <param name="options">The container build options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
+    Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Builds container images for a collection of resources.
     /// </summary>
     /// <param name="resources">The resources to build images for.</param>
-    /// <param name="options">The container build options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
+    Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pushes a container image to a registry.
@@ -141,12 +53,12 @@ internal sealed class ResourceContainerImageBuilder(
 
     private IContainerRuntime ContainerRuntime { get; } = containerRuntime;
 
-    public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting to build container images");
 
         // Only check container runtime health if there are resources that need it
-        if (ResourcesRequireContainerRuntime(resources, options))
+        if (ResourcesRequireContainerRuntime(resources))
         {
             logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
 
@@ -164,15 +76,26 @@ internal sealed class ResourceContainerImageBuilder(
         foreach (var resource in resources)
         {
             // TODO: Consider parallelizing this.
-            await BuildImageAsync(resource, options, cancellationToken).ConfigureAwait(false);
+            await BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogDebug("Building container images completed");
     }
 
-    public async Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
+
+        ContainerImageOptions? options = null;
+        if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var optionsAnnotation))
+        {
+            var context = new ContainerImageOptionsCallbackAnnotationContext
+            {
+                Resource = resource,
+                CancellationToken = cancellationToken
+            };
+            options = await optionsAnnotation.Callback(context).ConfigureAwait(false);
+        }
 
         if (resource is ProjectResource)
         {
@@ -212,7 +135,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerImageOptions? options, CancellationToken cancellationToken)
     {
         await _throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -239,7 +162,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ContainerImageOptions? options, CancellationToken cancellationToken)
     {
         // This is a resource project so we'll use the .NET SDK to build the container image.
         if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
@@ -344,7 +267,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerImageOptions? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building image: {ResourceName}", resource.Name);
 
@@ -431,105 +354,38 @@ internal sealed class ResourceContainerImageBuilder(
     }
 
     // .NET Container builds that push OCI images to a local file path do not need a runtime
-    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources, ContainerBuildOptions? options)
+    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources)
     {
-        var hasDockerfileResources = resources.Any(resource =>
-            resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
-            resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
-        var usesDocker = options == null || options.ImageFormat == ContainerImageFormat.Docker;
-        var hasNoOutputPath = options?.OutputPath == null;
-        return hasDockerfileResources || usesDocker || hasNoOutputPath;
-    }
+        foreach (var resource in resources)
+        {
+            var hasDockerfileResource = resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
+                                       resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+            if (hasDockerfileResource)
+            {
+                return true;
+            }
 
-}
+            if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var optionsAnnotation))
+            {
+                var options = optionsAnnotation.Callback(new ContainerImageOptionsCallbackAnnotationContext
+                {
+                    Resource = resource,
+                    CancellationToken = CancellationToken.None
+                }).GetAwaiter().GetResult();
 
-/// <summary>
-/// Extension methods for <see cref="ContainerTargetPlatform"/>.
-/// </summary>
-[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal static class ContainerTargetPlatformExtensions
-{
-    /// <summary>
-    /// Converts the target platform to the format used by container runtimes (Docker/Podman).
-    /// </summary>
-    /// <param name="platform">The target platform.</param>
-    /// <returns>The platform string in the format used by container runtimes.</returns>
-    public static string ToRuntimePlatformString(this ContainerTargetPlatform platform)
-    {
-        var platforms = new List<string>();
-
-        if (platform.HasFlag(ContainerTargetPlatform.LinuxAmd64))
-        {
-            platforms.Add("linux/amd64");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm64))
-        {
-            platforms.Add("linux/arm64");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm))
-        {
-            platforms.Add("linux/arm");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.Linux386))
-        {
-            platforms.Add("linux/386");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.WindowsAmd64))
-        {
-            platforms.Add("windows/amd64");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.WindowsArm64))
-        {
-            platforms.Add("windows/arm64");
+                var usesDocker = options?.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
+                var hasNoOutputPath = options?.OutputPath == null;
+                if (usesDocker || hasNoOutputPath)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return true;
+            }
         }
 
-        if (platforms.Count == 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform");
-        }
-
-        return string.Join(",", platforms);
-    }
-
-    /// <summary>
-    /// Converts the target platform to the format used by MSBuild RuntimeIdentifiers.
-    /// </summary>
-    /// <param name="platform">The target platform.</param>
-    /// <returns>The platform string in the format used by MSBuild.</returns>
-    public static string ToMSBuildRuntimeIdentifierString(this ContainerTargetPlatform platform)
-    {
-        var rids = new List<string>();
-
-        if (platform.HasFlag(ContainerTargetPlatform.LinuxAmd64))
-        {
-            rids.Add("linux-x64");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm64))
-        {
-            rids.Add("linux-arm64");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.LinuxArm))
-        {
-            rids.Add("linux-arm");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.Linux386))
-        {
-            rids.Add("linux-x86");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.WindowsAmd64))
-        {
-            rids.Add("win-x64");
-        }
-        if (platform.HasFlag(ContainerTargetPlatform.WindowsArm64))
-        {
-            rids.Add("win-arm64");
-        }
-
-        if (rids.Count == 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform");
-        }
-
-        return string.Join(";", rids);
+        return false;
     }
 }

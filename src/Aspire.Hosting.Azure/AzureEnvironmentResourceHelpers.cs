@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE001
+#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES003
-#pragma warning disable ASPIRECONTAINERRUNTIME001
-#pragma warning disable ASPIREAZURE001
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
@@ -82,14 +83,14 @@ internal static class AzureEnvironmentResourceHelpers
                     throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
                 }
 
-                // Build the image with the target tag directly
-                var buildOptions = new ContainerBuildOptions
+                // Set the build options as an annotation
+                resource.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
                 {
                     ImageTag = targetTag,
                     TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                };
+                }));
 
-                await containerImageBuilder.BuildImageAsync(resource, buildOptions, context.CancellationToken).ConfigureAwait(false);
+                await containerImageBuilder.BuildImageAsync(resource, context.CancellationToken).ConfigureAwait(false);
                 await containerImageBuilder.PushImageAsync(targetTag, context.CancellationToken).ConfigureAwait(false);
                 await pushTask.CompleteAsync($"Successfully pushed **{resource.Name}** to `{targetTag}`", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
             }

@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES003
 
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
@@ -15,7 +16,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
 
     protected override string RuntimeExecutable => "podman";
     public override string Name => "Podman";
-    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var arguments = $"build --file \"{dockerfilePath}\"";
 
@@ -91,7 +92,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
             environmentVariables).ConfigureAwait(false);
     }
 
-    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,

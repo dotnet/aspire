@@ -227,13 +227,13 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         public bool BuildImageCalled { get; private set; }
 
-        public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
@@ -35,20 +36,21 @@ public static class ContainerResourceBuilderExtensions
                 return [];
             }
 
+            if (!builder.Resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
+            {
+                builder.Resource.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
+                {
+                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                }));
+            }
+
             var buildStep = new PipelineStep
             {
                 Name = $"build-{builder.Resource.Name}",
                 Action = async ctx =>
                 {
                     var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-
-                    await containerImageBuilder.BuildImageAsync(
-                        builder.Resource,
-                        new ContainerBuildOptions
-                        {
-                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                        },
-                        ctx.CancellationToken).ConfigureAwait(false);
+                    await containerImageBuilder.BuildImageAsync(builder.Resource, ctx.CancellationToken).ConfigureAwait(false);
                 },
                 Tags = [WellKnownPipelineTags.BuildCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Build],

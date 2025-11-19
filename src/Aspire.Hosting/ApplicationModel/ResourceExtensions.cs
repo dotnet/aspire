@@ -981,34 +981,34 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Adds container build options callback to a resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
+    /// <param name="callback">The synchronous callback that returns the container build options.</param>
     /// <returns>The resource builder.</returns>
     [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, string> callback) where T : class, IResource
+    public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback) where T : class, IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback));
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Adds container build options callback to a resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
+    /// <param name="callback">The asynchronous callback that returns the container build options.</param>
     /// <returns>The resource builder.</returns>
     [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback) where T : class, IResource
+    public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, Func<ContainerImageOptionsCallbackAnnotationContext, Task<ContainerImageOptions>> callback) where T : class, IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback));
     }
 }

@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES003
 
 using System.Diagnostics;
 using System.Globalization;
@@ -116,15 +117,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                 context.Logger.LogInformation("Setting default deploy tag '{Tag}' for compute resource(s).", uniqueDeployTag);
 
-                // Resources that were built, will get this tag unless they have a custom DeploymentImageTagCallbackAnnotation
+                // Resources that were built, will get this tag unless they have custom ContainerImageOptions
                 foreach (var resource in context.Model.GetBuildResources())
                 {
-                    if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
+                    if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
                     {
                         continue;
                     }
 
-                    resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => uniqueDeployTag));
+                    resource.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions { ImageTag = uniqueDeployTag }));
                 }
             }
         });

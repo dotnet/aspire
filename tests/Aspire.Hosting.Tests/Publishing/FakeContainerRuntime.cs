@@ -18,12 +18,12 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
     public bool WasLoginToRegistryCalled { get; private set; }
     public List<string> RemoveImageCalls { get; } = [];
     public List<string> PushImageCalls { get; } = [];
-    public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
+    public List<(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options)> BuildImageCalls { get; } = [];
     public List<(string registryServer, string username, string password)> LoginToRegistryCalls { get; } = [];
     public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
     public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
     public string? CapturedStage { get; private set; }
-    public Func<string, string, string, ContainerBuildOptions?, Dictionary<string, string?>, Dictionary<string, string?>, string?, CancellationToken, Task>? BuildImageAsyncCallback { get; set; }
+    public Func<string, string, string, ContainerImageOptions?, Dictionary<string, string?>, Dictionary<string, string?>, string?, CancellationToken, Task>? BuildImageAsyncCallback { get; set; }
 
     public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
@@ -53,7 +53,7 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
         return Task.CompletedTask;
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         // Capture the arguments for verification in tests
         CapturedBuildArguments = buildArguments;

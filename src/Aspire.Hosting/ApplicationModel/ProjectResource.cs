@@ -1,8 +1,9 @@
-#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -91,14 +92,17 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var logger = ctx.Logger;
 
-        // Build the container image for the project first
-        await containerImageBuilder.BuildImageAsync(
-            this,
-            new ContainerBuildOptions
+        // Set build options as an annotation if not already set
+        if (!this.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
+        {
+            this.Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
             {
                 TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-            },
-            ctx.CancellationToken).ConfigureAwait(false);
+            }));
+        }
+
+        // Build the container image for the project first
+        await containerImageBuilder.BuildImageAsync(this, ctx.CancellationToken).ConfigureAwait(false);
 
         // Check if we need to copy container files
         if (!this.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var _))
@@ -149,7 +153,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 projectDir,
                 tempDockerfilePath,
                 originalImageName,
-                new ContainerBuildOptions
+                new ContainerImageOptions
                 {
                     TargetPlatform = ContainerTargetPlatform.LinuxAmd64
                 },

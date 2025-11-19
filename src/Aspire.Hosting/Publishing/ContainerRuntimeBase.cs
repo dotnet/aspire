@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +37,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public abstract Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
 
-    public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
+    public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
 
     public virtual async Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
     {

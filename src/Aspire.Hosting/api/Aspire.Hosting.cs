@@ -1268,21 +1268,52 @@ namespace Aspire.Hosting.ApplicationModel
 
     [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}")]
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
+    public sealed partial class ContainerImageOptionsCallbackAnnotation : IResourceAnnotation
     {
-        public DeploymentImageTagCallbackAnnotation(System.Func<DeploymentImageTagCallbackAnnotationContext, string> callback) { }
+        public ContainerImageOptionsCallbackAnnotation(System.Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback) { }
 
-        public DeploymentImageTagCallbackAnnotation(System.Func<DeploymentImageTagCallbackAnnotationContext, System.Threading.Tasks.Task<string>> callback) { }
+        public ContainerImageOptionsCallbackAnnotation(System.Func<ContainerImageOptionsCallbackAnnotationContext, System.Threading.Tasks.Task<ContainerImageOptions>> callback) { }
 
-        public System.Func<DeploymentImageTagCallbackAnnotationContext, System.Threading.Tasks.Task<string>> Callback { get { throw null; } }
+        public System.Func<ContainerImageOptionsCallbackAnnotationContext, System.Threading.Tasks.Task<ContainerImageOptions>> Callback { get { throw null; } }
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class DeploymentImageTagCallbackAnnotationContext
+    public sealed partial class ContainerImageOptionsCallbackAnnotationContext
     {
         public required System.Threading.CancellationToken CancellationToken { get { throw null; } init { } }
 
         public required IResource Resource { get { throw null; } init { } }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public enum ContainerImageFormat
+    {
+        Docker = 0,
+        Oci = 1
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public partial class ContainerImageOptions
+    {
+        public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
+
+        public string? ImageTag { get { throw null; } init { } }
+
+        public string? OutputPath { get { throw null; } init { } }
+
+        public ContainerTargetPlatform? TargetPlatform { get { throw null; } init { } }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public enum ContainerTargetPlatform
+    {
+        LinuxAmd64 = 1,
+        LinuxArm64 = 2,
+        LinuxArm = 4,
+        Linux386 = 8,
+        WindowsAmd64 = 16,
+        WindowsArm64 = 32,
+        AllLinux = 3
     }
 
     public sealed partial class DeploymentTargetAnnotation : IResourceAnnotation
@@ -2227,11 +2258,11 @@ namespace Aspire.Hosting.ApplicationModel
         public static bool TryGetUrls(this IResource resource, out System.Collections.Generic.IEnumerable<ResourceUrlAnnotation>? urls) { throw null; }
 
         [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, System.Func<DeploymentImageTagCallbackAnnotationContext, string> callback)
+        public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, System.Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback)
             where T : class, IResource { throw null; }
 
         [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, System.Func<DeploymentImageTagCallbackAnnotationContext, System.Threading.Tasks.Task<string>> callback)
+        public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, System.Func<ContainerImageOptionsCallbackAnnotationContext, System.Threading.Tasks.Task<ContainerImageOptions>> callback)
             where T : class, IResource { throw null; }
     }
 
@@ -2585,34 +2616,6 @@ namespace Aspire.Hosting.Publishing
         CompletedWithError = 3
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public partial class ContainerBuildOptions
-    {
-        public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
-
-        public string? OutputPath { get { throw null; } init { } }
-
-        public ContainerTargetPlatform? TargetPlatform { get { throw null; } init { } }
-    }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public enum ContainerImageFormat
-    {
-        Docker = 0,
-        Oci = 1
-    }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public enum ContainerTargetPlatform
-    {
-        LinuxAmd64 = 0,
-        LinuxArm64 = 1,
-        LinuxArm = 2,
-        Linux386 = 3,
-        WindowsAmd64 = 4,
-        WindowsArm64 = 5
-    }
-
     public partial interface IDistributedApplicationPublisher
     {
         System.Threading.Tasks.Task PublishAsync(ApplicationModel.DistributedApplicationModel model, System.Threading.CancellationToken cancellationToken);
@@ -2642,8 +2645,8 @@ namespace Aspire.Hosting.Publishing
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IResourceContainerImageBuilder
     {
-        System.Threading.Tasks.Task BuildImageAsync(ApplicationModel.IResource resource, ContainerBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
-        System.Threading.Tasks.Task BuildImagesAsync(System.Collections.Generic.IEnumerable<ApplicationModel.IResource> resources, ContainerBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task BuildImageAsync(ApplicationModel.IResource resource, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task BuildImagesAsync(System.Collections.Generic.IEnumerable<ApplicationModel.IResource> resources, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task PushImageAsync(string imageName, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task TagImageAsync(string localImageName, string targetImageName, System.Threading.CancellationToken cancellationToken = default);
     }
