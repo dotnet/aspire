@@ -12,10 +12,16 @@ namespace Aspire.Hosting.Azure.DurableTask;
 /// </summary>
 /// <param name="name">The logical name of the Task Hub (used as the TaskHub value).</param>
 /// <param name="scheduler">The durable task scheduler resource whose connection string is the base for this hub.</param>
-public sealed class DurableTaskHubResource(string name, DurableTaskSchedulerResource scheduler) : Resource(name), IResourceWithConnectionString
+public sealed class DurableTaskHubResource(string name, DurableTaskSchedulerResource scheduler)
+    : Resource(name), IResourceWithConnectionString, IResourceWithParent<DurableTaskSchedulerResource>
 {
     /// <summary>
     /// Gets the connection string expression composed of the scheduler connection string and the TaskHub name.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{scheduler.ConnectionStringExpression};TaskHub={Name}");
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{Parent.ConnectionStringExpression};TaskHub={Name}");
+
+    /// <summary>
+    /// Gets the parent durable task scheduler resource that provides the base connection string.
+    /// </summary>
+    public DurableTaskSchedulerResource Parent => scheduler;
 }

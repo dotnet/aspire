@@ -4,6 +4,7 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.DurableTask;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Azure.Hosting;
 
@@ -44,6 +45,7 @@ public static class DurableTaskResourceExtensions
         builder.WithEndpoint(name: "grpc", targetPort: 8080)
                .WithHttpEndpoint(name: "http", targetPort: 8081)
                .WithHttpEndpoint(name: "dashboard", targetPort: 8082)
+               .WithUrlForEndpoint("dashboard", c => c.DisplayText = "Scheduler Dashboard")
                .WithAnnotation(new ContainerImageAnnotation
                {
                    Registry = DurableTaskSchedulerEmulatorContainerImageTags.Registry,
@@ -67,6 +69,26 @@ public static class DurableTaskResourceExtensions
     public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name)
     {
         var hub = new DurableTaskHubResource(name, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(hub);
+
+        var hubBuilder = builder.ApplicationBuilder.AddResource(hub);
+
+        if (builder.Resource.IsEmulator)
+        {
+            hubBuilder.OnResourceReady(
+                async (r, e, ct) =>
+                {
+                    var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
+
+                    var url = await ReferenceExpression.Create($"{r.Parent.EmulatorDashboardEndpoint}/subscriptions/default/schedulers/default/taskhubs/{r.Name}").GetValueAsync(ct).ConfigureAwait(false);
+
+                    await notifications.PublishUpdateAsync(r, snapshot => snapshot with
+                    {
+                        State = KnownResourceStates.Running,
+                        Urls = [new("dashboard", url ?? throw new InvalidOperationException("URL cannot be null"), false) { DisplayProperties = new() { DisplayName = "Task Hub Dashboard" } }]
+                    }).ConfigureAwait(false);
+                });
+        }
+
+        return hubBuilder;
     }
 }

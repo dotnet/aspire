@@ -17,13 +17,33 @@ public sealed class DurableTaskSchedulerResource(string name) : Resource(name), 
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => CreateConnectionString();
 
+    internal ReferenceExpression EmulatorDashboardEndpoint => CreateDashboardEndpoint();
+
+    /// <summary>
+    /// Gets a value indicating whether the Durable Task scheduler is running using the local
+    /// emulator (container) instead of a cloud-hosted service.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
     private ReferenceExpression CreateConnectionString()
     {
-        if (this.IsContainer())
+        if (IsEmulator)
         {
             var grpcEndpoint = new EndpointReference(this, "grpc");
 
             return ReferenceExpression.Create($"Endpoint=http://{grpcEndpoint.Property(EndpointProperty.Host)}:{grpcEndpoint.Property(EndpointProperty.Port)};Authentication=None");
+        }
+
+        throw new NotImplementedException();
+    }
+
+    private ReferenceExpression CreateDashboardEndpoint()
+    {
+        if (IsEmulator)
+        {
+            var dashboardEndpoint = new EndpointReference(this, "dashboard");
+
+            return ReferenceExpression.Create($"http://{dashboardEndpoint.Property(EndpointProperty.Host)}:{dashboardEndpoint.Property(EndpointProperty.Port)}");
         }
 
         throw new NotImplementedException();
