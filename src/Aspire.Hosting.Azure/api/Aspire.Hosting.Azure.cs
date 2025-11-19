@@ -96,6 +96,9 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<T> PublishAsConnectionString<T>(this ApplicationModel.IResourceBuilder<T> builder)
             where T : ApplicationModel.IAzureResource, ApplicationModel.IResourceWithConnectionString { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithoutRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder)
+            where T : ApplicationModel.IResource { throw null; }
     }
 
     public static partial class ExistingAzureResourceExtensions
