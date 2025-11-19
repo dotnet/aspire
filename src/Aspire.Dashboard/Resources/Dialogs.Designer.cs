@@ -736,15 +736,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Aspire MCP configuration.
-        /// </summary>
-        public static string McpServerDialogConfigurationHeading {
-            get {
-                return ResourceManager.GetString("McpServerDialogConfigurationHeading", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Aspire MCP API key.
         /// </summary>
         public static string McpServerDialogApiKeyLabel {
@@ -754,38 +745,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Aspire MCP configuration.
+        /// </summary>
+        public static string McpServerDialogConfigurationHeading {
+            get {
+                return ResourceManager.GetString("McpServerDialogConfigurationHeading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Copy.
         /// </summary>
         public static string McpServerDialogCopyButton {
             get {
                 return ResourceManager.GetString("McpServerDialogCopyButton", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Manually updating &lt;code&gt;mcp.json&lt;/code&gt;.
-        /// </summary>
-        public static string McpServerDialogManuallyUpdatingAccordionHeading {
-            get {
-                return ResourceManager.GetString("McpServerDialogManuallyUpdatingAccordionHeading", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box..
-        /// </summary>
-        public static string McpServerDialogVisualStudioApiKeyInstructions {
-            get {
-                return ResourceManager.GetString("McpServerDialogVisualStudioApiKeyInstructions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box..
-        /// </summary>
-        public static string McpServerDialogVSCodeApiKeyInstructions {
-            get {
-                return ResourceManager.GetString("McpServerDialogVSCodeApiKeyInstructions", resourceCulture);
             }
         }
         
@@ -831,6 +804,15 @@ namespace Aspire.Dashboard.Resources {
         public static string McpServerDialogLearnMoreLink {
             get {
                 return ResourceManager.GetString("McpServerDialogLearnMoreLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manually updating &lt;code&gt;mcp.json&lt;/code&gt;.
+        /// </summary>
+        public static string McpServerDialogManuallyUpdatingAccordionHeading {
+            get {
+                return ResourceManager.GetString("McpServerDialogManuallyUpdatingAccordionHeading", resourceCulture);
             }
         }
         
@@ -898,11 +880,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box..
+        /// </summary>
+        public static string McpServerDialogVisualStudioApiKeyInstructions {
+            get {
+                return ResourceManager.GetString("McpServerDialogVisualStudioApiKeyInstructions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Visual Studio.
         /// </summary>
         public static string McpServerDialogVisualStudioTab {
             get {
                 return ResourceManager.GetString("McpServerDialogVisualStudioTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The first time Aspire MCP starts, you&apos;ll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box..
+        /// </summary>
+        public static string McpServerDialogVSCodeApiKeyInstructions {
+            get {
+                return ResourceManager.GetString("McpServerDialogVSCodeApiKeyInstructions", resourceCulture);
             }
         }
         
