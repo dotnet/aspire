@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 
 namespace Aspire.Hosting;
@@ -31,4 +32,46 @@ public static class AzureResourceExtensions
     /// <returns>A valid Bicep identifier.</returns>
     public static string GetBicepIdentifier(this IAzureResource resource) =>
         Infrastructure.NormalizeBicepIdentifier(resource.Name);
+
+    /// <summary>
+    /// Disables role assignments for the specified Azure resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The configured <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method removes all default role assignments from the Azure resource. Use this when working with
+    /// existing resources in subscriptions where you don't have permissions to create role assignments.
+    /// </para>
+    /// <para>
+    /// This method removes the <see cref="DefaultRoleAssignmentsAnnotation"/> from the resource, preventing
+    /// automatic role assignment creation during provisioning.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Disable role assignments for an Azure Key Vault resource:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var keyVault = builder.AddAzureKeyVault("keyvault")
+    ///     .WithoutRoleAssignments();
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithReference(keyVault);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithoutRoleAssignments<T>(this IResourceBuilder<T> builder)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var defaultRoleAssignmentAnnotation = builder.Resource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().FirstOrDefault();
+        if (defaultRoleAssignmentAnnotation is not null)
+        {
+            builder.Resource.Annotations.Remove(defaultRoleAssignmentAnnotation);
+        }
+
+        return builder;
+    }
 }
