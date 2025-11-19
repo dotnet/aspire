@@ -50,6 +50,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             }
         };
         parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.DeployPrereq);
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.BuildPrereq);
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.PublishPrereq);
         _steps.Add(parameterPromptingStep);
 
         _steps.Add(new PipelineStep

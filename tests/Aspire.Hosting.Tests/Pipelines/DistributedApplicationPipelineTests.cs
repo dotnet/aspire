@@ -2064,12 +2064,16 @@ public class DistributedApplicationPipelineTests
         var lockObject = new object();
         PipelineStep? parameterPromptingStep = null;
         PipelineStep? deployPrereqStep = null;
+        PipelineStep? buildPrereqStep = null;
+        PipelineStep? publishPrereqStep = null;
         
         // Capture steps and track execution order
         pipeline.AddPipelineConfiguration((configContext) =>
         {
             parameterPromptingStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.ParameterPrompting);
             deployPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.DeployPrereq);
+            buildPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.BuildPrereq);
+            publishPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
             return Task.CompletedTask;
         });
         
@@ -2094,9 +2098,13 @@ public class DistributedApplicationPipelineTests
         // Assert - Step exists in pipeline
         Assert.NotNull(parameterPromptingStep);
         Assert.NotNull(deployPrereqStep);
+        Assert.NotNull(buildPrereqStep);
+        Assert.NotNull(publishPrereqStep);
         
-        // Assert - Dependency relationship is configured correctly
+        // Assert - Dependency relationships are configured correctly
         Assert.Contains(WellKnownPipelineSteps.DeployPrereq, parameterPromptingStep.RequiredBySteps);
+        Assert.Contains(WellKnownPipelineSteps.BuildPrereq, parameterPromptingStep.RequiredBySteps);
+        Assert.Contains(WellKnownPipelineSteps.PublishPrereq, parameterPromptingStep.RequiredBySteps);
         
         // Assert - Execution order is correct (ParameterPrompting before DeployPrereq)
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.ParameterPrompting));
