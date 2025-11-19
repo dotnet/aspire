@@ -14,7 +14,7 @@ EXECUTION ORDER
 This shows the order in which steps would execute, respecting all dependencies.
 Steps with no dependencies run first, followed by steps that depend on them.
 
-  1. parameter-prompting
+  1. process-parameters
   2. build-prereq
   3. deploy-prereq
   4. build-api
@@ -53,7 +53,7 @@ Step: build-api
     Tags: build-compute
 
 Step: build-prereq
-    Dependencies: ✓ parameter-prompting
+    Dependencies: ✓ process-parameters
 
 Step: create-provisioning-context
     Dependencies: ✓ deploy-prereq, ✓ validate-azure-login
@@ -68,7 +68,7 @@ Step: deploy-api
     Tags: deploy-compute
 
 Step: deploy-prereq
-    Dependencies: ✓ parameter-prompting
+    Dependencies: ✓ process-parameters
 
 Step: diagnostics
     Dependencies: none
@@ -78,7 +78,7 @@ Step: login-to-acr-env
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: acr-login
 
-Step: parameter-prompting
+Step: process-parameters
     Dependencies: none
 
 Step: print-api-summary
@@ -132,7 +132,7 @@ Step: publish-manifest
     Dependencies: none
 
 Step: publish-prereq
-    Dependencies: ✓ parameter-prompting
+    Dependencies: ✓ process-parameters
 
 Step: push-api
     Dependencies: ✓ build-api, ✓ login-to-acr-env, ✓ provision-env
@@ -158,7 +158,7 @@ If targeting 'build':
   Direct dependencies: build-api
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api
     [3] build
@@ -167,22 +167,22 @@ If targeting 'build-api':
   Direct dependencies: build-prereq, deploy-prereq
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api
 
 If targeting 'build-prereq':
-  Direct dependencies: parameter-prompting
+  Direct dependencies: process-parameters
   Total steps: 2
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq
 
 If targeting 'create-provisioning-context':
   Direct dependencies: deploy-prereq, validate-azure-login
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -191,7 +191,7 @@ If targeting 'deploy':
   Direct dependencies: build-api, create-provisioning-context, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
   Total steps: 16
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -207,7 +207,7 @@ If targeting 'deploy-api':
   Direct dependencies: print-api-summary
   Total steps: 14
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -219,10 +219,10 @@ If targeting 'deploy-api':
     [9] deploy-api
 
 If targeting 'deploy-prereq':
-  Direct dependencies: parameter-prompting
+  Direct dependencies: process-parameters
   Total steps: 2
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
 
 If targeting 'diagnostics':
@@ -235,24 +235,24 @@ If targeting 'login-to-acr-env':
   Direct dependencies: provision-env
   Total steps: 6
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
     [4] provision-env
     [5] login-to-acr-env
 
-If targeting 'parameter-prompting':
+If targeting 'process-parameters':
   Direct dependencies: none
   Total steps: 1
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
 
 If targeting 'print-api-summary':
   Direct dependencies: provision-api-website
   Total steps: 13
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -266,7 +266,7 @@ If targeting 'print-dashboard-url-env':
   Direct dependencies: provision-azure-bicep-resources, provision-env
   Total steps: 15
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -281,7 +281,7 @@ If targeting 'provision-api-identity':
   Direct dependencies: create-provisioning-context
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -291,7 +291,7 @@ If targeting 'provision-api-roles-kv':
   Direct dependencies: create-provisioning-context, provision-api-identity, provision-kv
   Total steps: 7
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -302,7 +302,7 @@ If targeting 'provision-api-website':
   Direct dependencies: create-provisioning-context, provision-api-identity, provision-env, provision-kv, push-api
   Total steps: 12
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -315,7 +315,7 @@ If targeting 'provision-azure-bicep-resources':
   Direct dependencies: create-provisioning-context, deploy-prereq, provision-api-identity, provision-api-roles-kv, provision-api-website, provision-env, provision-kv
   Total steps: 14
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -329,7 +329,7 @@ If targeting 'provision-env':
   Direct dependencies: create-provisioning-context
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -339,7 +339,7 @@ If targeting 'provision-kv':
   Direct dependencies: create-provisioning-context
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -349,7 +349,7 @@ If targeting 'publish':
   Direct dependencies: publish-azure634f9
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] publish-prereq
     [2] publish-azure634f9
     [3] publish
@@ -358,7 +358,7 @@ If targeting 'publish-azure634f9':
   Direct dependencies: publish-prereq
   Total steps: 3
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] publish-prereq
     [2] publish-azure634f9
 
@@ -369,17 +369,17 @@ If targeting 'publish-manifest':
     [0] publish-manifest
 
 If targeting 'publish-prereq':
-  Direct dependencies: parameter-prompting
+  Direct dependencies: process-parameters
   Total steps: 2
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] publish-prereq
 
 If targeting 'push-api':
   Direct dependencies: build-api, login-to-acr-env, provision-env
   Total steps: 9
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -391,7 +391,7 @@ If targeting 'validate-azure-login':
   Direct dependencies: deploy-prereq
   Total steps: 3
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
 

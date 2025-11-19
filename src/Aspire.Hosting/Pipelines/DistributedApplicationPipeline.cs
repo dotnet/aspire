@@ -41,7 +41,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         var parameterPromptingStep = new PipelineStep
         {
-            Name = WellKnownPipelineSteps.ParameterPrompting,
+            Name = WellKnownPipelineSteps.ProcessParameters,
             Action = async context =>
             {
                 // Parameter processing - ensure all parameters are initialized and resolved

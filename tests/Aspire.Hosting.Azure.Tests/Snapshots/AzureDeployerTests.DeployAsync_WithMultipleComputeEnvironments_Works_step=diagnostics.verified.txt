@@ -14,7 +14,7 @@ EXECUTION ORDER
 This shows the order in which steps would execute, respecting all dependencies.
 Steps with no dependencies run first, followed by steps that depend on them.
 
-  1. parameter-prompting
+  1. process-parameters
   2. build-prereq
   3. deploy-prereq
   4. build-api-service
@@ -62,7 +62,7 @@ Step: build-api-service
     Tags: build-compute
 
 Step: build-prereq
-    Dependencies: ✓ parameter-prompting
+    Dependencies: ✓ process-parameters
 
 Step: build-python-app
     Dependencies: ✓ build-prereq, ✓ deploy-prereq, ✓ deploy-prereq
@@ -87,7 +87,7 @@ Step: deploy-cache
     Tags: deploy-compute
 
 Step: deploy-prereq
-    Dependencies: ✓ parameter-prompting
+    Dependencies: ✓ process-parameters
 
 Step: deploy-python-app
     Dependencies: ✓ print-python-app-summary
@@ -107,7 +107,7 @@ Step: login-to-acr-aca-env
     Resource: aca-env (AzureContainerAppEnvironmentResource)
     Tags: acr-login
 
-Step: parameter-prompting
+Step: process-parameters
     Dependencies: none
 
 Step: print-api-service-summary
@@ -181,7 +181,7 @@ Step: publish-manifest
     Dependencies: none
 
 Step: publish-prereq
-    Dependencies: ✓ parameter-prompting
+    Dependencies: ✓ process-parameters
 
 Step: push-api-service
     Dependencies: ✓ build-api-service, ✓ login-to-acr-aas-env, ✓ provision-aas-env
@@ -212,7 +212,7 @@ If targeting 'build':
   Direct dependencies: build-api-service, build-python-app
   Total steps: 6
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | build-python-app (parallel)
     [3] build
@@ -221,22 +221,22 @@ If targeting 'build-api-service':
   Direct dependencies: build-prereq, deploy-prereq, deploy-prereq
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service
 
 If targeting 'build-prereq':
-  Direct dependencies: parameter-prompting
+  Direct dependencies: process-parameters
   Total steps: 2
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq
 
 If targeting 'build-python-app':
   Direct dependencies: build-prereq, deploy-prereq, deploy-prereq
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-python-app
 
@@ -244,7 +244,7 @@ If targeting 'create-provisioning-context':
   Direct dependencies: deploy-prereq, validate-azure-login
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -253,7 +253,7 @@ If targeting 'deploy':
   Direct dependencies: build-api-service, build-python-app, create-provisioning-context, print-cache-summary, print-dashboard-url-aas-env, print-dashboard-url-aca-env, print-python-app-summary, provision-azure-bicep-resources, validate-azure-login
   Total steps: 23
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -269,7 +269,7 @@ If targeting 'deploy-api-service':
   Direct dependencies: print-api-service-summary
   Total steps: 12
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -284,7 +284,7 @@ If targeting 'deploy-cache':
   Direct dependencies: print-cache-summary
   Total steps: 8
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -294,17 +294,17 @@ If targeting 'deploy-cache':
     [7] deploy-cache
 
 If targeting 'deploy-prereq':
-  Direct dependencies: parameter-prompting
+  Direct dependencies: process-parameters
   Total steps: 2
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
 
 If targeting 'deploy-python-app':
   Direct dependencies: print-python-app-summary
   Total steps: 12
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -325,7 +325,7 @@ If targeting 'login-to-acr-aas-env':
   Direct dependencies: provision-aas-env
   Total steps: 6
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -336,24 +336,24 @@ If targeting 'login-to-acr-aca-env':
   Direct dependencies: provision-aca-env
   Total steps: 6
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
     [4] provision-aca-env
     [5] login-to-acr-aca-env
 
-If targeting 'parameter-prompting':
+If targeting 'process-parameters':
   Direct dependencies: none
   Total steps: 1
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
 
 If targeting 'print-api-service-summary':
   Direct dependencies: provision-api-service-website
   Total steps: 11
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -367,7 +367,7 @@ If targeting 'print-cache-summary':
   Direct dependencies: provision-cache-containerapp
   Total steps: 7
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -379,7 +379,7 @@ If targeting 'print-dashboard-url-aas-env':
   Direct dependencies: provision-aas-env, provision-azure-bicep-resources
   Total steps: 19
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -394,7 +394,7 @@ If targeting 'print-dashboard-url-aca-env':
   Direct dependencies: provision-aca-env, provision-azure-bicep-resources
   Total steps: 19
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -409,7 +409,7 @@ If targeting 'print-python-app-summary':
   Direct dependencies: provision-python-app-containerapp
   Total steps: 11
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -423,7 +423,7 @@ If targeting 'provision-aas-env':
   Direct dependencies: create-provisioning-context
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -433,7 +433,7 @@ If targeting 'provision-aca-env':
   Direct dependencies: create-provisioning-context
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -443,7 +443,7 @@ If targeting 'provision-api-service-website':
   Direct dependencies: create-provisioning-context, provision-aas-env, push-api-service
   Total steps: 10
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -456,7 +456,7 @@ If targeting 'provision-azure-bicep-resources':
   Direct dependencies: create-provisioning-context, deploy-prereq, provision-aas-env, provision-aca-env, provision-api-service-website, provision-cache-containerapp, provision-python-app-containerapp, provision-storage
   Total steps: 18
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -470,7 +470,7 @@ If targeting 'provision-cache-containerapp':
   Direct dependencies: create-provisioning-context, provision-aca-env
   Total steps: 6
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -481,7 +481,7 @@ If targeting 'provision-python-app-containerapp':
   Direct dependencies: create-provisioning-context, provision-aca-env, push-python-app
   Total steps: 10
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -494,7 +494,7 @@ If targeting 'provision-storage':
   Direct dependencies: create-provisioning-context
   Total steps: 5
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
@@ -504,7 +504,7 @@ If targeting 'publish':
   Direct dependencies: publish-azure634f9
   Total steps: 4
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] publish-prereq
     [2] publish-azure634f9
     [3] publish
@@ -513,7 +513,7 @@ If targeting 'publish-azure634f9':
   Direct dependencies: publish-prereq
   Total steps: 3
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] publish-prereq
     [2] publish-azure634f9
 
@@ -524,17 +524,17 @@ If targeting 'publish-manifest':
     [0] publish-manifest
 
 If targeting 'publish-prereq':
-  Direct dependencies: parameter-prompting
+  Direct dependencies: process-parameters
   Total steps: 2
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] publish-prereq
 
 If targeting 'push-api-service':
   Direct dependencies: build-api-service, login-to-acr-aas-env, provision-aas-env
   Total steps: 9
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-api-service | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -546,7 +546,7 @@ If targeting 'push-python-app':
   Direct dependencies: build-python-app, login-to-acr-aca-env, provision-aca-env
   Total steps: 9
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
     [2] build-python-app | validate-azure-login (parallel)
     [3] create-provisioning-context
@@ -558,7 +558,7 @@ If targeting 'validate-azure-login':
   Direct dependencies: deploy-prereq
   Total steps: 3
   Execution order:
-    [0] parameter-prompting
+    [0] process-parameters
     [1] deploy-prereq
     [2] validate-azure-login
 

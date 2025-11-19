@@ -1087,7 +1087,7 @@ public class DistributedApplicationPipelineTests
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
         var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
 
-        Assert.Equal(9, stepActivities.Count); // deploy, parameter-prompting, deploy-prereq, build, build-prereq, publish, publish-prereq, diagnostics, logging-step
+        Assert.Equal(9, stepActivities.Count); // deploy, process-parameters, deploy-prereq, build, build-prereq, publish, publish-prereq, diagnostics, logging-step
 
         // Find the logging-step activity
         var loggingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "logging-step"));
@@ -1352,7 +1352,7 @@ public class DistributedApplicationPipelineTests
             .OrderBy(a => Array.IndexOf(logOrder, a.Data.StatusText))
             .ToList();
 
-        Assert.Equal(11, stepActivities.Count); // deploy, parameter-prompting, deploy-prereq, build, build-prereq, publish, publish-prereq, diagnostics, step1, step2, step3
+        Assert.Equal(11, stepActivities.Count); // deploy, process-parameters, deploy-prereq, build, build-prereq, publish, publish-prereq, diagnostics, step1, step2, step3
         Assert.Collection(logActivities,
             logActivity =>
             {
@@ -1489,9 +1489,9 @@ public class DistributedApplicationPipelineTests
         await pipeline.ExecuteAsync(context);
 
         Assert.True(callbackExecuted);
-        Assert.Equal(10, capturedSteps.Count); // Updated to account for all default steps including parameter-prompting
+        Assert.Equal(10, capturedSteps.Count); // Updated to account for all default steps including process-parameters
         Assert.Contains(capturedSteps, s => s.Name == "deploy");
-        Assert.Contains(capturedSteps, s => s.Name == "parameter-prompting");
+        Assert.Contains(capturedSteps, s => s.Name == "process-parameters");
         Assert.Contains(capturedSteps, s => s.Name == "deploy-prereq");
         Assert.Contains(capturedSteps, s => s.Name == "build");
         Assert.Contains(capturedSteps, s => s.Name == "build-prereq");
@@ -2050,7 +2050,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ParameterPromptingStep_ValidatesBehavior()
+    public async Task ProcessParametersStep_ValidatesBehavior()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
@@ -2070,19 +2070,19 @@ public class DistributedApplicationPipelineTests
         // Capture steps and track execution order
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            parameterPromptingStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.ParameterPrompting);
+            parameterPromptingStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.ProcessParameters);
             deployPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.DeployPrereq);
             buildPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.BuildPrereq);
             publishPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
             return Task.CompletedTask;
         });
         
-        // Add steps that depend on ParameterPrompting and DeployPrereq to track their execution
+        // Add steps that depend on ProcessParameters and DeployPrereq to track their execution
         pipeline.AddStep("after-param-prompting", (context) =>
         {
-            lock (lockObject) { executionTimes[WellKnownPipelineSteps.ParameterPrompting] = DateTime.UtcNow; }
+            lock (lockObject) { executionTimes[WellKnownPipelineSteps.ProcessParameters] = DateTime.UtcNow; }
             return Task.CompletedTask;
-        }, dependsOn: WellKnownPipelineSteps.ParameterPrompting);
+        }, dependsOn: WellKnownPipelineSteps.ProcessParameters);
         
         pipeline.AddStep("after-deploy-prereq", (context) =>
         {
@@ -2106,11 +2106,11 @@ public class DistributedApplicationPipelineTests
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, parameterPromptingStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.PublishPrereq, parameterPromptingStep.RequiredBySteps);
         
-        // Assert - Execution order is correct (ParameterPrompting before DeployPrereq)
-        Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.ParameterPrompting));
+        // Assert - Execution order is correct (ProcessParameters before DeployPrereq)
+        Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.ProcessParameters));
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.DeployPrereq));
-        Assert.True(executionTimes[WellKnownPipelineSteps.ParameterPrompting] <= executionTimes[WellKnownPipelineSteps.DeployPrereq], 
-            "ParameterPrompting should complete before or at the same time as DeployPrereq");
+        Assert.True(executionTimes[WellKnownPipelineSteps.ProcessParameters] < executionTimes[WellKnownPipelineSteps.DeployPrereq], 
+            "ProcessParameters should complete before DeployPrereq");
         
         // Assert - Parameters are processed
         var paramResource = builder.Resources.OfType<ParameterResource>().FirstOrDefault(p => p.Name == "test-param");
