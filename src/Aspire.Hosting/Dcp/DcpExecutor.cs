@@ -18,6 +18,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
@@ -76,6 +77,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+    private readonly IBackchannelLoggerProvider _backchannelLoggerProvider;
 
     private readonly string _normalizedApplicationName;
 
@@ -108,8 +110,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpExecutorEvents executorEvents,
                        Locations locations,
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                       IDeveloperCertificateService developerCertificateService)
+                       IDeveloperCertificateService developerCertificateService,
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                        IBackchannelLoggerProvider backchannelLoggerProvider)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -129,6 +132,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _backchannelLoggerProvider = backchannelLoggerProvider;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
@@ -1256,17 +1260,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            var supportedLaunchConfigurations = ExtensionUtils.GetSupportedLaunchConfigurations(_configuration);
-
-            if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
-                && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && supportedLaunchConfigurations is not null
-                && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
+            var isProcessExecution = true;
+            if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
             {
-                exe.Spec.ExecutionType = ExecutionType.IDE;
-                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
+                var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
+                {
+                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(executable.Name),
+                    Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
+                };
+
+                try
+                {
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
+                    exe.Spec.ExecutionType = ExecutionType.IDE;
+                    isProcessExecution = false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to configure debugging for executable resource '{ResourceName}'. Falling back to process execution.", executable.Name);
+                }
             }
-            else
+            
+            if (isProcessExecution)
             {
                 exe.Spec.ExecutionType = ExecutionType.Process;
             }
@@ -1308,25 +1323,48 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exeSpec);
 
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+                var mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug;
 
                 var projectArgs = new List<string>();
 
-                // We cannot use the IDE execution type if the Aspire extension does not support c# projects
-                var supportedLaunchConfigurations = ExtensionUtils.GetSupportedLaunchConfigurations(_configuration);
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
+                var isProcessExecution = true;
+                if (project.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
                 {
-                    exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
 
-                    // Use the effective launch profile which has fallback logic
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                    var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                     {
-                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(exeInstance.Name),
+                        Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug,
+                        AdditionalConfiguration = launchConfiguration =>
+                        {
+                            if (launchConfiguration is not ProjectLaunchConfiguration projectLaunchConfiguration)
+                            {
+                                throw new InvalidOperationException("Expected a ProjectLaunchConfiguration. The SupportsDebuggingAnnotation launch configuration producer must produce a ProjectLaunchConfiguration for project resources.");
+                            }
+
+                            projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+
+                            // Use the effective launch profile which has fallback logic
+                            if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                            {
+                                projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                            }
+                        }
+                    };
+
+                    try 
+                    {
+                        supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exeSpec, launchConfigurationProducerOptions);
+                        exeSpec.Spec.ExecutionType = ExecutionType.IDE;
+                        isProcessExecution = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to configure debugging for project resource '{ResourceName}'. Falling back to process execution.", project.Name);
                     }
                 }
-                else
+                
+                if (isProcessExecution)
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
@@ -1367,10 +1405,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
+
+                    var projectLaunchConfiguration = new ProjectLaunchConfiguration
+                    {
+                        DebuggerProperties = ProjectResourceBuilderExtensions.GetCSharpDebuggerProperties(
+                        projectMetadata.ProjectPath,
+                        mode,
+                        _configuration)
+                    };
+
+                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+                    exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 
-                // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
-                exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new RenderedModelResource(project, exeSpec);

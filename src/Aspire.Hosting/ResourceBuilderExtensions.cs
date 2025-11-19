@@ -8,7 +8,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -2764,40 +2763,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds support for debugging the resource in VS Code when running in an extension host.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
-    /// <param name="launchConfigurationType">The type of the resource.</param>
-    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
-        where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
-
-        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            return builder;
-        }
-
-        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
-        {
-            resourceWithArgs.WithArgs(async ctx =>
-            {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
-                {
-                    argsCallback(ctx);
-                }
-            });
-        }
-
-        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
-    }
-
-    /// <summary>
     /// Adds a HTTP probe to the resource.
     /// </summary>
     /// <typeparam name="T">Type of resource.</typeparam>
@@ -2928,5 +2893,68 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
+    }
+
+    /// <summary>
+    /// Adds support for debugging the resource in VS Code when running in an extension host.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
+    /// <param name="launchConfigurationType">The capability (such as extension) that this configuration supports.</param>
+    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<LaunchConfigurationProducerOptions, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+        where T : IResource
+        where TLaunchConfiguration : ExecutableLaunchConfiguration
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
+        {
+            resourceWithArgs.WithArgs(async ctx =>
+            {
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
+                {
+                    argsCallback(ctx);
+                }
+            });
+        }
+
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
+    }
+
+    /// <summary>
+    /// Configures custom debugger properties for a resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <typeparam name="TDebuggerProperties">The type of the debugger properties.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object
+    /// that is pre-populated with default values based on the resource's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithVSCodeDebuggerProperties<T, TDebuggerProperties>(
+        this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
+        where T : IResource
+        where TDebuggerProperties : VSCodeDebuggerProperties
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<TDebuggerProperties>(configureDebuggerProperties));
+        return builder;
     }
 }

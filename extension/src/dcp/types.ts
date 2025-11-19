@@ -16,6 +16,7 @@ type LaunchConfigurationMode = "Debug" | "NoDebug";
 export interface ExecutableLaunchConfiguration {
     type: string;
     mode?: LaunchConfigurationMode | undefined;
+    debugger_properties?: Record<string, any>;
 }
 
 export interface ProjectLaunchConfiguration extends ExecutableLaunchConfiguration {

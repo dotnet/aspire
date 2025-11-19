@@ -250,6 +250,7 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
         extensionId: 'ms-dotnettools.csharp',
         getDisplayName: (launchConfig: ExecutableLaunchConfiguration) => `C#: ${path.basename((launchConfig as ProjectLaunchConfiguration).project_path)}`,
         getSupportedFileTypes: () => ['.cs', '.csproj'],
+        isDeprecated: false,
         getProjectFile: (launchConfig) => {
             if (isProjectLaunchConfiguration(launchConfig)) {
                 return launchConfig.project_path;

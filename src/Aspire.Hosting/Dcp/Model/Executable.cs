@@ -264,15 +264,3 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
         return launchConfiguration is not null;
     }
 }
-
-internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("project")
-{
-    [JsonPropertyName("launch_profile")]
-    public string LaunchProfile { get; set; } = string.Empty;
-
-    [JsonPropertyName("disable_launch_profile")]
-    public bool DisableLaunchProfile { get; set; } = false;
-
-    [JsonPropertyName("project_path")]
-    public string ProjectPath { get; set; } = string.Empty;
-}
