@@ -260,6 +260,53 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown after successful project update");
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WithQualityOption_DoesNotPromptForQuality()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        string? capturedQuality = null;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    // If this is called, it means the quality prompt was shown
+                    Assert.Fail("Quality prompt should not be shown when --quality option is provided");
+                    return "stable";
+                }
+            };
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (quality, ct) =>
+                {
+                    capturedQuality = quality;
+                    // Create a fake archive file
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self --quality daily");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.False(promptForSelectionInvoked, "Quality prompt should not be shown when --quality is provided");
+        Assert.Equal("daily", capturedQuality);
+    }
 }
 
 // Test implementation of ICliUpdateNotifier
