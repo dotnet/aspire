@@ -516,7 +516,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 $"Azure App Service removes dashes from environment variable names during deployment, " +
                 $"which may cause client integrations to fail when attempting to resolve the original variable names. " +
                 $"To allow deployment with these environment variables and accept the risk, " +
-                $"call WithAllowEnvironmentVariablesWithDashes() on the Azure App Service environment resource.");
+                $"call {nameof(AzureAppServiceEnvironmentExtensions.AllowEnvironmentVariablesWithDashes)}() on the Azure App Service environment resource.");
         }
 
         // If AllowEnvironmentVariablesWithDashes is true, log a warning

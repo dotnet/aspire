@@ -198,7 +198,7 @@ public class AzureAppServiceEnvironmentResource :
     /// When true, deployment will proceed with a warning.
     /// Azure App Service removes dashes from environment variable names, which may cause client integrations to fail.
     /// </summary>
-    public bool AllowEnvironmentVariablesWithDashes { get; set; }
+    internal bool AllowEnvironmentVariablesWithDashes { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.

@@ -301,7 +301,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <remarks>
     /// Azure App Service removes dashes from environment variable names during deployment, which may cause client integrations to fail.
     /// </remarks>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAllowEnvironmentVariablesWithDashes(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool allow = true)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> AllowEnvironmentVariablesWithDashes(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool allow = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.Resource.AllowEnvironmentVariablesWithDashes = allow;

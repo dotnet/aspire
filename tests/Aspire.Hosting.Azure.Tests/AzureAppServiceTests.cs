@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIRECOMPUTE002
 
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -833,7 +834,7 @@ public class AzureAppServiceTests
         Assert.Contains("MY-VARIABLE", ex.Message);
         Assert.Contains("Aspire deployment failed", ex.Message);
         Assert.Contains("Azure App Service removes dashes", ex.Message);
-        Assert.Contains("WithAllowEnvironmentVariablesWithDashes", ex.Message);
+        Assert.Contains(nameof(AzureAppServiceEnvironmentExtensions.AllowEnvironmentVariablesWithDashes), ex.Message);
     }
 
     [Fact]
@@ -873,7 +874,7 @@ public class AzureAppServiceTests
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddAzureAppServiceEnvironment("env")
-            .WithAllowEnvironmentVariablesWithDashes();
+            .AllowEnvironmentVariablesWithDashes();
 
         var project = builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
@@ -922,23 +923,23 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    public void WithAllowEnvironmentVariablesWithDashesSetsProperty()
+    public void AllowEnvironmentVariablesWithDashesSetsProperty()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var env = builder.AddAzureAppServiceEnvironment("env")
-            .WithAllowEnvironmentVariablesWithDashes();
+            .AllowEnvironmentVariablesWithDashes();
 
-        Assert.True(env.Resource.AllowEnvironmentVariablesWithDashes);
+        Assert.True(GetAllowEnvironmentVariablesWithDashes(env.Resource));
     }
 
     [Fact]
-    public void WithAllowEnvironmentVariablesWithDashesCanBeSetToFalse()
+    public void AllowEnvironmentVariablesWithDashesCanBeSetToFalse()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var env = builder.AddAzureAppServiceEnvironment("env")
-            .WithAllowEnvironmentVariablesWithDashes(false);
+            .AllowEnvironmentVariablesWithDashes(false);
 
-        Assert.False(env.Resource.AllowEnvironmentVariablesWithDashes);
+        Assert.False(GetAllowEnvironmentVariablesWithDashes(env.Resource));
     }
 
     [Fact]
@@ -947,11 +948,14 @@ public class AzureAppServiceTests
         var builder = TestDistributedApplicationBuilder.Create();
         var env = builder.AddAzureAppServiceEnvironment("env");
 
-        Assert.False(env.Resource.AllowEnvironmentVariablesWithDashes);
+        Assert.False(GetAllowEnvironmentVariablesWithDashes(env.Resource));
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_AllowEnvironmentVariablesWithDashes")]
+    private static extern bool GetAllowEnvironmentVariablesWithDashes(AzureAppServiceEnvironmentResource resource);
 
     private sealed class Project : IProjectMetadata
     {
