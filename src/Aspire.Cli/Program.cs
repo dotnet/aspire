@@ -260,7 +260,7 @@ public class Program
         // Setup handling of CTRL-C as early as possible so that if
         // we get a CTRL-C anywhere that is not handled by Spectre Console
         // already that we know to trigger cancellation.
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
             cts.Cancel();
