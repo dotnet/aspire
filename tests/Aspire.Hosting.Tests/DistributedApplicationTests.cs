@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.Tests;
@@ -620,6 +621,54 @@ public class DistributedApplicationTests
                 },
                 item.Spec.CreateFiles);
             });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyRedisWithCertificateKeyPair()
+    {
+        const string testName = "verify-redis-with-certificate";
+        using var testProgram = CreateTestProgram(testName, trustDeveloperCertificate: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        // Create a test certificate
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest("CN=test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+        using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+
+#pragma warning disable ASPIRECERTIFICATES001
+        var redis = testProgram.AppBuilder.AddRedis($"{testName}-redis")
+            .WithCertificateKeyPair(cert);
+#pragma warning restore ASPIRECERTIFICATES001
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var redisContainer = Assert.Single(list, c => c.Metadata.Name.StartsWith($"{testName}-redis"));
+
+        Assert.NotNull(redisContainer.Spec.Args);
+        Assert.Equal(2, redisContainer.Spec.Args.Count);
+        // Verify that arguments are passed as shell command
+        Assert.Equal("-c", redisContainer.Spec.Args[0]);
+        Assert.Contains("--tls-cert-file", redisContainer.Spec.Args[1]);
+        Assert.Contains("--tls-key-file", redisContainer.Spec.Args[1]);
+        Assert.Contains("--tls-auth-clients", redisContainer.Spec.Args[1]);
+        Assert.Contains("--tls-port", redisContainer.Spec.Args[1]);
+        Assert.Contains("--port", redisContainer.Spec.Args[1]);
+
+        // Verify both endpoints exist (TLS on 6380, non-TLS on 6379)
+        Assert.NotNull(redisContainer.Spec.Ports);
+        Assert.Contains(redisContainer.Spec.Ports, p => p.ContainerPort == 6380);
+        Assert.Contains(redisContainer.Spec.Ports, p => p.ContainerPort == 6379);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
@@ -1520,21 +1569,38 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+        var sslVal = redis.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}{sslVal}", env.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
-        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        if (redis.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, redisContainer.Spec.Ports!.Count);
+            Assert.Contains(redisContainer.Spec.Ports!, p => p.HostPort == 1234);
+        }
+        else
+        {
+            Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        }
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+        sslVal = redisNoPort.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}{sslVal}", otherRedisEnv.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
-
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
-        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        if (redisNoPort.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, otherRedisContainer.Spec.Ports!.Count);
+            Assert.Contains(otherRedisContainer.Spec.Ports!, p => p.HostPort == 6379);
+        }
+        else
+        {
+            Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        }
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
@@ -1578,21 +1644,39 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+        var sslVal = redis.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}{sslVal}", env.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
-        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        if (redis.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, redisContainer.Spec.Ports!.Count);
+            Assert.Contains(redisContainer.Spec.Ports!, p => p.HostPort == 1234);
+        }
+        else
+        {
+            Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        }
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+        sslVal = redisNoPort.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}{sslVal}", otherRedisEnv.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
-        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        if (redisNoPort.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, otherRedisContainer.Spec.Ports!.Count);
+            Assert.Contains(otherRedisContainer.Spec.Ports!, p => p.HostPort == 6379);
+        }
+        else
+        {
+            Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        }
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }

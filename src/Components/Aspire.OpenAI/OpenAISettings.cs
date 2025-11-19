@@ -40,13 +40,16 @@ public sealed class OpenAISettings
     /// <value>
     /// <see langword="true"/> if potentially sensitive information should be included in telemetry;
     /// <see langword="false"/> if telemetry shouldn't include raw inputs and outputs.
-    /// The default value is <see langword="false"/>.
+    /// The default value is <see langword="false"/>, unless the <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c>
+    /// environment variable is set to "true" (case-insensitive).
     /// </value>
     /// <remarks>
     /// By default, telemetry includes metadata, such as token counts, but not raw inputs
     /// and outputs, such as message content, function call arguments, and function call results.
+    /// The default value can be overridden by setting the <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c>
+    /// environment variable to "true". Explicitly setting this property will override the environment variable.
     /// </remarks>
-    public bool EnableSensitiveTelemetryData { get; set; }
+    public bool EnableSensitiveTelemetryData { get; set; } = TelemetryHelpers.EnableSensitiveDataDefault;
 
     internal void ParseConnectionString(string? connectionString)
     {

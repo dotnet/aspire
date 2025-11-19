@@ -38,7 +38,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
              {
                  try
                  {
-                     var channels = await packagingService.GetChannelsAsync();
+                     var channels = await packagingService.GetChannelsAsync(stoppingToken);
 
                      foreach (var channel in channels)
                      {

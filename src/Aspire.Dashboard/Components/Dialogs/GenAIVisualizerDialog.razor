@@ -67,11 +67,13 @@
                                 <FluentTabs ActiveTabId="@($"tab-message-{selectedView}")" OnTabChange="@OnMessageTabChange" Size="null">
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-message-{ItemViewKind.Preview}")"
-                                               Label="@Loc[nameof(Dialogs.GenAIPreviewTabText)]">
+                                               Label="@Loc[nameof(Dialogs.GenAIPreviewTabText)]"
+                                               Icon="@(new Icons.Regular.Size24.PreviewLink())">
                                     </FluentTab>
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-message-{ItemViewKind.Raw}")"
-                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
+                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]"
+                                               Icon="@(new Icons.Regular.Size24.Code())">
                                     </FluentTab>
                                 </FluentTabs>
                             }
@@ -80,7 +82,8 @@
                                 <FluentTabs ActiveTabId="@($"tab-message-{ItemViewKind.Raw}")" Size="null">
                                     <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-message-{ItemViewKind.Raw}")"
-                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
+                                               Label="@Loc[nameof(Dialogs.GenAIRawTabText)]"
+                                               Icon="@(new Icons.Regular.Size24.Code())">
                                     </FluentTab>
                                 </FluentTabs>
                             }
@@ -229,19 +232,33 @@
                             <FluentTabs ActiveTabId="@($"tab-overview-{OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
-                                           Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]">
+                                           Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]"
+                                           Icon="@(new Icons.Regular.Size24.Chat())">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.Details}")"
-                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]">
+                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]"
+                                           Icon="@(new Icons.Regular.Size24.Info())">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")">
+                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")"
+                                           Icon="@(new Icons.Regular.Size24.Wrench())">
                                     <Header>
                                         <span class="tab-text">@Loc[nameof(Dialogs.GenAIToolsTabText)]</span>
                                         <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
                                     </Header>
                                 </FluentTab>
+                                @if (Content.Evaluations.Count > 0)
+                                {
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-overview-{OverviewViewKind.Evaluations}")"
+                                               Icon="@(new Icons.Regular.Size24.Scales())">
+                                        <Header>
+                                            <span class="tab-text">@Loc[nameof(Dialogs.GenAIEvaluationsTabText)]</span>
+                                            <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.Evaluations.Count</FluentBadge>
+                                        </Header>
+                                    </FluentTab>
+                                }
                             </FluentTabs>
                         </div>
                         @if (OverviewActiveView == OverviewViewKind.InputOutput)
@@ -351,6 +368,36 @@
                                 else
                                 {
                                     <p>@Loc[nameof(Dialogs.GenAINoTools)]</p>
+                                }
+                            </div>
+                        }
+                        @if (OverviewActiveView == OverviewViewKind.Evaluations)
+                        {
+                            <div class="tab-container">
+                                @* Don't need to check for empty collection because tab is only displayed if there are evaluations *@
+                                @foreach (var evaluation in Content.Evaluations)
+                                {
+                                    <div class="evaluation-container">
+                                        <div class="evaluation-header">
+                                            @evaluation.Name
+                                            <FluentDivider Orientation="Orientation.Vertical" Class="evaluation-divider" />
+                                            @(evaluation.ScoreValue is { } value ? FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, maxDecimalPlaces: 3) : Loc[nameof(Dialogs.GenAINAText)])
+                                            <FluentDivider Orientation="Orientation.Vertical" Class="evaluation-divider" />
+                                            @(evaluation.ScoreLabel is { Length: > 0 } label ? label : Loc[nameof(Dialogs.GenAINAText)])
+                                        </div>
+                                        @if (evaluation.Explanation is { Length: > 0 } explanation)
+                                        {
+                                            <div>
+                                                @explanation
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <span class="empty-data"></span>
+                                            </div>
+                                        }
+                                    </div>
                                 }
                             </div>
                         }

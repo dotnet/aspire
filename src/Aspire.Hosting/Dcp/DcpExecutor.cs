@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
+#pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECONTAINERSHELLEXECUTION001
+
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
@@ -11,6 +14,8 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -70,10 +75,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
     private readonly Locations _locations;
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private readonly IDeveloperCertificateService _developerCertificateService;
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
@@ -107,9 +109,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpNameGenerator nameGenerator,
                        DcpExecutorEvents executorEvents,
                        Locations locations,
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                        IDeveloperCertificateService developerCertificateService)
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -1534,18 +1534,49 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             spec.Args.AddRange(projectArgs);
         }
 
+        // Build the base paths for certificate output in the DCP session directory.
         var certificatesRootDir = Path.Join(_locations.DcpSessionDir, exe.Name());
         var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
         var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
+        var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
         // Build the environment and args for the executable, including certificate trust configuration.
         var configContext = await er.ModelResource.ProcessConfigurationValuesAsync(
             _executionContext,
             resourceLogger,
-            withCertificateTrust: true,
-            bundlePathFactory: (scope) => ReferenceExpression.Create($"{bundleOutputPath}"),
-            certificateDirectoryPathsFactory: (scope) => ReferenceExpression.Create($"{certificatesOutputPath}"),
+            withCertificateTrustConfig: true,
+            withServerAuthCertificateConfig: true,
+            certificateTrustConfigContextFactory: (scope) => new()
+            {
+                CertificateBundlePath = ReferenceExpression.Create($"{bundleOutputPath}"),
+                CertificateDirectoriesPath = ReferenceExpression.Create($"{certificatesOutputPath}"),
+            },
+            serverAuthCertificateConfigContextFactory: (cert) => new()
+            {
+                CertificatePath = ReferenceExpression.Create($"{Path.Join(certificatesOutputPath, $"{cert.Thumbprint}.crt")}"),
+                KeyPath = ReferenceExpression.Create($"{Path.Join(certificatesOutputPath, $"{cert.Thumbprint}.key")}"),
+                PfxPath = ReferenceExpression.Create($"{Path.Join(certificatesOutputPath, $"{cert.Thumbprint}.pfx")}"),
+            },
             cancellationToken).ConfigureAwait(false);
+
+        if (configContext.ServerAuthCertificate is not null)
+        {
+            (var certificatePem, var keyPem) = GetCertificateKeyPair(configContext.ServerAuthCertificate, configContext.ServerAuthPassword);
+            var pfxBytes = configContext.ServerAuthCertificate.Export(X509ContentType.Pfx, configContext.ServerAuthPassword);
+
+            var certificateBytes = Encoding.ASCII.GetBytes(certificatePem);
+            var keyBytes = Encoding.ASCII.GetBytes(keyPem);
+
+            Directory.CreateDirectory(baseServerAuthOutputPath);
+
+            // Write each of the certificate, key, and PFX assets to the temp folder
+            File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.key"), keyBytes);
+            File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.crt"), certificateBytes);
+            File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.pfx"), pfxBytes);
+
+            Array.Clear(keyPem, 0, keyPem.Length);
+            Array.Clear(keyBytes, 0, keyBytes.Length);
+        }
 
         // Add the certificates to the executable spec so they'll be placed in the DCP config
         ExecutablePemCertificates? pemCertificates = null;
@@ -1689,7 +1720,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 new ContainerNetworkConnection
                 {
                     Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value,
-                    Aliases = new List<string> { container.Name },
+                    Aliases = [container.Name, $"{container.Name}.dev.internal"], // Alias to .dev.internal to support dev cert trust
                 }
             };
 
@@ -1807,14 +1838,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             certificateDirsPaths = pathsAnnotation.DefaultCertificateDirectories ?? certificateDirsPaths;
         }
 
+        var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
+
         // Build the environment and args for the executable, including certificate trust configuration.
         var configContext = await cr.ModelResource.ProcessConfigurationValuesAsync(
             _executionContext,
             resourceLogger,
-            withCertificateTrust: true,
-            bundlePathFactory: (scope) => ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
-            certificateDirectoryPathsFactory: (scope) =>
-            {
+            withCertificateTrustConfig: true,
+            withServerAuthCertificateConfig: true,
+            certificateTrustConfigContextFactory: (scope) => {
                 var dirs = new List<string> { certificatesDestination + "/certs" };
                 if (scope == CertificateTrustScope.Append)
                 {
@@ -1822,8 +1854,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     dirs.AddRange(certificateDirsPaths!);
                 }
 
-                // Build Linux PATH style colon-separated list of directories
-                return ReferenceExpression.Create($"{string.Join(':', dirs)}");
+                return new()
+                {
+                    CertificateBundlePath = ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
+                    // Build Linux PATH style colon-separated list of directories
+                    CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
+                };
+            },
+            serverAuthCertificateConfigContextFactory: (cert) => new()
+            {
+                CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.crt"),
+                KeyPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.key"),
+                PfxPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.pfx"),
             },
             cancellationToken).ConfigureAwait(false);
 
@@ -1859,8 +1901,59 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // Build files that need to be created inside the container
         var createFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
+        if (configContext.ServerAuthCertificate is not null)
+        {
+            (var certificatePem, var keyPem) = GetCertificateKeyPair(configContext.ServerAuthCertificate, configContext.ServerAuthPassword);
+            var pfxBytes = configContext.ServerAuthCertificate.Export(X509ContentType.Pfx, configContext.ServerAuthPassword);
+
+            // The PFX file is binary, so we need to write it to a temp file first
+            var baseOutputPath = Path.Join(_locations.DcpSessionDir, dcpContainerResource.Name(), "private");
+            var pfxOutputPath = Path.Join(baseOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.pfx");
+            Directory.CreateDirectory(baseOutputPath);
+            File.WriteAllBytes(pfxOutputPath, pfxBytes);
+
+            // Write the certificate and key to the container filesystem
+            createFiles.Add(new ContainerCreateFileSystem
+            {
+                Destination = serverAuthCertificatesBasePath,
+                Entries = [
+                    new ContainerFileSystemEntry
+                    {
+                        Name = configContext.ServerAuthCertificate.Thumbprint + ".key",
+                        Type = ContainerFileSystemEntryType.File,
+                        Contents = new string(keyPem),
+                    },
+                    new ContainerFileSystemEntry
+                    {
+                        Name = configContext.ServerAuthCertificate.Thumbprint + ".crt",
+                        Type = ContainerFileSystemEntryType.File,
+                        Contents = new string(certificatePem),
+                    },
+                    // Copy the PFX file from the temp location
+                    new ContainerFileSystemEntry
+                    {
+                        Name = configContext.ServerAuthCertificate.Thumbprint + ".pfx",
+                        Type = ContainerFileSystemEntryType.File,
+                        Source = pfxOutputPath,
+                    },
+                ],
+            });
+
+            Array.Clear(keyPem, 0, keyPem.Length);
+            Array.Clear(pfxBytes, 0, pfxBytes.Length);
+        }
+
         // Set the final args, env vars, and create files on the container spec
-        spec.Args = configContext.Arguments.Select(a => a.Value).ToList();
+        var args = configContext.Arguments.Select(a => a.Value);
+        // Set the final args, env vars, and create files on the container spec
+        if (modelContainerResource is ContainerResource { ShellExecution: true })
+        {
+            spec.Args = ["-c", $"{string.Join(' ', args)}"];
+        }
+        else
+        {
+            spec.Args = args.ToList();
+        }
         dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, configContext.Arguments.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
         spec.Env = configContext.EnvironmentVariables;
         spec.CreateFiles = createFiles;
@@ -2302,6 +2395,40 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
+    }
+
+    private static (char[] certificatePem, char[] keyPem) GetCertificateKeyPair(X509Certificate2 certificate, string? passphrase)
+    {
+        // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
+        using var privateKey = certificate.GetRSAPrivateKey();
+        if (privateKey is null)
+        {
+            throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
+        }
+
+        var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
+            passphrase ?? string.Empty,
+            new PbeParameters(
+                PbeEncryptionAlgorithm.Aes256Cbc,
+                HashAlgorithmName.SHA256,
+                iterationCount: passphrase is null ? 1 : 100_000));
+        var pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
+
+        if (passphrase is null)
+        {
+            using var tempKey = RSA.Create();
+            tempKey.ImportFromEncryptedPem(pem, string.Empty);
+            Array.Clear(keyBytes, 0, keyBytes.Length);
+            Array.Clear(pem, 0, pem.Length);
+            keyBytes = tempKey.ExportPkcs8PrivateKey();
+            pem = PemEncoding.Write("PRIVATE KEY", keyBytes);
+        }
+
+        var contents = PemEncoding.Write("CERTIFICATE", certificate.Export(X509ContentType.Cert));
+
+        Array.Clear(keyBytes, 0, keyBytes.Length);
+
+        return (contents, pem);
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(RenderedModelResource cr)

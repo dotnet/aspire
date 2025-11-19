@@ -2,7 +2,6 @@
   <Configurations>
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Components/">
     <Project Path="src/Components/Aspire.Azure.AI.Inference/Aspire.Azure.AI.Inference.csproj" />

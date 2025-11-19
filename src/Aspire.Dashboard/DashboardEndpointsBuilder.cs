@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -21,9 +22,10 @@ public static class DashboardEndpointsBuilder
 
     public static void MapDashboardApi(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
     {
+        IEndpointConventionBuilder builder;
         if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
         {
-            endpoints.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
+            builder = endpoints.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
             {
                 return await ValidateTokenMiddleware.TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
             });
@@ -36,12 +38,18 @@ public static class DashboardEndpointsBuilder
                     httpContext,
                     CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
                 httpContext.Response.Redirect("/");
-            });
+            }).SkipStatusCodePages();
 #endif
         }
-        else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
+        else
         {
-            endpoints.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
+            builder = endpoints.MapPostNotFound("/api/validatetoken");
+        }
+        builder.SkipStatusCodePages();
+
+        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
+        {
+            endpoints.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme])).SkipStatusCodePages();
         }
 
         endpoints.MapGet("/api/set-language", async (string? language, string? redirectUrl, [FromHeader(Name = "Accept-Language")] string? acceptLanguage, HttpContext httpContext) =>
@@ -79,6 +87,20 @@ public static class DashboardEndpointsBuilder
                 new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1) }); // consistent with theme cookie expiry
 
             return Results.LocalRedirect(redirectUrl);
-        });
+        }).SkipStatusCodePages();
+    }
+
+    public static void MapDashboardMcp(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
+    {
+        IEndpointConventionBuilder builder;
+        if (!dashboardOptions.Mcp.Disabled.GetValueOrDefault())
+        {
+            builder = endpoints.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
+        }
+        else
+        {
+            builder = endpoints.MapPostNotFound("/mcp");
+        }
+        builder.SkipStatusCodePages();
     }
 }

@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
+#pragma warning disable ASPIRECERTIFICATES001
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -481,6 +483,16 @@ public static class ResourceExtensions
         public required CertificateTrustScope CertificateTrustScope { get; init; }
 
         /// <summary>
+        /// The server authentication certificate for the resource, if any.
+        /// </summary>
+        public X509Certificate2? ServerAuthCertificate { get; init; }
+
+        /// <summary>
+        /// The password for the server authentication certificate, if any.
+        /// </summary>
+        public string? ServerAuthPassword { get; init; }
+
+        /// <summary>
         /// Any exception that occurred during the configuration processing.
         /// </summary>
         public Exception? Exception { get; init; }
@@ -492,24 +504,30 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to process configuration values for.</param>
     /// <param name="executionContext">The execution context used during the processing of configuration values.</param>
     /// <param name="resourceLogger">The resource specific logger used for logging information or errors during the processing of configuration values.</param>
-    /// <param name="withCertificateTrust">Should certificate trust callbacks be applied during processing.</param>
-    /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource. Required if withCertificateTrust is true.</param>
-    /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource. Required if withCertificateTrust is true.</param>
+    /// <param name="withCertificateTrustConfig">Should certificate trust callbacks be applied during processing.</param>
+    /// <param name="withServerAuthCertificateConfig">Should server authentication certificate callbacks be applied during processing.</param>
+    /// <param name="certificateTrustConfigContextFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="CertificateTrustConfigBuilderContext"/> with the paths to certificate resources. Required if withCertificateTrustConfig is true.</param>
+    /// <param name="serverAuthCertificateConfigContextFactory">A factory function to create the context for building server authentication certificate configuration; provides the paths for the certificate, key, and PFX files. Required if withServerAuthCertificateConfig is true.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A <see cref="ResourceConfigurationContext"/> containing resolved configuration.</returns>
     internal static async ValueTask<ResourceConfigurationContext> ProcessConfigurationValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger resourceLogger,
-        bool withCertificateTrust,
-        Func<CertificateTrustScope, ReferenceExpression>? bundlePathFactory = null,
-        Func<CertificateTrustScope, ReferenceExpression>? certificateDirectoryPathsFactory = null,
+        bool withCertificateTrustConfig,
+        bool withServerAuthCertificateConfig,
+        Func<CertificateTrustScope, CertificateTrustConfigBuilderContext>? certificateTrustConfigContextFactory = null,
+        Func<X509Certificate2, ServerAuthCertificateConfigBuilderContext>? serverAuthCertificateConfigContextFactory = null,
         CancellationToken cancellationToken = default)
     {
-        if (withCertificateTrust)
+        if (withCertificateTrustConfig)
         {
-            ArgumentNullException.ThrowIfNull(bundlePathFactory);
-            ArgumentNullException.ThrowIfNull(certificateDirectoryPathsFactory);
+            ArgumentNullException.ThrowIfNull(certificateTrustConfigContextFactory);
+        }
+
+        if (withServerAuthCertificateConfig)
+        {
+            ArgumentNullException.ThrowIfNull(serverAuthCertificateConfigContextFactory);
         }
 
         var args = await GatherArgumentValuesAsync(resource, executionContext, resourceLogger, cancellationToken).ConfigureAwait(false);
@@ -517,7 +535,7 @@ public static class ResourceExtensions
 
         var trustedCertificates = new X509Certificate2Collection();
         var certificateTrustScope = CertificateTrustScope.None;
-        if (withCertificateTrust)
+        if (withCertificateTrustConfig)
         {
             // If certificate trust is requested, apply the additional required argument and environment variable configuration
             (args, envVars, certificateTrustScope, trustedCertificates) = await resource.GatherCertificateTrustConfigAsync(
@@ -525,8 +543,19 @@ public static class ResourceExtensions
                 args,
                 envVars,
                 resourceLogger,
-                bundlePathFactory!,
-                certificateDirectoryPathsFactory!,
+                certificateTrustConfigContextFactory!,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        X509Certificate2? serverAuthCertificate = null;
+        string? serverAuthPassword = null;
+        if (withServerAuthCertificateConfig)
+        {
+            (args, envVars, serverAuthCertificate, serverAuthPassword) = await resource.GatherServerAuthCertificateConfigAsync(
+                executionContext,
+                args,
+                envVars,
+                serverAuthCertificateConfigContextFactory!,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -587,8 +616,26 @@ public static class ResourceExtensions
             EnvironmentVariables = resolvedEnvVars,
             CertificateTrustScope = certificateTrustScope,
             TrustedCertificates = trustedCertificates!,
+            ServerAuthCertificate = serverAuthCertificate,
+            ServerAuthPassword = serverAuthPassword,
             Exception = exception,
         };
+    }
+
+    /// <summary>
+    /// Context for building certificate trust configuration paths.
+    /// </summary>
+    internal class CertificateTrustConfigBuilderContext
+    {
+        /// <summary>
+        /// The path to the certificate bundle file in the resource context (e.g., container filesystem).
+        /// </summary>
+        public required ReferenceExpression CertificateBundlePath { get; init; }
+
+        /// <summary>
+        /// The path(s) to the certificate directories in the resource context (e.g., container filesystem).
+        /// </summary>
+        public required ReferenceExpression CertificateDirectoriesPath { get; init; }
     }
 
     /// <summary>
@@ -603,8 +650,7 @@ public static class ResourceExtensions
     /// <param name="arguments">Existing arguments that will be used to initialize the context for the config callback.</param>
     /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
     /// <param name="logger">The logger used for logging information during the processing.</param>
-    /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
-    /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
+    /// <param name="configContextFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="CertificateTrustConfigBuilderContext"/> representing the paths to a custom certificate bundle and directories for the resource.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     internal static async ValueTask<(List<object>, Dictionary<string, object>, CertificateTrustScope, X509Certificate2Collection)> GatherCertificateTrustConfigAsync(
@@ -613,13 +659,10 @@ public static class ResourceExtensions
         List<object> arguments,
         Dictionary<string, object> environmentVariables,
         ILogger logger,
-        Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
-        Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
+        Func<CertificateTrustScope, CertificateTrustConfigBuilderContext> configContextFactory,
         CancellationToken cancellationToken = default)
     {
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var trustDevCert = developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
@@ -660,15 +703,14 @@ public static class ResourceExtensions
             return (arguments, environmentVariables, scope, new X509Certificate2Collection());
         }
 
-        var bundlePath = bundlePathFactory(scope);
-        var certificateDirectoryPaths = certificateDirectoryPathsFactory(scope);
+        var configBuilderContext = configContextFactory(scope);
 
         // Apply default OpenSSL environment configuration for certificate trust
-        environmentVariables["SSL_CERT_DIR"] = certificateDirectoryPaths;
+        environmentVariables["SSL_CERT_DIR"] = configBuilderContext.CertificateDirectoriesPath;
 
         if (scope != CertificateTrustScope.Append)
         {
-            environmentVariables["SSL_CERT_FILE"] = bundlePath;
+            environmentVariables["SSL_CERT_FILE"] = configBuilderContext.CertificateBundlePath;
         }
 
         var context = new CertificateTrustConfigurationCallbackAnnotationContext
@@ -676,8 +718,8 @@ public static class ResourceExtensions
             ExecutionContext = executionContext,
             Resource = resource,
             Scope = scope,
-            CertificateBundlePath = bundlePath,
-            CertificateDirectoriesPath = certificateDirectoryPaths,
+            CertificateBundlePath = configBuilderContext.CertificateBundlePath,
+            CertificateDirectoriesPath = configBuilderContext.CertificateDirectoriesPath,
             Arguments = arguments,
             EnvironmentVariables = environmentVariables,
             CancellationToken = cancellationToken,
@@ -699,7 +741,88 @@ public static class ResourceExtensions
         return (context.Arguments, context.EnvironmentVariables, scope, certificates);
     }
 
-    private static async ValueTask<ResolvedValue?> ResolveValueAsync(
+    /// <summary>
+    /// Provides paths for server authentication certificate configuration
+    /// </summary>
+    internal class ServerAuthCertificateConfigBuilderContext
+    {
+        public required ReferenceExpression CertificatePath { get; init; }
+        public required ReferenceExpression KeyPath { get; init; }
+        public required ReferenceExpression PfxPath { get; init; }
+    }
+
+    /// <summary>
+    /// Gathers server authentication certificate configuration for the specified resource within the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource for which to gather server authentication certificate configuration.</param>
+    /// <param name="executionContext">The execution context within which the configuration is being gathered.</param>
+    /// <param name="arguments">Existing arguments that will be used to initialize the context for the config callback.</param>
+    /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
+    /// <param name="certificateConfigContextFactory">A factory function to create the context for building server authentication certificate configuration; provides the paths for the certificate, key, and PFX files.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>The resulting command line arguments, environment variables, and optionally the certificate and passphrase for server auth.</returns>
+    internal static async ValueTask<(List<object> arguments, Dictionary<string, object> environmentVariables, X509Certificate2? serverAuthCertificate, string? passphrase)> GatherServerAuthCertificateConfigAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        List<object> arguments,
+        Dictionary<string, object> environmentVariables,
+        Func<X509Certificate2, ServerAuthCertificateConfigBuilderContext> certificateConfigContextFactory,
+        CancellationToken cancellationToken = default)
+    {
+        var effectiveAnnotation = new CertificateKeyPairAnnotation();
+        if (resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+        {
+            effectiveAnnotation = annotation;
+        }
+
+        if (effectiveAnnotation is null)
+        {
+            // Should never happen
+            return (arguments, environmentVariables, null, null);
+        }
+
+        X509Certificate2? certificate = effectiveAnnotation.Certificate;
+        if (certificate is null)
+        {
+            var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled))
+            {
+                certificate = developerCertificateService.Certificates.FirstOrDefault();
+            }
+        }
+
+        if (certificate is null)
+        {
+            // No certificate to configure, do nothing
+            return (arguments, environmentVariables, null, null);
+        }
+
+        var configBuilderContext = certificateConfigContextFactory(certificate);
+
+        var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
+        {
+            ExecutionContext = executionContext,
+            Resource = resource,
+            Arguments = arguments,
+            EnvironmentVariables = environmentVariables,
+            CertificatePath = configBuilderContext.CertificatePath,
+            KeyPath = configBuilderContext.KeyPath,
+            PfxPath = configBuilderContext.PfxPath,
+            Password = effectiveAnnotation.Password,
+            CancellationToken = cancellationToken,
+        };
+
+        foreach (var callback in resource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
+        {
+            await callback.Callback(context).ConfigureAwait(false);
+        }
+
+        string? password = effectiveAnnotation.Password is not null ? await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false) : null;
+
+        return (arguments, environmentVariables, certificate, password);
+    }
+
+    internal static async ValueTask<ResolvedValue?> ResolveValueAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,

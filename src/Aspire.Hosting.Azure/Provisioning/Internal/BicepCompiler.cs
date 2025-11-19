@@ -69,7 +69,7 @@ internal sealed class BicepCliCompiler : IBicepCompiler
             throw new InvalidOperationException($"Failed to compile bicep file: {bicepFilePath}");
         }
 
-        _logger.LogInformation("Bicep compilation for {BicepFilePath} succeeded.", bicepFilePath);
+        _logger.LogDebug("Bicep compilation for {BicepFilePath} succeeded.", bicepFilePath);
 
         return armTemplateContents.ToString();
     }

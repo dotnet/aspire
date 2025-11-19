@@ -25,7 +25,7 @@ public partial class Error : IComponentWithTelemetry, IDisposable
     }
 
     [Inject]
-    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init;  }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Error);

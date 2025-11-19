@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001
 
 namespace Aspire.Hosting;
 
@@ -294,7 +295,54 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     c.Args.Add("--reload");
                 }
+            })
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--ssl-keyfile");
+                ctx.Arguments.Add(ctx.KeyPath);
+                ctx.Arguments.Add("--ssl-certfile");
+                ctx.Arguments.Add(ctx.CertificatePath);
+                if (ctx.Password is not null)
+                {
+                    ctx.Arguments.Add("--ssl-keyfile-password");
+                    ctx.Arguments.Add(ctx.Password);
+                }
+
+                return Task.CompletedTask;
             });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
+                    // Uvicorn only supports binding to a single port
+                    resourceBuilder
+                        .WithEndpoint("http", ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         return resourceBuilder;
     }
@@ -605,7 +653,7 @@ public static class PythonAppResourceBuilderExtensions
         context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
         var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
 
-        // Check if requirements.txt exists
+        // Check if requirements.txt or pyproject.toml exists
         var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
         var hasRequirementsTxt = File.Exists(requirementsTxtPath);
 
@@ -643,6 +691,30 @@ public static class PythonAppResourceBuilderExtensions
                   && rm -rf /var/lib/apt/lists/*
                 """)
                 .EmptyLine();
+        }
+        else
+        {
+            var pyprojectTomlPath = Path.Combine(resource.WorkingDirectory, "pyproject.toml");
+            var hasPyprojectToml = File.Exists(pyprojectTomlPath);
+
+            if (hasPyprojectToml)
+            {
+                // Copy pyproject.toml first for better layer caching
+                stage
+                    .Comment("Copy pyproject.toml for dependency installation")
+                    .Copy("pyproject.toml", "/app/pyproject.toml")
+                    .EmptyLine()
+                    .Comment("Install dependencies using pip")
+                    .Run(
+                    """
+                apt-get update \
+                  && apt-get install -y --no-install-recommends build-essential \
+                  && pip install --no-cache-dir . \
+                  && apt-get purge -y --auto-remove build-essential \
+                  && rm -rf /var/lib/apt/lists/*
+                """)
+                    .EmptyLine();
+            }
         }
 
         // Copy the rest of the application

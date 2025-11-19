@@ -26,6 +26,12 @@ public interface IDeveloperCertificateService
     bool SupportsContainerTrust { get; }
 
     /// <summary>
+    /// Indicates whether the available developer certificates support being used for TLS termination and should
+    /// be used by default if not explicitly disabled or overriden.
+    /// </summary>
+    bool DefaultTlsTerminationEnabled { get; }
+
+    /// <summary>
     /// Indicates whether the default behavior is to attempt to trust the developer certificate(s) at runtime.
     /// </summary>
     bool TrustCertificate { get; }

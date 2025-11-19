@@ -39,6 +39,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
     public List<ToolDefinitionViewModel> ToolDefinitions { get; private set; } = new();
+    public List<EvaluationResultViewModel> Evaluations { get; private set; } = new();
 
     // Used for error message from the dashboard when displaying GenAI telemetry.
     public string? DisplayErrorMessage { get; set; }
@@ -145,6 +146,17 @@ public sealed class GenAIVisualizerDialogViewModel
             viewModel.Items.Clear();
 
             return viewModel;
+        }
+
+        try
+        {
+            ParseEvaluations(viewModel, telemetryRepository);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the entire view model creation
+            errorRecorder.RecordError($"Error parsing GenAI evaluation results for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
+            viewModel.Evaluations = new List<EvaluationResultViewModel>();
         }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
@@ -610,13 +622,83 @@ public sealed class GenAIVisualizerDialogViewModel
         var logsResult = telemetryRepository.GetLogs(logsContext);
         return logsResult.Items;
     }
+
+    private static void ParseEvaluations(GenAIVisualizerDialogViewModel viewModel, TelemetryRepository telemetryRepository)
+    {
+        var evaluations = new List<EvaluationResultViewModel>();
+
+        // Parse evaluation results from log entries
+        var logEntries = GetSpanLogEntries(telemetryRepository, viewModel.Span);
+        foreach (var logEntry in logEntries)
+        {
+            if (logEntry.Attributes.GetValue("event.name") == GenAIHelpers.GenAIEvaluationResultEventName)
+            {
+                var evaluation = ParseEvaluationFromAttributes(logEntry.Attributes);
+                if (evaluation != null)
+                {
+                    evaluations.Add(evaluation);
+                }
+            }
+        }
+
+        // Parse evaluation results from span events
+        foreach (var spanEvent in viewModel.Span.Events)
+        {
+            if (spanEvent.Name == GenAIHelpers.GenAIEvaluationResultEventName)
+            {
+                var evaluation = ParseEvaluationFromAttributes(spanEvent.Attributes);
+                if (evaluation != null)
+                {
+                    evaluations.Add(evaluation);
+                }
+            }
+        }
+
+        viewModel.Evaluations = evaluations;
+    }
+
+    private static EvaluationResultViewModel? ParseEvaluationFromAttributes(KeyValuePair<string, string>[] eventAttributes)
+    {
+        // Parse evaluation fields from attributes per OpenTelemetry specification
+        var name = eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationName);
+        if (string.IsNullOrEmpty(name))
+        {
+            return null;
+        }
+
+        return new EvaluationResultViewModel
+        {
+            Name = name,
+            ScoreLabel = eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationScoreLabel),
+            ScoreValue = ParseDouble(eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationScoreValue)),
+            Explanation = eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationExplanation),
+            ResponseId = eventAttributes.GetValue(GenAIHelpers.GenAIResponseId),
+            ErrorType = eventAttributes.GetValue(GenAIHelpers.ErrorType)
+        };
+    }
+
+    private static double? ParseDouble(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        if (double.TryParse(value, CultureInfo.InvariantCulture, out var result))
+        {
+            return result;
+        }
+
+        return null;
+    }
 }
 
 public enum OverviewViewKind
 {
     InputOutput,
+    Details,
     Tools,
-    Details
+    Evaluations
 }
 
 public enum ItemViewKind
