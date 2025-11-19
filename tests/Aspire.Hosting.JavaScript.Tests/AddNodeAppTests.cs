@@ -413,18 +413,6 @@ public class AddNodeAppTests
 
         var dockerfileContent = File.ReadAllText(nodeDockerfilePath);
 
-        // Verify the ARG name has underscores instead of dashes
-        Assert.Contains("ARG STATIC_DEV_IMAGENAME=", dockerfileContent);
-        Assert.DoesNotContain("ARG STATIC-DEV_IMAGENAME=", dockerfileContent);
-
-        // Verify the FROM statement uses the correct variable name
-        Assert.Contains("FROM ${STATIC_DEV_IMAGENAME} AS static_dev_stage", dockerfileContent);
-        Assert.DoesNotContain("FROM ${STATIC-DEV_IMAGENAME}", dockerfileContent);
-
-        // Verify COPY --from uses the correct stage name with underscores
-        Assert.Contains("COPY --from=static_dev_stage", dockerfileContent);
-        Assert.DoesNotContain("COPY --from=static-dev_stage", dockerfileContent);
-
         await Verify(dockerfileContent);
     }
 
