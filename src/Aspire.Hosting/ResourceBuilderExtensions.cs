@@ -418,7 +418,8 @@ public static class ResourceBuilderExtensions
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                 {
                     var serviceKey = name is null ? serviceName.ToUpperInvariant() : name;
-                    context.EnvironmentVariables[$"{EnvironmentVariableNameEncoder.Encode(serviceKey)}_{endpointName.ToUpperInvariant()}"] = endpoint;
+                    var encodedEndpointName = EnvironmentVariableNameEncoder.Encode(endpointName);
+                    context.EnvironmentVariables[$"{EnvironmentVariableNameEncoder.Encode(serviceKey)}_{encodedEndpointName.ToUpperInvariant()}"] = endpoint;
                 }
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))

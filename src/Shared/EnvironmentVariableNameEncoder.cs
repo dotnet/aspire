@@ -29,7 +29,7 @@ internal static partial class EnvironmentVariableNameEncoder
             return name;
         }
 
-        Span<char> buffer = stackalloc char[name.Length + 1];
+        var buffer = name.Length < 256 ? stackalloc char[name.Length] : new char[name.Length];
         var index = 0;
 
         if (char.IsAsciiDigit(name[0]))
