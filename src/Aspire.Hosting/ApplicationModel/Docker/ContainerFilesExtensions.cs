@@ -117,7 +117,9 @@ public static class ContainerFilesExtensions
         return stage;
     }
 
+    // Docker ARG names cannot contain dashes, so replace them with underscores
     private static string GetSourceImageArgName(IResource source) => $"{source.Name.Replace("-", "_").ToUpperInvariant()}_IMAGENAME";
 
+    // Docker stage names cannot contain dashes, so replace them with underscores
     private static string GetSourceStageName(IResource source) => $"{source.Name.Replace("-", "_")}_stage";
 }
