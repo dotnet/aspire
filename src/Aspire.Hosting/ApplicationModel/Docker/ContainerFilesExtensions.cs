@@ -117,7 +117,7 @@ public static class ContainerFilesExtensions
         return stage;
     }
 
-    private static string GetSourceImageArgName(IResource source) => $"{source.Name.ToUpperInvariant()}_IMAGENAME";
+    private static string GetSourceImageArgName(IResource source) => $"{source.Name.Replace("-", "_").ToUpperInvariant()}_IMAGENAME";
 
-    private static string GetSourceStageName(IResource source) => $"{source.Name}_stage";
+    private static string GetSourceStageName(IResource source) => $"{source.Name.Replace("-", "_")}_stage";
 }

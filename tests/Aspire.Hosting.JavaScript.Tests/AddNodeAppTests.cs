@@ -360,6 +360,74 @@ public class AddNodeAppTests
         await Verify(dockerfileContent);
     }
 
+    [Fact]
+    public async Task VerifyNodeAppWithContainerFilesFromResourceWithDashesGeneratesCorrectDockerfile()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var appDirectory = sourceDir.Path;
+
+        // Create a simple Node.js app
+        var packageJsonContent = """
+            {
+              "name": "test-app",
+              "version": "1.0.0",
+              "scripts": {
+                "start": "node app.js"
+              }
+            }
+            """;
+
+        var appContent = """
+            console.log('Hello from Node.js!');
+            """;
+
+        File.WriteAllText(Path.Combine(appDirectory, "package.json"), packageJsonContent);
+        File.WriteAllText(Path.Combine(appDirectory, "app.js"), appContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        var nodeApp = builder.AddNodeApp("nodeapp", appDirectory, "app.js");
+
+        // Create a source container with dashes in the name
+        var sourceFiles = builder.AddResource(new MyFilesContainer("static-dev", "exe", "."))
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    dockerfileContext.Builder.From("scratch");
+                })
+                .WithImageTag("static-dev-tag");
+            })
+            .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" });
+
+        // Configure NodeApp to consume the source files using the proper PublishWithContainerFiles API
+        nodeApp.PublishWithContainerFiles(sourceFiles, "./static");
+
+        var app = builder.Build();
+        await app.RunAsync();
+
+        // Verify that Dockerfile was generated for the NodeApp
+        var nodeDockerfilePath = Path.Combine(outputDir.Path, "nodeapp.Dockerfile");
+        Assert.True(File.Exists(nodeDockerfilePath), "Dockerfile should be generated for NodeApp");
+
+        var dockerfileContent = File.ReadAllText(nodeDockerfilePath);
+
+        // Verify the ARG name has underscores instead of dashes
+        Assert.Contains("ARG STATIC_DEV_IMAGENAME=", dockerfileContent);
+        Assert.DoesNotContain("ARG STATIC-DEV_IMAGENAME=", dockerfileContent);
+
+        // Verify the FROM statement uses the correct variable name
+        Assert.Contains("FROM ${STATIC_DEV_IMAGENAME} AS static_dev_stage", dockerfileContent);
+        Assert.DoesNotContain("FROM ${STATIC-DEV_IMAGENAME}", dockerfileContent);
+
+        // Verify COPY --from uses the correct stage name with underscores
+        Assert.Contains("COPY --from=static_dev_stage", dockerfileContent);
+        Assert.DoesNotContain("COPY --from=static-dev_stage", dockerfileContent);
+
+        await Verify(dockerfileContent);
+    }
+
     private sealed class MyFilesContainer(string name, string command, string workingDirectory)
         : ExecutableResource(name, command, workingDirectory), IResourceWithContainerFiles;
 }
