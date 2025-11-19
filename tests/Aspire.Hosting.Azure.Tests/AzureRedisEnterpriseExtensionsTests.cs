@@ -61,8 +61,10 @@ public class AzureRedisEnterpriseExtensionsTests
 
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
+        var sslArg = redisResource?.TlsEnabled == true ? ",ssl=true" : "";
+
         Assert.NotNull(redisResource?.PasswordParameter);
-        Assert.Equal($"localhost:12455,password={await redisResource.PasswordParameter.GetValueAsync(CancellationToken.None)}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal($"localhost:12455,password={await redisResource.PasswordParameter.GetValueAsync(CancellationToken.None)}{sslArg}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 
     [Fact]

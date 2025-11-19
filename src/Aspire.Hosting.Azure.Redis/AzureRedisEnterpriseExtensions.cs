@@ -165,6 +165,8 @@ public static class AzureRedisEnterpriseExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
+        // Set the secret owner to this resource
+        azureResource.ConnectionStringSecretOutput.SecretOwner = azureResource;
 
         // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
         var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();

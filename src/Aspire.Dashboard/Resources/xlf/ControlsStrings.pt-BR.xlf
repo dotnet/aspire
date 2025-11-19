@@ -148,23 +148,23 @@
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
-        <source>Show all</source>
-        <target state="translated">Mostrar tudo</target>
+        <source>Show all properties</source>
+        <target state="translated">Mostrar todas as propriedades</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
-        <source>Show spec only</source>
-        <target state="translated">Mostrar somente especificação</target>
-        <note>Spec means from the resource specification</note>
+        <source>Show core properties</source>
+        <target state="translated">Mostrar propriedades principais</target>
+        <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
-        <source>Hide values</source>
-        <target state="translated">Ocultar valores</target>
+        <source>Hide sensitive values</source>
+        <target state="translated">Ocultar valores confidenciais</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
-        <source>Show values</source>
-        <target state="translated">Mostrar valores</target>
+        <source>Show sensitive values</source>
+        <target state="translated">Mostrar valores confidenciais</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">

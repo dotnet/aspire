@@ -193,6 +193,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisLTSVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreTestHostLTSVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="$(MicrosoftExtensionsCachingMemoryLTSVersion)" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="1.6.25" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(MicrosoftExtensionsCachingStackExchangeRedisLTSVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion)" />

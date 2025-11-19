@@ -148,23 +148,23 @@
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
-        <source>Show all</source>
-        <target state="translated">Tümünü göster</target>
+        <source>Show all properties</source>
+        <target state="translated">Tüm özellikleri göster</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
-        <source>Show spec only</source>
-        <target state="translated">Yalnızca belirtimi göster</target>
-        <note>Spec means from the resource specification</note>
+        <source>Show core properties</source>
+        <target state="translated">Temel özellikleri göster</target>
+        <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
-        <source>Hide values</source>
-        <target state="translated">Değerleri gizle</target>
+        <source>Hide sensitive values</source>
+        <target state="translated">Hassas değerleri gizle</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
-        <source>Show values</source>
-        <target state="translated">Değerleri göster</target>
+        <source>Show sensitive values</source>
+        <target state="translated">Hassas değerleri göster</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">

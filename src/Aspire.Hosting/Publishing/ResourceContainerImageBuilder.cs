@@ -273,19 +273,22 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (options.TargetPlatform is not null)
             {
-                // Use the appropriate MSBuild property based on the number of RIDs
+                // Use the appropriate MSBuild properties based on the number of RIDs
                 var runtimeIds = options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString();
                 var ridArray = runtimeIds.Split(';');
 
                 if (ridArray.Length == 1)
                 {
-                    // Single platform - use ContainerRuntimeIdentifier
+                    // Single platform - use RuntimeIdentifier/ContainerRuntimeIdentifier
+                    arguments += $" /p:RuntimeIdentifier=\"{ridArray[0]}\"";
                     arguments += $" /p:ContainerRuntimeIdentifier=\"{ridArray[0]}\"";
                 }
                 else
                 {
-                    // Multiple platforms - use RuntimeIdentifiers
-                    arguments += $" /p:RuntimeIdentifiers=\"{runtimeIds}\"";
+                    // Multiple platforms - use RuntimeIdentifiers/ContainerRuntimeIdentifiers
+                    // MSBuild doesn't handle ';' in parameters well, need to escape the double quote. See https://github.com/dotnet/msbuild/issues/471
+                    arguments += $" /p:RuntimeIdentifiers=\\\"{runtimeIds}\\\"";
+                    arguments += $" /p:ContainerRuntimeIdentifiers=\\\"{runtimeIds}\\\"";
                 }
             }
         }

@@ -85,7 +85,7 @@ public static class MauiOtlpExtensions
         var appBuilder = parentBuilder.ApplicationBuilder;
 
         // Resolve OTLP scheme and port from configuration
-        var (otlpScheme, otlpPort) = OtlpEndpointResolver.Resolve(configuration);
+        var (otlpScheme, otlpPort) = OtlpEndpointResolver.ResolveSchemeAndPort(configuration);
 
         // Create names for the tunnel infrastructure
         // Use a short random suffix to ensure uniqueness (similar to DCP naming strategy)

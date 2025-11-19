@@ -2,10 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+
+#pragma warning disable ASPIRECERTIFICATES001
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -306,7 +311,7 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST1", item.Key);
-                Assert.Equal(redis1.Resource.Name, item.Value);
+                Assert.Equal($"{redis1.Resource.Name}.dev.internal", item.Value);
             },
             (item) =>
             {
@@ -328,7 +333,7 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST2", item.Key);
-                Assert.Equal(redis2.Resource.Name, item.Value);
+                Assert.Equal($"{redis2.Resource.Name}.dev.internal", item.Value);
             },
             (item) =>
             {
@@ -350,7 +355,7 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST3", item.Key);
-                Assert.Equal(redis3.Resource.Name, item.Value);
+                Assert.Equal($"{redis3.Resource.Name}.dev.internal", item.Value);
             },
             (item) =>
             {
@@ -726,5 +731,126 @@ public class AddRedisTests
         Assert.Equal(
             config1.First(kvp => kvp.Key == "RI_REDIS_HOST1").Value,
             config2.First(kvp => kvp.Key == "RI_REDIS_HOST1").Value);
+    }
+
+    [Fact]
+    public void WithoutCertificateKeyPairDisablesTlsConfiguration()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("myredis").WithoutCertificateKeyPair();
+
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        Assert.False(annotation.UseDeveloperCertificate);
+        Assert.Null(annotation.Certificate);
+        Assert.Null(annotation.Password);
+    }
+
+    [Fact]
+    [RequiresDevCert]
+    public void WithDeveloperCertificateKeyPairEnablesDeveloperCertificate()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("myredis").WithDeveloperCertificateKeyPair();
+
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        Assert.True(annotation.UseDeveloperCertificate);
+        Assert.Null(annotation.Certificate);
+        Assert.Null(annotation.Password);
+    }
+
+    [Fact]
+    [RequiresDevCert]
+    public void WithDeveloperCertificateKeyPairWithPasswordStoresPassword()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = builder.AddParameter("certpass", "test123");
+        var redis = builder.AddRedis("myredis").WithDeveloperCertificateKeyPair(password);
+
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        Assert.True(annotation.UseDeveloperCertificate);
+        Assert.Null(annotation.Certificate);
+        Assert.Equal(password.Resource, annotation.Password);
+    }
+
+    [Fact]
+    public void WithCertificateKeyPairUsesProvidedCertificate()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Create a test certificate with private key
+        using var cert = CreateTestCertificate();
+        var redis = builder.AddRedis("myredis").WithCertificateKeyPair(cert);
+
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        Assert.Null(annotation.UseDeveloperCertificate);
+        Assert.Equal(cert, annotation.Certificate);
+        Assert.Null(annotation.Password);
+    }
+
+    [Fact]
+    public void WithCertificateKeyPairWithPasswordStoresPassword()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = builder.AddParameter("certpass", "test123");
+
+        // Create a test certificate with private key
+        using var cert = CreateTestCertificate();
+        var redis = builder.AddRedis("myredis").WithCertificateKeyPair(cert, password);
+
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        Assert.Null(annotation.UseDeveloperCertificate);
+        Assert.Equal(cert, annotation.Certificate);
+        Assert.Equal(password.Resource, annotation.Password);
+    }
+
+    [Fact]
+    public async Task RedisWithCertificateHasCorrectConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        using var cert = CreateTestCertificate();
+
+        var redis = builder.AddRedis("myredis").WithCertificateKeyPair(cert);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate the BeforeStartEvent to enable TLS
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        Assert.True(redis.Resource.TlsEnabled);
+    }
+
+    [Fact]
+    public void RedisWithoutCertificateHasCorrectConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var redis = builder.AddRedis("myredis").WithoutCertificateKeyPair();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate the BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        Assert.False(redis.Resource.TlsEnabled);
+    }
+
+    private static X509Certificate2 CreateTestCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest("CN=test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+        // Add basic constraints
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+
+        // Add key usage
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+
+        // Create self-signed certificate
+        var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+
+        return certificate;
     }
 }

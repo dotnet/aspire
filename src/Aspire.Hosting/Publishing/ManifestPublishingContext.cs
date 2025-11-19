@@ -228,10 +228,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         foreach (var containerFileDestination in containerFilesAnnotations)
         {
             var source = containerFileDestination.Source;
-            
+
             Writer.WriteStartObject(source.Name);
             Writer.WriteString("destination", containerFileDestination.DestinationPath);
-            
+
             // Get source paths from the source resource
             if (source.TryGetAnnotationsOfType<ContainerFilesSourceAnnotation>(out var sourceAnnotations))
             {
@@ -242,7 +242,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 }
                 Writer.WriteEndArray();
             }
-            
+
             Writer.WriteEndObject();
         }
 
@@ -379,7 +379,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
                 Directory.CreateDirectory(manifestDirectory);
                 File.Copy(annotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
-                
+
                 // Update the dockerfile path to use the generated file for the manifest
                 dockerfilePath = resourceDockerfilePath;
             }

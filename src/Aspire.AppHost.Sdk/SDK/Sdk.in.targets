@@ -18,13 +18,17 @@
     <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
     <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
+    <!-- Allow users to disable the automatic treatment of ProjectReference items as Aspire resources.
+         This defaults to true for backward compatibility but can be set to false to disable the behavior.
+         This is particularly useful in file-based apps where metadata cannot be set on individual ProjectReference items. -->
+    <TreatProjectReferencesAsResources Condition="'$(TreatProjectReferencesAsResources)' == ''">true</TreatProjectReferencesAsResources>
   </PropertyGroup>
 
   <!--
   Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
-  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(TreatProjectReferencesAsResources)' == 'true'">
 
     <ProjectReference Update="@(ProjectReference)">
       <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
@@ -112,7 +116,6 @@
     <!--The following is the list of the RIDs that we currently multitarget for DCP and Dashboard packages-->
     <ItemGroup>
       <_DashboardAndDCPSupportedTargetingRIDs Include="win-x64" />
-      <_DashboardAndDCPSupportedTargetingRIDs Include="win-x86" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="win-arm64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="linux-x64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="linux-arm64" />

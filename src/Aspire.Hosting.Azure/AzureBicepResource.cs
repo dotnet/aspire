@@ -71,6 +71,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 ProcessAzureReferences(azureReferences, parameter.Value);
             }
 
+            foreach (var reference in References)
+            {
+                ProcessAzureReferences(azureReferences, reference);
+            }
+
             // Get the provision steps for this resource
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
 
@@ -93,6 +98,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// Parameters that will be passed into the bicep template.
     /// </summary>
     public Dictionary<string, object?> Parameters { get; } = [];
+
+    /// <summary>
+    /// References to other objects that may contain Azure resource references.
+    /// </summary>
+    public HashSet<object> References { get; } = [];
 
     IDictionary<string, object?> IResourceWithParameters.Parameters => Parameters;
 

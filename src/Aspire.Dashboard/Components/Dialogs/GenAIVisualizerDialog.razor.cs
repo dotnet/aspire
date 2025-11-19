@@ -13,11 +13,15 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 {
+    private static readonly Icon s_wrenchIcon = new Icons.Regular.Size16.Wrench();
+    private static readonly Icon s_toolIcon = new Icons.Regular.Size16.Code();
+
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
 
     private MarkdownProcessor _markdownProcess = default!;
@@ -108,6 +112,33 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private void OnViewItem(GenAIItemViewModel viewModel)
     {
         SelectedItem = viewModel;
+    }
+
+    private void ViewToolDefinition(ToolDefinitionViewModel toolDefinition)
+    {
+        SelectedItem = null;
+        OverviewActiveView = OverviewViewKind.Tools;
+        toolDefinition.Expanded = true;
+    }
+
+    private bool TryGetToolCall(string id, [NotNullWhen(true)] out GenAIItemViewModel? itemVM, [NotNullWhen(true)] out ToolCallRequestPart? toolCallRequestPart)
+    {
+        foreach (var messages in Content.InputMessages)
+        {
+            foreach (var part in messages.ItemParts)
+            {
+                if (part.MessagePart is ToolCallRequestPart { } p && p.Id == id)
+                {
+                    itemVM = messages;
+                    toolCallRequestPart = p;
+                    return true;
+                }
+            }
+        }
+
+        itemVM = null;
+        toolCallRequestPart = null;
+        return false;
     }
 
     private Task HandleSelectedTreeItemChangedAsync()
