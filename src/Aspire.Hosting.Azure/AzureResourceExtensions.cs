@@ -40,14 +40,9 @@ public static class AzureResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <returns>The configured <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// <para>
-    /// This method removes all default role assignments from the Azure resource. Use this when working with
-    /// existing resources in subscriptions where you don't have permissions to create role assignments.
-    /// </para>
-    /// <para>
-    /// This method removes all <see cref="DefaultRoleAssignmentsAnnotation"/> instances from the resource, preventing
-    /// automatic role assignment creation during provisioning.
-    /// </para>
+    /// This method removes all default role assignments from the Azure resource. This can be useful when 
+    /// role assignments can't be created, for example on existing resources where you don't have permission
+    /// to create the assignments.
     /// </remarks>
     /// <example>
     /// Clear default role assignments for an Azure Key Vault resource:
@@ -55,6 +50,7 @@ public static class AzureResourceExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var keyVault = builder.AddAzureKeyVault("keyvault")
+    ///     .RunAsExisting("kv-dev-secrets", "rg-keyvault")
     ///     .ClearDefaultRoleAssignments();
     ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
