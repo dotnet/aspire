@@ -10,7 +10,6 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <DefineConstants>$(DefineConstants);MONGODB_V2</DefineConstants>
     <!-- Disable package validation as this package hasn't shipped yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
 
     <!-- Keep the same assembly name as the main library. -->
     <AssemblyName>Aspire.MongoDB.Driver</AssemblyName>

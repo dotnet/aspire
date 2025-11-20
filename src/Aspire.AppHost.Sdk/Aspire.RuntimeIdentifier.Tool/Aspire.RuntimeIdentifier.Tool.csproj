@@ -6,7 +6,6 @@
     <RollForward>Major</RollForward>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
     <IsPackable>false</IsPackable>
-    <EnablePackageValidation>false</EnablePackageValidation>
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 

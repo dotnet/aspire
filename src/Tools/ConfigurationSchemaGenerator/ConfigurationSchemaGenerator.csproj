@@ -16,7 +16,6 @@
 
   <PropertyGroup>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
