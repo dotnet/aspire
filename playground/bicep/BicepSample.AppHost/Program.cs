@@ -50,8 +50,8 @@ var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
 // To verify that AZD will populate the LAW parameter.
 builder.AddAzureApplicationInsights("aiwithoutlaw");
 
-// Redis takes forever to spin up...
-var redis = builder.AddAzureRedis("redis");
+// Use Azure Managed Redis (RedisEnterprise) which provisions much faster
+var redis = builder.AddAzureRedisEnterprise("redis");
 
 var serviceBus = builder.AddAzureServiceBus("sb");
 
