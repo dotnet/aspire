@@ -8,7 +8,6 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable CS0618 // Type or member is obsolete
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -1024,7 +1023,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // and a compute resource that references the Redis cache
         builder.AddAzureAppServiceEnvironment("env");
 
-        var cache = builder.AddAzureRedis("cache")
+        var cache = builder.AddAzureRedisEnterprise("cache")
             .WithAccessKeyAuthentication();
 
         var azpg = builder.AddAzurePostgresFlexibleServer("pg")
