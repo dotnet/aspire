@@ -37,6 +37,16 @@
         <target state="translated">Centralne zarządzanie pakietami nie jest obecnie obsługiwane przez „aktualizację Aspire”.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChannelOptionDescription">
+        <source>Channel to update to (stable, daily)</source>
+        <target state="new">Channel to update to (stable, daily)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChannelOptionDescriptionWithStaging">
+        <source>Channel to update to (stable, staging, daily)</source>
+        <target state="new">Channel to update to (stable, staging, daily)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">Nie można odnaleźć elementu PackageVersion dla „{0}” w {1}</target>
@@ -140,6 +150,16 @@
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
         <target state="translated">Projekt jest aktualny. (nie są wymagane żadne aktualizacje)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QualityOptionDescription">
+        <source>Quality level to update to (stable, daily)</source>
+        <target state="new">Quality level to update to (stable, daily)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QualityOptionDescriptionWithStaging">
+        <source>Quality level to update to (stable, staging, daily)</source>
+        <target state="new">Quality level to update to (stable, staging, daily)</target>
         <note />
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
