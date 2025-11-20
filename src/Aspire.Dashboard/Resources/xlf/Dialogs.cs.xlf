@@ -377,9 +377,19 @@
         <target state="translated">OK</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogApiKeyLabel">
+        <source>Aspire MCP API key</source>
+        <target state="new">Aspire MCP API key</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
         <source>Aspire MCP configuration</source>
         <target state="translated">Konfigurace Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogCopyButton">
+        <source>Copy</source>
+        <target state="new">Copy</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
@@ -405,6 +415,11 @@
       <trans-unit id="McpServerDialogLearnMoreLink">
         <source>Use Aspire MCP with AI</source>
         <target state="translated">Použití Aspire MCP s AI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogManuallyUpdatingAccordionHeading">
+        <source>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</source>
+        <target state="new">Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogOtherDescription">
@@ -442,6 +457,11 @@
         <target state="translated">Rychle přidejte Aspire MCP do Visual Studio pomocí tlačítka pro instalaci v prohlížeči:</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeApiKeyInstructions">
+        <source>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</source>
+        <target state="new">The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogVSCodeTab">
         <source>VS Code</source>
         <target state="translated">VS Code</target>
@@ -465,6 +485,11 @@
       <trans-unit id="McpServerDialogVSCodeWarningTitle">
         <source>VS Code limitation</source>
         <target state="translated">Omezení VS Code</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
+        <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
+        <target state="new">You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">
