@@ -126,7 +126,7 @@ Step: provision-azure-bicep-resources
 
 Step: provision-cache
     Dependencies: ✓ create-provisioning-context, ✓ provision-cache-kv
-    Resource: cache (AzureRedisCacheResource)
+    Resource: cache (AzureRedisEnterpriseResource)
     Tags: provision-infra
 
 Step: provision-cache-kv
