@@ -86,16 +86,7 @@ internal sealed class ResourceContainerImageBuilder(
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
-        ContainerImageOptions? options = null;
-        if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var optionsAnnotation))
-        {
-            var context = new ContainerImageOptionsCallbackAnnotationContext
-            {
-                Resource = resource,
-                CancellationToken = cancellationToken
-            };
-            options = await optionsAnnotation.Callback(context).ConfigureAwait(false);
-        }
+        resource.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out var options);
 
         if (resource is ProjectResource)
         {
@@ -135,7 +126,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerImageOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerImageOptionsAnnotation? options, CancellationToken cancellationToken)
     {
         await _throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -162,7 +153,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ContainerImageOptions? options, CancellationToken cancellationToken)
+    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ContainerImageOptionsAnnotation? options, CancellationToken cancellationToken)
     {
         // This is a resource project so we'll use the .NET SDK to build the container image.
         if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
@@ -170,15 +161,41 @@ internal sealed class ResourceContainerImageBuilder(
             throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
         }
 
-        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+        // Get the image name from the resource using TryGetContainerImageName
+        string containerRepository;
+        string? containerImageTag = null;
+
+        if (resource.TryGetContainerImageName(out var fullImageName))
+        {
+            // Parse the full image name to extract repository and tag
+            var colonIndex = fullImageName.LastIndexOf(':');
+            if (colonIndex > 0)
+            {
+                containerRepository = fullImageName.Substring(0, colonIndex);
+                containerImageTag = fullImageName.Substring(colonIndex + 1);
+            }
+            else
+            {
+                containerRepository = fullImageName;
+            }
+        }
+        else
+        {
+            // Fallback to resource name if TryGetContainerImageName fails
+            containerRepository = resource.Name.ToLowerInvariant();
+        }
+
+        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{containerRepository}\"";
+
+        // Add image tag if available
+        if (!string.IsNullOrEmpty(containerImageTag))
+        {
+            arguments += $" /p:ContainerImageTag=\"{containerImageTag}\"";
+        }
 
         // Add additional arguments based on options
         if (options is not null)
         {
-            if (!string.IsNullOrEmpty(options.ImageTag))
-            {
-                arguments += $" /p:ContainerImageTag=\"{resource.Name.ToLowerInvariant()}:{options.ImageTag}\"";
-            }
 
             if (!string.IsNullOrEmpty(options.OutputPath))
             {
@@ -267,7 +284,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerImageOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerImageOptionsAnnotation? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building image: {ResourceName}", resource.Name);
 
@@ -365,13 +382,8 @@ internal sealed class ResourceContainerImageBuilder(
                 return true;
             }
 
-            if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var optionsAnnotation))
+            if (resource.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out var options))
             {
-                var options = optionsAnnotation.Callback(new ContainerImageOptionsCallbackAnnotationContext
-                {
-                    Resource = resource,
-                    CancellationToken = CancellationToken.None
-                }).GetAwaiter().GetResult();
 
                 var usesDocker = options?.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
                 var hasNoOutputPath = options?.OutputPath == null;

@@ -29,13 +29,13 @@ public static class ContainerResourceBuilderExtensions
     internal static IResourceBuilder<T> EnsureBuildPipelineStepAnnotation<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
         // Add default container image options if not already set
-        if (!builder.Resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out _))
+        if (!builder.Resource.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out _))
         {
-            builder.WithContainerImageOptions(_ => new ContainerImageOptions
+            builder.WithAnnotation(new ContainerImageOptionsAnnotation
             {
                 TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
                 ImageTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}"
-            });
+            }, ResourceAnnotationMutationBehavior.Replace);
         }
 
         // Use replace semantics to ensure we only have one PipelineStepAnnotation for building

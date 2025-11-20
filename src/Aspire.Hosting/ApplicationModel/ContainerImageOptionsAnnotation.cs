@@ -7,50 +7,34 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Context information for container image options callback functions.
-/// </summary>
-[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class ContainerImageOptionsCallbackAnnotationContext
-{
-    /// <summary>
-    /// Gets the resource associated with the container image options.
-    /// </summary>
-    public required IResource Resource { get; init; }
-
-    /// <summary>
-    /// Gets the cancellation token associated with the callback context.
-    /// </summary>
-    public required CancellationToken CancellationToken { get; init; }
-}
-
-/// <summary>
 /// Represents an annotation for container image options that can be applied to resources.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
 [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class ContainerImageOptionsCallbackAnnotation : IResourceAnnotation
+public sealed class ContainerImageOptionsAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ContainerImageOptionsCallbackAnnotation"/> class with a synchronous callback.
+    /// Gets the output path for the container archive.
     /// </summary>
-    /// <param name="callback">The synchronous callback that returns the container image options.</param>
-    public ContainerImageOptionsCallbackAnnotation(Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback)
-    {
-        ArgumentNullException.ThrowIfNull(callback);
-        Callback = context => Task.FromResult(callback(context));
-    }
+    public string? OutputPath { get; init; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ContainerImageOptionsCallbackAnnotation"/> class with an asynchronous callback.
+    /// Gets the container image format.
     /// </summary>
-    /// <param name="callback">The asynchronous callback that returns the container image options.</param>
-    public ContainerImageOptionsCallbackAnnotation(Func<ContainerImageOptionsCallbackAnnotationContext, Task<ContainerImageOptions>> callback)
-    {
-        Callback = callback ?? throw new ArgumentNullException(nameof(callback));
-    }
+    public ContainerImageFormat? ImageFormat { get; init; }
 
     /// <summary>
-    /// Gets the callback that returns the container image options.
+    /// Gets the target platform for the container.
     /// </summary>
-    public Func<ContainerImageOptionsCallbackAnnotationContext, Task<ContainerImageOptions>> Callback { get; }
+    public ContainerTargetPlatform? TargetPlatform { get; init; }
+
+    /// <summary>
+    /// Gets the image name for the container.
+    /// </summary>
+    public string? ImageName { get; init; }
+
+    /// <summary>
+    /// Gets the image tag to apply during build. Can be a single tag or multiple tags separated by semicolons.
+    /// </summary>
+    public string? ImageTag { get; init; }
 }

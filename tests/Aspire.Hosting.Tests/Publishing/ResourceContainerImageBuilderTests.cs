@@ -128,14 +128,14 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             ImageFormat = ContainerImageFormat.Oci,
             OutputPath = "/tmp/test-output",
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
 
-        servicea.WithContainerImageOptions(_ => options);
+        servicea.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -170,12 +170,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             ImageFormat = ContainerImageFormat.Docker
         };
 
-        servicea.WithContainerImageOptions(_ => options);
+        servicea.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -206,12 +206,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             TargetPlatform = ContainerTargetPlatform.LinuxArm64
         };
 
-        servicea.WithContainerImageOptions(_ => options);
+        servicea.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -245,13 +245,13 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         var tempOutputPath = Path.GetTempPath();
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             OutputPath = tempOutputPath,
             ImageFormat = ContainerImageFormat.Oci
         };
 
-        container.WithContainerImageOptions(_ => options);
+        container.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -287,14 +287,14 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var tempDir = new TempDirectory();
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             ImageFormat = ContainerImageFormat.Oci,
             OutputPath = Path.Combine(tempDir.Path, "NewFolder"), // tests that the folder is created if it doesn't exist
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
 
-        container.WithContainerImageOptions(_ => options);
+        container.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -330,12 +330,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             ImageFormat = imageFormat
         };
 
-        servicea.WithContainerImageOptions(_ => options);
+        servicea.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -368,12 +368,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             TargetPlatform = targetPlatform
         };
 
-        servicea.WithContainerImageOptions(_ => options);
+        servicea.WithAnnotation(options, ResourceAnnotationMutationBehavior.Replace);
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -422,7 +422,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     [Fact]
     public void ContainerImageOptions_CanSetAllProperties()
     {
-        var options = new ContainerImageOptions
+        var options = new ContainerImageOptionsAnnotation
         {
             ImageFormat = ContainerImageFormat.Oci,
             OutputPath = "/custom/path",
@@ -531,7 +531,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithContainerImageOptions(_ => new ContainerImageOptions
+            .WithAnnotation(new ContainerImageOptionsAnnotation
             {
                 ImageFormat = ContainerImageFormat.Oci,
                 OutputPath = "/tmp/test-path"

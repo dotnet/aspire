@@ -19,20 +19,15 @@ public sealed class MockImageBuilder : IResourceContainerImageBuilder
     public List<IResource> BuildImageResources { get; } = [];
     public List<string> PushImageCalls { get; } = [];
 
-    public IEnumerable<ContainerImageOptions?> BuildImageOptions
+    public IEnumerable<ContainerImageOptionsAnnotation?> BuildImageOptions
     {
         get
         {
             foreach (var resource in BuildImageResources)
             {
-                if (resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var annotation))
+                if (resource.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out var annotation))
                 {
-                    var context = new ContainerImageOptionsCallbackAnnotationContext
-                    {
-                        Resource = resource,
-                        CancellationToken = default
-                    };
-                    yield return annotation.Callback(context).GetAwaiter().GetResult();
+                    yield return annotation;
                 }
                 else
                 {

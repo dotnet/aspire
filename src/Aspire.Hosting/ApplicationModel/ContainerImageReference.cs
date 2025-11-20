@@ -41,14 +41,8 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
         var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
         string tag;
-        if (Resource.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var buildOptionsAnnotation))
+        if (Resource.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out var buildOptions))
         {
-            var context = new ContainerImageOptionsCallbackAnnotationContext
-            {
-                Resource = Resource,
-                CancellationToken = cancellationToken,
-            };
-            var buildOptions = await buildOptionsAnnotation.Callback(context).ConfigureAwait(false);
             tag = buildOptions.ImageTag ?? "latest";
         }
         else if (Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var annotation))

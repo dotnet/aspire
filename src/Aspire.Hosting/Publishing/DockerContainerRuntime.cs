@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
@@ -17,7 +18,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
 
     protected override string RuntimeExecutable => "docker";
     public override string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptionsAnnotation? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         string? builderName = null;
         var resourceName = imageName.Replace('/', '-').Replace(':', '-');
@@ -45,21 +46,8 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
         {
             var arguments = $"buildx build --file \"{dockerfilePath}\"";
 
-            // Add tags - support both single tag and multiple tags
-            if (!string.IsNullOrEmpty(options?.ImageTag))
-            {
-                // Support multiple tags separated by semicolons
-                var tags = options.ImageTag.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                foreach (var tag in tags)
-                {
-                    arguments += $" --tag \"{imageName}:{tag}\"";
-                }
-            }
-            else
-            {
-                // Fallback to the original imageName if no tag is specified
-                arguments += $" --tag \"{imageName}\"";
-            }
+            // Use the complete imageName from TryGetContainerImageName as the tag
+            arguments += $" --tag \"{imageName}\"";
 
             // Use the specific builder for OCI builds
             if (!string.IsNullOrEmpty(builderName))
@@ -156,7 +144,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
         }
     }
 
-    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptionsAnnotation? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         // Normalize the context path to handle trailing slashes and relative paths
         var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

@@ -63,11 +63,11 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         }));
 
         // Add default container image options
-        Annotations.Add(new ContainerImageOptionsCallbackAnnotation(_ => new ContainerImageOptions
+        Annotations.Add(new ContainerImageOptionsAnnotation
         {
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
             ImageTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}"
-        }));
+        });
     }
     // Keep track of the config host for each Kestrel endpoint annotation
     internal Dictionary<EndpointAnnotation, string> KestrelEndpointAnnotationHosts { get; } = new();
@@ -109,17 +109,12 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             return;
         }
 
-        if (!this.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var imageOptionsCallback))
+        if (!this.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out var imageOptions))
         {
-            throw new InvalidOperationException($"Project resource '{Name}' does not have a {nameof(ContainerImageOptionsCallbackAnnotation)}.");
+            throw new InvalidOperationException($"Project resource '{Name}' does not have a {nameof(ContainerImageOptionsAnnotation)}.");
         }
 
         var originalImageName = Name.ToLowerInvariant();
-        var imageOptions = await imageOptionsCallback.Callback(new ContainerImageOptionsCallbackAnnotationContext
-        {
-            Resource = this,
-            CancellationToken = ctx.CancellationToken,
-        }).ConfigureAwait(false);
 
         var containerRuntime = ctx.Services.GetRequiredService<IContainerRuntime>();
 
@@ -157,7 +152,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 tempDockerfilePath,
                 originalImageName,
                 // Hack: It's kinda weird to have this... but we need to pass in the image tag to build here
-                new ContainerImageOptions
+                new ContainerImageOptionsAnnotation
                 {
                     TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
                     ImageTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}"

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 
@@ -37,7 +38,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public abstract Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
 
-    public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
+    public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptionsAnnotation? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
 
     public virtual async Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
     {

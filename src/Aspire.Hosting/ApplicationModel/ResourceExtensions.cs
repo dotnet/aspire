@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001
+
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Utils;
@@ -755,12 +757,28 @@ public static class ResourceExtensions
     /// Attempts to get the container image name from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the container image name from.</param>
-    /// <param name="useBuiltImage">When true, uses the image name from DockerfileBuildAnnotation if present. When false, uses only ContainerImageAnnotation.</param>
+    /// <param name="useBuiltImage">When true, uses the image name from ContainerImageOptionsAnnotation or DockerfileBuildAnnotation if present. When false, uses only ContainerImageAnnotation.</param>
     /// <param name="imageName">The container image name if found, otherwise null.</param>
     /// <returns>True if the container image name was found, otherwise false.</returns>
     public static bool TryGetContainerImageName(this IResource resource, bool useBuiltImage, [NotNullWhen(true)] out string? imageName)
     {
-        // First check if there's a DockerfileBuildAnnotation with an image name/tag
+        // First check if there's a ContainerImageOptionsAnnotation with an image name/tag
+        // This takes precedence when building container images
+        if (useBuiltImage &&
+            resource.TryGetLastAnnotation<ContainerImageOptionsAnnotation>(out var imageOptions))
+        {
+            var effectiveImageName = imageOptions.ImageName;
+            var effectiveImageTag = imageOptions.ImageTag;
+
+            if (!string.IsNullOrEmpty(effectiveImageName))
+            {
+                var tagSuffix = string.IsNullOrEmpty(effectiveImageTag) ? string.Empty : $":{effectiveImageTag}";
+                imageName = $"{effectiveImageName}{tagSuffix}";
+                return true;
+            }
+        }
+
+        // Next check if there's a DockerfileBuildAnnotation with an image name/tag
         // This takes precedence over the ContainerImageAnnotation when building from a Dockerfile
         if (useBuiltImage &&
             resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation &&
@@ -980,35 +998,4 @@ public static class ResourceExtensions
         }
     }
 
-    /// <summary>
-    /// Adds container build options callback to a resource.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The synchronous callback that returns the container build options.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback) where T : class, IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
-    /// Adds container build options callback to a resource.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The asynchronous callback that returns the container build options.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, Func<ContainerImageOptionsCallbackAnnotationContext, Task<ContainerImageOptions>> callback) where T : class, IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ContainerImageOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
 }

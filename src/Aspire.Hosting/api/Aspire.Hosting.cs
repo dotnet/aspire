@@ -1268,21 +1268,21 @@ namespace Aspire.Hosting.ApplicationModel
 
     [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}")]
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class ContainerImageOptionsCallbackAnnotation : IResourceAnnotation
+    public sealed partial class ContainerImageOptionsAnnotation : IResourceAnnotation
     {
-        public ContainerImageOptionsCallbackAnnotation(System.Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback) { }
+        public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
 
-        public ContainerImageOptionsCallbackAnnotation(System.Func<ContainerImageOptionsCallbackAnnotationContext, System.Threading.Tasks.Task<ContainerImageOptions>> callback) { }
+        public string? ImageName { get { throw null; } init { } }
 
-        public System.Func<ContainerImageOptionsCallbackAnnotationContext, System.Threading.Tasks.Task<ContainerImageOptions>> Callback { get { throw null; } }
-    }
+        public string? ImageTag { get { throw null; } init { } }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class ContainerImageOptionsCallbackAnnotationContext
-    {
-        public required System.Threading.CancellationToken CancellationToken { get { throw null; } init { } }
+        public string? OutputPath { get { throw null; } init { } }
 
-        public required IResource Resource { get { throw null; } init { } }
+        public ContainerTargetPlatform? TargetPlatform { get { throw null; } init { } }
+
+        public string GetEffectiveImageName(IResource resource) { throw null; }
+
+        public string GetEffectiveImageTag(IResource resource) { throw null; }
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -1290,18 +1290,6 @@ namespace Aspire.Hosting.ApplicationModel
     {
         Docker = 0,
         Oci = 1
-    }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public partial class ContainerImageOptions
-    {
-        public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
-
-        public string? ImageTag { get { throw null; } init { } }
-
-        public string? OutputPath { get { throw null; } init { } }
-
-        public ContainerTargetPlatform? TargetPlatform { get { throw null; } init { } }
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -2257,13 +2245,6 @@ namespace Aspire.Hosting.ApplicationModel
 
         public static bool TryGetUrls(this IResource resource, out System.Collections.Generic.IEnumerable<ResourceUrlAnnotation>? urls) { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, System.Func<ContainerImageOptionsCallbackAnnotationContext, ContainerImageOptions> callback)
-            where T : class, IResource { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static IResourceBuilder<T> WithContainerImageOptions<T>(this IResourceBuilder<T> builder, System.Func<ContainerImageOptionsCallbackAnnotationContext, System.Threading.Tasks.Task<ContainerImageOptions>> callback)
-            where T : class, IResource { throw null; }
     }
 
     [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, IconName = {IconName}, IconVariant = {IconVariant}")]

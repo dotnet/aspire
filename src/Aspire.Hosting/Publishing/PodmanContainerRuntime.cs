@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
@@ -16,25 +17,12 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
 
     protected override string RuntimeExecutable => "podman";
     public override string Name => "Podman";
-    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptionsAnnotation? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var arguments = $"build --file \"{dockerfilePath}\"";
 
-        // Add tags - support both single tag and multiple tags
-        if (!string.IsNullOrEmpty(options?.ImageTag))
-        {
-            // Support multiple tags separated by semicolons
-            var tags = options.ImageTag.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            foreach (var tag in tags)
-            {
-                arguments += $" --tag \"{imageName}:{tag}\"";
-            }
-        }
-        else
-        {
-            // Fallback to the original imageName if no tag is specified
-            arguments += $" --tag \"{imageName}\"";
-        }
+        // Use the complete imageName from TryGetContainerImageName as the tag
+        arguments += $" --tag \"{imageName}\"";
 
         // Add platform support if specified
         if (options?.TargetPlatform is not null)
@@ -57,7 +45,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
         // Add output support if specified
         if (!string.IsNullOrEmpty(options?.OutputPath))
         {
-            // Extract resource name from imageName for the file name
+            // Extract resource name from imageName for the file name (remove tag and path components)
             var resourceName = imageName.Split('/').Last().Split(':').First();
             arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
         }
@@ -92,7 +80,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
             environmentVariables).ConfigureAwait(false);
     }
 
-    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerImageOptionsAnnotation? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,
