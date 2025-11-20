@@ -4,14 +4,14 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Logging;
+//using Microsoft.Extensions.Logging;
 //using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.AppService;
 
 internal sealed class AzureAppServiceInfrastructure(
-    ILogger<AzureAppServiceInfrastructure> logger,
-   // IOptions<AzureProvisioningOptions> provisioningOptions,
+    // ILogger<AzureAppServiceInfrastructure> logger,
+    // IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext) :
     IDistributedApplicationEventingSubscriber
 {
@@ -32,12 +32,6 @@ internal sealed class AzureAppServiceInfrastructure(
 
         foreach (var appServiceEnvironment in appServiceEnvironments)
         {
-            var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
-                logger,
-                executionContext,
-                appServiceEnvironment,
-                @event.Services);
-
             foreach (var resource in @event.Model.GetComputeResources())
             {
                 // Support project resources and containers with Dockerfile

@@ -11,7 +11,7 @@ public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnno
     /// <summary>
     /// The deployment target.
     /// </summary>
-    public IResource DeploymentTarget { get; set; } = target;
+    public IResource DeploymentTarget { get; } = target;
 
     /// <summary>
     /// Gets or sets the container registry information associated with

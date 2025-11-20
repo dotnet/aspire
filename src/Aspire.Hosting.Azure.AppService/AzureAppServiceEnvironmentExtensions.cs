@@ -34,7 +34,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
         builder.Services.TryAddEventingSubscriber<AzureAppServiceInfrastructure>();
 
-        builder.Pipeline.AddAzureAppServiceInfrastructure();
+        //builder.Pipeline.AddAzureAppServiceInfrastructure();
 
         return builder;
     }
