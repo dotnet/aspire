@@ -34,6 +34,11 @@ public static class WellKnownPipelineSteps
     public const string DeployPrereq = "deploy-prereq";
 
     /// <summary>
+    /// The step that prompts for parameter values before build, publish, or deployment operations.
+    /// </summary>
+    public const string ProcessParameters = "process-parameters";
+
+    /// <summary>
     /// The well-known step for building resources.
     /// </summary>
     public const string Build = "build";
