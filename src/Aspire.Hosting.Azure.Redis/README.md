@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Redis library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Managed Redis and Azure Cache for Redis.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Managed Redis.
 
 > **Note**: The `AddAzureRedis` method is obsolete. Use `AddAzureRedisEnterprise` instead, which provisions Azure Managed Redis. Azure Cache for Redis announced its [retirement timeline](https://learn.microsoft.com/azure/azure-cache-for-redis/retirement-faq).
 
