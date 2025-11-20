@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="GenAIEvaluationsTabText">
         <source>Evaluations</source>
-        <target state="new">Evaluations</target>
+        <target state="translated">Değerlendirmeler</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIInputHeaderText">
@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="GenAIMessageCategoryToolResponse">
         <source>Tool response</source>
-        <target state="new">Tool response</target>
+        <target state="translated">Araç yanıtı</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIMessageTitleAssistant">
@@ -214,7 +214,7 @@
       </trans-unit>
       <trans-unit id="GenAINoTools">
         <source>No tools found.</source>
-        <target state="new">No tools found.</target>
+        <target state="translated">Hiçbir araç bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIOutputHeaderText">
@@ -249,32 +249,32 @@
       </trans-unit>
       <trans-unit id="GenAIToolNoParameters">
         <source>No parameters</source>
-        <target state="new">No parameters</target>
+        <target state="translated">Parametre yok</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIToolParameterDescription">
         <source>Description</source>
-        <target state="new">Description</target>
+        <target state="translated">Açıklama</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIToolParameterName">
         <source>Name</source>
-        <target state="new">Name</target>
+        <target state="translated">Ad</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIToolParameterType">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Tür</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIToolRequiredParameter">
         <source>Required parameter</source>
-        <target state="new">Required parameter</target>
+        <target state="translated">Gerekli parametre</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIToolsTabText">
         <source>Tools</source>
-        <target state="new">Tools</target>
+        <target state="translated">Araçlar</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
