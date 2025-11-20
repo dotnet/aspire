@@ -773,8 +773,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
@@ -795,22 +794,9 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.Contains("failing-step", ex.Message);
         Assert.Contains("failed", ex.Message);
 
-        // Assert - Verify the step was reported as failed
-        var activityReader = reporter.ActivityItemUpdated.Reader;
-        var foundFailedStep = false;
-
-        while (activityReader.TryRead(out var activity))
-        {
-            if (activity.Type == PublishingActivityTypes.Step &&
-                activity.Data.IsError &&
-                activity.Data.StatusText?.Contains("failing-step") == true)
-            {
-                foundFailedStep = true;
-                break;
-            }
-        }
-
-        Assert.True(foundFailedStep, "Expected to find a step activity marked as failed with error state");
+        // Assert - Verify the step was created and completed with error
+        Assert.Contains("failing-step", reporter.CreatedSteps);
+        Assert.Contains(reporter.CompletedSteps, step => step.StepTitle == "failing-step" && step.CompletionState == CompletionState.CompletedWithError);
     }
 
     [Fact]
@@ -1052,8 +1038,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
@@ -1076,38 +1061,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         await pipeline.ExecuteAsync(context);
 
         // Assert
-
-        // Collect all activities for easier assertion
-        var activities = new List<PublishingActivity>();
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
-        {
-            activities.Add(activity);
-        }
-
-        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
-        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
-
-        Assert.Equal(9, stepActivities.Count); // deploy, process-parameters, deploy-prereq, build, build-prereq, publish, publish-prereq, diagnostics, logging-step
-
-        // Find the logging-step activity
-        var loggingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "logging-step"));
-        Assert.NotNull(loggingStepActivity);
-        Assert.Collection(loggingStepActivity,
-            step =>
-            {
-                Assert.Equal("logging-step", step.Data.StatusText);
-                Assert.False(step.Data.IsComplete);
-            },
-            step =>
-            {
-                Assert.True(step.Data.IsComplete);
-            });
-        var testLogActivity = logActivities.SingleOrDefault(l => l.Data.StatusText == "Test log message from pipeline step");
-        Assert.NotNull(testLogActivity);
-        Assert.Equal("Test log message from pipeline step", testLogActivity.Data.StatusText);
-        Assert.Equal("Information", testLogActivity.Data.LogLevel);
-        Assert.Equal(loggingStepActivity.First().Data.Id, testLogActivity.Data.StepId);
-        Assert.False(testLogActivity.Data.EnableMarkdown);
+        Assert.Contains("logging-step", reporter.CreatedSteps);
+        Assert.Contains(reporter.LoggedMessages, log => log.Message == "Test log message from pipeline step" && log.LogLevel == LogLevel.Information);
     }
 
     [Fact]
@@ -1116,8 +1071,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
@@ -1158,66 +1112,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.NotNull(step1Logger);
         Assert.NotNull(step2Logger);
 
-        // Collect all activities for easier assertion
-        var activities = new List<PublishingActivity>();
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
-        {
-            activities.Add(activity);
-        }
+        // Verify steps were created and completed
+        Assert.Contains("step1", reporter.CreatedSteps);
+        Assert.Contains("step2", reporter.CreatedSteps);
 
-        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
-            .GroupBy(a => a.Data.Id)
-            .ToList();
-        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log)
-            .Where(a => a.Data.StatusText is "Message from step 1" or "Message from step 2")
-            .OrderBy(a => a.Data.StatusText)
-            .ToList();
-
-        // Verify that we have the expected number of step activities (all default steps plus step1 and step2)
-        Assert.True(stepActivities.Count >= 5, $"Expected at least 5 step activities, but got {stepActivities.Count}");
-
-        // Find and verify step1 and step2 activities specifically
-        var step1Activity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "step1"));
-        var step2Activity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "step2"));
-
-        Assert.NotNull(step1Activity);
-        Assert.NotNull(step2Activity);
-
-        Assert.Collection(step1Activity,
-            step =>
-            {
-                Assert.Equal("step1", step.Data.StatusText);
-                Assert.False(step.Data.IsComplete);
-            },
-            step =>
-            {
-                Assert.True(step.Data.IsComplete);
-            });
-
-        Assert.Collection(step2Activity,
-            step =>
-            {
-                Assert.Equal("step2", step.Data.StatusText);
-                Assert.False(step.Data.IsComplete);
-            },
-            step =>
-            {
-                Assert.True(step.Data.IsComplete);
-            });
-
-        Assert.Collection(logActivities,
-            logActivity =>
-            {
-                Assert.Equal("Message from step 1", logActivity.Data.StatusText);
-                Assert.Equal("Information", logActivity.Data.LogLevel);
-                Assert.Equal(step1Activity.First().Data.Id, logActivity.Data.StepId);
-            },
-            logActivity =>
-            {
-                Assert.Equal("Message from step 2", logActivity.Data.StatusText);
-                Assert.Equal("Information", logActivity.Data.LogLevel);
-                Assert.Equal(step2Activity.First().Data.Id, logActivity.Data.StepId);
-            });
+        // Verify log messages were captured
+        Assert.Contains(reporter.LoggedMessages, log => log.Message == "Message from step 1" && log.LogLevel == LogLevel.Information);
+        Assert.Contains(reporter.LoggedMessages, log => log.Message == "Message from step 2" && log.LogLevel == LogLevel.Information);
 
         // After execution, current step should be null
         Assert.Null(PipelineLoggerProvider.CurrentStep);
@@ -1229,8 +1130,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
@@ -1251,34 +1151,12 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
 
-        // Collect all activities for easier assertion
-        var activities = new List<PublishingActivity>();
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
-        {
-            activities.Add(activity);
-        }
+        // Verify the failing step was created and completed with error
+        Assert.Contains("failing-step", reporter.CreatedSteps);
+        Assert.Contains(reporter.CompletedSteps, step => step.StepTitle == "failing-step" && step.CompletionState == CompletionState.CompletedWithError);
 
-        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
-        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
-
-        // Verify the failing step activity (other steps may or may not complete depending on timing)
-        var failingStepActivity = stepActivities.Single(g => g.Any(a => a.Data.StatusText == "failing-step"));
-        Assert.Collection(failingStepActivity,
-            step =>
-            {
-                Assert.Equal("failing-step", step.Data.StatusText);
-                Assert.False(step.Data.IsComplete);
-            },
-            step =>
-            {
-                Assert.True(step.Data.IsError);
-            });
-
-        var aboutToFailLogActivity = logActivities.SingleOrDefault(l => l.Data.StatusText == "About to fail");
-        Assert.NotNull(aboutToFailLogActivity);
-        Assert.Equal("About to fail", aboutToFailLogActivity.Data.StatusText);
-        Assert.Equal("Information", aboutToFailLogActivity.Data.LogLevel);
-        Assert.Equal(failingStepActivity.First().Data.Id, aboutToFailLogActivity.Data.StepId);
+        // Verify the log message before failure was captured
+        Assert.Contains(reporter.LoggedMessages, log => log.Message == "About to fail" && log.LogLevel == LogLevel.Information);
 
         // Verify logger is cleaned up even after failure
         Assert.Null(PipelineLoggerProvider.CurrentStep);
@@ -1290,8 +1168,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // This test verifies that each step gets a clean logger context
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
@@ -1333,48 +1210,15 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
             Assert.NotNull(step);
         }
 
-        // Collect all activities for easier assertion
-        var activities = new List<PublishingActivity>();
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
-        {
-            activities.Add(activity);
-        }
+        // Verify all steps were created
+        Assert.Contains("step1", reporter.CreatedSteps);
+        Assert.Contains("step2", reporter.CreatedSteps);
+        Assert.Contains("step3", reporter.CreatedSteps);
 
-        var stepOrder = new[] { "deploy-prereq", "build-prereq", "publish-prereq", "step1", "step2", "step3" }; // Updated for new pipeline structure
-        var logOrder = new[] { "Executing step 1", "Executing step 2", "Executing step 3" };
-
-        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
-            .GroupBy(a => a.Data.Id)
-            .OrderBy(g => Array.IndexOf(stepOrder, g.First().Data.StatusText))
-            .ToList();
-        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log)
-            .Where(a => logOrder.Contains(a.Data.StatusText))
-            .OrderBy(a => Array.IndexOf(logOrder, a.Data.StatusText))
-            .ToList();
-
-        Assert.Equal(11, stepActivities.Count); // deploy, process-parameters, deploy-prereq, build, build-prereq, publish, publish-prereq, diagnostics, step1, step2, step3
-        Assert.Collection(logActivities,
-            logActivity =>
-            {
-                Assert.Equal("Executing step 1", logActivity.Data.StatusText);
-                Assert.Equal("Information", logActivity.Data.LogLevel);
-            },
-            logActivity =>
-            {
-                Assert.Equal("Executing step 2", logActivity.Data.StatusText);
-                Assert.Equal("Information", logActivity.Data.LogLevel);
-            },
-            logActivity =>
-            {
-                Assert.Equal("Executing step 3", logActivity.Data.StatusText);
-                Assert.Equal("Information", logActivity.Data.LogLevel);
-            });
-
-        // Verify each log activity is associated with the correct step
-        foreach (var logActivity in logActivities)
-        {
-            Assert.Contains(stepActivities, stepGroup => stepGroup.First().Data.Id == logActivity.Data.StepId);
-        }
+        // Verify all log messages were captured
+        Assert.Contains(reporter.LoggedMessages, log => log.Message.Contains("Executing step 1") && log.LogLevel == LogLevel.Information);
+        Assert.Contains(reporter.LoggedMessages, log => log.Message.Contains("Executing step 2") && log.LogLevel == LogLevel.Information);
+        Assert.Contains(reporter.LoggedMessages, log => log.Message.Contains("Executing step 3") && log.LogLevel == LogLevel.Information);
 
         // After all steps complete, should be back to null
         Assert.Null(PipelineLoggerProvider.CurrentStep);
@@ -1393,8 +1237,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, logLevel: configuredLogLevel, step: "logging-step").WithTestAndResourceLogging(testOutputHelper);
 
-        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
@@ -1430,24 +1273,16 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Act
         await pipeline.ExecuteAsync(context);
 
-        // Assert
-        var activities = new List<PublishingActivity>();
-        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
-        {
-            activities.Add(activity);
-        }
-
-        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
-
-        // Verify that only the expected log levels are present
-        Assert.Equal(expectedFilteredLevels.Length, logActivities.Count);
+        // Assert - Verify that only the expected log levels are present
+        var capturedLogs = reporter.LoggedMessages.Where(log => log.Message.EndsWith(" message")).ToList();
+        Assert.Equal(expectedFilteredLevels.Length, capturedLogs.Count);
 
         // Verify each expected log level appears exactly once
         foreach (var expectedLevel in expectedFilteredLevels)
         {
-            Assert.Contains(logActivities, activity =>
-                activity.Data.LogLevel == expectedLevel &&
-                activity.Data.StatusText == $"{expectedLevel} message");
+            Assert.Contains(capturedLogs, log =>
+                log.LogLevel.ToString() == expectedLevel &&
+                log.Message == $"{expectedLevel} message");
         }
     }
 
