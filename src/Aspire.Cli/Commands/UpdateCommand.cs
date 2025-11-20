@@ -26,6 +26,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
     private readonly ICliUpdateNotifier _updateNotifier;
+    private readonly IFeatures _features;
 
     public UpdateCommand(
         IProjectLocator projectLocator, 
@@ -44,6 +45,7 @@ internal sealed class UpdateCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(projectUpdater);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(updateNotifier);
+        ArgumentNullException.ThrowIfNull(features);
 
         _projectLocator = projectLocator;
         _packagingService = packagingService;
@@ -51,6 +53,7 @@ internal sealed class UpdateCommand : BaseCommand
         _logger = logger;
         _cliDownloader = cliDownloader;
         _updateNotifier = updateNotifier;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = UpdateCommandStrings.ProjectArgumentDescription;
@@ -63,16 +66,23 @@ internal sealed class UpdateCommand : BaseCommand
             selfOption.Description = "Update the Aspire CLI itself to the latest version";
             Options.Add(selfOption);
 
+            // Customize description based on whether staging channel is enabled
+            var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+            
             var channelOption = new Option<string?>("--channel")
             {
-                Description = "Channel to update to (stable, staging, daily)"
+                Description = isStagingEnabled 
+                    ? UpdateCommandStrings.ChannelOptionDescriptionWithStaging
+                    : UpdateCommandStrings.ChannelOptionDescription
             };
             Options.Add(channelOption);
 
             // Keep --quality for backward compatibility but hide it
             var qualityOption = new Option<string?>("--quality")
             {
-                Description = "Quality level to update to (stable, staging, daily)",
+                Description = isStagingEnabled 
+                    ? UpdateCommandStrings.QualityOptionDescriptionWithStaging
+                    : UpdateCommandStrings.QualityOptionDescription,
                 Hidden = true
             };
             Options.Add(qualityOption);
