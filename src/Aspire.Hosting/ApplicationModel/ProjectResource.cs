@@ -109,12 +109,17 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             return;
         }
 
-        // Get the built image name
-        var originalImageName = Name.ToLowerInvariant();
+        if (!this.TryGetLastAnnotation<ContainerImageOptionsCallbackAnnotation>(out var imageOptionsCallback))
+        {
+            throw new InvalidOperationException($"Project resource '{Name}' does not have a {nameof(ContainerImageOptionsCallbackAnnotation)}.");
+        }
 
-        // Build the image with a temporary tag
-        var tempTag = $"temp-{Guid.NewGuid():N}";
-        var tempImageName = $"{originalImageName}:{tempTag}";
+        var originalImageName = Name.ToLowerInvariant();
+        var imageOptions = await imageOptionsCallback.Callback(new ContainerImageOptionsCallbackAnnotationContext
+        {
+            Resource = this,
+            CancellationToken = ctx.CancellationToken,
+        }).ConfigureAwait(false);
 
         var containerRuntime = ctx.Services.GetRequiredService<IContainerRuntime>();
 
@@ -122,7 +127,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var dockerfileBuilder = new DockerfileBuilder();
         dockerfileBuilder.AddContainerFilesStages(this, logger);
 
-        var stage = dockerfileBuilder.From(tempImageName);
+        var stage = dockerfileBuilder.From(imageOptions.ImageTag!);
 
         var projectMetadata = this.GetProjectMetadata();
 
@@ -151,9 +156,11 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 projectDir,
                 tempDockerfilePath,
                 originalImageName,
+                // Hack: It's kinda weird to have this... but we need to pass in the image tag to build here
                 new ContainerImageOptions
                 {
-                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64,
+                    ImageTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}"
                 },
                 [],
                 [],
@@ -188,8 +195,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             }
 
             // Remove the temporary tagged image
-            logger.LogDebug("Removing temporary image {TempImageName}", tempImageName);
-            await containerRuntime.RemoveImageAsync(tempImageName, ctx.CancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Removing temporary image {TempImageName}", imageOptions.ImageTag);
+            await containerRuntime.RemoveImageAsync(imageOptions.ImageTag!, ctx.CancellationToken).ConfigureAwait(false);
         }
     }
 

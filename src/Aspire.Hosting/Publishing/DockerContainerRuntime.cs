@@ -52,7 +52,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 var tags = options.ImageTag.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var tag in tags)
                 {
-                    arguments += $" --tag \"{tag}\"";
+                    arguments += $" --tag \"{imageName}:{tag}\"";
                 }
             }
             else
@@ -199,7 +199,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 "Docker daemon is running.",
                 cancellationToken,
                 Array.Empty<object>()).ConfigureAwait(false);
-            
+
             return exitCode == 0;
         }
         catch
@@ -218,7 +218,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 "Docker buildx is available and running.",
                 cancellationToken,
                 Array.Empty<object>()).ConfigureAwait(false);
-            
+
             return exitCode == 0;
         }
         catch

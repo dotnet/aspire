@@ -27,7 +27,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
             var tags = options.ImageTag.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             foreach (var tag in tags)
             {
-                arguments += $" --tag \"{tag}\"";
+                arguments += $" --tag \"{imageName}:{tag}\"";
             }
         }
         else
@@ -120,7 +120,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
                 "Podman is running and healthy.",
                 cancellationToken,
                 Array.Empty<object>()).ConfigureAwait(false);
-            
+
             return exitCode == 0;
         }
         catch

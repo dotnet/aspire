@@ -55,9 +55,9 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     public virtual async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
     {
         var arguments = $"push \"{imageName}\"";
-        
+
         await ExecuteContainerCommandAsync(
-            arguments, 
+            arguments,
             $"{Name} push for {{ImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} push for {{ImageName}} succeeded.",
             $"{Name} push failed with exit code {{0}}.",
@@ -71,7 +71,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         var escapedRegistryServer = registryServer.Replace("\"", "\\\"");
         var escapedUsername = username.Replace("\"", "\\\"");
         var arguments = $"login \"{escapedRegistryServer}\" --username \"{escapedUsername}\" --password-stdin";
-        
+
         var spec = new ProcessSpec(RuntimeExecutable)
         {
             Arguments = arguments,
@@ -87,7 +87,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
         };
-        
+
         _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, arguments);
         _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
@@ -118,7 +118,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="logArguments">Arguments to pass to the log templates.</param>
     private async Task ExecuteContainerCommandAsync(
-        string arguments, 
+        string arguments,
         string errorLogTemplate,
         string successLogTemplate,
         string exceptionMessageTemplate,
@@ -126,7 +126,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         params object[] logArguments)
     {
         var spec = CreateProcessSpec(arguments);
-        
+
         _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
@@ -158,7 +158,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="environmentVariables">Optional environment variables to set for the process.</param>
     /// <returns>The exit code of the process.</returns>
     protected async Task<int> ExecuteContainerCommandWithExitCodeAsync(
-        string arguments, 
+        string arguments,
         string errorLogTemplate,
         string successLogTemplate,
         CancellationToken cancellationToken,
@@ -166,7 +166,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         Dictionary<string, string>? environmentVariables = null)
     {
         var spec = CreateProcessSpec(arguments);
-        
+
         // Add environment variables if provided
         if (environmentVariables is not null)
         {
@@ -175,7 +175,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
                 spec.EnvironmentVariables[key] = value;
             }
         }
-        
+
         _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 

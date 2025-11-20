@@ -177,7 +177,7 @@ internal sealed class ResourceContainerImageBuilder(
         {
             if (!string.IsNullOrEmpty(options.ImageTag))
             {
-                arguments += $" /p:ContainerImageTag=\"{options.ImageTag}\"";
+                arguments += $" /p:ContainerImageTag=\"{resource.Name.ToLowerInvariant()}:{options.ImageTag}\"";
             }
 
             if (!string.IsNullOrEmpty(options.OutputPath))
