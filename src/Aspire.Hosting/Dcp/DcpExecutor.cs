@@ -1906,8 +1906,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             (var certificatePem, var keyPem) = GetCertificateKeyPair(configContext.ServerAuthCertificate, configContext.ServerAuthPassword);
             var pfxBytes = configContext.ServerAuthCertificate.Export(X509ContentType.Pfx, configContext.ServerAuthPassword);
 
-            // The PFX file is binary, so we need to write it to a temp file first
             var baseOutputPath = Path.Join(_locations.DcpSessionDir, dcpContainerResource.Name(), "private");
+            if (spec.Persistent == true)
+            {
+                // Need to write the pfx cert to a persistent location so it won't trigger a lifecycle key invalidation
+                baseOutputPath = Path.Join(Path.GetTempPath(), "aspire", _configuration["AppHost:Sha256"], spec.ContainerName, "private");
+            }
+
+            // The PFX file is binary, so we need to write it to a temp file first
             var pfxOutputPath = Path.Join(baseOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.pfx");
             Directory.CreateDirectory(baseOutputPath);
             File.WriteAllBytes(pfxOutputPath, pfxBytes);
