@@ -85,9 +85,6 @@ Step: login-to-acr-env
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: acr-login
 
-Step: process-parameters
-    Dependencies: none
-
 Step: print-api-summary
     Dependencies: ✓ provision-api-website
     Resource: api-website (AzureAppServiceWebSiteResource)
@@ -97,6 +94,9 @@ Step: print-dashboard-url-env
     Dependencies: ✓ provision-azure-bicep-resources, ✓ provision-env
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: print-summary
+
+Step: process-parameters
+    Dependencies: none
 
 Step: provision-api-identity
     Dependencies: ✓ create-provisioning-context
@@ -284,12 +284,6 @@ If targeting 'login-to-acr-env':
     [4] provision-env
     [5] login-to-acr-env
 
-If targeting 'process-parameters':
-  Direct dependencies: none
-  Total steps: 1
-  Execution order:
-    [0] process-parameters
-
 If targeting 'print-api-summary':
   Direct dependencies: provision-api-website
   Total steps: 18
@@ -318,6 +312,12 @@ If targeting 'print-dashboard-url-env':
     [7] provision-api-website
     [8] provision-azure-bicep-resources
     [9] print-dashboard-url-env
+
+If targeting 'process-parameters':
+  Direct dependencies: none
+  Total steps: 1
+  Execution order:
+    [0] process-parameters
 
 If targeting 'provision-api-identity':
   Direct dependencies: create-provisioning-context

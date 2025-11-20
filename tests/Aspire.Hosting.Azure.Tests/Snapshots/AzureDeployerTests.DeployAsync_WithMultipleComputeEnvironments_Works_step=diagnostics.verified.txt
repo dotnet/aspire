@@ -107,9 +107,6 @@ Step: login-to-acr-aca-env
     Resource: aca-env (AzureContainerAppEnvironmentResource)
     Tags: acr-login
 
-Step: process-parameters
-    Dependencies: none
-
 Step: print-api-service-summary
     Dependencies: ✓ provision-api-service-website
     Resource: api-service-website (AzureAppServiceWebSiteResource)
@@ -134,6 +131,9 @@ Step: print-python-app-summary
     Dependencies: ✓ provision-python-app-containerapp
     Resource: python-app-containerapp (AzureContainerAppResource)
     Tags: print-summary
+
+Step: process-parameters
+    Dependencies: none
 
 Step: provision-aas-env
     Dependencies: ✓ create-provisioning-context
@@ -343,12 +343,6 @@ If targeting 'login-to-acr-aca-env':
     [4] provision-aca-env
     [5] login-to-acr-aca-env
 
-If targeting 'process-parameters':
-  Direct dependencies: none
-  Total steps: 1
-  Execution order:
-    [0] process-parameters
-
 If targeting 'print-api-service-summary':
   Direct dependencies: provision-api-service-website
   Total steps: 11
@@ -418,6 +412,12 @@ If targeting 'print-python-app-summary':
     [6] push-python-app
     [7] provision-python-app-containerapp
     [8] print-python-app-summary
+
+If targeting 'process-parameters':
+  Direct dependencies: none
+  Total steps: 1
+  Execution order:
+    [0] process-parameters
 
 If targeting 'provision-aas-env':
   Direct dependencies: create-provisioning-context
