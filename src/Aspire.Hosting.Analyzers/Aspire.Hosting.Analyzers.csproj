@@ -5,6 +5,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+    <EnablePackageValidation>false</EnablePackageValidation>
     <IsPackable>false</IsPackable>
     <LangVersion>12.0</LangVersion>
     <!--

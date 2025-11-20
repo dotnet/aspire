@@ -5,7 +5,6 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting Node Nodejs javascript framework runtime</PackageTags>
     <Description>JavaScript support for Aspire.</Description>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
   </PropertyGroup>
 
   <ItemGroup>

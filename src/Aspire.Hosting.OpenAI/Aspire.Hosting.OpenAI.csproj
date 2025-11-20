@@ -6,7 +6,6 @@
     <PackageTags>aspire integration hosting openai ai</PackageTags>
     <Description>OpenAI resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
   </PropertyGroup>
 
   <ItemGroup>
