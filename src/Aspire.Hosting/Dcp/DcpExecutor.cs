@@ -1553,9 +1553,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             },
             serverAuthCertificateConfigContextFactory: (cert) => new()
             {
-                CertificatePath = ReferenceExpression.Create($"{Path.Join(certificatesOutputPath, $"{cert.Thumbprint}.crt")}"),
-                KeyPath = ReferenceExpression.Create($"{Path.Join(certificatesOutputPath, $"{cert.Thumbprint}.key")}"),
-                PfxPath = ReferenceExpression.Create($"{Path.Join(certificatesOutputPath, $"{cert.Thumbprint}.pfx")}"),
+                CertificatePath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.crt")}"),
+                KeyPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.key")}"),
+                PfxPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.pfx")}"),
             },
             cancellationToken).ConfigureAwait(false);
 
