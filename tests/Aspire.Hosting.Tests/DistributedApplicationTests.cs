@@ -882,13 +882,15 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var value = "SomeValue";
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
             .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
             .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
+            .WithoutCertificateKeyPair()
             .WithCertificateTrustConfiguration(ctx =>
             {
                 // Verify that the initial environment variable is accessible in the callback
-                Assert.Contains("INITAL_ENV_VAR", ctx.EnvironmentVariables);
+                Assert.Contains("INITIAL_ENV_VAR", ctx.EnvironmentVariables);
                 Assert.Equal("InitialValue", ctx.EnvironmentVariables["INITIAL_ENV_VAR"]);
 
                 // Add an additional environment variable in the callback
@@ -897,7 +899,9 @@ public class DistributedApplicationTests
                 ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"] = ReferenceExpression.Create($"{initialRE}_AppendedInCallback");
 
                 return Task.CompletedTask;
-            });
+            })
+            ;
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         await using var app = testProgram.Build();
 
