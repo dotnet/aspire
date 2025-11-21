@@ -1898,8 +1898,26 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         spec.PemCertificates = pemCertificates;
 
+        var buildCreateFilesContext = new BuildCreateFilesContext
+        {
+            Resource = modelContainerResource,
+            CertificateTrustScope = configContext.CertificateTrustScope,
+            CertificateTrustBundlePath = $"{certificatesDestination}/cert.pem",
+            HasServerAuthenticationCertificate = configContext.ServerAuthCertificate is not null,
+        };
+
+        if (buildCreateFilesContext.HasServerAuthenticationCertificate)
+        {
+            buildCreateFilesContext.ServerAuthenticationCertificatePath = $"{serverAuthCertificatesBasePath}/{configContext.ServerAuthCertificate?.Thumbprint}.crt";
+            buildCreateFilesContext.ServerAuthenticationKeyPath = $"{serverAuthCertificatesBasePath}/{configContext.ServerAuthCertificate?.Thumbprint}.key";
+            buildCreateFilesContext.ServerAuthenticationCertificatePfxPath = $"{serverAuthCertificatesBasePath}/{configContext.ServerAuthCertificate?.Thumbprint}.pfx";
+            buildCreateFilesContext.ServerAuthenticationCertificatePassword = configContext.ServerAuthPassword;
+        }
+
         // Build files that need to be created inside the container
-        var createFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
+        var createFiles = await BuildCreateFilesAsync(
+            buildCreateFilesContext,
+            cancellationToken).ConfigureAwait(false);
 
         if (configContext.ServerAuthCertificate is not null)
         {
@@ -2347,19 +2365,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(IResource modelResource, CancellationToken cancellationToken)
+    private class BuildCreateFilesContext
+    {
+        public required IResource Resource { get; init; }
+        public CertificateTrustScope CertificateTrustScope { get; init; }
+        public string? CertificateTrustBundlePath { get; set; }
+        public string? CertificateTrustDirectoriesPath { get; set; }
+        public bool HasServerAuthenticationCertificate { get; init; }
+        public string? ServerAuthenticationCertificatePath { get; set; }
+        public string? ServerAuthenticationKeyPath { get; set; }
+        public string? ServerAuthenticationCertificatePfxPath { get; set; }
+        public string? ServerAuthenticationCertificatePassword { get; set; }
+    }
+
+    private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(BuildCreateFilesContext context, CancellationToken cancellationToken)
     {
         var createFiles = new List<ContainerCreateFileSystem>();
 
-        if (modelResource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var createFileAnnotations))
+        if (context.Resource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var createFileAnnotations))
         {
             foreach (var a in createFileAnnotations)
             {
                 var entries = await a.Callback(
                     new()
                     {
-                        Model = modelResource,
-                        ServiceProvider = _executionContext.ServiceProvider
+                        Model = context.Resource,
+                        ServiceProvider = _executionContext.ServiceProvider,
+                        ServerAuthenticationCertificatePath = context.ServerAuthenticationCertificatePath,
+                        ServerAuthenticationKeyPath = context.ServerAuthenticationKeyPath,
+                        ServerAuthenticationCertificatePfxPath = context.ServerAuthenticationCertificatePfxPath,
+                        ServerAuthenticationCertificatePassword = context.ServerAuthenticationCertificatePassword,
                     },
                     cancellationToken).ConfigureAwait(false);
 

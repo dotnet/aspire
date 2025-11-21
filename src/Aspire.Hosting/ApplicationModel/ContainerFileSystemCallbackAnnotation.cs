@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -276,4 +277,34 @@ public sealed class ContainerFileSystemCallbackContext
     /// The app model resource the callback is associated with.
     /// </summary>
     public required IResource Model { get; init; }
+
+    /// <summary>
+    /// Indicates whether the resource has a server authentication certificate configured.
+    /// </summary>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public bool HasServerAuthenticationCertificate { get; set; }
+
+    /// <summary>
+    /// The path to the server authentication certificate file inside the container.
+    /// </summary>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public string? ServerAuthenticationCertificatePath { get; set; }
+
+    /// <summary>
+    /// The path to the server authentication key file inside the container.
+    /// </summary>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public string? ServerAuthenticationKeyPath { get; set; }
+
+    /// <summary>
+    /// The path to the server authentication PFX file inside the container.
+    /// </summary>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public string? ServerAuthenticationCertificatePfxPath { get; set; }
+
+    /// <summary>
+    /// The password for the server authentication PFX file inside the container.
+    /// </summary>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public string? ServerAuthenticationCertificatePassword { get; set; }
 }
