@@ -265,7 +265,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             infra.Add(scriptResource);
         }
     }
-    
+
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
@@ -277,7 +277,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             builder.Append($"database={databaseNameReference};");
         }
 
-        builder.AppendLiteral("authentication=ActiveDirectoryIntegrated;encrypt=true;trustServerCertificate=true");
+        builder.AppendLiteral("encrypt=true;trustServerCertificate=false");
 
         return builder.Build();
     }
@@ -286,7 +286,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// Gets the JDBC connection string for the server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:sqlserver://{host}:{port};authentication=ActiveDirectoryIntegrated</c>.
+    /// Format: <c>jdbc:sqlserver://{host}:{port};authentication=ActiveDirectoryIntegrated;encrypt=true;trustServerCertificate=true</c>.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString =>
         IsContainer ?
@@ -305,7 +305,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             new ("Host", ReferenceExpression.Create($"{HostName}")),
             new ("Port", ReferenceExpression.Create($"1433")),
             new ("Uri", UriExpression),
-            new("JdbcConnectionString", JdbcConnectionString),
+            new ("JdbcConnectionString", JdbcConnectionString),
         ]);
 
         return result;

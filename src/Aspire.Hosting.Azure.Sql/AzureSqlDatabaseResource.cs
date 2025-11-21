@@ -70,7 +70,7 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// Gets the JDBC connection string for the Azure SQL database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:sqlserver://{host}:{port};database={database};authentication=ActiveDirectoryDefault</c>.
+    /// Format: <c>jdbc:sqlserver://{host}:{port};database={database};encrypt=true;trustServerCertificate=false</c>.
     /// When running in a container, inherits the container JDBC format including username and password.
     /// </remarks>
     public ReferenceExpression JdbcConnectionString =>
@@ -101,8 +101,8 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         Parent.CombineProperties(
             [
-                new KeyValuePair<string, ReferenceExpression>("Database", ReferenceExpression.Create($"{DatabaseName}")),
-                new KeyValuePair<string, ReferenceExpression>("Uri", UriExpression),
-                new KeyValuePair<string, ReferenceExpression>("JdbcConnectionString", JdbcConnectionString),
+                new ("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new ("Uri", UriExpression),
+                new ("JdbcConnectionString", JdbcConnectionString),
             ]);
 }

@@ -36,7 +36,7 @@ public class AzurePostgresFlexibleServerDatabaseConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                Assert.StartsWith("jdbc:postgresql://{postgres.outputs.hostName}/mydb", property.Value.ValueExpression);
+                Assert.Equal("jdbc:postgresql://{postgres.outputs.hostName}/mydb?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin", property.Value.ValueExpression);
             },
             property =>
             {
@@ -46,7 +46,7 @@ public class AzurePostgresFlexibleServerDatabaseConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.StartsWith("postgresql://", property.Value.ValueExpression);
+                Assert.Equal("postgresql://{postgres.outputs.hostName}/mydb", property.Value.ValueExpression);
             });
     }
 }

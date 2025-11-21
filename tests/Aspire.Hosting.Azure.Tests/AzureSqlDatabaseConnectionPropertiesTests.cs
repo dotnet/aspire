@@ -36,7 +36,7 @@ public class AzureSqlDatabaseConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                Assert.StartsWith("jdbc:sqlserver://{sql.outputs.sqlServerFqdn}:1433;database=mydb;", property.Value.ValueExpression);
+                Assert.Equal("jdbc:sqlserver://{sql.outputs.sqlServerFqdn}:1433;database=mydb;encrypt=true;trustServerCertificate=false", property.Value.ValueExpression);
             },
             property =>
             {

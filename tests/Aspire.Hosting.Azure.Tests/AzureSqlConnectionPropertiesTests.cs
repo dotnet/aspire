@@ -38,8 +38,7 @@ public class AzureSqlConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                // The JDBC connection string includes authentication parameters
-                Assert.StartsWith("jdbc:sqlserver://{sql.outputs.sqlServerFqdn}:1433;", property.Value.ValueExpression);
+                Assert.Equal("jdbc:sqlserver://{sql.outputs.sqlServerFqdn}:1433;encrypt=true;trustServerCertificate=false", property.Value.ValueExpression);
             });
     }
 }

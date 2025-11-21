@@ -40,7 +40,7 @@ public class ConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("mssql://{sql.bindings.tcp.host}:{sql.bindings.tcp.port}", property.Value.ValueExpression);
+                Assert.Equal("mssql://sa:{password.value}@{sql.bindings.tcp.host}:{sql.bindings.tcp.port}", property.Value.ValueExpression);
             },
             property =>
             {
@@ -63,6 +63,8 @@ public class ConnectionPropertiesTests
         Assert.Contains(properties, property => property.Key == "Username" && property.Value.ValueExpression == "sa");
         Assert.Contains(properties, property => property.Key == "Password" && property.Value.ValueExpression == "{password.value}");
         Assert.Contains(properties, property => property.Key == "Database" && property.Value.ValueExpression == "Orders");
+        Assert.Contains(properties, property => property.Key == "Uri" && property.Value.ValueExpression == "mssql://sa:{password.value}@{sql.bindings.tcp.host}:{sql.bindings.tcp.port}/Orders");
+
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&

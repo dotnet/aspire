@@ -175,7 +175,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'DB_JDBCCONNECTIONSTRING'
-              value: 'jdbc:postgresql://${pg_outputs_hostname}/${uriComponent('db')}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin'
+              value: 'jdbc:postgresql://${pg_outputs_hostname}/db?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin'
             }
             {
               name: 'DB_USERNAME'

@@ -84,6 +84,30 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
             ReferenceExpression.Create($"{HostNameOutput}");
 
     /// <summary>
+    /// Gets the host for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint host.
+    /// In Azure mode, resolves to the Azure PostgreSQL server's fully qualified domain name.
+    /// </remarks>
+    public ReferenceExpression Host =>
+        IsContainer ?
+            ReferenceExpression.Create($"{InnerResource.Host}") :
+            ReferenceExpression.Create($"{HostNameOutput}");
+
+    /// <summary>
+    /// Gets the port for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint port.
+    /// In Azure mode, resolves to 5432.
+    /// </remarks>
+    public ReferenceExpression Port =>
+        IsContainer ?
+            ReferenceExpression.Create($"{InnerResource.Port}") :
+            ReferenceExpression.Create($"5432");
+
+    /// <summary>
     /// Gets the user name for the PostgreSQL server when password authentication is enabled.
     /// </summary>
     /// <remarks>
@@ -151,9 +175,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
 
         if (databaseName is not null)
         {
-            builder.AppendLiteral("/");
-            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.Append($"{databaseNameExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         // Using TLS is mandatory with Azure Database for PostgreSQL flexible server instances
@@ -264,8 +286,8 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
             ? ((IResourceWithConnectionString)InnerResource).GetConnectionProperties()
             : new Dictionary<string, ReferenceExpression>(
                 [
-                    new("Host", ReferenceExpression.Create($"{HostName}")),
-                    new("Port", ReferenceExpression.Create($"5432")), // For parity with PostgresServerResource, fixed on Azure
+                    new("Host", Host),
+                    new("Port", Port), // For parity with PostgresServerResource, fixed on Azure
                     new("Uri", UriExpression),
                     new("JdbcConnectionString", JdbcConnectionString),
                 ]);

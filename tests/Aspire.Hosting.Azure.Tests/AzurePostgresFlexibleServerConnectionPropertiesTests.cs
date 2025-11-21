@@ -6,7 +6,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzurePostgreSQLConnectionPropertiesTests
+public class AzurePostgresFlexibleServerConnectionPropertiesTests
 {
     [Fact]
     public void AzurePostgresFlexibleServerResourceGetConnectionPropertiesReturnsExpectedValues()
@@ -38,8 +38,7 @@ public class AzurePostgreSQLConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("JdbcConnectionString", property.Key);
-                // The JDBC connection string includes authentication parameters
-                Assert.StartsWith("jdbc:postgresql://{postgres.outputs.hostName}?", property.Value.ValueExpression);
+                Assert.Equal("jdbc:postgresql://{postgres.outputs.hostName}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin", property.Value.ValueExpression);
             });
     }
 }
