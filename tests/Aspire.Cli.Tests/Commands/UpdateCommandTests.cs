@@ -624,52 +624,17 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         var cancellationMessageDisplayed = false;
         
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
         {
-            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
             {
-                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
-                {
-                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
-                }
-            };
-
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
-            {
-                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
-                {
-                    // Simulate user pressing Ctrl+C during selection prompt
-                    throw new OperationCanceledException();
-                },
-                DisplayErrorCallback = (message) =>
-                {
-                    // Should not display error for cancellation
-                    Assert.Fail("DisplayError should not be called for cancellation");
-                }
-            };
-
-            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
-
-            options.PackagingServiceFactory = _ => new TestPackagingService()
-            {
-                GetChannelsAsyncCallback = (ct) =>
-                {
-                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
-                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel });
-                }
-            };
+                // Simulate user pressing Ctrl+C during selection prompt
+                throw new OperationCanceledException();
+            }
         });
-
-        // Override the interaction service to track cancellation message
-        var provider = services.BuildServiceProvider();
-        
-        // We need to use a wrapper to track DisplayCancellationMessage call
-        var originalService = provider.GetRequiredService<IInteractionService>();
-        var wrappedService = new CancellationTrackingInteractionService(originalService);
         wrappedService.OnCancellationMessageDisplayed = () => cancellationMessageDisplayed = true;
 
-        // Replace the service
-        var newServices = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new TestProjectLocator()
             {
@@ -693,7 +658,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             };
         });
 
-        provider = newServices.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
