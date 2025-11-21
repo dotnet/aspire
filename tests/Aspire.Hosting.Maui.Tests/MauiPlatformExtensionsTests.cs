@@ -632,6 +632,13 @@ public class MauiPlatformExtensionsTests
             // Act
             config.ApplyWithOtlpDevTunnel(platform);
 
+            var endpointAnnotations = appBuilder.Resources.SelectMany(x => x.Annotations.OfType<EndpointAnnotation>());
+
+            foreach (var endpointAnnotation in endpointAnnotations)
+            {
+                endpointAnnotation.AllocatedEndpointSnapshot.SetValue(new AllocatedEndpoint(endpointAnnotation, "localhost", 1234));
+            }
+
             var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
                 platform.Resource,
                 DistributedApplicationOperation.Run,
@@ -690,7 +697,8 @@ public class MauiPlatformExtensionsTests
 
     private static string CreateTempProjectFile(string content)
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.csproj");
+        var tempFolder = Directory.CreateTempSubdirectory();
+        var tempFile = Path.Combine(tempFolder.FullName, "TempMauiProject.csproj");
         File.WriteAllText(tempFile, content);
         return tempFile;
     }
