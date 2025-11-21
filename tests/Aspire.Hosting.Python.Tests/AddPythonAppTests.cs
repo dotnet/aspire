@@ -2287,6 +2287,200 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
     }
 
+    [Fact]
+    public void WithPoetry_CreatesPoetryInstallerResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPoetry();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the installer resource exists
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
+        Assert.Equal(expectedProjectDirectory, installerResource.WorkingDirectory);
+
+        // Verify the package manager annotation
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("poetry", packageManager.ExecutableName);
+
+        // Verify the install command annotation
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal(2, installAnnotation.Args.Length);
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal("--no-interaction", installAnnotation.Args[1]);
+    }
+
+    [Fact]
+    public void WithPoetry_WithCustomInstallArgs_AppendsArgs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPoetry(installArgs: ["--no-root", "--sync"]);
+
+        var app = builder.Build();
+
+        // Verify the install command annotation has custom args
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal(4, installAnnotation.Args.Length);
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal("--no-interaction", installAnnotation.Args[1]);
+        Assert.Equal("--no-root", installAnnotation.Args[2]);
+        Assert.Equal("--sync", installAnnotation.Args[3]);
+    }
+
+    [Fact]
+    public void WithPoetry_WithEnvironmentVariables_StoresAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPoetry(env: [("POETRY_VIRTUALENVS_IN_PROJECT", "false"), ("POETRY_HTTP_TIMEOUT", "60")]);
+
+        var app = builder.Build();
+
+        // Verify the Poetry environment annotation exists with the custom environment variables
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PoetryEnvironmentAnnotation>(out var poetryEnv));
+        Assert.Equal(2, poetryEnv.EnvironmentVariables.Length);
+        Assert.Contains(poetryEnv.EnvironmentVariables, e => e.key == "POETRY_VIRTUALENVS_IN_PROJECT" && e.value == "false");
+        Assert.Contains(poetryEnv.EnvironmentVariables, e => e.key == "POETRY_HTTP_TIMEOUT" && e.value == "60");
+    }
+
+    [Fact]
+    public void WithPoetry_InstallFalse_DoesNotCreateInstaller()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPoetry(install: false);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the installer resource does not exist
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().SingleOrDefault();
+        Assert.Null(installerResource);
+
+        // Verify the package manager annotation still exists
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("poetry", packageManager.ExecutableName);
+    }
+
+    [Fact]
+    public void WithPoetry_AfterWithUv_ReplacesPackageManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        // Call WithUv then WithPoetry - WithPoetry should replace WithUv
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithUv()
+            .WithPoetry();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify that only one installer resource was created
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify that poetry is the active package manager (not uv)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("poetry", packageManager.ExecutableName);
+
+        // Verify the install command is for poetry (not uv sync)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal("--no-interaction", installAnnotation.Args[1]);
+    }
+
+    [Fact]
+    public void WithPoetry_AfterWithPip_ReplacesPackageManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        // Call WithPip then WithPoetry - WithPoetry should replace WithPip
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPip()
+            .WithPoetry();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify that only one installer resource was created
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify that poetry is the active package manager (not pip)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("poetry", packageManager.ExecutableName);
+
+        // Verify the install command is for poetry (not pip install)
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("install", installAnnotation.Args[0]);
+        Assert.Equal("--no-interaction", installAnnotation.Args[1]);
+    }
+
+    [Fact]
+    public void WithPoetry_ThrowsOnNullBuilder()
+    {
+        IResourceBuilder<PythonAppResource> builder = null!;
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            builder.WithPoetry());
+
+        Assert.Equal("builder", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task WithPoetry_AddsWaitForCompletionRelationship()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPoetry();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up wait dependencies
+        await PublishBeforeStartEventAsync(app);
+
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+
+        var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>();
+        var waitForCompletionAnnotation = Assert.Single(waitAnnotations);
+        Assert.Equal(installerResource, waitForCompletionAnnotation.Resource);
+        Assert.Equal(WaitType.WaitForCompletion, waitForCompletionAnnotation.WaitType);
+    }
+
     /// <summary>
     /// Helper method to manually trigger BeforeStartEvent for tests.
     /// This is needed because BeforeStartEvent is normally triggered during StartAsync(),
