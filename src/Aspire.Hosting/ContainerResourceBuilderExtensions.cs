@@ -723,38 +723,6 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures container build options for a container resource using a callback.
-    /// </summary>
-    /// <param name="builder">The container resource builder.</param>
-    /// <param name="callback">A callback to configure container build options.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ContainerResource> WithContainerBuildOptions(
-        this IResourceBuilder<ContainerResource> builder,
-        Action<ContainerBuildOptionsCallbackContext> callback)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
-    /// Configures container build options for a container resource using an async callback.
-    /// </summary>
-    /// <param name="builder">The container resource builder.</param>
-    /// <param name="callback">An async callback to configure container build options.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ContainerResource> WithContainerBuildOptions(
-        this IResourceBuilder<ContainerResource> builder,
-        Func<ContainerBuildOptionsCallbackContext, Task> callback)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
     /// Adds a Dockerfile to the application model that can be treated like a container resource.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
