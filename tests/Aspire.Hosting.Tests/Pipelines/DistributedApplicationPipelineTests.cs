@@ -2051,7 +2051,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10000")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13083")]
     public async Task ProcessParametersStep_ValidatesBehavior()
     {
         // Arrange
