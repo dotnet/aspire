@@ -13,7 +13,6 @@
     <_AspireTasksAssembly Condition="'$(_AspireTasksAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
   </PropertyGroup>
 
-  <!-- Load the compiled MSBuild task -->
   <UsingTask TaskName="GetNonExecutableReferences" AssemblyFile="$(_AspireTasksAssembly)" />
 
   <ItemGroup>
