@@ -155,26 +155,13 @@ internal sealed class RunModeProvisioningContextProvider(
                 // show the value as from the configuration and disable the input
                 // there should be no option to change it
 
-                inputs.Add(new InteractionInput
+                InputLoadOptions? subscriptionLoadOptions = null;
+                if (string.IsNullOrEmpty(_options.SubscriptionId))
                 {
-                    Name = SubscriptionIdName,
-                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
-                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
-                    Required = true,
-                    AllowCustomChoice = true,
-                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                    Disabled = !string.IsNullOrEmpty(_options.SubscriptionId),
-                    Value = _options.SubscriptionId,
-                    DynamicLoading = new InputLoadOptions
+                    subscriptionLoadOptions = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
                         {
-                            if (!string.IsNullOrEmpty(_options.SubscriptionId))
-                            {
-                                // If subscription ID is not set, we don't need to load options
-                                return;
-                            }
-
                             // Get tenant ID from input if tenant selection is enabled, otherwise use configured value
                             var tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
 
@@ -186,8 +173,21 @@ internal sealed class RunModeProvisioningContextProvider(
                                 : [];
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [TenantName] : []
-                    }
+                        DependsOnInputs = [TenantName]
+                    };
+                }
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = SubscriptionIdName,
+                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
+                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
+                    Required = true,
+                    AllowCustomChoice = true,
+                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
+                    Disabled = true,
+                    Value = _options.SubscriptionId,
+                    DynamicLoading = subscriptionLoadOptions
                 });
 
                 inputs.Add(new InteractionInput
@@ -197,7 +197,7 @@ internal sealed class RunModeProvisioningContextProvider(
                     Label = AzureProvisioningStrings.LocationLabel,
                     Placeholder = AzureProvisioningStrings.LocationPlaceholder,
                     Required = true,
-                    Disabled = true,
+                    Disabled = string.IsNullOrEmpty(_options.SubscriptionId),
                     DynamicLoading = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
@@ -209,7 +209,7 @@ internal sealed class RunModeProvisioningContextProvider(
                             context.Input.Options = locationOptions;
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = [SubscriptionIdName]
+                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [SubscriptionIdName] : []
                     }
                 });
 
