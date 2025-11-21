@@ -10,12 +10,20 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XmlEncodedProjectName.ApiService\XmlEncodedProjectName.ApiService.csproj" />
+    <!--#if (FrontendType == "Blazor") -->
     <ProjectReference Include="..\XmlEncodedProjectName.Web\XmlEncodedProjectName.Web.csproj" />
+    <!--#endif -->
   </ItemGroup>
 
   <!--#if (UseRedisCache) -->
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Redis" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+  </ItemGroup>
+
+  <!--#endif -->
+  <!--#if (FrontendType == "JavaScript") -->
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
   </ItemGroup>
 
   <!--#endif -->

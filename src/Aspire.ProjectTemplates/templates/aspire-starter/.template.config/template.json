@@ -17,7 +17,7 @@
   ],
   "name": "Aspire Starter App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "description": "A project template for creating an Aspire app with a frontend (Blazor or JavaScript) and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
@@ -74,6 +74,18 @@
           "condition": "(TestFx == None)",
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
+          ]
+        },
+        {
+          "condition": "(FrontendType == JavaScript)",
+          "exclude": [
+            "Aspire-StarterApplication.1.Web/**/*.*"
+          ]
+        },
+        {
+          "condition": "(FrontendType == Blazor)",
+          "exclude": [
+            "Aspire-StarterApplication.1.Frontend/**/*.*"
           ]
         }
       ]
@@ -147,6 +159,27 @@
       "defaultValue": "false",
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
+    },
+    "FrontendType": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "Blazor",
+      "displayName": "_Frontend type",
+      "description": "Configures the type of frontend to use for the web application.",
+      "choices": [
+        {
+          "choice": "Blazor",
+          "description": "Use a Blazor frontend."
+        },
+        {
+          "choice": "JavaScript",
+          "description": "Use a JavaScript frontend with Vite and React."
+        }
+      ]
+    },
+    "IsJavaScriptFrontend": {
+      "type": "computed",
+      "value": "(FrontendType == JavaScript)"
     },
     "TestFx": {
       "type": "parameter",
@@ -541,7 +574,8 @@
       "path": "Aspire-StarterApplication.1.ApiService\\Aspire-StarterApplication.1.ApiService.csproj"
     },
     {
-      "path": "Aspire-StarterApplication.1.Web\\Aspire-StarterApplication.1.Web.csproj"
+      "path": "Aspire-StarterApplication.1.Web\\Aspire-StarterApplication.1.Web.csproj",
+      "condition": "(FrontendType == Blazor)"
     },
     {
       "path": "Aspire-StarterApplication.1.Tests\\Aspire-StarterApplication.1.Tests.csproj",

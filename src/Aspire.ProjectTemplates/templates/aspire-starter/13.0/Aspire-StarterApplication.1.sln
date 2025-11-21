@@ -12,8 +12,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire-StarterApplication.1.Tests", "Aspire-StarterApplication.1.Tests\Aspire-StarterApplication.1.Tests.csproj", "{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}"
 EndProject
 #endif
+#if (FrontendType == 'Blazor')
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire-StarterApplication.1.Web", "Aspire-StarterApplication.1.Web\Aspire-StarterApplication.1.Web.csproj", "{AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F}"
 EndProject
+#endif
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,10 +40,12 @@ Global
 		{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}.Release|Any CPU.Build.0 = Release|Any CPU
 #endif
+#if (FrontendType == 'Blazor')
 		{AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F}.Release|Any CPU.Build.0 = Release|Any CPU
+#endif
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
