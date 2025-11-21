@@ -6,6 +6,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Azure.AppService;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
@@ -188,6 +189,30 @@ public class AzureAppServiceEnvironmentResource :
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
     /// <summary>
+    /// Azure cloud name for the App Service Environment.
+    /// </summary>
+    internal AzureCloudName AzureCloudName { get; set; } = AzureCloudName.AzurePublic;
+
+    /// <summary>
+    /// Gets a value indicating the DNS Suffix of Azure cloud.
+    /// </summary>
+    internal string AzureAppServiceDnsSuffix
+    {
+        get
+        {
+            return s_azureCloudDomains.TryGetValue(AzureCloudName, out var domain) ? domain : "azurewebsites.net";
+        }
+    }
+
+    private static readonly Dictionary<AzureCloudName, string> s_azureCloudDomains = new()
+    {
+        { AzureCloudName.AzurePublic, "azurewebsites.net" },
+        { AzureCloudName.AzureUSGovernment, "azurewebsites.us" },
+        { AzureCloudName.AzureChina, "chinacloudsites.cn" },
+        { AzureCloudName.AzureGermany, "azurewebsites.de" }
+    };
+
+    /// <summary>
     /// Enables or disables automatic scaling for the App Service Plan.
     /// </summary>
     internal bool EnableAutomaticScaling { get; set; }
@@ -229,7 +254,7 @@ public class AzureAppServiceEnvironmentResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.{AzureAppServiceDnsSuffix}");
     }
 
     /// <inheritdoc/>
