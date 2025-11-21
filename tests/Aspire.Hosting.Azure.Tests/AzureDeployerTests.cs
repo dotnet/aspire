@@ -1075,7 +1075,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
 
         builder.WithTestAndResourceLogging(testOutputHelper);
 

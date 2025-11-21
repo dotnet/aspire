@@ -1,11 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.RegularExpressions;
 using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Interaction;
@@ -20,7 +18,7 @@ namespace Aspire.Hosting.Dashboard;
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, AppHostEnvironment appHostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
     : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
@@ -31,29 +29,17 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
     // of pending connections during shutdown.
 
-    [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
-    private static partial Regex ApplicationNameRegex();
-
     public override Task<ApplicationInformationResponse> GetApplicationInformation(
         ApplicationInformationRequest request,
         ServerCallContext context)
     {
-        // Read the application name from configuration if available, otherwise fall back to the environment
-        var applicationName = configuration["AppHost:DashboardApplicationName"] ?? hostEnvironment.ApplicationName;
+        // ApplicationName already has the ".AppHost" suffix trimmed if present
+        var applicationName = appHostEnvironment.ApplicationName;
         
         return Task.FromResult(new ApplicationInformationResponse
         {
-            ApplicationName = ComputeApplicationName(applicationName)
+            ApplicationName = applicationName
         });
-
-        static string ComputeApplicationName(string applicationName)
-        {
-            return ApplicationNameRegex().Match(applicationName) switch
-            {
-                Match { Success: true } match => match.Groups["name"].Value,
-                _ => applicationName
-            };
-        }
     }
 
     public override async Task WatchInteractions(IAsyncStreamReader<WatchInteractionsRequestUpdate> requestStream, IServerStreamWriter<WatchInteractionsResponseUpdate> responseStream, ServerCallContext context)

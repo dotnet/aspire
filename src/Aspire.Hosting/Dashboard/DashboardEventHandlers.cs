@@ -28,7 +28,8 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DashboardEventHandlers(IConfiguration configuration,
+internal sealed class DashboardEventHandlers(AppHostEnvironment appHostEnvironment,
+                                             IConfiguration configuration,
                                              IOptions<DashboardOptions> dashboardOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
                                              IDashboardEndpointProvider dashboardEndpointProvider,
@@ -540,8 +541,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Configure resource service API key
-        if (string.Equals(configuration["AppHost:ResourceService:AuthMode"], nameof(ResourceServiceAuthMode.ApiKey), StringComparison.OrdinalIgnoreCase)
-            && configuration["AppHost:ResourceService:ApiKey"] is { Length: > 0 } resourceServiceApiKey)
+        if (string.Equals(appHostEnvironment.ResourceServiceAuthMode, nameof(ResourceServiceAuthMode.ApiKey), StringComparison.OrdinalIgnoreCase)
+            && appHostEnvironment.ResourceServiceApiKey is { Length: > 0 } resourceServiceApiKey)
         {
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName] = nameof(ResourceServiceAuthMode.ApiKey);
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceClientApiKeyName.EnvVarName] = resourceServiceApiKey;

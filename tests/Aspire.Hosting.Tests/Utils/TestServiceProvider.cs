@@ -5,6 +5,8 @@ using System.ComponentModel.Design;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Dcp;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Tests.Utils;
 
@@ -15,7 +17,12 @@ public sealed class TestServiceProvider : IServiceProvider
     public TestServiceProvider(IConfiguration? configuration = null)
     {
         _serviceContainer.AddService(typeof(IDcpDependencyCheckService), new TestDcpDependencyCheckService());
-        _serviceContainer.AddService(typeof(IConfiguration), configuration ?? new ConfigurationManager());
+        var config = configuration ?? new ConfigurationManager();
+        _serviceContainer.AddService(typeof(IConfiguration), config);
+        
+        // Register AppHostEnvironment with the test configuration
+        var hostEnvironment = new TestHostEnvironment();
+        _serviceContainer.AddService(typeof(AppHostEnvironment), new AppHostEnvironment(config, hostEnvironment));
     }
 
     public object? GetService(Type serviceType)
@@ -38,4 +45,12 @@ public sealed class TestServiceProvider : IServiceProvider
     }
 
     public static IServiceProvider Instance { get; } = new TestServiceProvider();
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "TestApp";
+        public IFileProvider ContentRootFileProvider { get; set; } = new PhysicalFileProvider(Directory.GetCurrentDirectory());
+        public string ContentRootPath { get; set; } = "/test";
+        public string EnvironmentName { get; set; } = "Development";
+    }
 }

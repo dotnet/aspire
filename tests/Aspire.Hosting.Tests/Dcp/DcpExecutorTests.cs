@@ -2065,11 +2065,13 @@ public class DcpExecutorTests
         var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false, false);
 
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var hostEnv = hostEnvironment ?? new TestHostEnvironment();
+        var appHostEnv = new AppHostEnvironment(configuration, hostEnv);
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
             distributedAppModel,
-            hostEnvironment ?? new TestHostEnvironment(),
+            appHostEnv,
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
@@ -2084,7 +2086,7 @@ public class DcpExecutorTests
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
-            new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
+            new DcpNameGenerator(appHostEnv, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())),
             developerCertificateService);

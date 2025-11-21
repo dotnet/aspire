@@ -237,6 +237,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IHostEnvironment Environment => innerBuilder.Environment;
 
+            public AppHostEnvironment AppHostEnvironment => innerBuilder.AppHostEnvironment;
+
             public IServiceCollection Services => innerBuilder.Services;
 
             public DistributedApplicationExecutionContext ExecutionContext => innerBuilder.ExecutionContext;
@@ -390,6 +392,8 @@ public static class DistributedApplicationTestingBuilder
         public Assembly? AppHostAssembly => _innerBuilder.AppHostAssembly;
 
         public IHostEnvironment Environment => _innerBuilder.Environment;
+
+        public AppHostEnvironment AppHostEnvironment => _innerBuilder.AppHostEnvironment;
 
         public IServiceCollection Services => _innerBuilder.Services;
 
