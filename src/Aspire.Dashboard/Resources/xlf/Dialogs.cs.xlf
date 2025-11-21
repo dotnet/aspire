@@ -379,7 +379,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
-        <target state="new">Aspire MCP API key</target>
+        <target state="translated">Klíč rozhraní API Aspirovat MCP</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
@@ -389,7 +389,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogCopyButton">
         <source>Copy</source>
-        <target state="new">Copy</target>
+        <target state="translated">Kopírovat</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
@@ -419,7 +419,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogManuallyUpdatingAccordionHeading">
         <source>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</source>
-        <target state="new">Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</target>
+        <target state="translated">Ruční aktualizace &lt;code&gt;mcp.json&lt;/code&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogOtherDescription">
@@ -459,7 +459,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogVSCodeApiKeyInstructions">
         <source>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</source>
-        <target state="new">The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</target>
+        <target state="translated">Při prvním spuštění Aspire MCP vás VS Code vyzve k zadání klíče rozhraní API. Do vstupního textového pole ve VS Code zadejte níže klíč rozhraní API.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVSCodeTab">
@@ -489,7 +489,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
         <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
-        <target state="new">You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</target>
+        <target state="translated">Abyste mohli používat Aspire MCP, musíte do něj přidat klíč rozhraní API. V GitHub Copilot Chatu vyberte tlačítko Nástroje a pak server Aspire MCP. Do textového pole níže zadejte klíč rozhraní API.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">
