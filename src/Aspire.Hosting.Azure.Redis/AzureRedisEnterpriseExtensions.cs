@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -15,7 +16,6 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding the Azure RedisEnterprise resources to the application model.
 /// </summary>
-[Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class AzureRedisEnterpriseExtensions
 {
     /// <summary>
@@ -43,7 +43,6 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureRedisEnterpriseResource> AddAzureRedisEnterprise(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -81,7 +80,6 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureRedisEnterpriseResource> RunAsContainer(
         this IResourceBuilder<AzureRedisEnterpriseResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
@@ -126,7 +124,6 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisEnterpriseResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -157,7 +154,6 @@ public static class AzureRedisEnterpriseExtensions
     /// <param name="builder">The Azure Redis Enterprise resource builder.</param>
     /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisEnterpriseResource will be stored.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisEnterpriseResource}"/> builder.</returns>
-    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisEnterpriseResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);

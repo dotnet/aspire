@@ -10,6 +10,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
+[Obsolete]
 public class AzureRedisExtensionsTests
 {
     /// <summary>

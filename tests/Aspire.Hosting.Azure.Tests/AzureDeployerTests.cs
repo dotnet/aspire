@@ -1023,7 +1023,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // and a compute resource that references the Redis cache
         builder.AddAzureAppServiceEnvironment("env");
 
-        var cache = builder.AddAzureRedis("cache")
+        var cache = builder.AddAzureRedisEnterprise("cache")
             .WithAccessKeyAuthentication();
 
         var azpg = builder.AddAzurePostgresFlexibleServer("pg")
