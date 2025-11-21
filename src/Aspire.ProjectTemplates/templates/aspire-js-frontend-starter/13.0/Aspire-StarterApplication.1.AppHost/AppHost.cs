@@ -11,7 +11,7 @@ var apiService = builder.AddProject<Projects.GeneratedClassNamePrefix_ApiService
 #endif
     .WithHttpHealthCheck("/health");
 
-var frontend = builder.AddViteApp("frontend", "../frontend")
+var webfrontend = builder.AddViteApp("webfrontend", "../frontend")
     .WithReference(apiService)
     .WaitFor(apiService)
     .WithExternalHttpEndpoints();
