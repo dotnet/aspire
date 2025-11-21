@@ -3,26 +3,13 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net472</TargetFrameworks>
     <IsPackable>false</IsPackable>
-    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
     <EnablePackageValidation>false</EnablePackageValidation>
-    <LangVersion>12.0</LangVersion>
     <!-- MSBuild Task assemblies don't need XML docs -->
-    <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
-    <!-- Make this an MSBuild task library -->
-    <GenerateDependencyFile>false</GenerateDependencyFile>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <!--
-      We manually control the dependency versions that MSBuild tasks use as they need to be loaded into the MSBuild host.
-    -->
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Remove the GenAPI task that's added by Directory.Build.props since we're opting out of central package management -->
-    <PackageReference Remove="Microsoft.DotNet.GenAPI.Task" />
-    
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.4" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.11.4" />
+  <ItemGroup>   
+    <PackageReference Include="Microsoft.Build.Utilities.Core" />
   </ItemGroup>
 
 </Project>

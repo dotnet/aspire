@@ -6,18 +6,15 @@
     <AspireGeneratedClassesVisibility Condition="'$(AspireGeneratedClassesVisibility)' == ''">public</AspireGeneratedClassesVisibility>
     <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
     <_GeneratedClassNameFixupRegex>(((?&lt;=\.)|^)(?=\d)|\W)</_GeneratedClassNameFixupRegex>
-  </PropertyGroup>
 
-  <!-- Determine the path to the MSBuild tasks assembly based on MSBuild runtime -->
-  <PropertyGroup>
     <!-- Use net8.0 when running on .NET Core, net472 when running on .NET Framework -->
     <_AspireTasksTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AspireTasksTfm>
     <_AspireTasksTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AspireTasksTfm>
-    <_AspireTasksAssembly>$(MSBuildThisFileDirectory)..\tools\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
+    <_AspireTasksAssembly Condition="'$(_AspireTasksAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
   </PropertyGroup>
 
   <!-- Load the compiled MSBuild task -->
-  <UsingTask TaskName="Aspire.Hosting.Tasks.GetNonExecutableReferences" AssemblyFile="$(_AspireTasksAssembly)" />
+  <UsingTask TaskName="GetNonExecutableReferences" AssemblyFile="$(_AspireTasksAssembly)" />
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
