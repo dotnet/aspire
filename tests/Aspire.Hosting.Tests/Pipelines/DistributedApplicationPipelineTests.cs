@@ -773,9 +773,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var reporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        TestPipelineActivityReporter? reporter = null;
+        builder.Services.AddSingleton<IPipelineActivityReporter>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TestPipelineActivityReporter>>();
+            reporter = new TestPipelineActivityReporter(logger);
+            return reporter;
+        });
 
         var pipeline = new DistributedApplicationPipeline();
         var exceptionMessage = "Test exception for reporting";
@@ -795,6 +799,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.Contains("failed", ex.Message);
 
         // Assert - Verify the step was created and completed with error
+        Assert.NotNull(reporter);
         Assert.Contains("failing-step", reporter.CreatedSteps);
         Assert.Contains(reporter.CompletedSteps, step => step.StepTitle == "failing-step" && step.CompletionState == CompletionState.CompletedWithError);
     }
@@ -1038,9 +1043,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var reporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        TestPipelineActivityReporter? reporter = null;
+        builder.Services.AddSingleton<IPipelineActivityReporter>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TestPipelineActivityReporter>>();
+            reporter = new TestPipelineActivityReporter(logger);
+            return reporter;
+        });
 
         var pipeline = new DistributedApplicationPipeline();
         var loggedMessages = new List<string>();
@@ -1061,6 +1070,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         await pipeline.ExecuteAsync(context);
 
         // Assert
+        Assert.NotNull(reporter);
         Assert.Contains("logging-step", reporter.CreatedSteps);
         Assert.Contains(reporter.LoggedMessages, log => log.Message == "Test log message from pipeline step" && log.LogLevel == LogLevel.Information);
     }
@@ -1071,9 +1081,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var reporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        TestPipelineActivityReporter? reporter = null;
+        builder.Services.AddSingleton<IPipelineActivityReporter>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TestPipelineActivityReporter>>();
+            reporter = new TestPipelineActivityReporter(logger);
+            return reporter;
+        });
 
         var pipeline = new DistributedApplicationPipeline();
         var step1Logger = (ILogger?)null;
@@ -1111,6 +1125,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Assert
         Assert.NotNull(step1Logger);
         Assert.NotNull(step2Logger);
+        Assert.NotNull(reporter);
 
         // Verify steps were created and completed
         Assert.Contains("step1", reporter.CreatedSteps);
@@ -1130,9 +1145,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var reporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        TestPipelineActivityReporter? reporter = null;
+        builder.Services.AddSingleton<IPipelineActivityReporter>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TestPipelineActivityReporter>>();
+            reporter = new TestPipelineActivityReporter(logger);
+            return reporter;
+        });
 
         var pipeline = new DistributedApplicationPipeline();
 
@@ -1152,6 +1171,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
 
         // Verify the failing step was created and completed with error
+        Assert.NotNull(reporter);
         Assert.Contains("failing-step", reporter.CreatedSteps);
         Assert.Contains(reporter.CompletedSteps, step => step.StepTitle == "failing-step" && step.CompletionState == CompletionState.CompletedWithError);
 
@@ -1168,9 +1188,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // This test verifies that each step gets a clean logger context
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
-        var reporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        TestPipelineActivityReporter? reporter = null;
+        builder.Services.AddSingleton<IPipelineActivityReporter>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TestPipelineActivityReporter>>();
+            reporter = new TestPipelineActivityReporter(logger);
+            return reporter;
+        });
 
         var pipeline = new DistributedApplicationPipeline();
         var capturedSteps = new List<IReportingStep?>();
@@ -1201,6 +1225,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
 
         // Assert
         Assert.Equal(3, capturedSteps.Count);
+        Assert.NotNull(reporter);
 
         // Each step should have had a different step context
         // (We can't easily verify they're different instances since they're created per step,
@@ -1237,9 +1262,13 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, logLevel: configuredLogLevel, step: "logging-step").WithTestAndResourceLogging(testOutputHelper);
 
-        var reporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        TestPipelineActivityReporter? reporter = null;
+        builder.Services.AddSingleton<IPipelineActivityReporter>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<TestPipelineActivityReporter>>();
+            reporter = new TestPipelineActivityReporter(logger);
+            return reporter;
+        });
 
         var pipeline = new DistributedApplicationPipeline();
 
@@ -1274,6 +1303,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         await pipeline.ExecuteAsync(context);
 
         // Assert - Verify that only the expected log levels are present
+        Assert.NotNull(reporter);
         var capturedLogs = reporter.LoggedMessages.Where(log => log.Message.EndsWith(" message")).ToList();
         Assert.Equal(expectedFilteredLevels.Length, capturedLogs.Count);
 

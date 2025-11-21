@@ -9,21 +9,11 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Utils;
 
 /// <summary>
-/// A test implementation of <see cref="IPipelineActivityReporter"/> that logs activity to an <see cref="ITestOutputHelper"/> or <see cref="ILogger"/>.
+/// A test implementation of <see cref="IPipelineActivityReporter"/> that logs activity to an <see cref="ILogger"/>.
 /// </summary>
 public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
 {
-    private readonly ITestOutputHelper? _testOutputHelper;
-    private readonly ILogger? _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TestPipelineActivityReporter"/> class.
-    /// </summary>
-    /// <param name="testOutputHelper">The test output helper to log to.</param>
-    public TestPipelineActivityReporter(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper ?? throw new ArgumentNullException(nameof(testOutputHelper));
-    }
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestPipelineActivityReporter"/> class.
@@ -80,9 +70,7 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         CompletePublishCalled = true;
         CompletionMessage = completionMessage;
         
-        var message = $"[CompletePublish] {completionMessage} (State: {completionState})";
-        _testOutputHelper?.WriteLine(message);
-        _logger?.LogInformation(message);
+        _logger.LogInformation("[CompletePublish] {CompletionMessage} (State: {CompletionState})", completionMessage, completionState);
         
         return Task.CompletedTask;
     }
@@ -92,25 +80,21 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     {
         CreatedSteps.Add(title);
         
-        var message = $"[CreateStep] {title}";
-        _testOutputHelper?.WriteLine(message);
-        _logger?.LogInformation(message);
+        _logger.LogInformation("[CreateStep] {Title}", title);
         
-        return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _testOutputHelper, _logger));
+        return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _logger));
     }
 
     private sealed class TestReportingStep : IReportingStep
     {
         private readonly TestPipelineActivityReporter _reporter;
         private readonly string _title;
-        private readonly ITestOutputHelper? _testOutputHelper;
-        private readonly ILogger? _logger;
+        private readonly ILogger _logger;
 
-        public TestReportingStep(TestPipelineActivityReporter reporter, string title, ITestOutputHelper? testOutputHelper, ILogger? logger)
+        public TestReportingStep(TestPipelineActivityReporter reporter, string title, ILogger logger)
         {
             _reporter = reporter;
             _title = title;
-            _testOutputHelper = testOutputHelper;
             _logger = logger;
         }
 
@@ -120,9 +104,7 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CompletedSteps.Add((_title, completionText, completionState));
             
-            var message = $"  [CompleteStep:{_title}] {completionText} (State: {completionState})";
-            _testOutputHelper?.WriteLine(message);
-            _logger?.LogInformation(message);
+            _logger.LogInformation("  [CompleteStep:{Title}] {CompletionText} (State: {CompletionState})", _title, completionText, completionState);
             
             return Task.CompletedTask;
         }
@@ -131,42 +113,17 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CreatedTasks.Add((_title, statusText));
             
-            var message = $"    [CreateTask:{_title}] {statusText}";
-            _testOutputHelper?.WriteLine(message);
-            _logger?.LogInformation(message);
+            _logger.LogInformation("    [CreateTask:{Title}] {StatusText}", _title, statusText);
             
-            return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _testOutputHelper, _logger));
+            return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _logger));
         }
 
         public void Log(LogLevel logLevel, string message, bool enableMarkdown)
         {
             _reporter.LoggedMessages.Add((_title, logLevel, message));
             
-            var logMessage = $"    [{logLevel}:{_title}] {message}";
-            _testOutputHelper?.WriteLine(logMessage);
-            
             // Log using the appropriate log level
-            switch (logLevel)
-            {
-                case LogLevel.Trace:
-                    _logger?.LogTrace(logMessage);
-                    break;
-                case LogLevel.Debug:
-                    _logger?.LogDebug(logMessage);
-                    break;
-                case LogLevel.Information:
-                    _logger?.LogInformation(logMessage);
-                    break;
-                case LogLevel.Warning:
-                    _logger?.LogWarning(logMessage);
-                    break;
-                case LogLevel.Error:
-                    _logger?.LogError(logMessage);
-                    break;
-                case LogLevel.Critical:
-                    _logger?.LogCritical(logMessage);
-                    break;
-            }
+            _logger.Log(logLevel, "    [{LogLevel}:{Title}] {Message}", logLevel, _title, message);
         }
     }
 
@@ -174,14 +131,12 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     {
         private readonly TestPipelineActivityReporter _reporter;
         private readonly string _initialStatusText;
-        private readonly ITestOutputHelper? _testOutputHelper;
-        private readonly ILogger? _logger;
+        private readonly ILogger _logger;
 
-        public TestReportingTask(TestPipelineActivityReporter reporter, string initialStatusText, ITestOutputHelper? testOutputHelper, ILogger? logger)
+        public TestReportingTask(TestPipelineActivityReporter reporter, string initialStatusText, ILogger logger)
         {
             _reporter = reporter;
             _initialStatusText = initialStatusText;
-            _testOutputHelper = testOutputHelper;
             _logger = logger;
         }
 
@@ -191,9 +146,7 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
             
-            var message = $"      [CompleteTask:{_initialStatusText}] {completionMessage} (State: {completionState})";
-            _testOutputHelper?.WriteLine(message);
-            _logger?.LogInformation(message);
+            _logger.LogInformation("      [CompleteTask:{InitialStatusText}] {CompletionMessage} (State: {CompletionState})", _initialStatusText, completionMessage, completionState);
             
             return Task.CompletedTask;
         }
@@ -202,9 +155,7 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
             
-            var message = $"      [UpdateTask:{_initialStatusText}] {statusText}";
-            _testOutputHelper?.WriteLine(message);
-            _logger?.LogInformation(message);
+            _logger.LogInformation("      [UpdateTask:{InitialStatusText}] {StatusText}", _initialStatusText, statusText);
             
             return Task.CompletedTask;
         }
