@@ -19,7 +19,7 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     /// Initializes a new instance of the <see cref="TestPipelineActivityReporter"/> class.
     /// </summary>
     /// <param name="logger">The logger to log to.</param>
-    public TestPipelineActivityReporter(ILogger logger)
+    public TestPipelineActivityReporter(ILogger<TestPipelineActivityReporter> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
