@@ -1013,6 +1013,38 @@ public static class ProjectResourceBuilderExtensions
         return host;
     }
 
+    /// <summary>
+    /// Configures container build options for a project resource using a callback.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="callback">A callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> WithContainerBuildOptions(
+        this IResourceBuilder<ProjectResource> builder,
+        Action<ContainerBuildOptionsCallbackContext> callback)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Configures container build options for a project resource using an async callback.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="callback">An async callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> WithContainerBuildOptions(
+        this IResourceBuilder<ProjectResource> builder,
+        Func<ContainerBuildOptionsCallbackContext, Task> callback)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource
     private sealed class ProjectContainerResource(ProjectResource pr) : ContainerResource(pr.Name)
     {

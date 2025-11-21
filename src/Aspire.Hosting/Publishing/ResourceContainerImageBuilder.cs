@@ -105,18 +105,16 @@ public interface IResourceContainerImageBuilder
     /// Builds a container that represents the specified resource.
     /// </summary>
     /// <param name="resource">The resource to build.</param>
-    /// <param name="options">The container build options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
+    Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Builds container images for a collection of resources.
     /// </summary>
     /// <param name="resources">The resources to build images for.</param>
-    /// <param name="options">The container build options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
+    Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Tags an existing container image with a new target name.
@@ -137,19 +135,54 @@ public interface IResourceContainerImageBuilder
 internal sealed class ResourceContainerImageBuilder(
     ILogger<ResourceContainerImageBuilder> logger,
     IContainerRuntime containerRuntime,
-    IServiceProvider serviceProvider) : IResourceContainerImageBuilder
+    IServiceProvider serviceProvider,
+    DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageBuilder
 {
     // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
     private readonly SemaphoreSlim _throttle = new(1);
 
     private IContainerRuntime ContainerRuntime { get; } = containerRuntime;
 
-    public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+    private sealed class ResolvedContainerBuildOptions
+    {
+        public string? OutputPath { get; set; }
+        public ContainerImageFormat? ImageFormat { get; set; }
+        public ContainerTargetPlatform? TargetPlatform { get; set; }
+        public string LocalImageName { get; set; } = string.Empty;
+        public string LocalImageTag { get; set; } = "latest";
+    }
+
+    private async Task<ResolvedContainerBuildOptions> ResolveContainerBuildOptionsAsync(
+        IResource resource,
+        CancellationToken cancellationToken)
+    {
+        var options = new ResolvedContainerBuildOptions
+        {
+            LocalImageName = resource.Name,
+            LocalImageTag = "latest"
+        };
+
+        var context = await resource.ProcessContainerBuildOptionsCallbackAsync(
+            serviceProvider,
+            logger,
+            executionContext,
+            cancellationToken).ConfigureAwait(false);
+
+        options.OutputPath = context.OutputPath;
+        options.ImageFormat = context.ImageFormat;
+        options.TargetPlatform = context.TargetPlatform;
+        options.LocalImageName = context.LocalImageName ?? options.LocalImageName;
+        options.LocalImageTag = context.LocalImageTag ?? options.LocalImageTag;
+
+        return options;
+    }
+
+    public async Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting to build container images");
 
         // Only check container runtime health if there are resources that need it
-        if (ResourcesRequireContainerRuntime(resources, options))
+        if (await ResourcesRequireContainerRuntimeAsync(resources, cancellationToken).ConfigureAwait(false))
         {
             logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
 
@@ -167,15 +200,17 @@ internal sealed class ResourceContainerImageBuilder(
         foreach (var resource in resources)
         {
             // TODO: Consider parallelizing this.
-            await BuildImageAsync(resource, options, cancellationToken).ConfigureAwait(false);
+            await BuildImageAsync(resource, cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogDebug("Building container images completed");
     }
 
-    public async Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
+
+        var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
 
         if (resource is ProjectResource)
         {
@@ -215,7 +250,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, ResolvedContainerBuildOptions options, CancellationToken cancellationToken)
     {
         await _throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -242,7 +277,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ResolvedContainerBuildOptions options, CancellationToken cancellationToken)
     {
         // This is a resource project so we'll use the .NET SDK to build the container image.
         if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
@@ -250,46 +285,43 @@ internal sealed class ResourceContainerImageBuilder(
             throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
         }
 
-        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{options.LocalImageName}\" /p:ContainerImageTag=\"{options.LocalImageTag}\"";
 
         // Add additional arguments based on options
-        if (options is not null)
+        if (!string.IsNullOrEmpty(options.OutputPath))
         {
-            if (!string.IsNullOrEmpty(options.OutputPath))
+            arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
+        }
+
+        if (options.ImageFormat is not null)
+        {
+            var format = options.ImageFormat.Value switch
             {
-                arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
+                ContainerImageFormat.Docker => "Docker",
+                ContainerImageFormat.Oci => "OCI",
+                _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+            };
+            arguments += $" /p:ContainerImageFormat=\"{format}\"";
+        }
+
+        if (options.TargetPlatform is not null)
+        {
+            // Use the appropriate MSBuild properties based on the number of RIDs
+            var runtimeIds = options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString();
+            var ridArray = runtimeIds.Split(';');
+
+            if (ridArray.Length == 1)
+            {
+                // Single platform - use RuntimeIdentifier/ContainerRuntimeIdentifier
+                arguments += $" /p:RuntimeIdentifier=\"{ridArray[0]}\"";
+                arguments += $" /p:ContainerRuntimeIdentifier=\"{ridArray[0]}\"";
             }
-
-            if (options.ImageFormat is not null)
+            else
             {
-                var format = options.ImageFormat.Value switch
-                {
-                    ContainerImageFormat.Docker => "Docker",
-                    ContainerImageFormat.Oci => "OCI",
-                    _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
-                };
-                arguments += $" /p:ContainerImageFormat=\"{format}\"";
-            }
-
-            if (options.TargetPlatform is not null)
-            {
-                // Use the appropriate MSBuild properties based on the number of RIDs
-                var runtimeIds = options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString();
-                var ridArray = runtimeIds.Split(';');
-
-                if (ridArray.Length == 1)
-                {
-                    // Single platform - use RuntimeIdentifier/ContainerRuntimeIdentifier
-                    arguments += $" /p:RuntimeIdentifier=\"{ridArray[0]}\"";
-                    arguments += $" /p:ContainerRuntimeIdentifier=\"{ridArray[0]}\"";
-                }
-                else
-                {
-                    // Multiple platforms - use RuntimeIdentifiers/ContainerRuntimeIdentifiers
-                    // MSBuild doesn't handle ';' in parameters well, need to escape the double quote. See https://github.com/dotnet/msbuild/issues/471
-                    arguments += $" /p:RuntimeIdentifiers=\\\"{runtimeIds}\\\"";
-                    arguments += $" /p:ContainerRuntimeIdentifiers=\\\"{runtimeIds}\\\"";
-                }
+                // Multiple platforms - use RuntimeIdentifiers/ContainerRuntimeIdentifiers
+                // MSBuild doesn't handle ';' in parameters well, need to escape the double quote. See https://github.com/dotnet/msbuild/issues/471
+                arguments += $" /p:RuntimeIdentifiers=\\\"{runtimeIds}\\\"";
+                arguments += $" /p:ContainerRuntimeIdentifiers=\\\"{runtimeIds}\\\"";
             }
         }
 
@@ -342,7 +374,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ResolvedContainerBuildOptions options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building image: {ResourceName}", resource.Name);
 
@@ -374,10 +406,18 @@ internal sealed class ResourceContainerImageBuilder(
         }
 
         // ensure outputPath is created if specified since docker/podman won't create it for us
-        if (options?.OutputPath is { } outputPath)
+        if (options.OutputPath is { } outputPath)
         {
             Directory.CreateDirectory(outputPath);
         }
+
+        // Create a ContainerBuildOptions for the container runtime
+        var containerBuildOptions = new ContainerBuildOptions
+        {
+            OutputPath = options.OutputPath,
+            ImageFormat = options.ImageFormat,
+            TargetPlatform = options.TargetPlatform
+        };
 
         try
         {
@@ -385,7 +425,7 @@ internal sealed class ResourceContainerImageBuilder(
                 dockerfileBuildAnnotation.ContextPath,
                 dockerfileBuildAnnotation.DockerfilePath,
                 imageName,
-                options,
+                containerBuildOptions,
                 resolvedBuildArguments,
                 resolvedBuildSecrets,
                 dockerfileBuildAnnotation.Stage,
@@ -434,14 +474,31 @@ internal sealed class ResourceContainerImageBuilder(
     }
 
     // .NET Container builds that push OCI images to a local file path do not need a runtime
-    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources, ContainerBuildOptions? options)
+    private async Task<bool> ResourcesRequireContainerRuntimeAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
         var hasDockerfileResources = resources.Any(resource =>
             resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
             resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
-        var usesDocker = options == null || options.ImageFormat == ContainerImageFormat.Docker;
-        var hasNoOutputPath = options?.OutputPath == null;
-        return hasDockerfileResources || usesDocker || hasNoOutputPath;
+
+        if (hasDockerfileResources)
+        {
+            return true;
+        }
+
+        // Check if any resource uses Docker format or has no output path
+        foreach (var resource in resources)
+        {
+            var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
+            var usesDocker = options.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
+            var hasNoOutputPath = options.OutputPath == null;
+
+            if (usesDocker || hasNoOutputPath)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }
