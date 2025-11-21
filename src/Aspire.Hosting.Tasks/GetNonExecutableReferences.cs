@@ -40,7 +40,7 @@ public sealed class GetNonExecutableReferences : Microsoft.Build.Utilities.Task
             foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
             {
                 var isExe = targetFrameworkElement.Element("_IsExecutable");
-                if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
+                if (isExe is null || !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     nonExecutableReferences.Add(appProject);
                 }
