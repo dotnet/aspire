@@ -158,7 +158,7 @@ public static class KafkaBuilderExtensions
     /// <param name="configureContainer">Configuration callback for KafkaUI container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
-    public static IResourceBuilder<KafkaServerResource> WithKafkaSchemaRegistry(this IResourceBuilder<KafkaServerResource> builder, string? containerName = null, Action<IResourceBuilder<KafkaSchemaRegistryResource>>? configureContainer = null)
+    public static IResourceBuilder<KafkaSchemaRegistryResource> WithKafkaSchemaRegistry(this IResourceBuilder<KafkaServerResource> builder, string? containerName = null, Action<IResourceBuilder<KafkaSchemaRegistryResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -166,7 +166,7 @@ public static class KafkaBuilderExtensions
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingKafkaSchemaRegistryResource);
             configureContainer?.Invoke(builderForExistingResource);
-            return builder;
+            return builderForExistingResource;
         }
 
         containerName ??= "kafka-schema-registry";
@@ -186,7 +186,7 @@ public static class KafkaBuilderExtensions
 
         configureContainer?.Invoke(kafkaSchemaRegistryBuilder);
 
-        return builder;
+        return kafkaSchemaRegistryBuilder;
     }
 
     /// <summary>
