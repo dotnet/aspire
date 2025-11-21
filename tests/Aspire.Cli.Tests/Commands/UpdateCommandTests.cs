@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -10,6 +12,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -613,6 +616,175 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal("stable", capturedChannel.Name);
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task UpdateCommand_ProjectUpdate_WhenCancelled_DisplaysCancellationMessage()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var cancellationMessageDisplayed = false;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    // Simulate user pressing Ctrl+C during selection prompt
+                    throw new OperationCanceledException();
+                },
+                DisplayErrorCallback = (message) =>
+                {
+                    // Should not display error for cancellation
+                    Assert.Fail("DisplayError should not be called for cancellation");
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel });
+                }
+            };
+        });
+
+        // Override the interaction service to track cancellation message
+        var provider = services.BuildServiceProvider();
+        
+        // We need to use a wrapper to track DisplayCancellationMessage call
+        var originalService = provider.GetRequiredService<IInteractionService>();
+        var wrappedService = new CancellationTrackingInteractionService(originalService);
+        wrappedService.OnCancellationMessageDisplayed = () => cancellationMessageDisplayed = true;
+
+        // Replace the service
+        var newServices = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => wrappedService;
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    var stableChannel = new PackageChannel("stable", PackageChannelQuality.Stable, null, null!);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel });
+                }
+            };
+        });
+
+        provider = newServices.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.True(cancellationMessageDisplayed, "Cancellation message should have been displayed");
+        Assert.Equal(ExitCodeConstants.FailedToUpgradeProject, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WhenCancelled_DisplaysCancellationMessage()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var cancellationMessageDisplayed = false;
+        
+        var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
+        {
+            PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+            {
+                // Simulate user pressing Ctrl+C during channel selection prompt
+                throw new OperationCanceledException();
+            }
+        });
+        wrappedService.OnCancellationMessageDisplayed = () => cancellationMessageDisplayed = true;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => wrappedService;
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot);
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.True(cancellationMessageDisplayed, "Cancellation message should have been displayed");
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+}
+
+// Helper class to track DisplayCancellationMessage calls
+internal sealed class CancellationTrackingInteractionService : IInteractionService
+{
+    private readonly IInteractionService _innerService;
+
+    public Action? OnCancellationMessageDisplayed { get; set; }
+
+    public CancellationTrackingInteractionService(IInteractionService innerService)
+    {
+        _innerService = innerService;
+    }
+
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => _innerService.ShowStatusAsync(statusText, action);
+    public void ShowStatus(string statusText, Action action) => _innerService.ShowStatus(statusText, action);
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) 
+        => _innerService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, required, cancellationToken);
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) 
+        => _innerService.ConfirmAsync(promptText, defaultValue, cancellationToken);
+    public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull 
+        => _innerService.PromptForSelectionAsync(promptText, choices, choiceFormatter, cancellationToken);
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull 
+        => _innerService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) 
+        => _innerService.DisplayIncompatibleVersionError(ex, appHostHostingVersion);
+    public void DisplayError(string errorMessage) => _innerService.DisplayError(errorMessage);
+    public void DisplayMessage(string emoji, string message) => _innerService.DisplayMessage(emoji, message);
+    public void DisplayPlainText(string text) => _innerService.DisplayPlainText(text);
+    public void DisplayMarkdown(string markdown) => _innerService.DisplayMarkdown(markdown);
+    public void DisplaySuccess(string message) => _innerService.DisplaySuccess(message);
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) => _innerService.DisplaySubtleMessage(message, escapeMarkup);
+    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) => _innerService.DisplayLines(lines);
+    public void DisplayCancellationMessage() 
+    {
+        OnCancellationMessageDisplayed?.Invoke();
+        _innerService.DisplayCancellationMessage();
+    }
+    public void DisplayEmptyLine() => _innerService.DisplayEmptyLine();
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) 
+        => _innerService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) 
+        => _innerService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
 }
 
 // Test implementation of ICliUpdateNotifier
