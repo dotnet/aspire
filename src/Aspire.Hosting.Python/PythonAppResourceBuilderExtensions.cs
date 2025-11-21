@@ -479,16 +479,17 @@ public static class PythonAppResourceBuilderExtensions
                     var entrypoint = entrypointAnnotation.Entrypoint;
 
                     // Check which package manager is being used
-                    var isUsingUv = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
-                                    pkgMgr.ExecutableName == "uv";
-                    var isUsingPoetry = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out pkgMgr) &&
-                                        pkgMgr.ExecutableName == "poetry";
+                    string? packageManagerName = null;
+                    if (context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr))
+                    {
+                        packageManagerName = pkgMgr.ExecutableName;
+                    }
 
-                    if (isUsingUv)
+                    if (packageManagerName == "uv")
                     {
                         GenerateUvDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
-                    else if (isUsingPoetry)
+                    else if (packageManagerName == "poetry")
                     {
                         GeneratePoetryDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
@@ -1621,8 +1622,7 @@ public static class PythonAppResourceBuilderExtensions
                             pythonEnv.VirtualEnvironment != null)
                         {
                             var venvPath = pythonEnv.VirtualEnvironment.VirtualEnvironmentPath;
-                            var isAbsolutePath = Path.IsPathRooted(venvPath);
-                            var resolvedPath = isAbsolutePath 
+                            var resolvedPath = Path.IsPathRooted(venvPath) 
                                 ? venvPath 
                                 : Path.GetFullPath(venvPath, builder.Resource.WorkingDirectory);
                             
@@ -1791,14 +1791,14 @@ public static class PythonAppResourceBuilderExtensions
 
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
     {
-        // Check if we're using uv or poetry (which handle venv creation themselves)
-        var isUsingPackageManagerWithVenv = builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
-                                             (pkgMgr.ExecutableName == "uv" || pkgMgr.ExecutableName == "poetry");
-
-        if (isUsingPackageManagerWithVenv)
+        // Check if we're using a package manager that handles venv creation itself (uv, poetry)
+        if (builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr))
         {
-            // UV and Poetry handle venv creation, we don't need to create it
-            return false;
+            // Package managers that handle their own venv creation
+            if (pkgMgr.ExecutableName is "uv" or "poetry")
+            {
+                return false;
+            }
         }
 
         // Get the virtual environment path
