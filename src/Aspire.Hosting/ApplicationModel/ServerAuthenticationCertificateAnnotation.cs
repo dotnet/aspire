@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// An annotation that associates a certificate pair (public/private key) with a resource.
 /// </summary>
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class CertificateKeyPairAnnotation : IResourceAnnotation
+public sealed class ServerAuthenticationCertificateAnnotation : IResourceAnnotation
 {
     private X509Certificate2? _certificate;
     private bool? _useDeveloperCertificate;

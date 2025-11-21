@@ -147,7 +147,7 @@ public static class RedisBuilderExtensions
 
                 return Task.CompletedTask;
             })
-            .WithCertificateKeyPairConfiguration(ctx =>
+            .WithServerAuthenticationCertificateConfiguration(ctx =>
             {
                 ctx.Arguments.Add("--tls-cert-file");
                 ctx.Arguments.Add(ctx.CertificatePath);
@@ -178,7 +178,7 @@ public static class RedisBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!redis.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!redis.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
                     if (developerCertificateService.DefaultTlsTerminationEnabled)
                     {
@@ -367,7 +367,7 @@ public static class RedisBuilderExtensions
 
                     return Task.CompletedTask;
                 })
-                .WithCertificateKeyPairConfiguration(ctx =>
+                .WithServerAuthenticationCertificateConfiguration(ctx =>
                 {
                     ctx.EnvironmentVariables["RI_SERVER_TLS_CERT"] = ctx.CertificatePath;
                     ctx.EnvironmentVariables["RI_SERVER_TLS_KEY"] = ctx.KeyPath;
@@ -388,7 +388,7 @@ public static class RedisBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
                     if (developerCertificateService.DefaultTlsTerminationEnabled)
                     {
