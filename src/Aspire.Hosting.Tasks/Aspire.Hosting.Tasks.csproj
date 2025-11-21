@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net472</TargetFrameworks>
     <IsPackable>false</IsPackable>
-    <EnablePackageValidation>false</EnablePackageValidation>
     <!-- MSBuild Task assemblies don't need XML docs -->
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
