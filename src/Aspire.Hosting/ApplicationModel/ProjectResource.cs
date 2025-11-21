@@ -167,13 +167,13 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
             var buildOptions = new ContainerBuildOptions
             {
+                ImageName = originalImageName,
                 TargetPlatform = context.TargetPlatform ?? ContainerTargetPlatform.LinuxAmd64
             };
 
             await containerRuntime.BuildImageAsync(
                 projectDir,
                 tempDockerfilePath,
-                originalImageName,
                 buildOptions,
                 [],
                 [],

@@ -80,6 +80,16 @@ public enum ContainerTargetPlatform
 public class ContainerBuildOptions
 {
     /// <summary>
+    /// Gets the name to assign to the built image.
+    /// </summary>
+    public string? ImageName { get; init; }
+
+    /// <summary>
+    /// Gets the tag to assign to the built image.
+    /// </summary>
+    public string? Tag { get; init; }
+
+    /// <summary>
     /// Gets the output path for the container archive.
     /// </summary>
     public string? OutputPath { get; init; }
@@ -411,9 +421,16 @@ internal sealed class ResourceContainerImageBuilder(
             Directory.CreateDirectory(outputPath);
         }
 
+        // Parse image name and tag
+        var imageNameParts = imageName.Split(':', 2);
+        var imageNameOnly = imageNameParts[0];
+        var imageTag = imageNameParts.Length > 1 ? imageNameParts[1] : null;
+
         // Create a ContainerBuildOptions for the container runtime
         var containerBuildOptions = new ContainerBuildOptions
         {
+            ImageName = imageNameOnly,
+            Tag = imageTag,
             OutputPath = options.OutputPath,
             ImageFormat = options.ImageFormat,
             TargetPlatform = options.TargetPlatform
@@ -424,7 +441,6 @@ internal sealed class ResourceContainerImageBuilder(
             await ContainerRuntime.BuildImageAsync(
                 dockerfileBuildAnnotation.ContextPath,
                 dockerfileBuildAnnotation.DockerfilePath,
-                imageName,
                 containerBuildOptions,
                 resolvedBuildArguments,
                 resolvedBuildSecrets,
