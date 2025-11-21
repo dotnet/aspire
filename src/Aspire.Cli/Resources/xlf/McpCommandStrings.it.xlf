@@ -3,8 +3,13 @@
   <file datatype="xml" source-language="en" target-language="it" original="../McpCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Launch an MCP (Model Context Protocol) server.</source>
-        <target state="new">Launch an MCP (Model Context Protocol) server.</target>
+        <source>Manage MCP (Model Context Protocol) server.</source>
+        <target state="new">Manage MCP (Model Context Protocol) server.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartCommand_Description">
+        <source>Start the MCP (Model Context Protocol) server.</source>
+        <target state="new">Start the MCP (Model Context Protocol) server.</target>
         <note />
       </trans-unit>
     </body>

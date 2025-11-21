@@ -61,6 +61,9 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Launch an MCP (Model Context Protocol) server.</value>
+    <value>Manage MCP (Model Context Protocol) server.</value>
+  </data>
+  <data name="StartCommand_Description" xml:space="preserve">
+    <value>Start the MCP (Model Context Protocol) server.</value>
   </data>
 </root>

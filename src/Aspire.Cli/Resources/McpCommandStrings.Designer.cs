@@ -57,11 +57,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Launch an MCP (Model Context Protocol) server..
+        ///   Looks up a localized string similar to Manage MCP (Model Context Protocol) server..
         /// </summary>
         internal static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start the MCP (Model Context Protocol) server..
+        /// </summary>
+        internal static string StartCommand_Description {
+            get {
+                return ResourceManager.GetString("StartCommand_Description", resourceCulture);
             }
         }
     }
