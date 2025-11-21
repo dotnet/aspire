@@ -25,7 +25,7 @@ public sealed class GetNonExecutableReferences : Microsoft.Build.Utilities.Task
 
     public override bool Execute()
     {
-        var nonExecutableReferences = new System.Collections.Generic.List<ITaskItem>();
+        HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
 
         foreach (var appProject in AppProjectTargetFramework)
         {
@@ -40,7 +40,7 @@ public sealed class GetNonExecutableReferences : Microsoft.Build.Utilities.Task
             foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
             {
                 var isExe = targetFrameworkElement.Element("_IsExecutable");
-                if (isExe != null && !string.Equals(isExe.Value, "true", System.StringComparison.OrdinalIgnoreCase))
+                if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     nonExecutableReferences.Add(appProject);
                 }
