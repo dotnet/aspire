@@ -16,8 +16,12 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
 
     protected override string RuntimeExecutable => "docker";
     public override string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
+        var imageName = !string.IsNullOrEmpty(options?.Tag)
+            ? $"{options.ImageName}:{options.Tag}"
+            : options?.ImageName ?? throw new ArgumentException("ImageName must be provided in options.", nameof(options));
+
         string? builderName = null;
         var resourceName = imageName.Replace('/', '-').Replace(':', '-');
 
@@ -139,7 +143,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
         }
     }
 
-    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         // Normalize the context path to handle trailing slashes and relative paths
         var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -147,7 +151,6 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
         var exitCode = await RunDockerBuildAsync(
             normalizedContextPath,
             dockerfilePath,
-            imageName,
             options,
             buildArguments,
             buildSecrets,

@@ -15,8 +15,12 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
 
     protected override string RuntimeExecutable => "podman";
     public override string Name => "Podman";
-    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
+        var imageName = !string.IsNullOrEmpty(options?.Tag)
+            ? $"{options.ImageName}:{options.Tag}"
+            : options?.ImageName ?? throw new ArgumentException("ImageName must be provided in options.", nameof(options));
+
         var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
         // Add platform support if specified
@@ -75,12 +79,11 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
             environmentVariables).ConfigureAwait(false);
     }
 
-    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,
             dockerfilePath,
-            imageName,
             options,
             buildArguments,
             buildSecrets,
