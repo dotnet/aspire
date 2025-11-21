@@ -17,3 +17,16 @@ public sealed class AzureAppServiceWebsiteCustomizationAnnotation(Action<AzureRe
     /// </summary>
     public Action<AzureResourceInfrastructure, WebSite> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
 }
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="configure"></param>
+public sealed class AzureAppServiceWebsiteSlotCustomizationAnnotation(Action<AzureResourceInfrastructure, WebSiteSlot> configure)
+    : IResourceAnnotation
+{
+    /// <summary>
+    /// Gets the configuration action for customizing the Azure Web App.
+    /// </summary>
+    public Action<AzureResourceInfrastructure, WebSiteSlot> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
+}
