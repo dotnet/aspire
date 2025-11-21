@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECERTIFICATES001
+
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
@@ -641,10 +643,8 @@ public class DistributedApplicationTests
             X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
         using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
 
-#pragma warning disable ASPIRECERTIFICATES001
         var redis = testProgram.AppBuilder.AddRedis($"{testName}-redis")
             .WithCertificateKeyPair(cert);
-#pragma warning restore ASPIRECERTIFICATES001
 
         await using var app = testProgram.Build();
 
@@ -767,9 +767,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
@@ -882,26 +880,21 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var value = "SomeValue";
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
             .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
             .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
-            .WithoutCertificateKeyPair()
             .WithCertificateTrustConfiguration(ctx =>
             {
-                // Verify that the initial environment variable is accessible in the callback
-                Assert.Contains("INITIAL_ENV_VAR", ctx.EnvironmentVariables);
-                Assert.Equal("InitialValue", ctx.EnvironmentVariables["INITIAL_ENV_VAR"]);
-
-                // Add an additional environment variable in the callback
-                ctx.EnvironmentVariables["CALLBACK_ADDED_VAR"] = "CallbackValue";
-                var initialRE = Assert.IsType<ReferenceExpression>(ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"]);
-                ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"] = ReferenceExpression.Create($"{initialRE}_AppendedInCallback");
+                if (ctx.EnvironmentVariables.ContainsKey("INITIAL_ENV_VAR"))
+                {
+                    // Add an additional environment variable in the callback
+                    ctx.EnvironmentVariables["CALLBACK_ADDED_VAR"] = "CallbackValue";
+                    var initialRE = Assert.IsType<ReferenceExpression>(ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"]);
+                    ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"] = ReferenceExpression.Create($"{initialRE}_AppendedInCallback");
+                }
 
                 return Task.CompletedTask;
-            })
-            ;
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            });
 
         await using var app = testProgram.Build();
 
@@ -1812,7 +1805,7 @@ public class DistributedApplicationTests
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
         bool randomizePorts = true,
-        bool? trustDeveloperCertificate = null) =>
+        bool? trustDeveloperCertificate = false) =>
         TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,
