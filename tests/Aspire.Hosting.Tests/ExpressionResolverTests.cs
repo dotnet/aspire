@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Options;
@@ -232,6 +233,28 @@ public class ExpressionResolverTests
 
         Assert.Equal("http://myContainer:8080", config["ConnectionStrings__myContainer"]);
     }
+
+    [Fact]
+    public async Task ExpressionResolutionShouldWaitOnMissingAllocatedEndpoint()
+    {
+        var builder = DistributedApplicationTestingBuilder.Create();
+
+        var dependency = builder
+           .AddResource(new TestHostResource("hostResource"))
+           .WithHttpEndpoint(name: "hostEndpoint");
+
+        var consumer = builder.AddResource(new MyContainerResource("containerResource"))
+           .WithImage("redis")
+           .WithReference(dependency.GetEndpoint("hostEndpoint"));
+
+        var endpointAnnotation = dependency.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 1234);
+
+        await Assert.ThrowsAsync<TimeoutException>(async () =>
+        {
+            _ = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).AsTask().TimeoutAfter(TimeSpan.FromSeconds(2));
+        });
+    }
 }
 
 sealed class MyContainerResource : ContainerResource, IResourceWithConnectionString
@@ -285,4 +308,9 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
     }
 
     public ReferenceExpression ConnectionStringExpression => Expressions[_exprName];
+}
+
+public sealed class TestHostResource : Resource, IResourceWithEndpoints
+{
+    public TestHostResource(string name) : base(name) { }
 }
