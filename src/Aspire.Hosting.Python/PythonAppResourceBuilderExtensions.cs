@@ -1485,7 +1485,12 @@ public static class PythonAppResourceBuilderExtensions
         // Store Poetry environment variables in an annotation for later use
         if (env != null && env.Length > 0)
         {
-            builder.WithAnnotation(new PoetryEnvironmentAnnotation(env), ResourceAnnotationMutationBehavior.Replace);
+            var envDict = new Dictionary<string, string>(env.Length);
+            foreach (var (key, value) in env)
+            {
+                envDict[key] = value;
+            }
+            builder.WithAnnotation(new PoetryEnvironmentAnnotation(envDict), ResourceAnnotationMutationBehavior.Replace);
         }
 
         builder
@@ -1657,9 +1662,9 @@ public static class PythonAppResourceBuilderExtensions
                         // Apply user-specified environment variable overrides
                         if (builder.Resource.TryGetLastAnnotation<PoetryEnvironmentAnnotation>(out var poetryEnv))
                         {
-                            foreach (var (key, value) in poetryEnv.EnvironmentVariables)
+                            foreach (var kvp in poetryEnv.EnvironmentVariables)
                             {
-                                ctx.EnvironmentVariables[key] = value;
+                                ctx.EnvironmentVariables[kvp.Key] = kvp.Value;
                             }
                         }
                     });

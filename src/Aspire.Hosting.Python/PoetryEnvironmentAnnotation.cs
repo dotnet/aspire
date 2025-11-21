@@ -9,10 +9,10 @@ namespace Aspire.Hosting.Python;
 /// Represents environment variables to be set for Poetry operations.
 /// </summary>
 /// <param name="environmentVariables">The environment variables to set for Poetry.</param>
-internal sealed class PoetryEnvironmentAnnotation((string key, string value)[] environmentVariables) : IResourceAnnotation
+internal sealed class PoetryEnvironmentAnnotation(IReadOnlyDictionary<string, string> environmentVariables) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the environment variables to be set for Poetry operations.
     /// </summary>
-    public (string key, string value)[] EnvironmentVariables { get; } = environmentVariables;
+    public IReadOnlyDictionary<string, string> EnvironmentVariables { get; } = environmentVariables;
 }

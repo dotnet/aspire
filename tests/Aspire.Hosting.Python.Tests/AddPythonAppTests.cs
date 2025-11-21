@@ -2356,9 +2356,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify the Poetry environment annotation exists with the custom environment variables
         Assert.True(pythonApp.Resource.TryGetLastAnnotation<PoetryEnvironmentAnnotation>(out var poetryEnv));
-        Assert.Equal(2, poetryEnv.EnvironmentVariables.Length);
-        Assert.Contains(poetryEnv.EnvironmentVariables, e => e.key == "POETRY_VIRTUALENVS_IN_PROJECT" && e.value == "false");
-        Assert.Contains(poetryEnv.EnvironmentVariables, e => e.key == "POETRY_HTTP_TIMEOUT" && e.value == "60");
+        Assert.Equal(2, poetryEnv.EnvironmentVariables.Count);
+        Assert.Equal("false", poetryEnv.EnvironmentVariables["POETRY_VIRTUALENVS_IN_PROJECT"]);
+        Assert.Equal("60", poetryEnv.EnvironmentVariables["POETRY_HTTP_TIMEOUT"]);
     }
 
     [Fact]
