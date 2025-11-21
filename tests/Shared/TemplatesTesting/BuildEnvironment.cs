@@ -184,6 +184,12 @@ public class BuildEnvironment
         EnvVars["_MSBUILDTLENABLED"] = "0";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
 
+        if (OperatingSystem.IsMacOS())
+        {
+            // Disable default developer certificate features in MacOS due to test performance issues
+            EnvVars["ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_TRUST"] = "false";
+        }
+
         DotNet = Path.Combine(sdkForTemplatePath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {

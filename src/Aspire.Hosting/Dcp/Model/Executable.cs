@@ -63,6 +63,12 @@ internal sealed class ExecutableSpec
     /// </summary>
     [JsonPropertyName("ambientEnvironment")]
     public AmbientEnvironment? AmbientEnvironment { get; set; }
+
+    /// <summary>
+    /// Public PEM certificates to be configured for the Executable.
+    /// </summary>
+    [JsonPropertyName("pemCertificates")]
+    public ExecutablePemCertificates? PemCertificates { get; set; }
 }
 
 internal sealed class AmbientEnvironment
@@ -99,6 +105,18 @@ internal static class ExecutionType
     /// Executable will be run via an IDE such as Visual Studio or Visual Studio Code.
     /// </summary>
     public const string IDE = "IDE";
+}
+
+internal sealed class ExecutablePemCertificates
+{
+    // The list of public PEM encoded certificates for the executable.
+    [JsonPropertyName("certificates")]
+    public List<PemCertificate>? Certificates { get; set; }
+
+    // Indicates whether to continue starting the Executable if there are issues setting up any certificates for
+    // the executable.
+    [JsonPropertyName("continueOnError")]
+    public bool ContinueOnError { get; set; }
 }
 
 internal sealed record ExecutableStatus : V1Status
