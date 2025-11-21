@@ -338,6 +338,8 @@ public static class AzurePostgresExtensions
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{builder.Resource.Name}");
+        // Set the secret owner to this resource
+        azureResource.ConnectionStringSecretOutput.SecretOwner = azureResource;
 
         // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
         var containerResource = azureResource.InnerResource;

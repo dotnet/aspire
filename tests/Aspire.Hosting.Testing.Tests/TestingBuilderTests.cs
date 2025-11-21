@@ -13,6 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
+#pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECONTAINERSHELLEXECUTION001
+
 namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests(ITestOutputHelper output)
@@ -521,6 +524,8 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
             // Make the redis container hang forever.
             var redis1 = builder.CreateResourceBuilder<RedisResource>("redis1");
+            // Disable certificates to avoid extra arguments being added
+            redis1.Resource.ShellExecution = false;
             redis1.WithImage("busybox:latest");
             redis1.WithEntrypoint("tail");
             redis1.WithArgs(a => { a.Args.Clear(); a.Args.AddRange(["-f", "/dev/null"]); });

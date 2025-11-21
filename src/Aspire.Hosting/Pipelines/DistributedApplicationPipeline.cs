@@ -39,6 +39,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Action = _ => Task.CompletedTask,
         });
 
+        var parameterPromptingStep = new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.ProcessParameters,
+            Action = async context =>
+            {
+                // Parameter processing - ensure all parameters are initialized and resolved
+                var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
+                await parameterProcessor.InitializeParametersAsync(context.Model, waitForResolution: true, context.CancellationToken).ConfigureAwait(false);
+            }
+        };
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.DeployPrereq);
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.BuildPrereq);
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.PublishPrereq);
+        _steps.Add(parameterPromptingStep);
+
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.DeployPrereq,
@@ -67,7 +82,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         {
                             var result = await interactionService.PromptNotificationAsync(
                                 "Clear Deployment State",
-                                $"The deployment state for the '{hostEnvironment.EnvironmentName}' environment will be deleted. All Azure resources will be re-provisioned. Do you want to continue?",
+                                $"The deployment state for the '{hostEnvironment.EnvironmentName}' environment will be deleted. Do you want to continue?",
                                 new NotificationInteractionOptions
                                 {
                                     Intent = MessageIntent.Confirmation,
@@ -92,11 +107,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         }
                     }
                 }
-
-                // Parameter processing - ensure all parameters are initialized and resolved
-
-                var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
-                await parameterProcessor.InitializeParametersAsync(context.Model, waitForResolution: true, context.CancellationToken).ConfigureAwait(false);
 
                 var computeResources = context.Model.Resources
                         .Where(r => r.RequiresImageBuild())

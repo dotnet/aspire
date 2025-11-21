@@ -257,6 +257,16 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
+        // Setup handling of CTRL-C as early as possible so that if
+        // we get a CTRL-C anywhere that is not handled by Spectre Console
+        // already that we know to trigger cancellation.
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            cts.Cancel();
+            eventArgs.Cancel = true;
+        };
+
         Console.OutputEncoding = Encoding.UTF8;
 
         using var app = await BuildApplicationAsync(args);
@@ -266,14 +276,12 @@ public class Program
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
         {
-            EnableDefaultExceptionHandler = true,
-            // HACK: Workaround until we get 10.0 RC2: https://github.com/dotnet/command-line-api/pull/2674/files
-            ProcessTerminationTimeout = TimeSpan.FromSeconds(2)
+            EnableDefaultExceptionHandler = true
         };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig);
+        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig, cts.Token);
 
         await app.StopAsync().ConfigureAwait(false);
 

@@ -578,6 +578,76 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                 $"Template version should be prompted before template options. Order: {string.Join(", ", operationOrder)}");
         }
     }
+
+    [Fact]
+    public async Task NewCommandEscapesMarkupInProjectNameAndOutputPath()
+    {
+        // This test validates that project names containing Spectre markup characters
+        // (like '[' and ']') are properly escaped when displayed as default values in prompts.
+        // This prevents crashes when the markup parser encounters malformed markup.
+        
+        var projectNameWithMarkup = "[27;5;13~";  // Example of input that could crash the markup parser
+        var capturedProjectNameDefault = string.Empty;
+        var capturedOutputPathDefault = string.Empty;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+
+                // Simulate user entering a project name with markup characters
+                prompter.PromptForProjectNameCallback = (defaultName) =>
+                {
+                    capturedProjectNameDefault = defaultName;
+                    return projectNameWithMarkup;
+                };
+
+                // Capture what default value is passed for the output path
+                // The path passed to this callback is the unescaped version
+                prompter.PromptForOutputPathCallback = (path) =>
+                {
+                    capturedOutputPathDefault = path;
+                    // Return the path as-is - the escaping is handled internally by PromptForOutputPath
+                    return path;
+                };
+
+                return prompter;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+
+        // Verify that the default output path was derived from the project name with markup characters
+        // The path parameter passed to the callback contains the unescaped markup characters
+        var expectedPath = $"./[27;5;13~";
+        Assert.Equal(expectedPath, capturedOutputPathDefault);
+    }
 }
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)

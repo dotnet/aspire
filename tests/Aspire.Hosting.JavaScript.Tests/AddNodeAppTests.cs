@@ -104,20 +104,39 @@ public class AddNodeAppTests
 
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
-        var expectedDockerfile = $"""
+        var expectedDockerfile = includePackageJson ?
+            """
             FROM node:22-alpine AS build
             
             WORKDIR /app
+            COPY package*.json ./
+            RUN --mount=type=cache,target=/root/.npm npm ci
             COPY . .
             
-            {(includePackageJson ? "RUN npm ci\n" : "")}
             FROM node:22-alpine AS runtime
             
             WORKDIR /app
             COPY --from=build /app /app
             
             ENV NODE_ENV=production
-            EXPOSE 3000
+            
+            USER node
+            
+            ENTRYPOINT ["node","app.js"]
+
+            """.Replace("\r\n", "\n") :
+            """
+            FROM node:22-alpine AS build
+            
+            WORKDIR /app
+            COPY . .
+            
+            FROM node:22-alpine AS runtime
+            
+            WORKDIR /app
+            COPY --from=build /app /app
+            
+            ENV NODE_ENV=production
             
             USER node
             
@@ -143,7 +162,10 @@ public class AddNodeAppTests
         File.WriteAllText(Path.Combine(appDir, "package.json"), "{}");
 
         var nodeApp = builder.AddNodeApp("js", appDir, "app.js")
-            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null))
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("mypm", runScriptCommand: null, cacheMount: null)
+            {
+                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
+            })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["myinstall"]))
             .WithBuildScript("mybuild");
 
@@ -155,9 +177,10 @@ public class AddNodeAppTests
             FROM node:22-alpine AS build
 
             WORKDIR /app
+            COPY package*.json ./
+            RUN mypm myinstall
             COPY . .
 
-            RUN mypm myinstall
             RUN mypm mybuild
 
             FROM node:22-alpine AS runtime
@@ -166,7 +189,6 @@ public class AddNodeAppTests
             COPY --from=build /app /app
 
             ENV NODE_ENV=production
-            EXPOSE 3000
 
             USER node
 
@@ -281,4 +303,119 @@ public class AddNodeAppTests
             arg => Assert.Equal("start", arg),
             arg => Assert.Equal("--my-arg1", arg));
     }
+
+    [Fact]
+    public async Task VerifyNodeAppWithContainerFilesGeneratesCorrectDockerfile()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var appDirectory = sourceDir.Path;
+
+        // Create a simple Node.js app
+        var packageJsonContent = """
+            {
+              "name": "test-app",
+              "version": "1.0.0",
+              "scripts": {
+                "start": "node app.js"
+              }
+            }
+            """;
+
+        var appContent = """
+            console.log('Hello from Node.js!');
+            """;
+
+        File.WriteAllText(Path.Combine(appDirectory, "package.json"), packageJsonContent);
+        File.WriteAllText(Path.Combine(appDirectory, "app.js"), appContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        var nodeApp = builder.AddNodeApp("nodeapp", appDirectory, "app.js");
+
+        // Create a source container that provides files
+        var sourceFiles = builder.AddResource(new MyFilesContainer("source", "exe", "."))
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    dockerfileContext.Builder.From("scratch");
+                })
+                .WithImageTag("source-tag");
+            })
+            .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" });
+
+        // Configure NodeApp to consume the source files using the proper PublishWithContainerFiles API
+        nodeApp.PublishWithContainerFiles(sourceFiles, "./static");
+
+        var app = builder.Build();
+        await app.RunAsync();
+
+        // Verify that Dockerfile was generated for the NodeApp
+        var nodeDockerfilePath = Path.Combine(outputDir.Path, "nodeapp.Dockerfile");
+        Assert.True(File.Exists(nodeDockerfilePath), "Dockerfile should be generated for NodeApp");
+
+        var dockerfileContent = File.ReadAllText(nodeDockerfilePath);
+
+        await Verify(dockerfileContent);
+    }
+
+    [Fact]
+    public async Task VerifyNodeAppWithContainerFilesFromResourceWithDashesGeneratesCorrectDockerfile()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var appDirectory = sourceDir.Path;
+
+        // Create a simple Node.js app
+        var packageJsonContent = """
+            {
+              "name": "test-app",
+              "version": "1.0.0",
+              "scripts": {
+                "start": "node app.js"
+              }
+            }
+            """;
+
+        var appContent = """
+            console.log('Hello from Node.js!');
+            """;
+
+        File.WriteAllText(Path.Combine(appDirectory, "package.json"), packageJsonContent);
+        File.WriteAllText(Path.Combine(appDirectory, "app.js"), appContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        var nodeApp = builder.AddNodeApp("nodeapp", appDirectory, "app.js");
+
+        // Create a source container with dashes in the name
+        var sourceFiles = builder.AddResource(new MyFilesContainer("static-dev", "exe", "."))
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    dockerfileContext.Builder.From("scratch");
+                })
+                .WithImageTag("static-dev-tag");
+            })
+            .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" });
+
+        // Configure NodeApp to consume the source files using the proper PublishWithContainerFiles API
+        nodeApp.PublishWithContainerFiles(sourceFiles, "./static");
+
+        var app = builder.Build();
+        await app.RunAsync();
+
+        // Verify that Dockerfile was generated for the NodeApp
+        var nodeDockerfilePath = Path.Combine(outputDir.Path, "nodeapp.Dockerfile");
+        Assert.True(File.Exists(nodeDockerfilePath), "Dockerfile should be generated for NodeApp");
+
+        var dockerfileContent = File.ReadAllText(nodeDockerfilePath);
+
+        await Verify(dockerfileContent);
+    }
+
+    private sealed class MyFilesContainer(string name, string command, string workingDirectory)
+        : ExecutableResource(name, command, workingDirectory), IResourceWithContainerFiles;
 }

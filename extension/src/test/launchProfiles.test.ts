@@ -396,6 +396,16 @@ suite('Launch Profile Tests', () => {
             assert.strictEqual(result?.uriFormat, applicationUrl);
             assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+https?://\\S+');
         });
+
+        test('returns serverReadyAction with first URL when multiple URLs separated by semicolon', () => {
+            const applicationUrl = 'https://localhost:5001;http://localhost:5000';
+            const result = determineServerReadyAction(true, applicationUrl);
+
+            assert.notStrictEqual(result, undefined);
+            assert.strictEqual(result?.action, 'openExternally');
+            assert.strictEqual(result?.uriFormat, 'https://localhost:5001');
+            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+https?://\\S+');
+        });
     });
 
     suite('readLaunchSettings', () => {
@@ -468,6 +478,46 @@ suite('Launch Profile Tests', () => {
 
             assert.notStrictEqual(result, null);
             assert.deepStrictEqual(result!.profiles, {});
+        });
+
+        test('successfully reads launch settings file with comments', async () => {
+            const launchSettingsWithComments = `{
+  // This is a comment
+  "profiles": {
+    /* Multi-line comment
+       spanning multiple lines */
+    "Development": {
+      "commandName": "Project",
+      // Comment before environmentVariables
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development", // Inline comment
+        "LOG_LEVEL": "Debug" /* Another inline comment */
+      },
+      // Comment before applicationUrl
+      "applicationUrl": "https://localhost:5001",
+      "launchBrowser": true
+    },
+    // Another profile
+    "Production": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}`;
+
+            fs.writeFileSync(launchSettingsPath, launchSettingsWithComments);
+
+            const result = await readLaunchSettings(projectPath);
+
+            assert.notStrictEqual(result, null);
+            assert.strictEqual(result!.profiles['Development'].commandName, 'Project');
+            assert.strictEqual(result!.profiles['Development'].environmentVariables!.ASPNETCORE_ENVIRONMENT, 'Development');
+            assert.strictEqual(result!.profiles['Development'].environmentVariables!.LOG_LEVEL, 'Debug');
+            assert.strictEqual(result!.profiles['Development'].applicationUrl, 'https://localhost:5001');
+            assert.strictEqual(result!.profiles['Development'].launchBrowser, true);
+            assert.strictEqual(result!.profiles['Production'].environmentVariables!.ASPNETCORE_ENVIRONMENT, 'Production');
         });
     });
 });

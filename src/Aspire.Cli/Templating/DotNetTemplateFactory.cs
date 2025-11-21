@@ -13,6 +13,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
 
@@ -448,7 +449,7 @@ internal class DotNetTemplateFactory(
             // working directory, create one in the newly created project's output directory.
             await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
-            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }

@@ -8,12 +8,14 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001
 
 namespace Aspire.Hosting;
 
@@ -293,7 +295,54 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     c.Args.Add("--reload");
                 }
+            })
+            .WithCertificateKeyPairConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--ssl-keyfile");
+                ctx.Arguments.Add(ctx.KeyPath);
+                ctx.Arguments.Add("--ssl-certfile");
+                ctx.Arguments.Add(ctx.CertificatePath);
+                if (ctx.Password is not null)
+                {
+                    ctx.Arguments.Add("--ssl-keyfile-password");
+                    ctx.Arguments.Add(ctx.Password);
+                }
+
+                return Task.CompletedTask;
             });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP
+                    // Uvicorn only supports binding to a single port
+                    resourceBuilder
+                        .WithEndpoint("http", ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         return resourceBuilder;
     }
@@ -316,6 +365,8 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
+        // Register Python environment validation services (once per builder)
+        builder.Services.TryAddSingleton<PythonInstallationManager>();
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -364,9 +415,7 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Configure required environment variables for custom certificate trust when running as an executable
-        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
-        // way to simply append additional certificates to default Python trust stores such as certifi.
+        // Configure required environment variables for custom certificate trust when running as an executable.
         resourceBuilder
             .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithCertificateTrustConfiguration(ctx =>
@@ -375,7 +424,7 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
                     var logger = resourceLogger.GetLogger(ctx.Resource);
-                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
+                    logger.LogInformation("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied.");
                 }
                 else
                 {
@@ -552,10 +601,13 @@ public static class PythonAppResourceBuilderExtensions
                     "type=cache,target=/root/.cache/uv");
         }
 
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
         var runtimeBuilder = context.Builder
             .From(runtimeImage, "app")
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app")
+            .AddContainerFiles(context.Resource, "/app", logger)
             .Comment("------------------------------")
             .Comment("🚀 Runtime stage")
             .Comment("------------------------------")
@@ -601,14 +653,17 @@ public static class PythonAppResourceBuilderExtensions
         context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
         var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
 
-        // Check if requirements.txt exists
+        // Check if requirements.txt or pyproject.toml exists
         var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
         var hasRequirementsTxt = File.Exists(requirementsTxtPath);
+
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
 
         var stage = context.Builder
             .From(runtimeImage)
             .EmptyLine()
-            .AddContainerFiles(context.Resource, "/app")
+            .AddContainerFiles(context.Resource, "/app", logger)
             .Comment("------------------------------")
             .Comment("🚀 Python Application")
             .Comment("------------------------------")
@@ -636,6 +691,30 @@ public static class PythonAppResourceBuilderExtensions
                   && rm -rf /var/lib/apt/lists/*
                 """)
                 .EmptyLine();
+        }
+        else
+        {
+            var pyprojectTomlPath = Path.Combine(resource.WorkingDirectory, "pyproject.toml");
+            var hasPyprojectToml = File.Exists(pyprojectTomlPath);
+
+            if (hasPyprojectToml)
+            {
+                // Copy pyproject.toml first for better layer caching
+                stage
+                    .Comment("Copy pyproject.toml for dependency installation")
+                    .Copy("pyproject.toml", "/app/pyproject.toml")
+                    .EmptyLine()
+                    .Comment("Install dependencies using pip")
+                    .Run(
+                    """
+                apt-get update \
+                  && apt-get install -y --no-install-recommends build-essential \
+                  && pip install --no-cache-dir . \
+                  && apt-get purge -y --auto-remove build-essential \
+                  && rm -rf /var/lib/apt/lists/*
+                """)
+                    .EmptyLine();
+            }
         }
 
         // Copy the rest of the application
@@ -665,35 +744,6 @@ public static class PythonAppResourceBuilderExtensions
                 stage.Entrypoint([entrypoint]);
                 break;
         }
-    }
-
-    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
-    {
-        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
-        {
-            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
-            {
-                // get image name
-                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
-                {
-                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
-                }
-
-                var destinationPath = containerFileDestination.DestinationPath;
-                if (!destinationPath.StartsWith('/'))
-                {
-                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
-                }
-
-                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-                {
-                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
-                }
-            }
-
-            stage.EmptyLine();
-        }
-        return stage;
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
@@ -818,7 +868,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithVirtualEnvironment("myenv");
-    /// 
+    ///
     /// // Disable automatic venv creation (require venv to exist)
     /// var python2 = builder.AddPythonApp("api2", "../python-api2", "main.py")
     ///     .WithVirtualEnvironment("myenv", createIfNotExists: false);
@@ -1208,6 +1258,9 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Register UV validation service
+        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
@@ -1296,6 +1349,20 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder.Resource)
                 .ExcludeFromManifest();
 
+            // Add validation for the installer command (uv or python)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Check which command this installer is using (set by BeforeStartEvent)
+                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
+                    executable.Command == "uv")
+                {
+                    // Validate that uv is installed - don't throw so the app fails as it normally would
+                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
+            });
+
             builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // Set the installer's working directory to match the resource's working directory
@@ -1369,7 +1436,13 @@ public static class PythonAppResourceBuilderExtensions
             .WithArgs(["-m", "venv", venvPath])
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
-            .ExcludeFromManifest();
+            .ExcludeFromManifest()
+            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
+            {
+                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
+                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
+                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
 
         // Wait relationships will be set up dynamically in SetupDependencies
     }

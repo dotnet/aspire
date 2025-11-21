@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -9,12 +11,11 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
 
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 internal class DeveloperCertificateService : IDeveloperCertificateService
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
+    private readonly Lazy<bool> _supportsTlsTermination;
 
     public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
@@ -26,17 +27,20 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
                 using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadOnly);
-                var now = DateTime.UtcNow;
+
+                // Order by version and expiration date descending to get the most recent, highest version first.
+                // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
+                // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
+                // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
+                var now = DateTimeOffset.Now;
+                // Take the highest version valid certificate for each unique SKI
                 devCerts.AddRange(
-                    // Order by version and expiration date descending to get the most recent, highest version first.
-                    // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
-                    // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
-                    // Match the ordering logic ASP.NET Core uses: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
                     store.Certificates
                         .Where(c => c.IsAspNetCoreDevelopmentCertificate())
                         .Where(c => c.NotBefore <= now && now <= c.NotAfter)
-                        .OrderByDescending(c => c.GetCertificateVersion())
-                        .Take(1));
+                        .GroupBy(c => c.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier)
+                        .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
+                        .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));
 
                 if (devCerts.Count == 0)
                 {
@@ -60,6 +64,13 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             return containerTrustAvailable;
         });
 
+        _supportsTlsTermination = new Lazy<bool>(() =>
+        {
+            var supportsTlsTermination = Certificates.Any(c => c.HasPrivateKey);
+            logger.LogDebug("Developer certificate TLS termination support: {Available}", supportsTlsTermination);
+            return supportsTlsTermination;
+        });
+
         // Environment variable config > DistributedApplicationOptions > default true
         TrustCertificate = configuration.GetBool(KnownConfigNames.TrustDeveloperCertificate) ??
             options.TrustDeveloperCertificate ??
@@ -74,4 +85,6 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     /// <inheritdoc />
     public bool TrustCertificate { get; }
+
+    public bool DefaultTlsTerminationEnabled => _supportsTlsTermination.Value && TrustCertificate;
 }

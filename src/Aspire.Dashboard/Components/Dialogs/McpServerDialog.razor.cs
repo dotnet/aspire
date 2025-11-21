@@ -17,6 +17,9 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class McpServerDialog
 {
+    private readonly string _vsCopyButtonId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _vsCodeCopyButtonId = $"copy-{Guid.NewGuid():N}";
+
     [CascadingParameter]
     public FluentDialog Dialog { get; set; } = default!;
 
@@ -81,12 +84,28 @@ public partial class McpServerDialog
         Debug.Assert(_mcpUrl != null);
 
         Dictionary<string, string>? headers = null;
+        List<McpInputModel>? inputs = null;
 
         if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
         {
+            // Use input reference instead of hardcoded API key
             headers = new Dictionary<string, string>
             {
-                [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = DashboardOptions.Value.Mcp.PrimaryApiKey!
+                [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = "${input:aspire_mcp_api_key}"
+            };
+
+            // Define the input for the API key
+            // Don't localize the description here because this value flows out from the dashboard and is persisted.
+            // I don't think we should use the value of the dashboard's culture at the moment the button is clicked. Leave it as a static English value.
+            inputs = new List<McpInputModel>
+            {
+                new McpInputModel
+                {
+                    Id = "aspire_mcp_api_key",
+                    Type = "promptString",
+                    Description = "Enter Aspire MCP API key",
+                    Password = true
+                }
             };
         }
 
@@ -96,6 +115,7 @@ public partial class McpServerDialog
             new McpInstallButtonServerModel
             {
                 Name = name,
+                Inputs = inputs,
                 Type = "http",
                 Url = _mcpUrl,
                 Headers = headers
@@ -105,6 +125,7 @@ public partial class McpServerDialog
         var configFileJson = JsonSerializer.Serialize(
             new McpJsonFileServerModel
             {
+                Inputs = inputs,
                 Servers = new()
                 {
                     [name] = new()

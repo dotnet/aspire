@@ -32,7 +32,7 @@ internal sealed class AspireResourceMcpTools
     }
 
     [McpServerTool(Name = "list_resources")]
-    [Description("List the application resources. Includes information about their type (.NET project, container, executable), running state, source, HTTP endpoints, health status, commands, and relationships.")]
+    [Description("List the application resources. Includes information about their type (.NET project, container, executable), running state, source, HTTP endpoints, health status, commands, configured environment variables, and relationships.")]
     public string ListResources()
     {
         _logger.LogDebug("MCP tool list_resources called");
@@ -46,10 +46,12 @@ internal sealed class AspireResourceMcpTools
                 filteredResources,
                 _dashboardOptions.CurrentValue,
                 includeDashboardUrl: true,
+                includeEnvironmentVariables: true,
                 getResourceName: r => ResourceViewModel.GetResourceName(r, resources));
 
             var response = $"""
             resource_name is the identifier of resources. Use the dashboard_link when displaying resource_name. For example: [`frontend-abcxyz`](https://localhost:1234/resource?name=frontend-abcxyz)
+            environment_variables is a list of environment variables configured for the resource. Environment variable values aren't provided because they could contain sensitive information.
             Console logs for a resource can provide more information about why a resource is not in a running state.
 
             # RESOURCE DATA

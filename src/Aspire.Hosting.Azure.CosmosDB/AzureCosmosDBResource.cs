@@ -180,7 +180,9 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         if (UseAccessKeyAuthentication && !IsEmulator)
         {
-            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecret(GetKeyValueSecretName(childResourceName)));
+            var dbSecret = ConnectionStringSecretOutput.Resource.GetSecret(GetKeyValueSecretName(childResourceName));
+            dbSecret.SecretOwner = ConnectionStringSecretOutput.SecretOwner;
+            builder.AppendFormatted(dbSecret);
         }
         else
         {

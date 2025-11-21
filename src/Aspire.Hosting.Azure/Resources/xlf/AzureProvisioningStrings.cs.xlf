@@ -51,9 +51,24 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
         <target state="translated">Zřizování Azure</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupDialogTitle">
+        <source>Azure resource group</source>
+        <target state="translated">Skupina prostředků Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
         <target state="translated">Skupina prostředků</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="translated">Vyberte nebo zadejte skupinu prostředků</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupSelectionMessage">
+        <source>Select your Azure resource group or enter a new name:</source>
+        <target state="translated">Vyberte skupinu prostředků Azure nebo zadejte nový název:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">

@@ -89,10 +89,13 @@ internal sealed class VersionCheckService : BackgroundService
         if (_configuration[LastCheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
         {
-            if (now - checkDate < s_checkInterval)
+            var intervalSinceLastCheck = now - checkDate;
+            if (intervalSinceLastCheck < s_checkInterval)
             {
                 // Already checked within the last day.
                 checkForLatestVersion = false;
+
+                _logger.LogDebug("Last version check was performed {IntervalSinceLastCheck} ago on {CheckDate}, skipping version check.", intervalSinceLastCheck, checkDateString);
             }
         }
 
@@ -107,16 +110,19 @@ internal sealed class VersionCheckService : BackgroundService
         }
         else
         {
-            TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion);
+            if (TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion))
+            {
+                _logger.LogDebug("Using stored known latest version {StoredKnownLatestVersion}.", storedKnownLatestVersion);
+            }
         }
 
         // Use known package versions to figure out what the newest valid version is.
         // Note: A pre-release version is only selected if the current app host version is pre-release.
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages ?? [], storedKnownLatestVersion);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_logger, _appHostVersion, packages ?? [], storedKnownLatestVersion);
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
         {
-            // App host version is up to date or the latest version is unknown.
+            _logger.LogDebug("App host version is up to date or the latest version is unknown.");
             return;
         }
 

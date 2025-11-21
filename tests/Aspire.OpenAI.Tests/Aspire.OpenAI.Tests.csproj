@@ -2,14 +2,13 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+
+    <!-- MEAI has transitive dependencies that pull versions to 10.0 so we need pull our dependency versions for this package as well -->
+    <ForceLatestDotnetVersions>true</ForceLatestDotnetVersions>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(RepoRoot)src\Components\Aspire.OpenAI\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
   </ItemGroup>
 
   <ItemGroup>

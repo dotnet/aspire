@@ -33,7 +33,8 @@ public class AddViteAppTests
               "type": "container.v1",
               "build": {
                 "context": "vite",
-                "dockerfile": "vite.Dockerfile"
+                "dockerfile": "vite.Dockerfile",
+                "buildOnly": true
               },
               "env": {
                 "NODE_ENV": "production",
@@ -56,8 +57,9 @@ public class AddViteAppTests
         var expectedDockerfile = $$"""
             FROM node:22-slim
             WORKDIR /app
+            COPY package*.json ./
+            RUN --mount=type=cache,target=/root/.npm npm ci
             COPY . .
-            RUN npm ci
             RUN npm run build
 
             """.Replace("\r\n", "\n");

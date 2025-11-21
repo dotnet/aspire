@@ -13,5 +13,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
-  
+
 </Project>

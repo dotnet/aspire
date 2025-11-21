@@ -268,6 +268,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Evaluations.
+        /// </summary>
+        public static string GenAIEvaluationsTabText {
+            get {
+                return ResourceManager.GetString("GenAIEvaluationsTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Input.
         /// </summary>
         public static string GenAIInputHeaderText {
@@ -327,6 +336,15 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAIMessageCategoryToolCalls {
             get {
                 return ResourceManager.GetString("GenAIMessageCategoryToolCalls", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tool response.
+        /// </summary>
+        public static string GenAIMessageCategoryToolResponse {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryToolResponse", resourceCulture);
             }
         }
         
@@ -421,6 +439,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No tools found..
+        /// </summary>
+        public static string GenAINoTools {
+            get {
+                return ResourceManager.GetString("GenAINoTools", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Output.
         /// </summary>
         public static string GenAIOutputHeaderText {
@@ -471,6 +498,60 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAITokensLabel {
             get {
                 return ResourceManager.GetString("GenAITokensLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No parameters.
+        /// </summary>
+        public static string GenAIToolNoParameters {
+            get {
+                return ResourceManager.GetString("GenAIToolNoParameters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Description.
+        /// </summary>
+        public static string GenAIToolParameterDescription {
+            get {
+                return ResourceManager.GetString("GenAIToolParameterDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Name.
+        /// </summary>
+        public static string GenAIToolParameterName {
+            get {
+                return ResourceManager.GetString("GenAIToolParameterName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type.
+        /// </summary>
+        public static string GenAIToolParameterType {
+            get {
+                return ResourceManager.GetString("GenAIToolParameterType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Required parameter.
+        /// </summary>
+        public static string GenAIToolRequiredParameter {
+            get {
+                return ResourceManager.GetString("GenAIToolRequiredParameter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tools.
+        /// </summary>
+        public static string GenAIToolsTabText {
+            get {
+                return ResourceManager.GetString("GenAIToolsTabText", resourceCulture);
             }
         }
         
@@ -655,11 +736,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Aspire MCP API key.
+        /// </summary>
+        public static string McpServerDialogApiKeyLabel {
+            get {
+                return ResourceManager.GetString("McpServerDialogApiKeyLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Aspire MCP configuration.
         /// </summary>
         public static string McpServerDialogConfigurationHeading {
             get {
                 return ResourceManager.GetString("McpServerDialogConfigurationHeading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy.
+        /// </summary>
+        public static string McpServerDialogCopyButton {
+            get {
+                return ResourceManager.GetString("McpServerDialogCopyButton", resourceCulture);
             }
         }
         
@@ -705,6 +804,15 @@ namespace Aspire.Dashboard.Resources {
         public static string McpServerDialogLearnMoreLink {
             get {
                 return ResourceManager.GetString("McpServerDialogLearnMoreLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manually updating &lt;code&gt;mcp.json&lt;/code&gt;.
+        /// </summary>
+        public static string McpServerDialogManuallyUpdatingAccordionHeading {
+            get {
+                return ResourceManager.GetString("McpServerDialogManuallyUpdatingAccordionHeading", resourceCulture);
             }
         }
         
@@ -772,11 +880,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box..
+        /// </summary>
+        public static string McpServerDialogVisualStudioApiKeyInstructions {
+            get {
+                return ResourceManager.GetString("McpServerDialogVisualStudioApiKeyInstructions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Visual Studio.
         /// </summary>
         public static string McpServerDialogVisualStudioTab {
             get {
                 return ResourceManager.GetString("McpServerDialogVisualStudioTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The first time Aspire MCP starts, you&apos;ll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box..
+        /// </summary>
+        public static string McpServerDialogVSCodeApiKeyInstructions {
+            get {
+                return ResourceManager.GetString("McpServerDialogVSCodeApiKeyInstructions", resourceCulture);
             }
         }
         

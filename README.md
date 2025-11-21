@@ -27,7 +27,7 @@ To install the latest released version of the Aspire CLI:
 On Windows:
 
 ```powershell
-iex "& { $(irm https://aspire.dev/install.ps1) }"
+irm https://aspire.dev/install.ps1 | iex
 ```
 
 On Linux or macOS:

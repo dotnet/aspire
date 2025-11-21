@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Semver;
 #if CLI
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
@@ -56,7 +57,7 @@ internal static class PackageUpdateHelpers
         return informationalVersion;
     }
 
-    public static SemVersion? GetNewerVersion(SemVersion currentVersion, IEnumerable<NuGetPackage> availablePackages, SemVersion? storedVersion = null)
+    public static SemVersion? GetNewerVersion(ILogger logger, SemVersion currentVersion, IEnumerable<NuGetPackage> availablePackages, SemVersion? storedVersion = null)
     {
         SemVersion? newestStable = null;
         SemVersion? newestPrerelease = null;
@@ -74,18 +75,27 @@ internal static class PackageUpdateHelpers
             ProcessNewVersion(storedVersion);
         }
 
+        logger.LogDebug(
+            """
+            Current version: {CurrentVersion}
+            Newest stable version: {NewestStableVersion}
+            Newest prerelease version: {NewestPrereleaseVersion}
+            """, currentVersion, newestStable, newestPrerelease);
+
         // Apply notification rules
         if (currentVersion.IsPrerelease)
         {
             // Rule 1: If using a prerelease version where the version is lower than the latest stable version, prompt to upgrade
             if (newestStable is not null && SemVersion.PrecedenceComparer.Compare(currentVersion, newestStable) < 0)
             {
+                logger.LogDebug("Current version {CurrentVersion} is prerelease and older than newest stable version {NewestStableVersion}.", currentVersion, newestStable);
                 return newestStable;
             }
 
             // Rule 2: If using a prerelease version and there is a newer prerelease version, prompt to upgrade
             if (newestPrerelease is not null && SemVersion.PrecedenceComparer.Compare(currentVersion, newestPrerelease) < 0)
             {
+                logger.LogDebug("Current version {CurrentVersion} is prerelease and older than newest prerelease version {NewestPrereleaseVersion}.", currentVersion, newestPrerelease);
                 return newestPrerelease;
             }
         }
@@ -94,10 +104,12 @@ internal static class PackageUpdateHelpers
             // Rule 3: If using a stable version and there is a newer stable version, prompt to upgrade
             if (newestStable is not null && SemVersion.PrecedenceComparer.Compare(currentVersion, newestStable) < 0)
             {
+                logger.LogDebug("Current version {CurrentVersion} is stable and older than newest stable version {NewestStableVersion}.", currentVersion, newestStable);
                 return newestStable;
             }
         }
 
+        logger.LogDebug("No newer version for the current version {CurrentVersion}.", currentVersion);
         return null;
 
         void ProcessNewVersion(SemVersion version)

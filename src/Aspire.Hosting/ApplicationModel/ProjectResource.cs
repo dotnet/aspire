@@ -19,7 +19,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a specified .NET project.
 /// </summary>
 public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport, IResourceWithProbes,
-    IComputeResource
+    IComputeResource, IContainerFilesDestinationResource
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectResource"/> class.
@@ -101,7 +101,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             ctx.CancellationToken).ConfigureAwait(false);
 
         // Check if we need to copy container files
-        if (!this.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+        if (!this.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var _))
         {
             // No container files to copy, just build the image normally
             return;
@@ -121,6 +121,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
         // Generate a Dockerfile that layers the container files on top
         var dockerfileBuilder = new DockerfileBuilder();
+        dockerfileBuilder.AddContainerFilesStages(this, logger);
+
         var stage = dockerfileBuilder.From(tempImageName);
 
         var projectMetadata = this.GetProjectMetadata();
@@ -129,30 +131,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var containerWorkingDir = await GetContainerWorkingDirectoryAsync(projectMetadata.ProjectPath, logger, ctx.CancellationToken).ConfigureAwait(false);
 
         // Add COPY --from: statements for each source
-        foreach (var containerFileDestination in containerFilesAnnotations)
-        {
-            var source = containerFileDestination.Source;
-
-            if (!source.TryGetContainerImageName(out var sourceImageName))
-            {
-                logger.LogWarning("Cannot get container image name for source resource {SourceName}, skipping", source.Name);
-                continue;
-            }
-
-            var destinationPath = containerFileDestination.DestinationPath;
-            if (!destinationPath.StartsWith('/'))
-            {
-                // Make it an absolute path relative to the container working directory
-                destinationPath = $"{containerWorkingDir}/{destinationPath}";
-            }
-
-            foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
-            {
-                logger.LogDebug("Adding COPY --from={SourceImage} {SourcePath} {DestinationPath}",
-                    sourceImageName, containerFilesSource.SourcePath, destinationPath);
-                stage.CopyFrom(sourceImageName, containerFilesSource.SourcePath, destinationPath);
-            }
-        }
+        stage.AddContainerFiles(this, containerWorkingDir, logger);
 
         // Write the Dockerfile to a temporary location
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
