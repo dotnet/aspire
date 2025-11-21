@@ -340,7 +340,7 @@ All other tools match the Dashboard MCP server's tool list and are forwarded for
 - **Rationale**: Allows iterative rollout and testing before general availability
 - **Alternative considered**: Ship directly without flag
 - **Trade-offs**: Extra configuration step, but safer rollout
-
+ 
 ## References
 
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/)
