@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostConnectionLost">
         <source>The connection to the app host was lost: {0}.</source>
-        <target state="new">The connection to the app host was lost: {0}.</target>
+        <target state="translated">Die Verbindung mit dem App-Host wurde getrennt: {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">

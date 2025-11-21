@@ -276,7 +276,6 @@ public class Program
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
         {
-            ProcessTerminationTimeout = TimeSpan.FromSeconds(2),
             EnableDefaultExceptionHandler = true
         };
 

@@ -101,5 +101,9 @@ namespace Aspire.Cli.Resources {
     internal static string FallbackParsingWarning => ResourceManager.GetString("FallbackParsingWarning", resourceCulture);
     internal static string NoAppHostFoundUpdateCliPrompt => ResourceManager.GetString("NoAppHostFoundUpdateCliPrompt", resourceCulture);
     internal static string UpdateCliAfterProjectUpdatePrompt => ResourceManager.GetString("UpdateCliAfterProjectUpdatePrompt", resourceCulture);
+    internal static string ChannelOptionDescription => ResourceManager.GetString("ChannelOptionDescription", resourceCulture);
+    internal static string ChannelOptionDescriptionWithStaging => ResourceManager.GetString("ChannelOptionDescriptionWithStaging", resourceCulture);
+    internal static string QualityOptionDescription => ResourceManager.GetString("QualityOptionDescription", resourceCulture);
+    internal static string QualityOptionDescriptionWithStaging => ResourceManager.GetString("QualityOptionDescriptionWithStaging", resourceCulture);
     }
 }
