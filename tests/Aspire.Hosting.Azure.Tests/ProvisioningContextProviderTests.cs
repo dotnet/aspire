@@ -22,7 +22,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -60,7 +60,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions(subscriptionId: null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -89,7 +89,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions(location: null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -118,7 +118,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions(resourceGroup: null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -150,7 +150,7 @@ public class ProvisioningContextProviderTests
         // Arrange
         var resourceGroupName = "my-custom-rg";
         var options = ProvisioningTestHelpers.CreateOptions(resourceGroup: resourceGroupName);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -181,7 +181,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -213,7 +213,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -246,7 +246,7 @@ public class ProvisioningContextProviderTests
         // Arrange
         var testInteractionService = new TestInteractionService();
         var options = ProvisioningTestHelpers.CreateOptions(null, null, null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -352,7 +352,7 @@ public class ProvisioningContextProviderTests
     {
         var testInteractionService = new TestInteractionService();
         var options = ProvisioningTestHelpers.CreateOptions(null, null, null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -414,7 +414,7 @@ public class ProvisioningContextProviderTests
         var testInteractionService = new TestInteractionService();
         var subscriptionId = "12345678-1234-1234-1234-123456789012";
         var options = ProvisioningTestHelpers.CreateOptions(subscriptionId, null, null);
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
@@ -523,7 +523,7 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var environment = ProvisioningTestHelpers.CreateAppHostEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
