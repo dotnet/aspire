@@ -118,7 +118,15 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.InvalidCommand;
             }
 
-            return await ExecuteSelfUpdateAsync(parseResult, cancellationToken);
+            try
+            {
+                return await ExecuteSelfUpdateAsync(parseResult, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                InteractionService.DisplayCancellationMessage();
+                return ExitCodeConstants.InvalidCommand;
+            }
         }
 
         // Otherwise, handle project update
@@ -204,6 +212,11 @@ internal sealed class UpdateCommand : BaseCommand
             
             return HandleProjectLocatorException(ex, InteractionService);
         }
+        catch (OperationCanceledException)
+        {
+            InteractionService.DisplayCancellationMessage();
+            return ExitCodeConstants.FailedToUpgradeProject;
+        }
 
         return 0;
     }
@@ -243,6 +256,11 @@ internal sealed class UpdateCommand : BaseCommand
             await ExtractAndUpdateAsync(archivePath, cancellationToken);
 
             return 0;
+        }
+        catch (OperationCanceledException)
+        {
+            InteractionService.DisplayCancellationMessage();
+            return ExitCodeConstants.InvalidCommand;
         }
         catch (Exception ex)
         {

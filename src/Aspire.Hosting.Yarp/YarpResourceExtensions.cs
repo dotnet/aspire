@@ -45,7 +45,10 @@ public static class YarpResourceExtensions
                       {
                           ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
                           ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
-                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+                          if (ctx.Password is not null)
+                          {
+                              ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+                          }
 
                           return Task.CompletedTask;
                       });

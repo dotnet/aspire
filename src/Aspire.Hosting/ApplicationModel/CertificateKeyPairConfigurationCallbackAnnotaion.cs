@@ -73,7 +73,7 @@ public sealed class CertificateKeyPairConfigurationCallbackAnnotationContext
     /// </code>
     /// </example>
     /// </remarks>
-    public required Dictionary<string, object?> EnvironmentVariables { get; init; }
+    public required Dictionary<string, object> EnvironmentVariables { get; init; }
 
     /// <summary>
     /// A value provider that will resolve to a path to the certificate file.

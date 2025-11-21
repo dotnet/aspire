@@ -6,13 +6,11 @@
 #pragma warning disable ASPIREPIPELINES002
 #pragma warning disable IDE0005
 
-using System.Diagnostics;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -2050,6 +2048,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13083")]
     public async Task ProcessParametersStep_ValidatesBehavior()
     {
         // Arrange
