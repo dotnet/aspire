@@ -1,9 +1,10 @@
+<!--
+  This targets file is shared by the AppHost SDK pack, Dashboard pack, and DCP pack projects.
+-->
 <Project>
-  <Import Project="Workload.props" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <PackageType>DotnetPlatform</PackageType>
     <PackageId>$(MSBuildProjectName)</PackageId>
     <IsPackable>true</IsPackable>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
@@ -11,11 +12,6 @@
     <GenerateDependencyFile>false</GenerateDependencyFile>
     <IncludeSymbols>false</IncludeSymbols>
     <NoWarn>$(NoWarn);NU5100;NU5128;NU5130;NU5131</NoWarn>
-    <DotNetOutputPath>$(RepoRoot)artifacts/bin/</DotNetOutputPath>
-    <DotNetDirectory>$(DotNetOutputPath)dotnet/</DotNetDirectory>
-    <DotNetPacksDirectory>$(DotNetDirectory)packs/</DotNetPacksDirectory>
-    <DotNetSdkManifestsFolder>$(DotNetVersionBand)</DotNetSdkManifestsFolder>
-    <DotNetSdkManifestsDirectory>$(DotNetDirectory)sdk-manifests/$(DotNetSdkManifestsFolder)/</DotNetSdkManifestsDirectory>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
