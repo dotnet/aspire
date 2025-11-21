@@ -74,4 +74,19 @@
     </ItemGroup>
   </Target>
 
+  <!-- Copy tasks to build output for source builds -->
+  <Target Name="CopyTasksToOutputDirectory" AfterTargets="Build">
+    <!-- Build the tasks project for both net8.0 and net472 -->
+    <MSBuild Projects="..\Aspire.Hosting.Tasks\Aspire.Hosting.Tasks.csproj" Targets="GetTargetPath" Properties="TargetFramework=net8.0">
+      <Output TaskParameter="TargetOutputs" PropertyName="AspireHostingTasksNet80File" />
+    </MSBuild>
+    <MSBuild Projects="..\Aspire.Hosting.Tasks\Aspire.Hosting.Tasks.csproj" Targets="GetTargetPath" Properties="TargetFramework=net472">
+      <Output TaskParameter="TargetOutputs" PropertyName="AspireHostingTasksNet472File" />
+    </MSBuild>
+
+    <!-- Copy to the tools directory in the build output -->
+    <Copy SourceFiles="$(AspireHostingTasksNet80File)" DestinationFolder="$(MSBuildProjectDirectory)\tools\net8.0" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(AspireHostingTasksNet472File)" DestinationFolder="$(MSBuildProjectDirectory)\tools\net472" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

@@ -8,18 +8,12 @@
     <_GeneratedClassNameFixupRegex>(((?&lt;=\.)|^)(?=\d)|\W)</_GeneratedClassNameFixupRegex>
   </PropertyGroup>
 
-  <!-- Determine the path to the MSBuild tasks assembly based on MSBuild version -->
+  <!-- Determine the path to the MSBuild tasks assembly based on MSBuild runtime -->
   <PropertyGroup>
-    <!-- MSBuild 17+ (VS 2022+, .NET 8+) uses net8.0, older versions use net472 -->
-    <_AspireTasksTfm Condition="'$(MSBuildVersion)' != '' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '17.0'))">net8.0</_AspireTasksTfm>
-    <_AspireTasksTfm Condition="'$(_AspireTasksTfm)' == ''">net472</_AspireTasksTfm>
-    
-    <!-- Try package location first (when consumed from NuGet) -->
+    <!-- Use net8.0 when running on .NET Core, net472 when running on .NET Framework -->
+    <_AspireTasksTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AspireTasksTfm>
+    <_AspireTasksTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AspireTasksTfm>
     <_AspireTasksAssembly>$(MSBuildThisFileDirectory)..\tools\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
-    
-    <!-- Fall back to build output location (when building from source) -->
-    <_AspireTasksAssembly Condition="!Exists('$(_AspireTasksAssembly)')">$(MSBuildThisFileDirectory)..\..\Aspire.Hosting.Tasks\bin\$(Configuration)\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
-    <_AspireTasksAssembly Condition="!Exists('$(_AspireTasksAssembly)')">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\Aspire.Hosting.Tasks\$(Configuration)\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
   </PropertyGroup>
 
   <!-- Load the compiled MSBuild task -->
