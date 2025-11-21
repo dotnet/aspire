@@ -59,19 +59,19 @@ internal static class PromptContextsBuilder
         return Task.CompletedTask;
     }
 
-    public static Task AnalyzeTrace(InitializePromptContext context, string displayText, OtlpTrace trace)
+    public static async Task AnalyzeTrace(InitializePromptContext context, string displayText, OtlpTrace trace)
     {
         context.DataContext.AddReferencedTrace(trace);
 
         var outgoingPeerResolvers = context.ServiceProvider.GetRequiredService<IEnumerable<IOutgoingPeerResolver>>();
         var repository = context.ServiceProvider.GetRequiredService<TelemetryRepository>();
-        var traceLogs = repository.GetLogs(new GetLogsContext
+        var traceLogs = await repository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = null,
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [new FieldTelemetryFilter { Field = KnownStructuredLogFields.TraceIdField, Condition = FilterCondition.Equals, Value = trace.TraceId }]
-        });
+        }).ConfigureAwait(false);
         foreach (var log in traceLogs.Items)
         {
             context.DataContext.AddReferencedLogEntry(log);
@@ -80,23 +80,21 @@ internal static class PromptContextsBuilder
         context.ChatBuilder.AddUserMessage(
             displayText,
             KnownChatMessages.Traces.CreateAnalyzeTraceMessage(trace, traceLogs.Items, outgoingPeerResolvers, context.DashboardOptions).Text);
-
-        return Task.CompletedTask;
     }
 
-    public static Task AnalyzeSpan(InitializePromptContext context, string displayText, OtlpSpan span)
+    public static async Task AnalyzeSpan(InitializePromptContext context, string displayText, OtlpSpan span)
     {
         context.DataContext.AddReferencedTrace(span.Trace);
 
         var outgoingPeerResolvers = context.ServiceProvider.GetRequiredService<IEnumerable<IOutgoingPeerResolver>>();
         var repository = context.ServiceProvider.GetRequiredService<TelemetryRepository>();
-        var traceLogs = repository.GetLogs(new GetLogsContext
+        var traceLogs = await repository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = null,
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [new FieldTelemetryFilter { Field = KnownStructuredLogFields.TraceIdField, Condition = FilterCondition.Equals, Value = span.Trace.TraceId }]
-        });
+        }).ConfigureAwait(false);
         foreach (var log in traceLogs.Items)
         {
             context.DataContext.AddReferencedLogEntry(log);
@@ -105,7 +103,5 @@ internal static class PromptContextsBuilder
         context.ChatBuilder.AddUserMessage(
             displayText,
             KnownChatMessages.Traces.CreateAnalyzeSpanMessage(span, traceLogs.Items, outgoingPeerResolvers, context.DashboardOptions).Text);
-
-        return Task.CompletedTask;
     }
 }

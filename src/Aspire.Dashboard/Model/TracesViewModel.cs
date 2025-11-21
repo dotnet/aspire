@@ -75,21 +75,42 @@ public class TracesViewModel
         _traces = null;
     }
 
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async
     public PagedResult<OtlpTrace> GetTraces()
+    {
+        return GetTracesAsync().GetAwaiter().GetResult();
+    }
+
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)  
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public bool HasErrors()
+    {
+        return HasErrorsAsync().GetAwaiter().GetResult();
+    }
+
+    // Synchronous wrapper for use in non-async contexts (e.g., IceBreakers)
+    // TODO: Remove when IceBreakers infrastructure supports async
+    public PagedResult<OtlpTrace> GetErrorTraces(int count)
+    {
+        return GetErrorTracesAsync(count).GetAwaiter().GetResult();
+    }
+
+    public async Task<PagedResult<OtlpTrace>> GetTracesAsync()
     {
         var traces = _traces;
         if (traces == null)
         {
             var filters = GetFilters();
 
-            var result = _telemetryRepository.GetTraces(new GetTracesRequest
+            var result = await _telemetryRepository.GetTracesAsync(new GetTracesRequest
             {
                 ResourceKey = ResourceKey,
                 FilterText = FilterText,
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters
-            });
+            }).ConfigureAwait(false);
 
             traces = result.PagedResult;
             MaxDuration = result.MaxDuration;
@@ -101,9 +122,9 @@ public class TracesViewModel
     }
 
     // First check if there were any errors in already available data. Avoid fetching data again.
-    public bool HasErrors() => _currentDataHasErrors || GetErrorTraces(count: 0).TotalItemCount > 0;
+    public async Task<bool> HasErrorsAsync() => _currentDataHasErrors || (await GetErrorTracesAsync(count: 0).ConfigureAwait(false)).TotalItemCount > 0;
 
-    public PagedResult<OtlpTrace> GetErrorTraces(int count)
+    public async Task<PagedResult<OtlpTrace>> GetErrorTracesAsync(int count)
     {
         var filters = Filters.Cast<TelemetryFilter>().ToList();
 
@@ -114,14 +135,14 @@ public class TracesViewModel
 
         filters.Add(new FieldTelemetryFilter { Field = KnownTraceFields.StatusField, Condition = FilterCondition.Equals, Value = OtlpSpanStatusCode.Error.ToString() });
 
-        var errorTraces = _telemetryRepository.GetTraces(new GetTracesRequest
+        var errorTraces = await _telemetryRepository.GetTracesAsync(new GetTracesRequest
         {
             ResourceKey = ResourceKey,
             FilterText = FilterText,
             StartIndex = 0,
             Count = count,
             Filters = filters
-        });
+        }).ConfigureAwait(false);
 
         return errorTraces.PagedResult;
     }

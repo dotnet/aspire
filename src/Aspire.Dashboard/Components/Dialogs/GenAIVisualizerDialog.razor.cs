@@ -70,11 +70,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _logsSubscription = TelemetryRepository.OnNewLogs(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (_content != Content)
         {
-            _contextSpans = Content.GetContextGenAISpans();
+            _contextSpans = await Content.GetContextGenAISpans().ConfigureAwait(false);
             _currentSpanContextIndex = _contextSpans.FindIndex(s => s.SpanId == Content.Span.SpanId);
             _content = Content;
 
@@ -88,10 +88,10 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private async Task UpdateDialogData()
     {
         // Multiple threads can call this. Run check inside InvokeAsync to avoid concurrency issues.
-        await InvokeAsync(() =>
+        await InvokeAsync(async () =>
         {
             var hasUpdatedTrace = TelemetryRepository.HasUpdatedTrace(Content.Span.Trace);
-            var newContextSpans = Content.GetContextGenAISpans();
+            var newContextSpans = await Content.GetContextGenAISpans().ConfigureAwait(false);
 
             // Only update dialog data if the current trace has been updated,
             // or if there are new context spans (for the next/previous buttons).
@@ -103,7 +103,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
                 _contextSpans = newContextSpans;
                 _currentSpanContextIndex = _contextSpans.IndexOf(span);
 
-                TryUpdateViewedGenAISpan(span);
+                await TryUpdateViewedGenAISpanAsync(span).ConfigureAwait(false);
                 StateHasChanged();
             }
         });
@@ -177,19 +177,19 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         MessageActiveView = viewKind;
     }
 
-    private void OnPreviousGenAISpan()
+    private async Task OnPreviousGenAISpanAsync()
     {
         if (TryGetContextSpanByIndex(_currentSpanContextIndex - 1, out var span))
         {
-            TryUpdateViewedGenAISpan(span);
+            await TryUpdateViewedGenAISpanAsync(span).ConfigureAwait(false);
         }
     }
 
-    private void OnNextGenAISpan()
+    private async Task OnNextGenAISpanAsync()
     {
         if (TryGetContextSpanByIndex(_currentSpanContextIndex + 1, out var span))
         {
-            TryUpdateViewedGenAISpan(span);
+            await TryUpdateViewedGenAISpanAsync(span).ConfigureAwait(false);
         }
     }
 
@@ -199,12 +199,12 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return span != null;
     }
 
-    private bool TryUpdateViewedGenAISpan(OtlpSpan newSpan)
+    private async Task<bool> TryUpdateViewedGenAISpanAsync(OtlpSpan newSpan)
     {
         var selectedIndex = SelectedItem?.Index;
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, ErrorRecorder, TelemetryRepository, Content.GetContextGenAISpans);
+        var dialogViewModel = await GenAIVisualizerDialogViewModel.CreateAsync(spanDetailsViewModel, selectedLogEntryId: null, ErrorRecorder, TelemetryRepository, Content.GetContextGenAISpans).ConfigureAwait(false);
 
         if (selectedIndex != null)
         {
@@ -314,7 +314,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
         IStringLocalizer<Resources.Dialogs> dialogsLoc, OtlpSpan span, long? selectedLogEntryId,
-        TelemetryRepository telemetryRepository, ITelemetryErrorRecorder errorRecorder, List<OtlpResource> resources, Func<List<OtlpSpan>> getContextGenAISpans)
+        TelemetryRepository telemetryRepository, ITelemetryErrorRecorder errorRecorder, List<OtlpResource> resources, Func<Task<List<OtlpSpan>>> getContextGenAISpans)
     {
         var title = span.Name;
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
@@ -330,7 +330,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, errorRecorder, telemetryRepository, getContextGenAISpans);
+        var dialogViewModel = await GenAIVisualizerDialogViewModel.CreateAsync(spanDetailsViewModel, selectedLogEntryId, errorRecorder, telemetryRepository, getContextGenAISpans).ConfigureAwait(false);
 
         await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(dialogViewModel, parameters);
     }

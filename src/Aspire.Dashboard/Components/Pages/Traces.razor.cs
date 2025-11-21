@@ -135,7 +135,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
-        var traces = TracesViewModel.GetTraces();
+        var traces = await TracesViewModel.GetTracesAsync().ConfigureAwait(false);
 
         if (traces.IsFull && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
@@ -158,7 +158,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         _totalItemsCount = traces.TotalItemCount;
         _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
-        _explainErrorsButton?.UpdateHasErrors(TracesViewModel.HasErrors());
+        _explainErrorsButton?.UpdateHasErrors(await TracesViewModel.HasErrorsAsync().ConfigureAwait(false));
         _aiContext?.ContextHasChanged();
 
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
