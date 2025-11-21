@@ -50,6 +50,16 @@ internal class DotNetTemplateFactory(
                 : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
+        yield return new CallbackTemplate(
+            "aspire-js-frontend-starter",
+            TemplatingStrings.AspireJsFrontendStarter_Description,
+            projectName => $"./{projectName}",
+            ApplyExtraAspireStarterOptions,
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+            );
+
         // Single-file AppHost templates
         yield return new CallbackTemplate(
             "aspire-py-starter",
