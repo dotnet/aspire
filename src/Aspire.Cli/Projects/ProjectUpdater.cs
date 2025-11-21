@@ -164,7 +164,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], cancellationToken);
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally"], cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
@@ -189,7 +189,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], context, cancellationToken);
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally"], context, cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
@@ -354,13 +354,30 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return;
         }
 
-        // Detect if this project uses Central Package Management
-        var cpmInfo = DetectCentralPackageManagement(projectFile);
-
         // Use fallback wrapper for AppHost project, normal method for others
         var itemsAndPropertiesDocument = IsAppHostProject(projectFile, context)
             ? await GetItemsAndPropertiesWithFallbackAsync(projectFile, context, cancellationToken)
             : await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
+
+        // Check if this project has ManagePackageVersionsCentrally set to false
+        var usesCentralPackageManagement = true;
+        if (itemsAndPropertiesDocument.RootElement.TryGetProperty("Properties", out var propertiesElement))
+        {
+            if (propertiesElement.TryGetProperty("ManagePackageVersionsCentrally", out var managePkgVersionsElement))
+            {
+                var managePkgVersionsValue = managePkgVersionsElement.GetString();
+                // If the property is explicitly set to false, don't use CPM even if Directory.Packages.props exists
+                if (string.Equals(managePkgVersionsValue, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    usesCentralPackageManagement = false;
+                }
+            }
+        }
+
+        // Detect if this project uses Central Package Management (if not already disabled by property)
+        var cpmInfo = usesCentralPackageManagement
+            ? DetectCentralPackageManagement(projectFile)
+            : new CentralPackageManagementInfo(false, null);
 
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
