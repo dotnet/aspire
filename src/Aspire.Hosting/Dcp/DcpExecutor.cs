@@ -4,7 +4,7 @@
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIRECERTIFICATES001
 #pragma warning disable ASPIRECONTAINERSHELLEXECUTION001
-#pragma warning disable IDE0005 // IConfiguration is used in this file
+#pragma warning disable IDE0005 // Using directive is necessary
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;

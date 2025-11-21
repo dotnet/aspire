@@ -78,8 +78,10 @@ public static class OtlpConfigurationExtensions
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
-            var appHostEnvironment = context.ExecutionContext.ServiceProvider.GetRequiredService<AppHostEnvironment>();
-            if (appHostEnvironment.OtlpApiKey is { } otlpApiKey)
+            // Try to get AppHostEnvironment from DI, but fall back to IConfiguration if not available (e.g., in tests)
+            var appHostEnvironment = context.ExecutionContext.ServiceProvider.GetService<AppHostEnvironment>();
+            var otlpApiKey = appHostEnvironment?.OtlpApiKey ?? configuration["AppHost:OtlpApiKey"];
+            if (otlpApiKey is { Length: > 0 })
             {
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
             }

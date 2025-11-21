@@ -37,16 +37,26 @@ public sealed class AppHostEnvironment
     /// <summary>
     /// Gets the directory of the project where the app host is located.
     /// </summary>
+    /// <remarks>
+    /// This value is set by the build system and is guaranteed to be present at runtime.
+    /// </remarks>
     public string ProjectDirectory => _configuration["AppHost:Directory"]!;
 
     /// <summary>
     /// Gets the full path to the app host.
     /// </summary>
+    /// <remarks>
+    /// This value is set by the build system and is guaranteed to be present at runtime.
+    /// </remarks>
     public string FullPath => _configuration["AppHost:Path"]!;
 
     /// <summary>
     /// Gets the application name used for the dashboard.
     /// </summary>
+    /// <remarks>
+    /// This property returns the same value as <see cref="ProjectName"/> but is provided
+    /// separately for semantic clarity when specifically referring to the dashboard display name.
+    /// </remarks>
     public string DashboardApplicationName => _configuration["AppHost:DashboardApplicationName"] ?? _hostEnvironment.ApplicationName;
 
     /// <summary>
@@ -56,6 +66,7 @@ public sealed class AppHostEnvironment
     /// For backward compatibility, this uses mode-dependent logic:
     /// - Publish mode: ProjectNameSha (stable across paths)
     /// - Run mode: FullPathHash (disambiguates by path)
+    /// This value is set by the build system and is guaranteed to be present at runtime.
     /// </remarks>
     public string DefaultHash => _configuration["AppHost:Sha256"]!;
 
@@ -64,6 +75,7 @@ public sealed class AppHostEnvironment
     /// </summary>
     /// <remarks>
     /// Used for disambiguating projects with the same name in different locations (deployment state).
+    /// This value is set by the build system and is guaranteed to be present at runtime.
     /// </remarks>
     public string FullPathHash => _configuration["AppHost:PathSha256"]!;
 
@@ -72,6 +84,7 @@ public sealed class AppHostEnvironment
     /// </summary>
     /// <remarks>
     /// Used for stable naming across deployments regardless of path (Azure Functions, Azure environments).
+    /// This value is set by the build system and is guaranteed to be present at runtime.
     /// </remarks>
     public string ProjectNameHash => _configuration["AppHost:ProjectNameSha256"]!;
 
