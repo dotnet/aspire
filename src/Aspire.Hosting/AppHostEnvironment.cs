@@ -26,6 +26,16 @@ public sealed class AppHostEnvironment
     }
 
     /// <summary>
+    /// Gets the configuration.
+    /// </summary>
+    public IConfiguration Configuration => _configuration;
+
+    /// <summary>
+    /// Gets the host environment.
+    /// </summary>
+    public IHostEnvironment HostEnvironment => _hostEnvironment;
+
+    /// <summary>
     /// Gets the name of the AppHost project.
     /// </summary>
     /// <remarks>
