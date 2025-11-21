@@ -787,7 +787,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             return;
         }
 
-        var environment = _innerBuilder.Environment.EnvironmentName;
+        var environment = _innerBuilder.Environment.EnvironmentName.ToLowerInvariant();
         var deploymentStatePath = Path.Combine(
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
             ".aspire",
