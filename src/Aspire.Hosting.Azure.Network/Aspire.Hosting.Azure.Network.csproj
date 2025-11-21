@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire integration hosting azure network vnet virtual-network subnet nat-gateway public-ip cloud</PackageTags>
+    <Description>Azure Virtual Network resource types for Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.Network" />
+  </ItemGroup>
+
+</Project>
