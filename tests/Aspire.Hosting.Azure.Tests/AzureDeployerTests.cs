@@ -1201,7 +1201,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             ".aspire",
             "deployments",
             appHostSha,
-            $"Production.json"
+            $"production.json"
         );
         Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
         var cachedState = new JsonObject
