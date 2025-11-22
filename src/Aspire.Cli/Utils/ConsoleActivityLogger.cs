@@ -118,12 +118,14 @@ internal sealed class ConsoleActivityLogger
                     AnsiConsole.Cursor.MoveLeft();
 
                     _spinnerIndex++;
-                    await Task.Delay(80).ConfigureAwait(false);
+                    await Task.Delay(120).ConfigureAwait(false);
                 }
             }
             finally
             {
+                // Clear spinner character
                 AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
+                AnsiConsole.Cursor.MoveLeft();
                 AnsiConsole.Cursor.Show();
             }
         });
