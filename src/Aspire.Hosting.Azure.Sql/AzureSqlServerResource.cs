@@ -65,7 +65,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             ReferenceExpression.Create($"{InnerResource!.PrimaryEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"{FullyQualifiedDomainName}");
 
-
     /// <summary>
     /// Gets the port for the PostgreSQL server.
     /// </summary>
