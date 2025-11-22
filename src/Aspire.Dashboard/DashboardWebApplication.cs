@@ -174,7 +174,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         bool hasValidationFailures = !TryGetDashboardOptions(builder, dashboardConfigSection, out var dashboardOptions, out var failureMessages);
         if (hasValidationFailures)
         {
-            _validationFailures = failureMessages?.ToList() ?? new List<string> { "Unknown validation error" };
+            _validationFailures = failureMessages?.ToList() ?? new List<string> { "Failed to validate dashboard options. Check configuration and try again." };
             // Use default options to allow the app to build
             dashboardOptions = new DashboardOptions();
             // Set minimal required configuration
@@ -490,9 +490,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 !context.Request.Path.StartsWithSegments("/_content", StringComparison.OrdinalIgnoreCase) &&
                 !context.Request.Path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase) &&
                 !context.Request.Path.StartsWithSegments("/js", StringComparison.OrdinalIgnoreCase) &&
-                !context.Request.Path.Value!.EndsWith(".css", StringComparison.OrdinalIgnoreCase) &&
-                !context.Request.Path.Value!.EndsWith(".js", StringComparison.OrdinalIgnoreCase) &&
-                !context.Request.Path.Value!.EndsWith(".ico", StringComparison.OrdinalIgnoreCase))
+                (context.Request.Path.Value?.EndsWith(".css", StringComparison.OrdinalIgnoreCase) != true) &&
+                (context.Request.Path.Value?.EndsWith(".js", StringComparison.OrdinalIgnoreCase) != true) &&
+                (context.Request.Path.Value?.EndsWith(".ico", StringComparison.OrdinalIgnoreCase) != true))
             {
                 // Block OTLP and MCP endpoints when in error mode
                 if (errorMode.ShouldBlock &&
@@ -986,7 +986,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Error mode middleware will redirect to the error page
         _app.Run();
         
-        // Return non-zero exit code if there were validation failures and user never dismissed them
+        // Return non-zero exit code if there were validation failures
+        // Even if the user dismissed them, the configuration is still invalid
         return _validationFailures.Count > 0 ? -1 : 0;
     }
 

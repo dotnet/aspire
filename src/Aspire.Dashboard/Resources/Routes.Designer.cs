@@ -115,7 +115,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Warning: Continuing with configuration errors may result in security vulnerabilities or limited functionality..
+        ///   Looks up a localized string similar to Warning: Continuing with configuration errors may result in security vulnerabilities or limited functionality.
         /// </summary>
         public static string ErrorModeWarning {
             get {
