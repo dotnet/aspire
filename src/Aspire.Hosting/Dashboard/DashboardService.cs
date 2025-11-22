@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.RegularExpressions;
 using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
@@ -30,29 +29,17 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
     // of pending connections during shutdown.
 
-    [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
-    private static partial Regex ApplicationNameRegex();
-
     public override Task<ApplicationInformationResponse> GetApplicationInformation(
         ApplicationInformationRequest request,
         ServerCallContext context)
     {
-        // Use the dashboard application name from the AppHostEnvironment
-        var applicationName = appHostEnvironment.DashboardApplicationName;
+        // ProjectName already has the ".AppHost" suffix trimmed if present
+        var applicationName = appHostEnvironment.ProjectName;
         
         return Task.FromResult(new ApplicationInformationResponse
         {
-            ApplicationName = ComputeApplicationName(applicationName)
+            ApplicationName = applicationName
         });
-
-        static string ComputeApplicationName(string applicationName)
-        {
-            return ApplicationNameRegex().Match(applicationName) switch
-            {
-                Match { Success: true } match => match.Groups["name"].Value,
-                _ => applicationName
-            };
-        }
     }
 
     public override async Task WatchInteractions(IAsyncStreamReader<WatchInteractionsRequestUpdate> requestStream, IServerStreamWriter<WatchInteractionsResponseUpdate> responseStream, ServerCallContext context)

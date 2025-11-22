@@ -40,9 +40,24 @@ public sealed class AppHostEnvironment
     /// </summary>
     /// <remarks>
     /// This is the project name used in multiple places throughout the application,
-    /// including for generating resource names and configuration keys.
+    /// including for generating resource names and configuration keys. If the name ends
+    /// with ".AppHost" (case-insensitive), the suffix is automatically removed.
     /// </remarks>
-    public string ProjectName => _configuration["AppHost:DashboardApplicationName"] ?? _hostEnvironment.ApplicationName;
+    public string ProjectName
+    {
+        get
+        {
+            var name = _configuration["AppHost:DashboardApplicationName"] ?? _hostEnvironment.ApplicationName;
+            
+            // Strip ".AppHost" suffix if present (case-insensitive)
+            if (name.EndsWith(".AppHost", StringComparison.OrdinalIgnoreCase))
+            {
+                return name[..^8]; // Remove the last 8 characters (".AppHost")
+            }
+            
+            return name;
+        }
+    }
 
     /// <summary>
     /// Gets the directory of the project where the app host is located.
@@ -59,15 +74,6 @@ public sealed class AppHostEnvironment
     /// This value is set by the build system and is guaranteed to be present at runtime.
     /// </remarks>
     public string FullPath => _configuration["AppHost:Path"]!;
-
-    /// <summary>
-    /// Gets the application name used for the dashboard.
-    /// </summary>
-    /// <remarks>
-    /// This property returns the same value as <see cref="ProjectName"/> but is provided
-    /// separately for semantic clarity when specifically referring to the dashboard display name.
-    /// </remarks>
-    public string DashboardApplicationName => _configuration["AppHost:DashboardApplicationName"] ?? _hostEnvironment.ApplicationName;
 
     /// <summary>
     /// Gets the SHA256 hash of the app host.
