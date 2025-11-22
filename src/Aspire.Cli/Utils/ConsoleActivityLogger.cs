@@ -105,17 +105,29 @@ internal sealed class ConsoleActivityLogger
         _spinning = true;
         _spinnerTask = Task.Run(async () =>
         {
-            // Spinner sits at bottom; we write spinner char then backspace.
-            while (_spinning)
+            AnsiConsole.Cursor.Hide();
+
+            try
             {
-                AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[_spinnerIndex % _spinnerChars.Length]);
-                AnsiConsole.Write(CultureInfo.InvariantCulture, "\b");
-                _spinnerIndex++;
-                await Task.Delay(120).ConfigureAwait(false);
+                while (_spinning)
+                {
+                    var spinChar = _spinnerChars[_spinnerIndex % _spinnerChars.Length];
+
+                    // Write then move back so nothing can write between these events (hopefully)
+                    AnsiConsole.Write(CultureInfo.InvariantCulture, spinChar);
+                    AnsiConsole.Cursor.MoveLeft();
+
+                    _spinnerIndex++;
+                    await Task.Delay(120).ConfigureAwait(false);
+                }
             }
-            // Clear spinner character
-            AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
-            AnsiConsole.Write(CultureInfo.InvariantCulture, "\b");
+            finally
+            {
+                // Clear spinner character
+                AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
+                AnsiConsole.Cursor.MoveLeft();
+                AnsiConsole.Cursor.Show();
+            }
         });
     }
 
