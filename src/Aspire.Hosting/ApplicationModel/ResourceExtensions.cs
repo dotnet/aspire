@@ -1065,10 +1065,10 @@ public static class ResourceExtensions
                 // The port was explicitly specified so use it
                 (_, _, int target, _) => ResolvedPort.Explicit(target),
 
-                // Container resources get their default listening port from the exposed port (explicit)
-                (ContainerResource, _, null, int port) => ResolvedPort.Explicit(port),
+                // Container resources get their default listening port from the exposed port (implicit)
+                (ContainerResource, _, null, int port) => ResolvedPort.Implicit(port),
 
-                // Check whether the project view this endpoint as Default (for its scheme).
+                // Check whether the project views this endpoint as Default (for its scheme).
                 // If so, we don't specify the target port, as it will get one from the deployment tool.
                 (ProjectResource, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => ResolvedPort.None(),
 
