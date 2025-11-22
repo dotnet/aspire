@@ -206,7 +206,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UpdateCommand_WhenProjectUpdatedSuccessfully_PromptsForCliUpdate()
+    public async Task UpdateCommand_WhenProjectUpdatedSuccessfully_AndChannelSupportsCliDownload_PromptsForCliUpdate()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
@@ -242,7 +242,21 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.PackagingServiceFactory = _ => new TestPackagingService();
+            // Return a channel with CliDownloadBaseUrl to enable CLI update prompts
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (cancellationToken) =>
+                {
+                    var stableChannel = PackageChannel.CreateExplicitChannel(
+                        "stable",
+                        PackageChannelQuality.Stable,
+                        new[] { new PackageMapping("Aspire*", "https://api.nuget.org/v3/index.json") },
+                        null!,
+                        configureGlobalPackagesFolder: false,
+                        cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/ga/daily");
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel });
+                }
+            };
 
             // Configure update notifier to report that an update is available
             options.CliUpdateNotifierFactory = _ => new TestCliUpdateNotifier()
@@ -261,6 +275,77 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown after successful project update");
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WhenChannelHasNoCliDownloadUrl_DoesNotPromptForCliUpdate()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var confirmCallbackInvoked = false;
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    confirmCallbackInvoked = true;
+                    return false; // User says no
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = true });
+                }
+            };
+
+            // Return a channel without CliDownloadBaseUrl (like PR channels)
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (cancellationToken) =>
+                {
+                    var prChannel = PackageChannel.CreateExplicitChannel(
+                        "pr-12658",
+                        PackageChannelQuality.Prerelease,
+                        new[] { new PackageMapping("Aspire*", "/path/to/pr/hive") },
+                        null!,
+                        configureGlobalPackagesFolder: false,
+                        cliDownloadBaseUrl: null); // No CLI download URL for PR channels
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { prChannel });
+                }
+            };
+
+            // Configure update notifier to report that an update is available
+            options.CliUpdateNotifierFactory = _ => new TestCliUpdateNotifier()
+            {
+                IsUpdateAvailableCallback = () => true
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --project AppHost.csproj");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.False(confirmCallbackInvoked, "Confirm prompt should NOT have been shown for channels without CLI download support");
         Assert.Equal(0, exitCode);
     }
 
