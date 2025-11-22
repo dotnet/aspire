@@ -53,9 +53,4 @@ public static class TelemetryPropertyKeys
     public const string AIAssistantSelectedModel = AspireDashboardPropertyPrefix + "AIAssistant.SelectedModel";
     public const string AIAssistantToolCalls = AspireDashboardPropertyPrefix + "AIAssistant.ToolCalls";
     public const string AIAssistantFeedbackType = AspireDashboardPropertyPrefix + "AIAssistant.FeedbackType";
-
-    // GenAI Visualizer Dialog properties
-    public const string GenAIVisualizerAction = AspireDashboardPropertyPrefix + "GenAIVisualizer.Action";
-    public const string GenAIVisualizerOverviewTab = AspireDashboardPropertyPrefix + "GenAIVisualizer.OverviewTab";
-    public const string GenAIVisualizerMessageTab = AspireDashboardPropertyPrefix + "GenAIVisualizer.MessageTab";
 }
