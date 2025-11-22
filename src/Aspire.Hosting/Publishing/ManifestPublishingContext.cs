@@ -36,8 +36,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
-    private PortAllocator PortAllocator { get; } = new();
-
     /// <summary>
     /// Gets cancellation token for this operation.
     /// </summary>
@@ -50,6 +48,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     private readonly Dictionary<ParameterResource, Dictionary<string, string>> _formattedParameters = [];
 
     private readonly HashSet<string> _manifestResourceNames = new(StringComparers.ResourceName);
+
+    private readonly IPortAllocator _portAllocator = new PortAllocator();
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
@@ -484,79 +484,28 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> that contains <see cref="EndpointAnnotation"/> annotations.</param>
     public void WriteBindings(IResource resource)
     {
-        if (resource.TryGetEndpoints(out var endpoints))
+        var resolvedEndpoints = resource.ResolveEndpoints(_portAllocator);
+
+        if (resolvedEndpoints.Count > 0)
         {
-            // This is used to determine if an endpoint should be treated as the Default endpoint.
-            // Endpoints can come from 3 different sources (in this order):
-            // 1. Kestrel configuration
-            // 2. Default endpoints added by the framework
-            // 3. Explicitly added endpoints
-            // But wherever they come from, we treat the first one as Default, for each scheme.
-            var httpSchemesEncountered = new HashSet<string>();
-
-            static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
-
             Writer.WriteStartObject("bindings");
-            foreach (var endpoint in endpoints)
+            foreach (var resolved in resolvedEndpoints)
             {
+                var endpoint = resolved.Endpoint;
+
                 Writer.WriteStartObject(endpoint.Name);
                 Writer.WriteString("scheme", endpoint.UriScheme);
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
+                if (resolved.ExposedPort.Value is int exposedPort)
                 {
-                    // The port was specified so use it
-                    (_, _, int target, _) => target,
-
-                    // Container resources get their default listening port from the exposed port.
-                    (ContainerResource, _, null, int port) => port,
-
-                    // Check whether the project view this endpoint as Default (for its scheme).
-                    // If so, we don't specify the target port, as it will get one from the deployment tool.
-                    (ProjectResource project, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => null,
-
-                    // Allocate a dynamic port
-                    _ => PortAllocator.AllocatePort()
-                };
-
-                // We only keep track of schemes for project resources, since we don't want
-                // a non-project scheme to affect what project endpoints are considered default.
-                if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
-                {
-                    httpSchemesEncountered.Add(endpoint.UriScheme);
+                    Writer.WriteNumber("port", exposedPort);
                 }
 
-                int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
+                if (resolved.TargetPort.Value is int targetPort)
                 {
-                    // Exposed port and target port are the same, we don't need to mention the exposed port
-                    (_, int p0, int p1) when p0 == p1 => null,
-
-                    // Port was specified, so use it
-                    (_, int port, _) => port,
-
-                    // We have a target port, not need to specify an exposedPort
-                    // it will default to the targetPort
-                    (_, null, int port) => null,
-
-                    // Let the tool infer the default http and https ports
-                    ("http", null, null) => null,
-                    ("https", null, null) => null,
-
-                    // Other schemes just allocate a port
-                    _ => PortAllocator.AllocatePort()
-                };
-
-                if (exposedPort is int ep)
-                {
-                    PortAllocator.AddUsedPort(ep);
-                    Writer.WriteNumber("port", ep);
-                }
-
-                if (targetPort is int tp)
-                {
-                    PortAllocator.AddUsedPort(tp);
-                    Writer.WriteNumber("targetPort", tp);
+                    Writer.WriteNumber("targetPort", targetPort);
                 }
 
                 if (endpoint.IsExternal)

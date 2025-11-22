@@ -36,40 +36,22 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
         return serviceResource;
     }
 
-    private static void ProcessEndpoints(DockerComposeServiceResource serviceResource)
+    private void ProcessEndpoints(DockerComposeServiceResource serviceResource)
     {
-        if (!serviceResource.TargetResource.TryGetEndpoints(out var endpoints))
+        var resolvedEndpoints = serviceResource.TargetResource.ResolveEndpoints(environment.PortAllocator);
+
+        foreach (var resolved in resolvedEndpoints)
         {
-            return;
-        }
+            var endpoint = resolved.Endpoint;
 
-        var portAllocator = serviceResource.Parent.PortAllocator;
+            // Convert target port to string for Docker Compose
+            // For default ProjectResource endpoints (TargetPort.Value is null), use container port placeholder
+            string internalPort = resolved.TargetPort.Value is int port
+                ? port.ToString(CultureInfo.InvariantCulture)
+                : serviceResource.AsContainerPortPlaceholder();
 
-        string ResolveTargetPort(EndpointAnnotation endpoint)
-        {
-            if (endpoint.TargetPort is int port)
-            {
-                return port.ToString(CultureInfo.InvariantCulture);
-            }
-
-            if (serviceResource.TargetResource is ProjectResource)
-            {
-                return serviceResource.AsContainerPortPlaceholder();
-            }
-
-            // The container did not specify a target port, so we allocate one
-            // this mimics the semantics of what happens at runtime.
-            var dynamicTargetPort = portAllocator.AllocatePort();
-
-            portAllocator.AddUsedPort(dynamicTargetPort);
-
-            return dynamicTargetPort.ToString(CultureInfo.InvariantCulture);
-        }
-
-        foreach (var endpoint in endpoints)
-        {
-            var internalPort = ResolveTargetPort(endpoint);
-            var exposedPort = endpoint.Port;
+            // Docker Compose can handle dynamic port allocation, so only use exposed port if it was explicitly specified
+            int? exposedPort = resolved.ExposedPort.IsAllocated ? null : resolved.ExposedPort.Value;
 
             serviceResource.EndpointMappings.Add(endpoint.Name,
                 new(serviceResource.TargetResource,

@@ -115,8 +115,12 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
-        // Add a project
-        var project = builder.AddProject<TestProjectWithLaunchSettings>("project1");
+        // Add a project with multiple endpoint combinations
+        var project = builder.AddProject<TestProjectWithLaunchSettings>("project1")
+            .WithHttpEndpoint(name: "custom1") // port = null, targetPort = null
+            .WithHttpEndpoint(port: 7001, name: "custom2") // port = 7001, targetPort = null
+            .WithHttpEndpoint(targetPort: 7002, name: "custom3") // port = null, targetPort = 7002
+            .WithHttpEndpoint(port: 7003, targetPort: 7004, name: "custom4"); // port = 7003, targetPort = 7004
 
         builder.AddContainer("api", "reg:api")
                .WithReference(project);
