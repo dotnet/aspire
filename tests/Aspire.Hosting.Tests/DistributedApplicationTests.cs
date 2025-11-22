@@ -1568,14 +1568,10 @@ public class DistributedApplicationTests
         const string testName = "endpoint-proxy-support";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var redis = builder.AddRedis($"{testName}-redis", 1234).WithEndpointProxySupport(false);
-#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Since port is not specified, this instance will use the container target port (6379) as the host port.
-#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var redisNoPort = builder.AddRedis($"{testName}-redisNoPort").WithEndpointProxySupport(false);
-#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var servicea = builder.AddProject<Projects.ServiceA>($"{testName}-servicea")
             .WithReference(redis)

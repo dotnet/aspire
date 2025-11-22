@@ -69,7 +69,6 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithDockerfile<T>(this ApplicationModel.IResourceBuilder<T> builder, string contextPath, string? dockerfilePath = null, string? stage = null)
             where T : ApplicationModel.ContainerResource { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPROXYENDPOINTS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<T> WithEndpointProxySupport<T>(this ApplicationModel.IResourceBuilder<T> builder, bool proxyEnabled)
             where T : ApplicationModel.ContainerResource { throw null; }
 
