@@ -68,6 +68,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
+            .OrderBy(vm => vm.Name, StringComparers.EnvironmentVariableName)
             .AsQueryable();
 
     internal IQueryable<DisplayedUrl> FilteredUrls =>
@@ -88,11 +89,13 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     internal IQueryable<VolumeViewModel> FilteredVolumes =>
         Resource.Volumes
             .Where(vm => vm.MatchesFilter(_filter))
+            .OrderBy(vm => vm.Source, StringComparer.OrdinalIgnoreCase)
             .AsQueryable();
 
     internal IQueryable<HealthReportViewModel> FilteredHealthReports =>
         Resource.HealthReports
             .Where(vm => vm.MatchesFilter(_filter))
+            .OrderBy(vm => vm.Name, StringComparer.OrdinalIgnoreCase)
             .AsQueryable();
 
     internal IQueryable<DisplayedResourcePropertyViewModel> FilteredResourceProperties =>
