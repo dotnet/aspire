@@ -62,12 +62,13 @@ public class DurableTaskResourceExtensionsTests
         Assert.Equal(expectedConnectionString, connectionString);
     }
 
-    [Fact]
-    public async Task AddDurableTaskHub_RunAsExisting_ResolvedConnectionStringParameter()
+    [Theory]
+    [InlineData(null, "mytaskhub")]
+    [InlineData("myrealtaskhub", "myrealtaskhub")]
+    public async Task AddDurableTaskHub_RunAsExisting_ResolvedConnectionStringParameter(string? taskHubName, string expectedTaskHubName)
     {
         string dtsConnectionString = "Endpoint=https://existing-scheduler.durabletask.io;Authentication=DefaultAzure";
-        string expectedConnectionString = $"{dtsConnectionString};TaskHub=mytaskhub";
-
+        string expectedConnectionString = $"{dtsConnectionString};TaskHub={expectedTaskHubName}";
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var connectionStringParameter = builder.AddParameter("dts-connection-string", expectedConnectionString);
@@ -76,7 +77,7 @@ public class DurableTaskResourceExtensionsTests
             .AddDurableTaskScheduler("dts")
             .RunAsExisting(dtsConnectionString);
 
-        var taskHub = dts.AddTaskHub("mytaskhub");
+        var taskHub = dts.AddTaskHub("mytaskhub", taskHubName);
 
         var connectionString = await taskHub.Resource.ConnectionStringExpression.GetValueAsync(default);
 

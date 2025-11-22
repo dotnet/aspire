@@ -103,11 +103,11 @@ public static class DurableTaskResourceExtensions
     /// </summary>
     /// <param name="builder">The scheduler resource builder.</param>
     /// <param name="name">The logical name of the task hub resource.</param>
+    /// <param name="taskHubName">The name of the Task Hub. If not provided, the logical name is used.</param>
     /// <returns>An <see cref="IResourceBuilder{TResource}"/> for the task hub resource.</returns>
-    public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name)
+    public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name, string? taskHubName = null)
     {
-        var hub = new DurableTaskHubResource(name, builder.Resource);
-
+        var hub = new DurableTaskHubResource(name, builder.Resource, taskHubName);
         var hubBuilder = builder.ApplicationBuilder.AddResource(hub);
 
         if (builder.Resource.IsEmulator)
