@@ -5,23 +5,24 @@
 
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Logging;
+using Xunit;
 
 namespace Aspire.Hosting.Utils;
 
 /// <summary>
-/// A test implementation of <see cref="IPipelineActivityReporter"/> that logs activity to an <see cref="ILogger"/>.
+/// A test implementation of <see cref="IPipelineActivityReporter"/> that captures activity for test assertions.
 /// </summary>
 public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
 {
-    private readonly ILogger _logger;
+    private readonly ITestOutputHelper _testOutputHelper;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestPipelineActivityReporter"/> class.
     /// </summary>
-    /// <param name="logger">The logger to log to.</param>
-    public TestPipelineActivityReporter(ILogger<TestPipelineActivityReporter> logger)
+    /// <param name="testOutputHelper">The test output helper to write to.</param>
+    public TestPipelineActivityReporter(ITestOutputHelper testOutputHelper)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _testOutputHelper = testOutputHelper ?? throw new ArgumentNullException(nameof(testOutputHelper));
     }
 
     /// <summary>
@@ -78,20 +79,20 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     {
         CreatedSteps.Add(title);
         
-        return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _logger));
+        return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _testOutputHelper));
     }
 
     private sealed class TestReportingStep : IReportingStep
     {
         private readonly TestPipelineActivityReporter _reporter;
         private readonly string _title;
-        private readonly ILogger _logger;
+        private readonly ITestOutputHelper _testOutputHelper;
 
-        public TestReportingStep(TestPipelineActivityReporter reporter, string title, ILogger logger)
+        public TestReportingStep(TestPipelineActivityReporter reporter, string title, ITestOutputHelper testOutputHelper)
         {
             _reporter = reporter;
             _title = title;
-            _logger = logger;
+            _testOutputHelper = testOutputHelper;
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -107,7 +108,7 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CreatedTasks.Add((_title, statusText));
             
-            return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _logger));
+            return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _testOutputHelper));
         }
 
         public void Log(LogLevel logLevel, string message, bool enableMarkdown)
@@ -120,13 +121,13 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     {
         private readonly TestPipelineActivityReporter _reporter;
         private readonly string _initialStatusText;
-        private readonly ILogger _logger;
+        private readonly ITestOutputHelper _testOutputHelper;
 
-        public TestReportingTask(TestPipelineActivityReporter reporter, string initialStatusText, ILogger logger)
+        public TestReportingTask(TestPipelineActivityReporter reporter, string initialStatusText, ITestOutputHelper testOutputHelper)
         {
             _reporter = reporter;
             _initialStatusText = initialStatusText;
-            _logger = logger;
+            _testOutputHelper = testOutputHelper;
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;

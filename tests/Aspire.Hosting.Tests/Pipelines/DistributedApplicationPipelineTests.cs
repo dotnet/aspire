@@ -27,6 +27,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(builder.Build());
@@ -39,6 +40,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -60,6 +62,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -96,6 +99,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -129,6 +133,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -162,6 +167,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -201,6 +207,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -259,6 +266,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithPipelineStepFactoryAnnotation_ExecutesAnnotatedSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -292,6 +301,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithMultiplePipelineStepAnnotations_ExecutesAllAnnotatedSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -332,6 +343,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -347,6 +359,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -364,6 +377,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -381,6 +395,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -414,6 +429,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -438,6 +454,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -496,6 +513,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -534,6 +552,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -572,6 +591,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -590,6 +610,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -647,6 +668,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithDuplicateAnnotationStepNames_ThrowsInvalidOperationException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var resource1 = builder.AddResource(new CustomResource("resource1"))
@@ -679,6 +702,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -706,6 +730,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -742,6 +767,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -786,6 +812,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Test that when one step fails, other steps that haven't started yet don't start
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -819,6 +846,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -852,6 +880,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // D should only start after both B and C complete
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -917,6 +946,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithPipelineStepFactoryAnnotation_FactoryReceivesPipelineContextAndResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         IResource? capturedResource = null;
@@ -955,6 +986,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task WithPipelineStepFactory_SyncOverload_ExecutesStep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -980,6 +1013,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task WithPipelineStepFactory_AsyncOverload_ExecutesStep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -1009,6 +1044,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task WithPipelineStepFactory_MultipleStepsSyncOverload_ExecutesAllSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -1047,6 +1084,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task WithPipelineStepFactory_MultipleStepsAsyncOverload_ExecutesAllSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -1091,6 +1130,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1124,6 +1164,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1183,6 +1224,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1221,6 +1263,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // This test verifies that each step gets a clean logger context
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1290,6 +1333,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, logLevel: configuredLogLevel, step: "logging-step").WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1359,6 +1403,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -1397,6 +1442,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -1433,6 +1479,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -1478,6 +1525,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task PipelineConfigurationContext_GetStepsByResource_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var foundSteps = new List<PipelineStep>();
@@ -1529,6 +1578,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task PipelineConfigurationContext_GetStepsByResourceAndTag_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var foundSteps = new List<PipelineStep>();
@@ -1570,6 +1621,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task WithPipelineConfiguration_AsyncOverload_ExecutesCallback()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var callbackExecuted = false;
@@ -1592,6 +1645,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task WithPipelineConfiguration_SyncOverload_ExecutesCallback()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var callbackExecuted = false;
@@ -1613,6 +1668,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ConfigurationCallback_CanAccessModel()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         IResource? capturedResource = null;
@@ -1635,6 +1692,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ConfigurationCallback_ExecutesAfterStepCollection()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var allStepsAvailable = false;
@@ -1674,6 +1733,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
 
+        builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         var pipeline = new DistributedApplicationPipeline();
 
@@ -1765,6 +1825,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithNonExistentStepFilter_ThrowsInvalidOperationExceptionWithAvailableSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "non-existent-step").WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1787,6 +1849,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithStepFilterAndComplexDependencies_ExecutesTransitiveClosure()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "step5").WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1856,6 +1920,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     public async Task ExecuteAsync_WithStepFilterForIndependentStep_ExecutesOnlyThatStep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "independent-step").WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var pipeline = new DistributedApplicationPipeline();
@@ -1894,6 +1960,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
         var executedSteps = new List<string>();
@@ -1960,6 +2028,8 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
         
         // Add a parameter with a default value to trigger parameter processing
