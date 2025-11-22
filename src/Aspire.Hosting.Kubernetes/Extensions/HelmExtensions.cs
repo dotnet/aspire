@@ -80,8 +80,8 @@ internal static class HelmExtensions
     /// </summary>
     /// <remarks>
     /// The environment variable names in Helm values files can not contain hyphens ('-').
-    /// <see href="link">https://helm.sh/docs/chart_best_practices/values/</see>
+    /// https://helm.sh/docs/chart_best_practices/values/
     /// </remarks>
     public static string ToHelmEnvironmentVariable(this string key)
-        => $"{key.Replace("-", "_")}";
+        => key.Replace("-", "_");
 }
