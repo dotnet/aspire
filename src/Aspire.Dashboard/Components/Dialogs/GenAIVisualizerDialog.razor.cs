@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Markdown;
@@ -32,6 +33,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private List<OtlpSpan> _contextSpans = default!;
     private int _currentSpanContextIndex;
     private GenAIVisualizerDialogViewModel? _content;
+    private ComponentTelemetryContext? _telemetryContext;
 
     private GenAIItemViewModel? SelectedItem { get; set; }
 
@@ -59,6 +61,12 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     [Inject]
     public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
+
     public bool NoPreviousGenAISpan => _currentSpanContextIndex == 0;
     public bool NoNextGenAISpan => _currentSpanContextIndex >= _contextSpans.Count - 1;
 
@@ -68,6 +76,9 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _resourcesSubscription = TelemetryRepository.OnNewResources(UpdateDialogData);
         _tracesSubscription = TelemetryRepository.OnNewTraces(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
         _logsSubscription = TelemetryRepository.OnNewLogs(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
+
+        _telemetryContext = new ComponentTelemetryContext(ComponentType.Control, TelemetryComponentIds.GenAIVisualizerDialog);
+        TelemetryContextProvider.Initialize(_telemetryContext);
     }
 
     protected override void OnParametersSet()
@@ -161,6 +172,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         }
 
         OverviewActiveView = viewKind;
+
+        TelemetryService.PostUserTask(
+            TelemetryEventKeys.ExecuteCommand,
+            TelemetryResult.Success,
+            properties: new Dictionary<string, AspireTelemetryProperty>
+            {
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty("GenAIVisualizerDialog.OverviewTabChange") },
+                { TelemetryPropertyKeys.GenAIVisualizerOverviewTab, new AspireTelemetryProperty(viewKind.ToString()) }
+            });
     }
 
     private void OnMessageTabChange(FluentTab newTab)
@@ -175,6 +195,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         }
 
         MessageActiveView = viewKind;
+
+        TelemetryService.PostUserTask(
+            TelemetryEventKeys.ExecuteCommand,
+            TelemetryResult.Success,
+            properties: new Dictionary<string, AspireTelemetryProperty>
+            {
+                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty("GenAIVisualizerDialog.MessageTabChange") },
+                { TelemetryPropertyKeys.GenAIVisualizerMessageTab, new AspireTelemetryProperty(viewKind.ToString()) }
+            });
     }
 
     private void OnPreviousGenAISpan()
@@ -182,6 +211,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         if (TryGetContextSpanByIndex(_currentSpanContextIndex - 1, out var span))
         {
             TryUpdateViewedGenAISpan(span);
+
+            TelemetryService.PostUserTask(
+                TelemetryEventKeys.ExecuteCommand,
+                TelemetryResult.Success,
+                properties: new Dictionary<string, AspireTelemetryProperty>
+                {
+                    { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty("GenAIVisualizerDialog.NavigatePrevious") },
+                    { TelemetryPropertyKeys.GenAIVisualizerAction, new AspireTelemetryProperty("NavigatePrevious") }
+                });
         }
     }
 
@@ -190,6 +228,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         if (TryGetContextSpanByIndex(_currentSpanContextIndex + 1, out var span))
         {
             TryUpdateViewedGenAISpan(span);
+
+            TelemetryService.PostUserTask(
+                TelemetryEventKeys.ExecuteCommand,
+                TelemetryResult.Success,
+                properties: new Dictionary<string, AspireTelemetryProperty>
+                {
+                    { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty("GenAIVisualizerDialog.NavigateNext") },
+                    { TelemetryPropertyKeys.GenAIVisualizerAction, new AspireTelemetryProperty("NavigateNext") }
+                });
         }
     }
 
@@ -310,6 +357,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _resourcesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         _logsSubscription?.Dispose();
+        _telemetryContext?.Dispose();
     }
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,

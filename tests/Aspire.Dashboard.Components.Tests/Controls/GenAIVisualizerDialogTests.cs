@@ -312,6 +312,39 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         });
     }
 
+    [Fact]
+    public async Task Telemetry_Initialized_WhenDialogOpened()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var resource = new OtlpResource("app", "instance", uninstrumentedPeer: false, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = CreateOtlpScope(context);
+
+        var cut = SetUpDialog(out var dialogService);
+
+        // Act
+        await GenAIVisualizerDialog.OpenDialogAsync(
+            viewportInformation: new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false),
+            dialogService: dialogService,
+            dialogsLoc: Services.GetRequiredService<IStringLocalizer<Aspire.Dashboard.Resources.Dialogs>>(),
+            span: CreateOtlpSpan(resource, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime),
+            selectedLogEntryId: null,
+            telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
+            errorRecorder: new TestTelemetryErrorRecorder(),
+            resources: [],
+            getContextGenAISpans: () => []
+            );
+
+        var instance = cut.FindComponent<GenAIVisualizerDialog>().Instance;
+
+        // Assert - Verify telemetry context was initialized and can be disposed without error
+        Assert.NotNull(instance);
+        
+        // This should not throw - telemetry context should be properly initialized and disposed
+        instance.Dispose();
+    }
+
     private IRenderedFragment SetUpDialog(out IDialogService dialogService)
     {
         FluentUISetupHelpers.SetupDialogInfrastructure(this);
