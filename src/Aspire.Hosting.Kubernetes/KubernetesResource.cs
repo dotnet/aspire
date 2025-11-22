@@ -303,7 +303,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             foreach (var environmentVariable in context.EnvironmentVariables)
             {
-                var key = environmentVariable.Key;
+                var key = environmentVariable.Key.ToHelmEnvironmentVariable();
                 var value = await ProcessValueAsync(environmentContext, executionContext, environmentVariable.Value).ConfigureAwait(false);
 
                 switch (value)
