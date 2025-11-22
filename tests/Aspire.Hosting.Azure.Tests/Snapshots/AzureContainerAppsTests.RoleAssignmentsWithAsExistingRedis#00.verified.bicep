@@ -65,8 +65,12 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: redis_outputs_hostname
             }
             {
+              name: 'REDIS_PORT'
+              value: '10000'
+            }
+            {
               name: 'REDIS_URI'
-              value: 'redis://${redis_outputs_hostname}'
+              value: 'redis://${redis_outputs_hostname}:10000'
             }
             {
               name: 'AZURE_CLIENT_ID'
