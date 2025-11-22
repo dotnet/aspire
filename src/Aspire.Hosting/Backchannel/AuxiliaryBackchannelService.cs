@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.Eventing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ namespace Aspire.Hosting.Backchannel;
 /// </remarks>
 internal sealed class AuxiliaryBackchannelService(
     ILogger<AuxiliaryBackchannelService> logger,
+    IConfiguration configuration,
     IDistributedApplicationEventing eventing,
     IServiceProvider serviceProvider)
     : BackgroundService
@@ -32,8 +34,8 @@ internal sealed class AuxiliaryBackchannelService(
     /// Gets the Unix socket path where the auxiliary backchannel is listening.
     /// </summary>
     /// <remarks>
-    /// The socket path follows the pattern: $HOME/.aspire/mcp/backchannels/mcp.[hash].socket
-    /// where [hash] is derived from the current process ID for uniqueness.
+    /// The socket path follows the pattern: $HOME/.aspire/cli/backchannels/aux.sock.[hash]
+    /// where [hash] is derived from AppHost:PathSha256 configuration value for uniqueness.
     /// </remarks>
     public string? SocketPath { get; private set; }
 
@@ -41,8 +43,9 @@ internal sealed class AuxiliaryBackchannelService(
     {
         try
         {
+            logger.LogError("Boom!");
             // Create the socket path
-            SocketPath = GetAuxiliaryBackchannelSocketPath();
+            SocketPath = GetAuxiliaryBackchannelSocketPath(configuration);
             
             logger.LogDebug("Starting auxiliary backchannel service on socket path: {SocketPath}", SocketPath);
 
@@ -155,20 +158,33 @@ internal sealed class AuxiliaryBackchannelService(
     /// Generates the Unix socket path for the auxiliary backchannel.
     /// </summary>
     /// <remarks>
-    /// Pattern: $HOME/.aspire/mcp/backchannels/mcp.[hash].socket
-    /// The hash is derived from the current process ID to ensure uniqueness per app host instance.
+    /// Pattern: $HOME/.aspire/cli/backchannels/aux.sock.[hash]
+    /// The hash is derived from AppHost:PathSha256 configuration to ensure uniqueness per app host instance.
+    /// Falls back to process ID hash if configuration value is not available.
     /// </remarks>
-    private static string GetAuxiliaryBackchannelSocketPath()
+    private static string GetAuxiliaryBackchannelSocketPath(IConfiguration configuration)
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "mcp", "backchannels");
+        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
         
-        // Generate a hash from the current process ID for uniqueness
-        var processId = Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(processId));
-        var hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+        // Use AppHost:PathSha256 from configuration for consistent hashing
+        var appHostPathSha = configuration["AppHost:PathSha256"];
+        string hash;
         
-        var socketPath = Path.Combine(backchannelsDir, $"mcp.{hash}.socket");
+        if (!string.IsNullOrEmpty(appHostPathSha))
+        {
+            // Use first 16 characters to keep socket path length reasonable (Unix socket path limits)
+            hash = appHostPathSha[..16].ToLowerInvariant();
+        }
+        else
+        {
+            // Fallback: Generate a hash from the current process ID for uniqueness
+            var processId = Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(processId));
+            hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+        }
+        
+        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
         return socketPath;
     }
 }
