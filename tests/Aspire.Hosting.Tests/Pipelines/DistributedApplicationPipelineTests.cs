@@ -1565,7 +1565,7 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            foundSteps.AddRange(configContext.GetSteps("test-tag"));
+            foundSteps.AddRange(configContext.GetStepsByTag("test-tag"));
             return Task.CompletedTask;
         });
 
@@ -1768,6 +1768,47 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task DefaultPipelineSteps_HaveCorrectTags()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var capturedSteps = new List<PipelineStep>();
+
+        pipeline.AddPipelineConfiguration((configContext) =>
+        {
+            capturedSteps.AddRange(configContext.Steps);
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // Act & Assert - Verify each default step has the correct tag
+        var deployStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Deploy);
+        Assert.Empty(deployStep.Tags);
+
+        var deployPrereqStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.DeployPrereq);
+        Assert.Contains(WellKnownPipelineTags.ProvisionInfrastructure, deployPrereqStep.Tags);
+
+        var buildStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Build);
+        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
+
+        var buildPrereqStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.BuildPrereq);
+        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildPrereqStep.Tags);
+
+        var publishStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Publish);
+        Assert.Empty(publishStep.Tags);
+
+        var publishPrereqStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
+        Assert.Empty(publishPrereqStep.Tags);
+
+        var diagnosticsStep = capturedSteps.Single(s => s.Name == WellKnownPipelineSteps.Diagnostics);
+        Assert.Empty(diagnosticsStep.Tags);
+    }
+
+    [Fact]
     public async Task ConfigurationCallback_CanCreateComplexDependencyRelationships()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null);
@@ -1821,9 +1862,9 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            var provisionSteps = configContext.GetSteps(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
-            var buildSteps = configContext.GetSteps(WellKnownPipelineTags.BuildCompute).ToList();
-            var deploySteps = configContext.GetSteps(WellKnownPipelineTags.DeployCompute).ToList();
+            var provisionSteps = configContext.GetStepsByTag(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
+            var buildSteps = configContext.GetStepsByTag(WellKnownPipelineTags.BuildCompute).ToList();
+            var deploySteps = configContext.GetStepsByTag(WellKnownPipelineTags.DeployCompute).ToList();
 
             foreach (var buildStep in buildSteps)
             {
