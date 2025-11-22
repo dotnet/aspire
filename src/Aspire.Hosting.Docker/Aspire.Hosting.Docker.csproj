@@ -7,7 +7,6 @@
     <PackageTags>aspire hosting docker docker-compose</PackageTags>
     <Description>Docker Compose publishing for Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
