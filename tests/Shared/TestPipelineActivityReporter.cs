@@ -70,8 +70,6 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         CompletePublishCalled = true;
         CompletionMessage = completionMessage;
         
-        _logger.LogInformation("[CompletePublish] {CompletionMessage} (State: {CompletionState})", completionMessage, completionState);
-        
         return Task.CompletedTask;
     }
 
@@ -79,8 +77,6 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
         CreatedSteps.Add(title);
-        
-        _logger.LogInformation("[CreateStep] {Title}", title);
         
         return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _logger));
     }
@@ -104,8 +100,6 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CompletedSteps.Add((_title, completionText, completionState));
             
-            _logger.LogInformation("  [CompleteStep:{Title}] {CompletionText} (State: {CompletionState})", _title, completionText, completionState);
-            
             return Task.CompletedTask;
         }
 
@@ -113,17 +107,12 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CreatedTasks.Add((_title, statusText));
             
-            _logger.LogInformation("    [CreateTask:{Title}] {StatusText}", _title, statusText);
-            
             return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _logger));
         }
 
         public void Log(LogLevel logLevel, string message, bool enableMarkdown)
         {
             _reporter.LoggedMessages.Add((_title, logLevel, message));
-            
-            // Log using the appropriate log level
-            _logger.Log(logLevel, "    [{LogLevel}:{Title}] {Message}", logLevel, _title, message);
         }
     }
 
@@ -146,16 +135,12 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
             
-            _logger.LogInformation("      [CompleteTask:{InitialStatusText}] {CompletionMessage} (State: {CompletionState})", _initialStatusText, completionMessage, completionState);
-            
             return Task.CompletedTask;
         }
 
         public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
         {
             _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
-            
-            _logger.LogInformation("      [UpdateTask:{InitialStatusText}] {StatusText}", _initialStatusText, statusText);
             
             return Task.CompletedTask;
         }
