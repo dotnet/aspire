@@ -499,7 +499,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("transport", endpoint.Transport);
 
                 // Only emit exposedPort if it's not implicit (i.e., it was explicitly set or allocated)
-                if (resolved.ExposedPort.Value is int exposedPort && !resolved.ExposedPort.IsImplicit)
+                // and it's different from the target port
+                if (resolved.ExposedPort.Value is int exposedPort && !resolved.ExposedPort.IsImplicit &&
+                    (!resolved.TargetPort.Value.HasValue || resolved.TargetPort.Value.Value != exposedPort))
                 {
                     Writer.WriteNumber("port", exposedPort);
                 }
