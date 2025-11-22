@@ -288,7 +288,19 @@ internal sealed class InstallationManager : IInstallationManager, IDisposable
 
         private void ClearCompleted(Task completed)
         {
-            _ = ClearCompletedAsync(completed);
+            // Fire-and-forget cleanup - exceptions are acceptable here as this is just cleanup
+            _ = ClearCompletedAsync(completed).ContinueWith(
+                static t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        // Log the exception if needed, but don't rethrow as this is cleanup
+                        _ = t.Exception;
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
 
         private async Task ClearCompletedAsync(Task completed)
@@ -309,7 +321,8 @@ internal sealed class InstallationManager : IInstallationManager, IDisposable
 
         public void Dispose()
         {
-            _gate.Wait();
+            // Use GetAwaiter().GetResult() to avoid potential deadlocks from Wait()
+            _gate.WaitAsync().GetAwaiter().GetResult();
             try
             {
                 try
