@@ -364,4 +364,40 @@ public class ResourceDetailsTests : DashboardTestContext
                 Assert.True(e.IsValueMasked);
             });
     }
+
+    [Fact]
+    public void FilteredEnvironmentVariables_SortedByName()
+    {
+        // Arrange
+        ResourceSetupHelpers.SetupResourceDetails(this);
+
+        var resource = ModelTestHelpers.CreateResource(
+            "app1",
+            environment: new List<EnvironmentVariableViewModel>
+            {
+                new EnvironmentVariableViewModel("ZEBRA", "value1", fromSpec: true),
+                new EnvironmentVariableViewModel("alpha", "value2", fromSpec: true),
+                new EnvironmentVariableViewModel("Beta", "value3", fromSpec: true),
+                new EnvironmentVariableViewModel("GAMMA", "value4", fromSpec: true),
+                new EnvironmentVariableViewModel("delta", "value5", fromSpec: true)
+            }.ToImmutableArray());
+
+        // Act
+        var cut = RenderComponent<ResourceDetails>(builder =>
+        {
+            builder.Add(p => p.ShowSpecOnlyToggle, true);
+            builder.Add(p => p.Resource, resource);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel>(resource.Name, resource)]));
+        });
+
+        // Assert - verify environment variables are sorted alphabetically (case-insensitive)
+        var envVars = cut.Instance.FilteredEnvironmentVariables.ToList();
+        Assert.Equal(5, envVars.Count);
+        Assert.Collection(envVars,
+            e => Assert.Equal("alpha", e.Name),
+            e => Assert.Equal("Beta", e.Name),
+            e => Assert.Equal("delta", e.Name),
+            e => Assert.Equal("GAMMA", e.Name),
+            e => Assert.Equal("ZEBRA", e.Name));
+    }
 }

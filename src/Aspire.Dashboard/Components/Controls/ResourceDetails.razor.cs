@@ -68,6 +68,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
+            .OrderBy(vm => vm.Name, StringComparers.EnvironmentVariableName)
             .AsQueryable();
 
     internal IQueryable<DisplayedUrl> FilteredUrls =>
