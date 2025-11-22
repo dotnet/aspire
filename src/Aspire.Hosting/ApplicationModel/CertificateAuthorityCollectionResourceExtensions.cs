@@ -31,6 +31,7 @@ public static class CertificateAuthorityCollectionResourceExtensions
                 ResourceType = nameof(CertificateAuthorityCollection),
                 Properties = [],
                 IsHidden = true,
+                State = KnownResourceStates.Active
             });
     }
 
