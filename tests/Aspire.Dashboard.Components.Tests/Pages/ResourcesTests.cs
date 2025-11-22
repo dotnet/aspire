@@ -379,4 +379,58 @@ public partial class ResourcesTests : DashboardTestContext
             IsHidden = false,
         };
     }
+
+    private static ResourceViewModel CreateHiddenResource(string name, string type, string? state = null)
+    {
+        return new ResourceViewModel
+        {
+            Name = name,
+            ResourceType = type,
+            State = state,
+            KnownState = state is not null ? Enum.Parse<KnownResourceState>(state) : null,
+            DisplayName = name,
+            Uid = name,
+            HealthReports = [],
+
+            // unused properties
+            StateStyle = null,
+            CreationTimeStamp = null,
+            StartTimeStamp = null,
+            StopTimeStamp = null,
+            Environment = default,
+            Urls = [],
+            Volumes = default,
+            Relationships = default,
+            Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
+            Commands = [],
+            IsHidden = true,
+        };
+    }
+
+    [Fact]
+    public void ViewOptionsMenuIsVisibleWhenHiddenResourcesExist()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateHiddenResource("HiddenResource", "Type2"), // Hidden resource without parent relationship
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(
+            this,
+            viewport,
+            dashboardClient);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Assert - the menu button should be present (it contains the "Show hidden resources" option)
+        var menuButton = cut.FindComponent<AspireMenuButton>();
+        Assert.NotNull(menuButton);
+    }
 }
