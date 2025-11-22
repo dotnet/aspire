@@ -48,6 +48,7 @@ public static partial class SqlServerBuilderExtensions
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddResource(sqlServer)
                       .WithEndpoint(port: port, targetPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithImage(SqlServerContainerImageTags.Image, SqlServerContainerImageTags.Tag)
@@ -86,7 +87,23 @@ public static partial class SqlServerBuilderExtensions
                           {
                               await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
                           }
+                      })
+                      .WithServerAuthenticationCertificateConfiguration(async ctx =>
+                      {
+                          builder.CreateResourceBuilder((SqlServerServerResource)ctx.Resource)
+                              .WithContainerFiles("/var/opt/mssql/", [
+                                  new ContainerFile {
+                                      Name = "mssql.conf",
+                                      Contents = $"""
+                                                 [network]
+                                                 tlscert = {await ctx.CertificatePath.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false)}
+                                                 tlskey = {await ctx.KeyPath.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false)}
+                                                 #forceencryption = 1
+                                                 """
+                                  }
+                              ]);
                       });
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
