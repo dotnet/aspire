@@ -10,7 +10,7 @@
   service:
     image: "nginx:latest"
     ports:
-      - "8081"
+      - "8081:8081"
     expose:
       - "8080"
     networks:

@@ -52,7 +52,7 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
 
             // Docker Compose can handle dynamic port allocation, so only use exposed port if it was explicitly specified
             // Skip allocated or implicit ports - only use explicit ports
-            int? exposedPort = (resolved.ExposedPort.IsAllocated || resolved.ExposedPort.IsImplicit) ? null : resolved.ExposedPort.Value;
+            var exposedPort = (resolved.ExposedPort.IsAllocated || resolved.ExposedPort.IsImplicit) ? null : resolved.ExposedPort.Value;
 
             serviceResource.EndpointMappings.Add(endpoint.Name,
                 new(serviceResource.TargetResource,
