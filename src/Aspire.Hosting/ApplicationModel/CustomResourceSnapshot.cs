@@ -351,7 +351,7 @@ public static class KnownResourceStateStyles
     public static readonly string Info = "info";
 
     /// <summary>
-    /// The warn state. Useful for showing warnings.
+    /// The warning state. Useful for showing warnings.
     /// </summary>
     public static readonly string Warn = "warning";
 }
