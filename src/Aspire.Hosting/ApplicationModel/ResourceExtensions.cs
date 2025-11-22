@@ -769,8 +769,8 @@ public static class ResourceExtensions
         Func<X509Certificate2, ServerAuthCertificateConfigBuilderContext> certificateConfigContextFactory,
         CancellationToken cancellationToken = default)
     {
-        var effectiveAnnotation = new CertificateKeyPairAnnotation();
-        if (resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+        var effectiveAnnotation = new ServerAuthenticationCertificateAnnotation();
+        if (resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
         {
             effectiveAnnotation = annotation;
         }
@@ -799,7 +799,7 @@ public static class ResourceExtensions
 
         var configBuilderContext = certificateConfigContextFactory(certificate);
 
-        var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
+        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = executionContext,
             Resource = resource,
@@ -812,7 +812,7 @@ public static class ResourceExtensions
             CancellationToken = cancellationToken,
         };
 
-        foreach (var callback in resource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
+        foreach (var callback in resource.TryGetAnnotationsOfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<ServerAuthenticationCertificateConfigurationCallbackAnnotation>())
         {
             await callback.Callback(context).ConfigureAwait(false);
         }
