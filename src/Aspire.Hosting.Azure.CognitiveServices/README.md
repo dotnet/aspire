@@ -73,7 +73,7 @@ The Azure OpenAI deployment resource inherits all properties from its parent Azu
 |---------------|-------------|
 | `Deployment`  | The name of the Azure OpenAI deployment |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 
 ## Additional documentation
 

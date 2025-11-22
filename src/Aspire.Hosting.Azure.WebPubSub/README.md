@@ -35,7 +35,7 @@ When you reference an Azure Web PubSub resource using `WithReference`, the follo
 |---------------|-------------|
 | `Uri` | The HTTPS endpoint for the Web PubSub service, typically `https://<resource-name>.webpubsub.azure.com/` |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `wps1` becomes `WPS1_URI`.
 
 ## Additional documentation
 

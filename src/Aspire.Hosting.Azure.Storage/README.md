@@ -151,7 +151,7 @@ The Table Storage resource exposes the following connection properties:
 |---------------|-------------|
 | `Uri` | The URI of the table storage service, with the format `https://mystorageaccount.table.core.windows.net/` |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `queue1` becomes `QUEUE1_URI`.
 
 ## Additional documentation
 

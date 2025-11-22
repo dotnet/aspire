@@ -65,6 +65,19 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             ReferenceExpression.Create($"{InnerResource!.PrimaryEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"{FullyQualifiedDomainName}");
 
+
+    /// <summary>
+    /// Gets the port for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint port.
+    /// In Azure mode, resolves to 1433.
+    /// </remarks>
+    public ReferenceExpression Port =>
+        IsContainer ?
+            ReferenceExpression.Create($"{InnerResource.Port}") :
+            ReferenceExpression.Create($"1433");
+
     /// <summary>
     /// Gets the connection URI expression for the SQL Server.
     /// </summary>
@@ -303,7 +316,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         var result = new Dictionary<string, ReferenceExpression>(
         [
             new ("Host", ReferenceExpression.Create($"{HostName}")),
-            new ("Port", ReferenceExpression.Create($"1433")),
+            new ("Port", ReferenceExpression.Create($"{Port}")),
             new ("Uri", UriExpression),
             new ("JdbcConnectionString", JdbcConnectionString),
         ]);

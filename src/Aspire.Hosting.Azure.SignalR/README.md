@@ -62,7 +62,7 @@ When you reference an Azure SignalR resource using `WithReference`, the followin
 |---------------|-------------|
 | `Uri` | The connection URI for the SignalR service, with the format `https://{host}` in Azure (typically `https://<resource-name>.service.signalr.net`) or the emulator-provided endpoint when running locally |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `sr` becomes `SR_URI`.
 
 ## Additional documentation
 

@@ -60,23 +60,15 @@ builder.AddRedisClientBuilder("cache")
 
 When you reference Azure Redis resources using `WithReference`, the following connection properties are made available to the consuming project:
 
-### Azure Cache for Redis
-
-| Property Name | Description |
-|---------------|-------------|
-| `Host` | The hostname of the Azure Cache for Redis instance. |
-| `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
-
-When `RunAsContainer` is used, the resource inherits the standard Redis connection properties (`Host`, `Port`, optional `Password`, `Uri`) from `RedisResource`.
-
 ### Azure Redis Enterprise
 
 | Property Name | Description |
 |---------------|-------------|
 | `Host` | The hostname of the Azure Redis Enterprise database endpoint. |
+| `Port` | The port of the Azure Redis Enterprise database endpoint (10000 for Azure). |
 | `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `cache` becomes `CACHE_URI`.
 
 ## Additional documentation
 

@@ -101,7 +101,7 @@ The Azure AI Foundry deployment resource inherits all properties from its parent
 | `Deployment`  | The deployment name when targeting Azure |
 | `Model`       | The model identifier when running Foundry Local |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 
 ## Additional documentation
 

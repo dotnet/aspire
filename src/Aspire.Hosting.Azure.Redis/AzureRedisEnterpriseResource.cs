@@ -79,8 +79,20 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// </remarks>
     public ReferenceExpression HostName =>
         InnerResource is not null ?
-            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"{HostNameOutput}");
+
+    /// <summary>
+    /// Gets the host name for the Redis server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint host and port.
+    /// In Azure mode, resolves to 10000.
+    /// </remarks>
+    public ReferenceExpression Port =>
+        InnerResource is not null ?
+            ReferenceExpression.Create($"{InnerResource.Port}") :
+            ReferenceExpression.Create($"10000"); // Based on the ConfigureRedisInfrastructure method
 
     /// <summary>
     /// Gets the password for the Redis server when running as a container.
@@ -92,7 +104,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     public ReferenceExpression? Password =>
         InnerResource is not null && InnerResource.PasswordParameter is not null ?
             ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
-        null;
+            null;
 
     /// <summary>
     /// Gets the connection URI expression for the Redis server.
@@ -101,8 +113,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// Format: <c>redis://[:{password}@]{host}:{port}</c>. The password segment is omitted when using Entra ID authentication in Azure mode.
     /// </remarks>
     public ReferenceExpression UriExpression =>
-        InnerResource?.UriExpression ??
-            ReferenceExpression.Create($"redis://{HostName}");
+        InnerResource?.UriExpression ?? ReferenceExpression.Create($"redis://{HostName}:{Port}");
 
     internal void SetInnerResource(RedisResource innerResource)
     {
@@ -193,6 +204,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
         }
 
         yield return new("Host", HostName);
+        yield return new("Port", Port);
         yield return new("Uri", UriExpression);
     }
 }
