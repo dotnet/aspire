@@ -36,6 +36,46 @@ public class WithReferenceTests
         Assert.Same(projectA.Resource, r.Resource);
     }
 
+    [Fact]
+    public async Task ResourceNamesWithDashesAreEncodedInEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("project-a")
+                .WithHttpsEndpoint(1000, 2000, "mybinding")
+                .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        var projectB = builder.AddProject<ProjectB>("consumer")
+            .WithReference(projectA);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("https://localhost:2000", config["services__project-a__mybinding__0"]);
+        Assert.Equal("https://localhost:2000", config["PROJECT_A_MYBINDING"]);
+        Assert.DoesNotContain("services__project_a__mybinding__0", config.Keys);
+        Assert.DoesNotContain("PROJECT-A_MYBINDING", config.Keys);
+    }
+
+    [Fact]
+    public async Task OverriddenServiceNamesAreEncodedInEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("project-a")
+                .WithHttpsEndpoint(1000, 2000, "mybinding")
+                .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        var projectB = builder.AddProject<ProjectB>("consumer")
+            .WithReference(projectA, "custom-name");
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("https://localhost:2000", config["services__custom-name__mybinding__0"]);
+        Assert.Equal("https://localhost:2000", config["custom_name_MYBINDING"]);
+        Assert.DoesNotContain("services__custom_name__mybinding__0", config.Keys);
+        Assert.DoesNotContain("custom-name_MYBINDING", config.Keys);
+    }
+
     [Theory]
     [InlineData(ReferenceEnvironmentInjectionFlags.All)]
     [InlineData(ReferenceEnvironmentInjectionFlags.ConnectionProperties)]
@@ -666,6 +706,27 @@ public class WithReferenceTests
         Assert.Contains(config, kvp => kvp.Key == "BOB_PORT" && kvp.Value == "5432");
         Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_HOST");
         Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_PORT");
+    }
+
+    [Fact]
+    public async Task ConnectionPropertiesWithDashedNamesAreEncoded()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var resource = builder.AddResource(new TestResourceWithProperties("resource-with-dash")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithReference(resource);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_WITH_DASH_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_WITH_DASH_PORT" && kvp.Value == "5432");
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE-WITH-DASH_HOST");
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE-WITH-DASH_PORT");
     }
 
     private sealed class TestResourceWithProperties(string name) : Resource(name), IResourceWithConnectionString

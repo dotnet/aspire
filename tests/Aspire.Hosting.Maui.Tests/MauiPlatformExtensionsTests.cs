@@ -615,6 +615,54 @@ public class MauiPlatformExtensionsTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(AllPlatforms))]
+    public async Task WithOtlpDevTunnel_CleansUpIntermediateEnvironmentVariables(PlatformTestConfig config)
+    {
+        // Arrange
+        var projectContent = CreateProjectContent(config.RequiredTfm);
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+            var platform = config.AddPlatformWithDefaultName(maui);
+
+            // Act
+            config.ApplyWithOtlpDevTunnel(platform);
+
+            var endpointAnnotations = appBuilder.Resources.SelectMany(x => x.Annotations.OfType<EndpointAnnotation>());
+
+            foreach (var endpointAnnotation in endpointAnnotations)
+            {
+                endpointAnnotation.AllocatedEndpointSnapshot.SetValue(new AllocatedEndpoint(endpointAnnotation, "localhost", 1234));
+            }
+
+            var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+                platform.Resource,
+                DistributedApplicationOperation.Run,
+                TestServiceProvider.Instance);
+
+            // Assert
+            Assert.True(envVars.TryGetValue("OTEL_EXPORTER_OTLP_ENDPOINT", out var endpointValue));
+            Assert.False(string.IsNullOrWhiteSpace(endpointValue));
+            Assert.True(Uri.TryCreate(endpointValue, UriKind.Absolute, out _));
+
+            var tunnelConfig = maui.Resource.Annotations.OfType<OtlpDevTunnelConfigurationAnnotation>().Single();
+            var stubName = tunnelConfig.OtlpStub.Name;
+            var serviceDiscoveryKey = $"services__{stubName}__otlp__0";
+            Assert.DoesNotContain(serviceDiscoveryKey, envVars.Keys);
+
+            var directEndpointKey = $"{EnvironmentVariableNameEncoder.Encode(stubName).ToUpperInvariant()}_OTLP";
+            Assert.DoesNotContain(directEndpointKey, envVars.Keys);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
     // Helper methods
 
     private static string CreateProjectContent(string requiredTfm)
@@ -649,7 +697,8 @@ public class MauiPlatformExtensionsTests
 
     private static string CreateTempProjectFile(string content)
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.csproj");
+        var tempFolder = Directory.CreateTempSubdirectory();
+        var tempFile = Path.Combine(tempFolder.FullName, "TempMauiProject.csproj");
         File.WriteAllText(tempFile, content);
         return tempFile;
     }
