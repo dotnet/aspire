@@ -81,6 +81,11 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// </remarks>
     public string DefaultServiceType { get; set; } = "ClusterIP";
 
+    /// <summary>
+    /// Gets or sets whether or not to dynamically provision a PV when generating artifacts for a PV.
+    /// </summary>
+    public bool DefaultShouldDynamicallyProvision { get; set; }
+
     /// <param name="name">The name of the Kubernetes environment.</param>
     public KubernetesEnvironmentResource(string name) : base(name)
     {
