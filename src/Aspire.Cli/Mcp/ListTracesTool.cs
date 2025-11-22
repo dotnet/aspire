@@ -28,7 +28,7 @@ internal sealed class ListTracesTool : CliMcpTool
             """).RootElement;
     }
 
-    public override ValueTask<CallToolResult> CallToolAsync(IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
     {
         throw new McpProtocolException("list_traces tool is not yet implemented.", McpErrorCode.MethodNotFound);
     }

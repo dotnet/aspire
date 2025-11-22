@@ -33,7 +33,7 @@ internal sealed class ExecuteResourceCommandTool : CliMcpTool
             """).RootElement;
     }
 
-    public override ValueTask<CallToolResult> CallToolAsync(IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
     {
         throw new McpProtocolException("execute_resource_command tool is not yet implemented.", McpErrorCode.MethodNotFound);
     }

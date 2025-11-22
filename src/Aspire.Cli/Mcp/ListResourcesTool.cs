@@ -18,7 +18,7 @@ internal sealed class ListResourcesTool : CliMcpTool
         return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
     }
 
-    public override ValueTask<CallToolResult> CallToolAsync(IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
     {
         throw new McpProtocolException("list_resources tool is not yet implemented.", McpErrorCode.MethodNotFound);
     }

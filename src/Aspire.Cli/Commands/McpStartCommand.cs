@@ -2,12 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
+using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -16,10 +19,14 @@ namespace Aspire.Cli.Commands;
 internal sealed class McpStartCommand : BaseCommand
 {
     private readonly Dictionary<string, CliMcpTool> _tools;
+    private readonly AuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
+        _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
+        _loggerFactory = loggerFactory;
         _tools = new Dictionary<string, CliMcpTool>
         {
             ["list_resources"] = new ListResourcesTool(),
@@ -54,13 +61,37 @@ internal sealed class McpStartCommand : BaseCommand
                             InputSchema = tool.GetInputSchema()
                         }).ToArray()
                     }),
-                CallToolHandler = (request, cancellationToken) =>
+                CallToolHandler = async (request, cancellationToken) =>
                 {
                     var toolName = request.Params?.Name ?? string.Empty;
 
                     if (_tools.TryGetValue(toolName, out var tool))
                     {
-                        return tool.CallToolAsync(request.Params?.Arguments, cancellationToken);
+                        // Get the first auxiliary backchannel connection
+                        var connection = _auxiliaryBackchannelMonitor.Connections.Values.FirstOrDefault();
+                        if (connection == null)
+                        {
+                            throw new McpProtocolException("No auxiliary backchannel connection available. Ensure an Aspire app is running.", McpErrorCode.InternalError);
+                        }
+
+                        // Create HTTP transport to the dashboard's MCP server
+                        var transportOptions = new HttpClientTransportOptions
+                        {
+                            Endpoint = new Uri(connection.McpInfo.EndpointUrl),
+                            AdditionalHeaders = new Dictionary<string, string>
+                            {
+                                ["X-API-Key"] = connection.McpInfo.ApiToken
+                            }
+                        };
+
+                        var httpClient = new HttpClient();
+                        await using var transport = new HttpClientTransport(transportOptions, httpClient, _loggerFactory, ownsHttpClient: true);
+                        
+                        // Create MCP client to communicate with the dashboard
+                        await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
+
+                        // Call the tool with the MCP client
+                        return await tool.CallToolAsync(mcpClient, request.Params?.Arguments, cancellationToken);
                     }
 
                     throw new McpProtocolException($"Unknown tool: '{toolName}'", McpErrorCode.MethodNotFound);
