@@ -8,42 +8,42 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static partial class AzureRedisEnterpriseExtensions
     {
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> AddAzureRedisEnterprise(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> RunAsContainer(this ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> builder, System.Action<ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource>>? configureContainer = null) { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder) { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisEnterpriseResource> builder) { throw null; }
     }
 
     public static partial class AzureRedisExtensions
     {
+        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedis instead to add an Azure Cache for Redis resource.")]
+        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AsAzureRedis(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder) { throw null; }
 
-        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedis instead to add an Azure Cache for Redis resource.")]
+        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> PublishAsAzureRedis(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder) { throw null; }
 
+        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> RunAsContainer(this ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> builder, System.Action<ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource>>? configureContainer = null) { throw null; }
 
+        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder) { throw null; }
 
+        [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> builder) { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzureRedisEnterprise instead which provisions Azure Managed Redis.")]
     public partial class AzureRedisCacheResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureRedisCacheResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
@@ -66,7 +66,6 @@ namespace Aspire.Hosting.Azure
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial class AzureRedisEnterpriseResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureRedisEnterpriseResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
