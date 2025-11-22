@@ -51,7 +51,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
-    internal PortAllocator PortAllocator { get; } = new();
+    internal IPortAllocator PortAllocator { get; } = new PortAllocator();
 
     /// <param name="name">The name of the Docker Compose environment.</param>
     public DockerComposeEnvironmentResource(string name) : base(name)

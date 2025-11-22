@@ -162,21 +162,20 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private void ProcessEndpoints()
     {
-        if (!resource.TryGetEndpoints(out var endpoints))
-        {
-            return;
-        }
+        var resolvedEndpoints = resource.ResolveEndpoints(Parent.PortAllocator);
 
-        foreach (var endpoint in endpoints)
+        foreach (var resolved in resolvedEndpoints)
         {
-            if (resource is ProjectResource && endpoint.TargetPort is null)
+            var endpoint = resolved.Endpoint;
+
+            if (resolved.TargetPort.Value is null)
             {
+                // Default endpoint for ProjectResource - deployment tool assigns port
                 GenerateDefaultProjectEndpointMapping(endpoint);
                 continue;
             }
 
-            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
-            var portValue = port.ToString(CultureInfo.InvariantCulture);
+            var portValue = resolved.TargetPort.Value.Value.ToString(CultureInfo.InvariantCulture);
             EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
         }
     }
@@ -185,15 +184,13 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         const string defaultPort = "8080";
 
+        // Create a Helm parameter for the container port
         var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-
         var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
 
-        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
-
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name, helmExpression);
+        // Use the parameter as the target port in the endpoint mapping
+        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name);
     }
 
     private void ProcessVolumes()
