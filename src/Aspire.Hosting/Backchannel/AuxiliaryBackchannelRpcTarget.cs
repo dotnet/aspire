@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,6 +20,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     ILogger<AuxiliaryBackchannelRpcTarget> logger,
     IServiceProvider serviceProvider)
 {
+    private const string McpEndpointName = "mcp";
+
     /// <summary>
     /// Gets the Dashboard MCP connection information including endpoint URL and API token.
     /// </summary>
@@ -27,21 +29,45 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// <exception cref="InvalidOperationException">Thrown when Dashboard is not enabled or MCP endpoint is not available.</exception>
     public Task<McpConnectionInfo> GetMcpConnectionInfoAsync()
     {
-        var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
-
-        if (dashboardOptions is null)
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is null)
         {
-            logger.LogWarning("Dashboard options not found.");
-            throw new InvalidOperationException("Dashboard options not found.");
+            logger.LogWarning("Application model not found.");
+            throw new InvalidOperationException("Application model not found.");
         }
 
-        if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.McpEndpointUrl, ";", out var mcpEndpointUri))
+        // Find the dashboard resource
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => 
+            string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName)) as IResourceWithEndpoints;
+
+        if (dashboardResource is null)
         {
-            logger.LogWarning("Dashboard MCP endpoint URL could not be parsed from dashboard options.");
+            logger.LogWarning("Dashboard resource not found in application model.");
+            throw new InvalidOperationException("Dashboard is not enabled.");
+        }
+
+        // Get the MCP endpoint from the dashboard resource
+        var mcpEndpoint = dashboardResource.GetEndpoint(McpEndpointName);
+        if (!mcpEndpoint.Exists)
+        {
+            // Fallback to the frontend endpoint (http/https) as done in DashboardEventHandlers
+            mcpEndpoint = dashboardResource.GetEndpoint("https");
+            if (!mcpEndpoint.Exists)
+            {
+                mcpEndpoint = dashboardResource.GetEndpoint("http");
+            }
+        }
+
+        if (!mcpEndpoint.Exists || string.IsNullOrEmpty(mcpEndpoint.Url))
+        {
+            logger.LogWarning("Dashboard MCP endpoint not found or not allocated.");
             throw new InvalidOperationException("Dashboard MCP endpoint URL is not available.");
         }
 
-        var mcpApiKey = dashboardOptions.Value.McpApiKey;
+        // Get the API key from dashboard options
+        var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
+        var mcpApiKey = dashboardOptions?.Value.McpApiKey;
+        
         if (string.IsNullOrEmpty(mcpApiKey))
         {
             logger.LogWarning("Dashboard MCP API key is not available.");
@@ -50,7 +76,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         return Task.FromResult(new McpConnectionInfo
         {
-            EndpointUrl = mcpEndpointUri.ToString(),
+            EndpointUrl = mcpEndpoint.Url,
             ApiToken = mcpApiKey
         });
     }
