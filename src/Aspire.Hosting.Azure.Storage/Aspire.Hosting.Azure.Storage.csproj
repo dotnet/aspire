@@ -19,6 +19,7 @@
     <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Queues" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Storage" />
+    <PackageReference Include="Azure.Storage.Files.DataLake" />
   </ItemGroup>
 
 </Project>
