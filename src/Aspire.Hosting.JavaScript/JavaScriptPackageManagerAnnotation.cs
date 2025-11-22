@@ -35,6 +35,11 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     public string? CacheMount { get; } = cacheMount;
 
     /// <summary>
+    /// Gets the URL with installation instructions for this package manager.
+    /// </summary>
+    public string? InstallHelpLink { get; init; }
+
+    /// <summary>
     /// Gets the file patterns for package dependency files.
     /// </summary>
     public List<CopyFilePattern> PackageFilesPatterns { get; } = [];

@@ -6,6 +6,7 @@
 #pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES004
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIRECOMMAND001
 
 using System.Diagnostics;
 using System.Reflection;
@@ -475,6 +476,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();
         _innerBuilder.Services.AddSingleton(Pipeline);
+
+        // Installation manager for validating required commands
+        _innerBuilder.Services.TryAddSingleton<IInstallationManager, InstallationManager>();
 
         // Configure pipeline logging options
         _innerBuilder.Services.Configure<PipelineLoggingOptions>(options =>
