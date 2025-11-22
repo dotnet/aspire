@@ -12,6 +12,8 @@ using System.Text.RegularExpressions;
 
 namespace Aspire.Hosting.Tests;
 
+[Collection("WaitForTests")]
+[Trait("Partition", "WaitForTests")]
 public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]

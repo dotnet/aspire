@@ -32,8 +32,13 @@
     </PropertyGroup>
 
     <ReadLinesFromFile File="$(TestArchiveTestsDirForTemplateTests)$(TestProjectName).tests.list">
-      <Output TaskParameter="Lines" ItemName="_TemplateTestsClassNames" />
+      <Output TaskParameter="Lines" ItemName="_TemplateTestsClassNamesRaw" />
     </ReadLinesFromFile>
+
+    <!-- Strip class: prefix from test class names -->
+    <ItemGroup>
+      <_TemplateTestsClassNames Include="@(_TemplateTestsClassNamesRaw->'%(Identity)'->Replace('class:', ''))" />
+    </ItemGroup>
 
     <Error Condition="@(_TemplateTestsClassNames->Count()) == 0"
            Text="No workload test class names found" />
