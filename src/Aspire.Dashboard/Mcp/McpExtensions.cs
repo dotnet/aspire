@@ -55,6 +55,25 @@ public static class McpExtensions
             builder.WithTools<AspireResourceMcpTools>();
         }
 
+        builder.AddCallToolFilter(next =>
+
+
+        async (context, cancellationToken) =>
+        {
+            try
+            {
+                return await next(context, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                return new CallToolResult
+                {
+                    Content = new[] { new TextContent { Type = "text", Text = $"Error: {ex.Message}" } },
+                    IsError = true
+                };
+            }
+        });
+
         return builder;
     }
 }
