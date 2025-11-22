@@ -84,7 +84,8 @@ internal sealed class McpStartCommand : BaseCommand
                             }
                         };
 
-                        var httpClient = new HttpClient();
+                        using var httpClient = new HttpClient();
+
                         await using var transport = new HttpClientTransport(transportOptions, httpClient, _loggerFactory, ownsHttpClient: true);
                         
                         // Create MCP client to communicate with the dashboard

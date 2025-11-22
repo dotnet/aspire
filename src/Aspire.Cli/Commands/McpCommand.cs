@@ -3,21 +3,23 @@
 
 using System.CommandLine;
 using System.CommandLine.Help;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class McpCommand : BaseCommand
 {
-    public McpCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+    public McpCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory);
         Subcommands.Add(startCommand);
     }
 
