@@ -13,6 +13,8 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, string virtualEnvironmentPath, params string[] scriptArgs) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithPoetry<T>(this ApplicationModel.IResourceBuilder<T> builder, bool install = true, string[]? installArgs = null, (string key, string value)[]? env = null) where T : Python.PythonAppResource { throw null; }
     }
 
     [System.Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
