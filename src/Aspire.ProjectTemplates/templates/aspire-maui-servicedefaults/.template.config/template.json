@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "MAUI",
+    "Aspire",
+    "Cloud",
+    "Web",
+    "Web API",
+    "API",
+    "Service"
+  ],
+  "name": ".NET MAUI Aspire Service Defaults",
+  "defaultName": "MauiAspire.ServiceDefaults",
+  "description": "A project template for creating an Aspire service defaults project for .NET MAUI.",
+  "shortName": "maui-aspire-servicedefaults",
+  "sourceName": "MauiAspire.ServiceDefaults1",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "precedence": "9000",
+  "identity": "Aspire.MauiServiceDefaults.CSharp.8.0",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "groupIdentity": "Aspire.MauiServiceDefaults",
+  "sources": [
+    {
+      "source": "./13.0",
+      "target": "./",
+      "condition": "AspireVersionActual == 13.0"
+    }
+  ],
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework for the project.",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net10.0",
+          "description": "Target net10.0"
+        }
+      ],
+      "replaces": "net10.0",
+      "defaultValue": "net10.0"
+    },
+    "AspireVersion": {
+      "type": "parameter",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "13.0",
+          "displayName": "13.0",
+          "description": "Chooses Aspire 13.0"
+        }
+      ],
+      "defaultValue": "13.0"
+    },
+    "AspireVersionActual": {
+      "type": "generated",
+      "generator": "switch",
+      "replaces": "aspireVersion",
+      "parameters": {
+        "cases": [
+          {
+            "condition": "",
+            "value": "13.0"
+          }
+        ]
+      }
+    },
+    "hostIdentifier": {
+      "type": "bind",
+      "binding": "HostIdentifier"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "MauiAspire.ServiceDefaults1.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}
