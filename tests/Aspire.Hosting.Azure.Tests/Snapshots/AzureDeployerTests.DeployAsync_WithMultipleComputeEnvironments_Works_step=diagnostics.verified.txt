@@ -22,23 +22,23 @@ Steps with no dependencies run first, followed by steps that depend on them.
   6. build
   7. validate-azure-login
   8. create-provisioning-context
-  9. provision-aca-env
- 10. provision-cache-containerapp
- 11. print-cache-summary
- 12. provision-aas-env
- 13. login-to-acr-aas-env
- 14. push-api-service
- 15. provision-api-service-website
- 16. login-to-acr-aca-env
- 17. push-python-app
- 18. provision-python-app-containerapp
- 19. provision-storage
- 20. provision-azure-bicep-resources
- 21. print-dashboard-url-aas-env
- 22. print-dashboard-url-aca-env
- 23. print-python-app-summary
- 24. deploy
- 25. print-api-service-summary
+  9. provision-aas-env
+ 10. login-to-acr-aas-env
+ 11. push-api-service
+ 12. provision-api-service-website
+ 13. print-api-service-summary
+ 14. provision-aca-env
+ 15. provision-cache-containerapp
+ 16. print-cache-summary
+ 17. login-to-acr-aca-env
+ 18. push-python-app
+ 19. provision-python-app-containerapp
+ 20. provision-storage
+ 21. provision-azure-bicep-resources
+ 22. print-dashboard-url-aas-env
+ 23. print-dashboard-url-aca-env
+ 24. print-python-app-summary
+ 25. deploy
  26. deploy-api-service
  27. deploy-cache
  28. deploy-python-app
@@ -74,7 +74,7 @@ Step: create-provisioning-context
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: deploy
-    Dependencies: ✓ build-api-service, ✓ build-python-app, ✓ create-provisioning-context, ✓ print-cache-summary, ✓ print-dashboard-url-aas-env, ✓ print-dashboard-url-aca-env, ✓ print-python-app-summary, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
+    Dependencies: ✓ build-api-service, ✓ build-python-app, ✓ create-provisioning-context, ✓ print-api-service-summary, ✓ print-cache-summary, ✓ print-dashboard-url-aas-env, ✓ print-dashboard-url-aca-env, ✓ print-python-app-summary, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
 
 Step: deploy-api-service
     Dependencies: ✓ print-api-service-summary
@@ -250,8 +250,8 @@ If targeting 'create-provisioning-context':
     [3] create-provisioning-context
 
 If targeting 'deploy':
-  Direct dependencies: build-api-service, build-python-app, create-provisioning-context, print-cache-summary, print-dashboard-url-aas-env, print-dashboard-url-aca-env, print-python-app-summary, provision-azure-bicep-resources, validate-azure-login
-  Total steps: 23
+  Direct dependencies: build-api-service, build-python-app, create-provisioning-context, print-api-service-summary, print-cache-summary, print-dashboard-url-aas-env, print-dashboard-url-aca-env, print-python-app-summary, provision-azure-bicep-resources, validate-azure-login
+  Total steps: 24
   Execution order:
     [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
@@ -261,7 +261,7 @@ If targeting 'deploy':
     [5] login-to-acr-aas-env | login-to-acr-aca-env | provision-cache-containerapp (parallel)
     [6] print-cache-summary | push-api-service | push-python-app (parallel)
     [7] provision-api-service-website | provision-python-app-containerapp (parallel)
-    [8] print-python-app-summary | provision-azure-bicep-resources (parallel)
+    [8] print-api-service-summary | print-python-app-summary | provision-azure-bicep-resources (parallel)
     [9] print-dashboard-url-aas-env | print-dashboard-url-aca-env (parallel)
     [10] deploy
 
