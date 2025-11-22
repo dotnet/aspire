@@ -217,6 +217,16 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             return false;
         }
 
+        static void SetScopeProperty(ProvisionableResource provisionableResource, BicepValue<string> scope)
+        {
+            // HACK: This is a dance we do to set extra properties using Azure.Provisioning
+            // will be resolved if we ever get https://github.com/Azure/azure-sdk-for-net/issues/47980
+            var expression = scope.Compile();
+            var value = new BicepValue<string>(expression);
+            ((IBicepValue)value).Self = new BicepValueReference(provisionableResource, "Scope", ["scope"]);
+            provisionableResource.ProvisionableProperties["scope"] = value;
+        }
+
         // Apply resource group scope if the target infrastructure's resource group is different from the existing annotation's resource group
         if (existingAnnotation.ResourceGroup is not null &&
            !ResourceGroupEquals(existingAnnotation.ResourceGroup, infra.AspireResource.Scope?.ResourceGroup))
@@ -249,12 +259,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 };
             }
 
-            // HACK: This is a dance we do to set extra properties using Azure.Provisioning
-            // will be resolved if we ever get https://github.com/Azure/azure-sdk-for-net/issues/47980
-            var expression = scope.Compile();
-            var value = new BicepValue<string>(expression);
-            ((IBicepValue)value).Self = new BicepValueReference(provisionableResource, "Scope", ["scope"]);
-            provisionableResource.ProvisionableProperties["scope"] = value;
+            SetScopeProperty(provisionableResource, scope);
         }
         // Handle subscription-only scope (no resource group override)
         else if (existingAnnotation.Subscription is not null)
@@ -266,12 +271,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 _ => throw new NotSupportedException($"Subscription type '{existingAnnotation.Subscription.GetType()}' is not supported.")
             };
 
-            // HACK: This is a dance we do to set extra properties using Azure.Provisioning
-            // will be resolved if we ever get https://github.com/Azure/azure-sdk-for-net/issues/47980
-            var expression = scope.Compile();
-            var value = new BicepValue<string>(expression);
-            ((IBicepValue)value).Self = new BicepValueReference(provisionableResource, "Scope", ["scope"]);
-            provisionableResource.ProvisionableProperties["scope"] = value;
+            SetScopeProperty(provisionableResource, scope);
         }
         // Handle tenant-only scope (no resource group or subscription override)
         else if (existingAnnotation.Tenant is not null)
@@ -283,12 +283,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 _ => throw new NotSupportedException($"Tenant type '{existingAnnotation.Tenant.GetType()}' is not supported.")
             };
 
-            // HACK: This is a dance we do to set extra properties using Azure.Provisioning
-            // will be resolved if we ever get https://github.com/Azure/azure-sdk-for-net/issues/47980
-            var expression = scope.Compile();
-            var value = new BicepValue<string>(expression);
-            ((IBicepValue)value).Self = new BicepValueReference(provisionableResource, "Scope", ["scope"]);
-            provisionableResource.ProvisionableProperties["scope"] = value;
+            SetScopeProperty(provisionableResource, scope);
         }
 
         return true;
