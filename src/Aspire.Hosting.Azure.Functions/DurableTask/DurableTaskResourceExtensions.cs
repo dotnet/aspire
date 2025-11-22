@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.DurableTask;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Azure.Hosting;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for adding and configuring Durable Task resources within a distributed application.
@@ -44,11 +43,30 @@ public static class DurableTaskResourceExtensions
     }
 
     /// <summary>
+    /// Configures the Durable Task scheduler to use an existing scheduler instance referenced by the provided connection string.
+    /// No new scheduler resource is provisioned.
+    /// </summary>
+    /// <param name="builder">The scheduler resource builder.</param>
+    /// <param name="connectionString">The connection string parameter referencing the existing Durable Task scheduler instance.</param>
+    /// <returns>The same <see cref="IResourceBuilder{DurableTaskSchedulerResource}"/> instance for fluent chaining.</returns>
+    /// <remarks>The existing resource annotation is only applied when the execution context is not in publish mode.</remarks>
+    public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, IResourceBuilder<ParameterResource> connectionString)
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithAnnotation(new DurableTaskSchedulerConnectionStringAnnotation(connectionString));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Configures the Durable Task scheduler to run using the local emulator (only in non-publish modes).
     /// </summary>
     /// <param name="builder">The resource builder for the scheduler.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>The same <see cref="IResourceBuilder{DurableTaskSchedulerResource}"/> instance for chaining.</returns>
-    public static IResourceBuilder<DurableTaskSchedulerResource> RunAsEmulator(this IResourceBuilder<DurableTaskSchedulerResource> builder)
+    public static IResourceBuilder<DurableTaskSchedulerResource> RunAsEmulator(this IResourceBuilder<DurableTaskSchedulerResource> builder, Action<IResourceBuilder<DurableTaskSchedulerEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -73,7 +91,9 @@ public static class DurableTaskResourceExtensions
 
         var emulatorResource = new DurableTaskSchedulerEmulatorResource(builder.Resource);
 
-        builder.ApplicationBuilder.CreateResourceBuilder(emulatorResource);
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorResource);
+
+        configureContainer?.Invoke(surrogateBuilder);
 
         return builder;
     }
