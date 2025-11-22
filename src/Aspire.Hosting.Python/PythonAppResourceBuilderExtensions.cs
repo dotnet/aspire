@@ -8,7 +8,6 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -16,6 +15,7 @@ using Microsoft.Extensions.Logging;
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 namespace Aspire.Hosting;
 
@@ -365,8 +365,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
-        // Register Python environment validation services (once per builder)
-        builder.Services.TryAddSingleton<PythonInstallationManager>();
+        // InstallationManager is registered globally in DistributedApplicationBuilder
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -1258,8 +1257,7 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Register UV validation service
-        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+        // InstallationManager is registered globally in DistributedApplicationBuilder
 
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
@@ -1357,8 +1355,8 @@ public static class PythonAppResourceBuilderExtensions
                     executable.Command == "uv")
                 {
                     // Validate that uv is installed - don't throw so the app fails as it normally would
-                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
-                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                    var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+                    await installationManager.EnsureInstalledAsync("uv", helpLink: "https://docs.astral.sh/uv/getting-started/installation/", cancellationToken: ct).ConfigureAwait(false);
                 }
                 // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
             });
@@ -1440,8 +1438,27 @@ public static class PythonAppResourceBuilderExtensions
             .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
             {
                 // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
-                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
-                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+
+                // Try common Python command names based on platform
+                // On Windows: python, py
+                // On Linux/macOS: python3, python
+                var pythonCommands = OperatingSystem.IsWindows()
+                    ? new[] { "python", "py" }
+                    : new[] { "python3", "python" };
+
+                foreach (var pythonCommand in pythonCommands)
+                {
+                    var isInstalled = await installationManager.EnsureInstalledAsync(
+                        pythonCommand,
+                        helpLink: "https://www.python.org/downloads/",
+                        cancellationToken: ct).ConfigureAwait(false);
+
+                    if (isInstalled)
+                    {
+                        break; // Found a working Python installation
+                    }
+                }
             });
 
         // Wait relationships will be set up dynamically in SetupDependencies
