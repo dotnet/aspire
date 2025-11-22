@@ -184,10 +184,29 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             dashboardOptions = new DashboardOptions();
             // Set minimal required configuration
             dashboardOptions.Frontend.AuthMode = FrontendAuthMode.Unsecured;
-            dashboardOptions.Otlp.AuthMode = OtlpAuthMode.Unsecured;
-            dashboardOptions.Mcp.AuthMode = McpAuthMode.Unsecured;
-            // Use a default frontend address
             dashboardOptions.Frontend.EndpointUrls = "http://localhost:18888";
+            dashboardOptions.Otlp.AuthMode = OtlpAuthMode.Unsecured;
+            dashboardOptions.Otlp.GrpcEndpointUrl = "http://localhost:18889";
+            dashboardOptions.Mcp.AuthMode = McpAuthMode.Unsecured;
+            dashboardOptions.Mcp.EndpointUrl = "http://localhost:18890";
+            
+            // Parse the default options to initialize internal state
+            // PostConfigure will call TryParseOptions internally
+            new PostConfigureDashboardOptions(builder.Configuration).PostConfigure(string.Empty, dashboardOptions);
+            
+            // Ensure all options are parsed - PostConfigure should have done this, but verify
+            if (!dashboardOptions.Frontend.TryParseOptions(out _))
+            {
+                throw new InvalidOperationException("Failed to parse default frontend options in error mode");
+            }
+            if (!dashboardOptions.Otlp.TryParseOptions(out _))
+            {
+                throw new InvalidOperationException("Failed to parse default OTLP options in error mode");
+            }
+            if (!dashboardOptions.Mcp.TryParseOptions(out _))
+            {
+                throw new InvalidOperationException("Failed to parse default MCP options in error mode");
+            }
         }
         else
         {
