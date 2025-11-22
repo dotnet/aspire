@@ -21,6 +21,12 @@ public readonly struct ResolvedPort
     public bool IsAllocated { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the port was implicitly inferred from another value.
+    /// When true, the port was derived (e.g., exposed port matching target port) rather than explicitly specified by the user.
+    /// </summary>
+    public bool IsImplicit { get; init; }
+
+    /// <summary>
     /// Creates a <see cref="ResolvedPort"/> with an explicitly specified port.
     /// </summary>
     /// <param name="port">The explicitly specified port number.</param>
@@ -33,6 +39,13 @@ public readonly struct ResolvedPort
     /// <param name="port">The allocated port number.</param>
     /// <returns>A <see cref="ResolvedPort"/> with IsAllocated set to true.</returns>
     public static ResolvedPort Allocated(int port) => new() { Value = port, IsAllocated = true };
+
+    /// <summary>
+    /// Creates a <see cref="ResolvedPort"/> with an implicitly inferred port.
+    /// </summary>
+    /// <param name="port">The implicitly inferred port number.</param>
+    /// <returns>A <see cref="ResolvedPort"/> with IsImplicit set to true.</returns>
+    public static ResolvedPort Implicit(int port) => new() { Value = port, IsImplicit = true };
 
     /// <summary>
     /// Creates a <see cref="ResolvedPort"/> with no port (null).

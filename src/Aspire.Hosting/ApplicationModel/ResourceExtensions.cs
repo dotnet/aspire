@@ -1085,12 +1085,14 @@ public static class ResourceExtensions
             // Compute exposed port (host port)
             ResolvedPort exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort.Value) switch
             {
-                // Port was explicitly specified, so use it
-                (_, int port, _) => ResolvedPort.Explicit(port),
+                // Port was explicitly specified and differs from target port, so use it
+                (_, int port, int targetPortValue) when port != targetPortValue => ResolvedPort.Explicit(port),
 
-                // We have a target port, no need to specify an exposedPort
-                // it will default to the targetPort
-                (_, null, int) => ResolvedPort.None(),
+                // Port equals target port - infer exposedPort from targetPort
+                (_, int port, int) => ResolvedPort.Implicit(port),
+
+                // We have a target port, infer the exposedPort from it
+                (_, null, int targetPortValue) => ResolvedPort.Implicit(targetPortValue),
 
                 // Let the tool infer the default http and https ports
                 ("http", null, null) => ResolvedPort.None(),
