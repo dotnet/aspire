@@ -17,23 +17,20 @@ public sealed class MockImageBuilder : IResourceContainerImageBuilder
     public bool TagImageCalled { get; private set; }
     public bool PushImageCalled { get; private set; }
     public List<IResource> BuildImageResources { get; } = [];
-    public List<ContainerBuildOptions?> BuildImageOptions { get; } = [];
     public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
     public List<string> PushImageCalls { get; } = [];
 
-    public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+    public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
     {
         BuildImageCalled = true;
         BuildImageResources.Add(resource);
-        BuildImageOptions.Add(options);
         return Task.CompletedTask;
     }
 
-    public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+    public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
     {
         BuildImagesCalled = true;
         BuildImageResources.AddRange(resources);
-        BuildImageOptions.Add(options);
         return Task.CompletedTask;
     }
 

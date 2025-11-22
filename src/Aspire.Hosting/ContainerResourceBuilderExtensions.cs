@@ -44,10 +44,6 @@ public static class ContainerResourceBuilderExtensions
 
                     await containerImageBuilder.BuildImageAsync(
                         builder.Resource,
-                        new ContainerBuildOptions
-                        {
-                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                        },
                         ctx.CancellationToken).ConfigureAwait(false);
                 },
                 Tags = [WellKnownPipelineTags.BuildCompute],
@@ -553,6 +549,22 @@ public static class ContainerResourceBuilderExtensions
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
 
+        // Add default container build options annotation that uses the DockerfileBuildAnnotation's ImageName and ImageTag
+        var defaultContainerBuildOptions = new ContainerBuildOptionsCallbackAnnotation(context =>
+        {
+            // Use DockerfileBuildAnnotation values if set, otherwise fall back to resource name
+            if (context.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileAnnotation))
+            {
+                context.LocalImageName = dockerfileAnnotation.ImageName ?? context.Resource.Name;
+                context.LocalImageTag = dockerfileAnnotation.ImageTag ?? "latest";
+            }
+            else
+            {
+                context.LocalImageName = context.Resource.Name;
+                context.LocalImageTag = "latest";
+            }
+        });
+
         // If there's already a ContainerImageAnnotation, don't overwrite it.
         // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
@@ -560,10 +572,12 @@ public static class ContainerResourceBuilderExtensions
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
             return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .WithAnnotation(defaultContainerBuildOptions)
                           .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                      .WithAnnotation(defaultContainerBuildOptions)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag(imageTag)
@@ -673,6 +687,22 @@ public static class ContainerResourceBuilderExtensions
             DockerfileFactory = dockerfileFactory
         };
 
+        // Add default container build options annotation that uses the DockerfileBuildAnnotation's ImageName and ImageTag
+        var defaultContainerBuildOptions = new ContainerBuildOptionsCallbackAnnotation(context =>
+        {
+            // Use DockerfileBuildAnnotation values if set, otherwise fall back to resource name
+            if (context.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileAnnotation))
+            {
+                context.LocalImageName = dockerfileAnnotation.ImageName ?? context.Resource.Name;
+                context.LocalImageTag = dockerfileAnnotation.ImageTag ?? "latest";
+            }
+            else
+            {
+                context.LocalImageName = context.Resource.Name;
+                context.LocalImageTag = "latest";
+            }
+        });
+
         // If there's already a ContainerImageAnnotation, don't overwrite it.
         // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
@@ -680,10 +710,12 @@ public static class ContainerResourceBuilderExtensions
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
             return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .WithAnnotation(defaultContainerBuildOptions, ResourceAnnotationMutationBehavior.Append)
                           .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                      .WithAnnotation(defaultContainerBuildOptions, ResourceAnnotationMutationBehavior.Append)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag(imageTag)
