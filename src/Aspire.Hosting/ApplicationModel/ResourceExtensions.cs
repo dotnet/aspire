@@ -1085,9 +1085,6 @@ public static class ResourceExtensions
             // Compute exposed port (host port)
             ResolvedPort exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort.Value) switch
             {
-                // Exposed port and target port are the same, we don't need to mention the exposed port
-                (_, int p0, int p1) when p0 == p1 => ResolvedPort.None(),
-
                 // Port was explicitly specified, so use it
                 (_, int port, _) => ResolvedPort.Explicit(port),
 
