@@ -71,16 +71,19 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         CompletePublishCalled = true;
         CompletionMessage = completionMessage;
         _testOutputHelper.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState})");
-        
+
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
-        CreatedSteps.Add(title);
+        lock (CreatedSteps)
+        {
+            CreatedSteps.Add(title);
+        }
         _testOutputHelper.WriteLine($"[CreateStep] {title}");
-        
+
         return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _testOutputHelper));
     }
 
@@ -101,23 +104,33 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
 
         public Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
         {
-            _reporter.CompletedSteps.Add((_title, completionText, completionState));
+            lock (_reporter.CompletedSteps)
+            {
+                _reporter.CompletedSteps.Add((_title, completionText, completionState));
+            }
+
             _testOutputHelper.WriteLine($"  [CompleteStep:{_title}] {completionText} (State: {completionState})");
-            
+
             return Task.CompletedTask;
         }
 
         public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
         {
-            _reporter.CreatedTasks.Add((_title, statusText));
+            lock (_reporter.CreatedTasks)
+            {
+                _reporter.CreatedTasks.Add((_title, statusText));
+            }
             _testOutputHelper.WriteLine($"    [CreateTask:{_title}] {statusText}");
-            
+
             return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _testOutputHelper));
         }
 
         public void Log(LogLevel logLevel, string message, bool enableMarkdown)
         {
-            _reporter.LoggedMessages.Add((_title, logLevel, message));
+            lock (_reporter.LoggedMessages)
+            {
+                _reporter.LoggedMessages.Add((_title, logLevel, message));
+            }
             _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
         }
     }
@@ -139,17 +152,23 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
 
         public Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
         {
-            _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
+            lock (_reporter.CompletedTasks)
+            {
+                _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
+            }
             _testOutputHelper.WriteLine($"      [CompleteTask:{_initialStatusText}] {completionMessage} (State: {completionState})");
-            
+
             return Task.CompletedTask;
         }
 
         public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
         {
-            _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
+            lock (_reporter.UpdatedTasks)
+            {
+                _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
+            }
             _testOutputHelper.WriteLine($"      [UpdateTask:{_initialStatusText}] {statusText}");
-            
+
             return Task.CompletedTask;
         }
     }
