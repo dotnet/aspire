@@ -674,8 +674,7 @@ public static class PythonAppResourceBuilderExtensions
             .Comment("Install Poetry")
             .Run("pip install --no-cache-dir poetry")
             .EmptyLine()
-            .Comment("Configure Poetry to create virtual environments in the project directory")
-            .Env("POETRY_VIRTUALENVS_IN_PROJECT", "true")
+            .Comment("Configure Poetry")
             .Env("POETRY_NO_INTERACTION", "1")
             .EmptyLine()
             .WorkDir("/app")
@@ -1401,7 +1400,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="install">When true (default), automatically runs poetry install before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <param name="installArgs">Additional arguments appended to the poetry install command (after --no-interaction).</param>
-    /// <param name="env">Extra environment variables applied to the Poetry restore step. These can override defaults like POETRY_VIRTUALENVS_IN_PROJECT.</param>
+    /// <param name="env">Extra environment variables applied to the Poetry restore step. These can be used to configure Poetry behavior such as POETRY_VIRTUALENVS_IN_PROJECT or POETRY_VIRTUALENVS_PATH.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
@@ -1410,13 +1409,9 @@ public static class PythonAppResourceBuilderExtensions
     /// </para>
     /// <para>
     /// Poetry (https://python-poetry.org/) is a Python package and dependency manager that handles virtual environment creation.
-    /// By default, Aspire configures Poetry to create the virtual environment in the project directory (.venv) by setting 
-    /// POETRY_VIRTUALENVS_IN_PROJECT=true, unless an explicit virtual environment path is configured via 
-    /// <see cref="WithVirtualEnvironment"/> or overridden via the <paramref name="env"/> parameter.
-    /// </para>
-    /// <para>
-    /// When using <see cref="WithVirtualEnvironment"/> to specify an explicit path, Aspire will set POETRY_VIRTUALENVS_PATH
-    /// to direct Poetry to use that location.
+    /// Aspire does not set Poetry environment variables by default, allowing Poetry to use its own default configuration.
+    /// You can customize Poetry's behavior by passing environment variables via the <paramref name="env"/> parameter, such as
+    /// setting POETRY_VIRTUALENVS_IN_PROJECT=true to create the virtual environment in the project directory.
     /// </para>
     /// <para>
     /// Calling this method will replace any previously configured package manager (such as pip or uv).
@@ -1447,12 +1442,12 @@ public static class PythonAppResourceBuilderExtensions
     /// </code>
     /// </example>
     /// <example>
-    /// Disable Poetry's in-project virtual environment:
+    /// Configure Poetry's virtual environment location:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
-    ///     .WithPoetry(env: [("POETRY_VIRTUALENVS_IN_PROJECT", "false")])
+    ///     .WithPoetry(env: [("POETRY_VIRTUALENVS_IN_PROJECT", "true")])
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
@@ -1631,44 +1626,9 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     installerBuilder.WithEnvironment(ctx =>
                     {
-                        // Determine default Poetry environment variables based on virtual environment configuration
-                        if (builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) &&
-                            pythonEnv.VirtualEnvironment != null)
-                        {
-                            var venvPath = pythonEnv.VirtualEnvironment.VirtualEnvironmentPath;
-                            var resolvedPath = Path.IsPathRooted(venvPath) 
-                                ? venvPath 
-                                : Path.GetFullPath(venvPath, builder.Resource.WorkingDirectory);
-                            
-                            // Check if the venv path is within the project directory
-                            var projectVenvPath = Path.GetFullPath(".venv", builder.Resource.WorkingDirectory);
-                            var isInProject = string.Equals(
-                                resolvedPath, 
-                                projectVenvPath, 
-                                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
-
-                            if (isInProject)
-                            {
-                                // Use in-project venv
-                                ctx.EnvironmentVariables["POETRY_VIRTUALENVS_IN_PROJECT"] = "true";
-                            }
-                            else
-                            {
-                                // Use external venv path
-                                var venvParentPath = Path.GetDirectoryName(resolvedPath);
-                                if (!string.IsNullOrEmpty(venvParentPath))
-                                {
-                                    ctx.EnvironmentVariables["POETRY_VIRTUALENVS_PATH"] = venvParentPath;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Default to in-project venv if no explicit path configured
-                            ctx.EnvironmentVariables["POETRY_VIRTUALENVS_IN_PROJECT"] = "true";
-                        }
-
-                        // Apply user-specified environment variable overrides
+                        // Apply user-specified environment variable overrides only
+                        // Do not set POETRY_VIRTUALENVS_IN_PROJECT or POETRY_VIRTUALENVS_PATH by default
+                        // Let Poetry use its own defaults
                         if (builder.Resource.TryGetLastAnnotation<PoetryEnvironmentAnnotation>(out var poetryEnv))
                         {
                             foreach (var kvp in poetryEnv.EnvironmentVariables)
