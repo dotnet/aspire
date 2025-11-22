@@ -366,7 +366,10 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
         // Register Python environment validation services (once per builder)
-        builder.Services.TryAddSingleton<PythonInstallationManager>();
+        if (!builder.Services.IsReadOnly)
+        {
+            builder.Services.TryAddSingleton<PythonInstallationManager>();
+        }
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -1371,7 +1374,10 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         // Register UV validation service
-        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+        if (!builder.ApplicationBuilder.Services.IsReadOnly)
+        {
+            builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
+        }
 
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
@@ -1463,7 +1469,10 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         // Register Poetry validation service
-        builder.ApplicationBuilder.Services.TryAddSingleton<PoetryInstallationManager>();
+        if (!builder.ApplicationBuilder.Services.IsReadOnly)
+        {
+            builder.ApplicationBuilder.Services.TryAddSingleton<PoetryInstallationManager>();
+        }
 
         // Ensure virtual environment exists - create default .venv if not configured
         if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
