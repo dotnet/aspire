@@ -168,12 +168,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
-        builder.Services.AddOptions<DashboardOptions>()
-            .Bind(dashboardConfigSection)
-            .ValidateOnStart();
-        builder.Services.AddSingleton<IPostConfigureOptions<DashboardOptions>, PostConfigureDashboardOptions>();
-        builder.Services.AddSingleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>();
-
+        
         // Try to get dashboard options. If there are validation failures, we'll continue building the app
         // but enter error mode where the dashboard shows the errors and blocks functionality.
         bool hasValidationFailures = !TryGetDashboardOptions(builder, dashboardConfigSection, out var dashboardOptions, out var failureMessages);
@@ -207,10 +202,24 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             {
                 throw new InvalidOperationException("Failed to parse default MCP options in error mode");
             }
+            
+            // Register the valid default options directly instead of using configuration binding
+            // This prevents validation errors from being thrown when options are accessed
+            var optionsMonitor = new OptionsMonitorWrapper<DashboardOptions>(dashboardOptions);
+            builder.Services.AddSingleton<IOptions<DashboardOptions>>(optionsMonitor);
+            builder.Services.AddScoped<IOptionsSnapshot<DashboardOptions>>(sp => optionsMonitor);
+            builder.Services.AddSingleton<IOptionsMonitor<DashboardOptions>>(optionsMonitor);
         }
         else
         {
             _validationFailures = Array.Empty<string>();
+            
+            // Normal path: configure options with binding and validation
+            builder.Services.AddOptions<DashboardOptions>()
+                .Bind(dashboardConfigSection)
+                .ValidateOnStart();
+            builder.Services.AddSingleton<IPostConfigureOptions<DashboardOptions>, PostConfigureDashboardOptions>();
+            builder.Services.AddSingleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>();
         }
 
         ConfigureKestrelEndpoints(builder, dashboardOptions!);
