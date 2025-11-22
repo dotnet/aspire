@@ -23,8 +23,7 @@ public static class McpExtensions
                 stream.CopyTo(memoryStream);
                 var data = memoryStream.ToArray();
 
-                // TODO: Re-enable Sizes once https://github.com/github/copilot-cli/issues/486 is fixed
-                return new Icon { Source = $"data:image/png;base64,{Convert.ToBase64String(data)}", MimeType = "image/png" /*, Sizes = [s]*/ };
+                return new Icon { Source = $"data:image/png;base64,{Convert.ToBase64String(data)}", MimeType = "image/png", Sizes = [s] };
             }).ToList();
 
             options.ServerInfo = new Implementation
