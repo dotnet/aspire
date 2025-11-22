@@ -592,9 +592,19 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri for service reference must be absolute.");
         }
 
-        if (uri.AbsolutePath != "/")
+        if (!uri.AbsolutePath.EndsWith("/", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The uri absolute path must be \"/\".");
+            throw new InvalidOperationException("The uri absolute path must end with '/'.");
+        }
+
+        if (!string.IsNullOrEmpty(uri.Fragment))
+        {
+            throw new InvalidOperationException("The URI cannot contain a fragment.");
+        }
+
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            throw new InvalidOperationException("The URI cannot contain a query string.");
         }
 
         // Determine what to inject based on the annotation on the destination resource
