@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Aspire.Cli.Mcp;
@@ -46,6 +47,10 @@ internal sealed class ExecuteResourceCommandTool : CliMcpTool
         }
 
         // Forward the call to the dashboard's MCP server
-        return await mcpClient.CallToolAsync(Name, convertedArgs, cancellationToken: cancellationToken);
+        return await mcpClient.CallToolAsync(
+            Name,
+            convertedArgs,
+            serializerOptions: McpJsonUtilities.DefaultOptions,
+            cancellationToken: cancellationToken);
     }
 }
