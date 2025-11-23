@@ -5,8 +5,11 @@ param(
     [Parameter(HelpMessage = "Directory to install the CLI")]
     [string]$InstallPath = "",
 
-    [Parameter(HelpMessage = "Version of the Aspire CLI to download")]
+    [Parameter(HelpMessage = "Version of the Aspire CLI to download (container path version, always required for versioned installs)")]
     [string]$Version = "",
+
+    [Parameter(HelpMessage = "Product version of the Aspire CLI (actual CLI exe version). Required only when installing a stable release where Version is unstable. Defaults to Version when not specified")]
+    [string]$ProductVersion = "",
 
     [Parameter(HelpMessage = "Quality to download")]
     [ValidateSet("", "release", "staging", "dev")]
@@ -129,12 +132,17 @@ DESCRIPTION:
 
     The default quality is '$($Script:Config.DefaultQuality)'.
 
-    Pass a specific version to get CLI for that version.
+    Pass a specific version to get CLI for that version. When installing a stable release, you must specify both:
+    - `-Version`: The container path version (unstable version used in the URL path)
+    - `-ProductVersion`: The actual stable product version of the CLI executable
+
+    When installing an unstable/preview release, only `-Version` is needed as both versions are the same.
 
 PARAMETERS:
     -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
     -Quality <string>           Quality to download (default: $($Script:Config.DefaultQuality))
-    -Version <string>           Version of the Aspire CLI to download (default: unset)
+    -Version <string>           Container path version (required for versioned installs)
+    -ProductVersion <string>    Actual CLI product version (required only for stable releases where Version is unstable, defaults to Version)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
     -InstallExtension           Install VS Code extension along with the CLI
@@ -157,7 +165,8 @@ EXAMPLES:
     .\get-aspire-cli.ps1
     .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
     .\get-aspire-cli.ps1 -Quality "staging"
-    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
+    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"                                                    # Unstable version (Version = ProductVersion)
+    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3" -ProductVersion "9.5.0"                            # Stable release (Version is unstable path, ProductVersion is stable)
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -InstallExtension
     .\get-aspire-cli.ps1 -InstallExtension -UseInsiders
@@ -852,6 +861,9 @@ function Get-AspireCliUrl {
         [string]$Version,
 
         [Parameter()]
+        [string]$ProductVersion,
+
+        [Parameter()]
         [string]$Quality,
 
         [Parameter(Mandatory = $true)]
@@ -885,7 +897,10 @@ function Get-AspireCliUrl {
     }
     else {
         # When version is set, use ci.dot.net URL
-        $archiveFilename = "aspire-cli-$RuntimeIdentifier-$Version.$Extension"
+        # Use ProductVersion for the filename if specified, otherwise use Version
+        $effectiveProductVersion = if ([string]::IsNullOrWhiteSpace($ProductVersion)) { $Version } else { $ProductVersion }
+        
+        $archiveFilename = "aspire-cli-$RuntimeIdentifier-$effectiveProductVersion.$Extension"
         $checksumFilename = "$archiveFilename.sha512"
 
         return [PSCustomObject]@{
@@ -905,6 +920,7 @@ function Install-AspireCli {
         [Parameter(Mandatory = $true)]
         [string]$InstallPath,
         [string]$Version,
+        [string]$ProductVersion,
         [string]$Quality,
         [string]$OS,
         [string]$Architecture
@@ -948,7 +964,7 @@ function Install-AspireCli {
         # Construct the runtime identifier and URLs
         $runtimeIdentifier = "$targetOS-$targetArch"
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
-        $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
+        $urls = Get-AspireCliUrl -Version $Version -ProductVersion $ProductVersion -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
 
         $archivePath = Join-Path $tempDir $urls.ArchiveFilename
         $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
@@ -1068,7 +1084,7 @@ function Start-AspireCliInstallation {
         }
 
         # Download and install the Aspire CLI
-        $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
+        $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -ProductVersion $ProductVersion -Quality $Quality -OS $OS -Architecture $Architecture
 
         # Update PATH environment variables
         Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS

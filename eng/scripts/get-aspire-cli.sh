@@ -18,6 +18,7 @@ readonly RESET='\033[0m'
 # Variables (defaults set after parsing arguments)
 INSTALL_PATH=""
 VERSION=""
+PRODUCT_VERSION=""
 QUALITY=""
 OS=""
 ARCH=""
@@ -45,14 +46,19 @@ DESCRIPTION:
 
     The default quality is `${DEFAULT_QUALITY}`.
 
-    Pass a specific version to get CLI for that version.
+    Pass a specific version to get CLI for that version. When installing a stable release, you must specify both:
+    - `--version`: The container path version (unstable version used in the URL path)
+    - `--product-version`: The actual stable product version of the CLI executable
+
+    When installing an unstable/preview release, only `--version` is needed as both versions are the same.
 
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
     -q, --quality QUALITY       Quality to download (default: ${DEFAULT_QUALITY}). Supported values: dev, staging, release
-    --version VERSION           Version of the Aspire CLI to download (default: unset)
+    --version VERSION           Container path version (required for versioned installs)
+    --product-version VERSION   Actual CLI product version (required only for stable releases where --version is unstable, defaults to --version)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
     --install-extension         Install VS Code extension along with the CLI
@@ -66,7 +72,8 @@ EXAMPLES:
     ./get-aspire-cli.sh
     ./get-aspire-cli.sh --install-path "~/bin"
     ./get-aspire-cli.sh --quality "staging"
-    ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"
+    ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"                                                # Unstable version (Version = ProductVersion)
+    ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3" --product-version "9.5.0"                      # Stable release (Version is unstable path, ProductVersion is stable)
     ./get-aspire-cli.sh --os "linux" --arch "x64"
     ./get-aspire-cli.sh --install-extension
     ./get-aspire-cli.sh --install-extension --use-insiders
@@ -101,6 +108,15 @@ parse_args() {
                     exit 1
                 fi
                 VERSION="$2"
+                shift 2
+                ;;
+            --product-version)
+                if [[ $# -lt 2 || -z "$2" ]]; then
+                    say_error "Option '$1' requires a non-empty value"
+                    say_info "Use --help for usage information."
+                    exit 1
+                fi
+                PRODUCT_VERSION="$2"
                 shift 2
                 ;;
             -q|--quality)
@@ -689,12 +705,14 @@ construct_aspire_extension_url() {
 # Function to construct the base URL for the Aspire CLI download
 construct_aspire_cli_url() {
     local version="$1"
-    local quality="$2"
-    local rid="$3"
-    local extension="$4"
-    local checksum="${5:-false}"
+    local product_version="$2"
+    local quality="$3"
+    local rid="$4"
+    local extension="$5"
+    local checksum="${6:-false}"
     local base_url
     local filename
+    local effective_product_version
 
     # Add .sha512 to extension if checksum is true
     if [[ "$checksum" == "true" ]]; then
@@ -722,15 +740,21 @@ construct_aspire_cli_url() {
         printf "${base_url}/aspire-cli-${rid}.${extension}"
     else
         # When version is set, use ci.dot.net URL
+        # Use product_version for the filename if specified, otherwise use version
+        if [[ -z "$product_version" ]]; then
+            effective_product_version="$version"
+        else
+            effective_product_version="$product_version"
+        fi
 
         if [[ "$checksum" == "true" ]]; then
             # For checksum URLs, use the public-checksums URL
             base_url="https://ci.dot.net/public-checksums/aspire"
         else
-            base_url="https://ci.dot.net/public/aspire/"
+            base_url="https://ci.dot.net/public/aspire"
         fi
 
-        printf "${base_url}/${version}/aspire-cli-${rid}-${version}.${extension}"
+        printf "${base_url}/${version}/aspire-cli-${rid}-${effective_product_version}.${extension}"
     fi
 }
 
@@ -860,10 +884,10 @@ download_and_install_archive() {
     fi
 
     # Construct the URLs using the new function
-    if ! url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension"); then
+    if ! url=$(construct_aspire_cli_url "$VERSION" "$PRODUCT_VERSION" "$QUALITY" "$runtimeIdentifier" "$extension"); then
         return 1
     fi
-    if ! checksum_url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension" "true"); then
+    if ! checksum_url=$(construct_aspire_cli_url "$VERSION" "$PRODUCT_VERSION" "$QUALITY" "$runtimeIdentifier" "$extension" "true"); then
         return 1
     fi
 
