@@ -36,7 +36,10 @@ internal static class AppHostHelper
         }
 
         var minimumVersion = SemVersion.Parse("9.2.0");
-        if (aspireVersion.ComparePrecedenceTo(minimumVersion) < 0)
+        // Compare only major.minor.patch, ignoring prerelease tags
+        // This ensures that preview versions (e.g., 13.0.0-preview.1) are accepted
+        // as long as their major.minor.patch is >= the minimum version
+        if (CompareMajorMinorPatch(aspireVersion, minimumVersion) < 0)
         {
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingVersion));
             return (false, false, appHostInformation.AspireHostingVersion);
@@ -73,5 +76,30 @@ internal static class AppHostHelper
                 projectFile,
                 options,
                 cancellationToken));
+    }
+
+    /// <summary>
+    /// Compares two semantic versions by only their major, minor, and patch components,
+    /// ignoring prerelease identifiers and build metadata.
+    /// </summary>
+    /// <param name="version">The version to compare.</param>
+    /// <param name="other">The version to compare against.</param>
+    /// <returns>
+    /// A negative value if <paramref name="version"/> is less than <paramref name="other"/>,
+    /// zero if they are equal, or a positive value if <paramref name="version"/> is greater.
+    /// </returns>
+    private static int CompareMajorMinorPatch(SemVersion version, SemVersion other)
+    {
+        if (version.Major != other.Major)
+        {
+            return version.Major.CompareTo(other.Major);
+        }
+
+        if (version.Minor != other.Minor)
+        {
+            return version.Minor.CompareTo(other.Minor);
+        }
+
+        return version.Patch.CompareTo(other.Patch);
     }
 }
