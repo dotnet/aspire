@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="ChannelOptionDescription">
         <source>Channel to update to (stable, daily)</source>
-        <target state="new">Channel to update to (stable, daily)</target>
+        <target state="translated">Canale da aggiornare a (stabile, giornaliero)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChannelOptionDescriptionWithStaging">
         <source>Channel to update to (stable, staging, daily)</source>
-        <target state="new">Channel to update to (stable, staging, daily)</target>
+        <target state="translated">Canale da aggiornare a (stabile, staging, giornaliero)</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
@@ -154,12 +154,12 @@
       </trans-unit>
       <trans-unit id="QualityOptionDescription">
         <source>Quality level to update to (stable, daily)</source>
-        <target state="new">Quality level to update to (stable, daily)</target>
+        <target state="translated">Livello di qualità da aggiornare a (stabile, giornaliero)</target>
         <note />
       </trans-unit>
       <trans-unit id="QualityOptionDescriptionWithStaging">
         <source>Quality level to update to (stable, staging, daily)</source>
-        <target state="new">Quality level to update to (stable, staging, daily)</target>
+        <target state="translated">Livello di qualità da aggiornare a (stabile, staging, giornaliero)</target>
         <note />
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
