@@ -18,7 +18,6 @@ namespace Aspire.Cli.Commands;
 internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IInteractionService _interactionService;
-    private readonly CliExecutionContext _executionContext;
 
     public RootCommand(
         NewCommand newCommand,
@@ -35,8 +34,7 @@ internal sealed class RootCommand : BaseRootCommand
         McpCommand mcpCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
-        IInteractionService interactionService,
-        CliExecutionContext executionContext)
+        IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -54,16 +52,8 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(executionContext);
 
         _interactionService = interactionService;
-        _executionContext = executionContext;
-
-        SetAction((parseResult, cancellationToken) =>
-        {
-            _executionContext.Command = this;
-            return Task.FromResult(0);
-        });
 
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;
