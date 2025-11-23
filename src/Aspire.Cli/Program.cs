@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Globalization;
 using System.Text;
+using Aspire.Cli.AppHostRunning;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -140,6 +141,9 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+
+        // AppHost running services
+        builder.Services.AddTransient<IAppHostRunnerFactory, AppHostRunnerFactory>();
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
