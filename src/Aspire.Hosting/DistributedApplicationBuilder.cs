@@ -27,6 +27,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.UserSecrets;
+using Aspire.Hosting.Utils;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,6 +66,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
+    private readonly IAspireTempDirectoryService _tempDirectoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -95,6 +97,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
+
+    /// <inheritdoc />
+    public IAspireTempDirectoryService TempDirectoryService => _tempDirectoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -293,6 +298,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
+        
+        // Create and register the temp directory service
+        _tempDirectoryService = new AspireTempDirectoryService(_innerBuilder.Configuration);
+        _innerBuilder.Services.AddSingleton<IAspireTempDirectoryService>(_tempDirectoryService);
         
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();

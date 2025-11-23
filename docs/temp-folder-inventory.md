@@ -1,6 +1,24 @@
 # Temporary Folder Creation Inventory
 
-This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase. The goal is to eventually consolidate temp file storage into `.aspire` in the user folder.
+This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase. Following feedback, we are implementing a centralized solution using `~/.aspire/temp` for all temporary files.
+
+## Updated Proposal
+
+Based on review feedback, we are implementing a unified approach:
+
+- **Location**: `~/.aspire/temp/` for all temporary files
+- **Override**: Support `ASPIRE_TEMP_FOLDER` environment variable
+- **Service**: Create `IAspireTempDirectoryService` available in both CLI and AppHost
+- **Access**: Exposed on `IDistributedApplicationBuilder` and in DI container
+- **Migration**: Resources should use this service instead of `Path.GetTempPath()`, `Path.GetTempFileName()`, `Directory.CreateTempSubdirectory()`
+
+## Implementation Status
+
+✅ **Created** `IAspireTempDirectoryService` interface in `src/Aspire.Hosting/Utils/`
+✅ **Created** `AspireTempDirectoryService` implementation
+✅ **Added** property to `IDistributedApplicationBuilder.TempDirectoryService`
+✅ **Registered** service in DI container
+⬜ **TODO**: Migrate existing temp usage to new service
 
 ## Summary Statistics
 
@@ -9,6 +27,8 @@ This document provides a comprehensive inventory of all temporary folder and fil
   - `Path.GetTempPath()`: 6 locations
   - `Path.GetTempFileName()`: 6 locations  
   - `Directory.CreateTempSubdirectory()`: 21 locations
+
+All of these will be migrated to use `IAspireTempDirectoryService`.
 
 ## Detailed Inventory by Component
 
@@ -172,75 +192,120 @@ The following test files also use temp directories. These are not production con
 - CLI tests create temporary execution contexts with test-specific SDK/runtime directories
 - Several tests use `Path.Combine(Path.GetTempPath(), "aspire-test-*")` pattern
 
-## Proposed Directory Structure for `.aspire` Folder
+## Simplified Directory Structure for `~/.aspire/temp`
 
-Based on the usage patterns identified, here's a proposed structure:
+Based on review feedback, all temporary files will be consolidated into a single directory:
 
 ```
-~/.aspire/
-├── sessions/           # DCP session files (kubeconfig, sockets)
-│   └── {session-id}/
-├── pipelines/          # Pipeline build artifacts
-│   └── {appHostSha}/
-├── build/              # Build-time temporary files
-│   └── dockerfiles/    # Generated Dockerfiles
-├── dashboard/          # Dashboard configuration files
-│   └── config/
-├── azure/              # Azure-specific temporary files
-│   └── bicep/          # Generated Bicep files
-├── maui/               # MAUI-specific files
-│   ├── android-env/    # Android environment targets
-│   └── ios-env/        # iOS environment targets
-├── mysql/              # MySQL init scripts
-│   └── init/
-├── cli/                # CLI temporary files
-│   ├── downloads/      # Downloaded archives
-│   ├── extract/        # Extraction directory
-│   ├── init-temp/      # Template instantiation
-│   └── sdks/           # Downloaded SDKs
-├── nuget/              # NuGet temporary files
-│   └── configs/        # Temporary NuGet.config files
-└── store/              # Aspire store (already configurable)
+~/.aspire/temp/
+├── {random-guid}/      # Subdirectories created by CreateTempSubdirectory()
+├── {random-guid}.json  # Temp files created by GetTempFilePath()
+├── aspire-{guid}/      # Subdirectories with prefix
+└── ...                 # All temp files and directories in one location
 ```
+
+### Key Benefits
+
+1. **Simplicity**: Single location for all temp files
+2. **Consistency**: All code uses the same service
+3. **Override**: `ASPIRE_TEMP_FOLDER` environment variable or `Aspire:TempDirectory` configuration
+4. **Cleanup**: Easier to manage and clean up all temp files in one place
+5. **Cross-platform**: Works consistently across Windows, Linux, and macOS
+
+## IAspireTempDirectoryService API
+
+The service provides these methods:
+
+- `BaseTempDirectory`: Gets the base path (`~/.aspire/temp` by default)
+- `CreateTempSubdirectory(prefix)`: Creates a unique subdirectory (replaces `Directory.CreateTempSubdirectory`)
+- `GetTempFilePath(extension)`: Gets a unique temp file path (replaces `Path.GetTempFileName`)
+- `GetTempSubdirectoryPath(subdirectory)`: Gets a subdirectory path without creating it
 
 ## Migration Strategy
 
-### Phase 1: High Priority (User-facing, persistent)
+### Phase 1: Infrastructure (Completed)
+✅ Create `IAspireTempDirectoryService` interface and implementation
+✅ Register in DI container
+✅ Expose on `IDistributedApplicationBuilder`
+
+### Phase 2: High Priority Migration
 1. DCP session files (`Locations.cs`)
-2. MAUI environment targets (already well-structured)
+2. MAUI environment targets 
 3. Dashboard config files
+4. Pipeline output service
 
-### Phase 2: Medium Priority (Developer experience)
-1. Pipeline output service
-2. Azure Bicep generation
-3. CLI operations (download, extract)
+### Phase 3: Medium Priority Migration
+1. Azure Bicep generation
+2. CLI operations (download, extract, init)
+3. Temporary NuGet configs
 
-### Phase 3: Low Priority (Short-lived, internal)
+### Phase 4: Low Priority Migration
 1. Build-time Dockerfiles
 2. MySQL init scripts
-3. Temporary NuGet configs
+3. Project resource temporary files
+### Phase 4: Low Priority Migration
+1. Build-time Dockerfiles
+2. MySQL init scripts
+3. Project resource temporary files
 4. Init command templates
 
-### Phase 4: Very Low Priority (Requires careful consideration)
+### Phase 5: Very Low Priority (Requires careful consideration)
 1. User secrets atomic operations (may need to stay in system temp for security)
 2. Aspire Store (already has configurable path)
 
 ## Configuration Approach
 
-We should provide configuration options for controlling temp directory locations:
+The service supports three ways to override the default `~/.aspire/temp` location:
 
+### 1. Environment Variable (Highest Priority)
+```bash
+export ASPIRE_TEMP_FOLDER=/custom/temp/path
+```
+
+### 2. Configuration (Second Priority)
 ```json
 {
   "Aspire": {
-    "TempDirectory": "~/.aspire",  // Base directory for all Aspire temp files
-    "Sessions": {
-      "Directory": "~/.aspire/sessions"  // Override for specific subsystem
-    },
-    "Pipelines": {
-      "Directory": "~/.aspire/pipelines"
-    }
-    // etc.
+    "TempDirectory": "~/.aspire/temp"
   }
+}
+```
+
+### 3. Default (Fallback)
+`~/.aspire/temp` in the user's profile directory
+
+## Usage Examples
+
+### In AppHost Code
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Access via builder property
+var tempDir = builder.TempDirectoryService.CreateTempSubdirectory("my-prefix");
+
+// Or via DI in services
+services.AddSingleton<MyService>(sp =>
+{
+    var tempService = sp.GetRequiredService<IAspireTempDirectoryService>();
+    return new MyService(tempService);
+});
+```
+
+### In Resources
+```csharp
+public class MyResource : IResource
+{
+    public async Task DoSomethingAsync(DistributedApplicationExecutionContext context)
+    {
+        // Get the service from context
+        var tempService = context.ServiceProvider.GetRequiredService<IAspireTempDirectoryService>();
+        
+        // Create a temp subdirectory instead of using Path.GetTempPath()
+        var tempDir = tempService.CreateTempSubdirectory("myresource");
+        
+        // Or get a temp file path instead of Path.GetTempFileName()
+        var tempFile = tempService.GetTempFilePath(".json");
+    }
 }
 ```
 

@@ -9,6 +9,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -135,6 +136,26 @@ public interface IDistributedApplicationBuilder
     /// </remarks>
     [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public IDistributedApplicationPipeline Pipeline { get; }
+
+    /// <summary>
+    /// Gets the service for managing Aspire temporary directories.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="TempDirectoryService"/> provides a centralized way to manage temporary
+    /// directories and files for Aspire, consolidating temp storage into ~/.aspire/temp by default.
+    /// </para>
+    /// <para>
+    /// Resources and infrastructure code should use this service instead of static methods like
+    /// <see cref="Path.GetTempPath"/> or <see cref="Directory.CreateTempSubdirectory"/> to ensure
+    /// consistent temp file management across the application.
+    /// </para>
+    /// <para>
+    /// The location can be overridden using the ASPIRE_TEMP_FOLDER environment variable or
+    /// the Aspire:TempDirectory configuration setting.
+    /// </para>
+    /// </remarks>
+    public IAspireTempDirectoryService TempDirectoryService { get; }
 
     /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.
