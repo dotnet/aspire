@@ -86,5 +86,5 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool TrustCertificate { get; }
 
-    public bool DefaultTlsTerminationEnabled => _supportsTlsTermination.Value && TrustCertificate;
+    public bool DefaultTlsTerminationEnabled => !OperatingSystem.IsMacOS() && _supportsTlsTermination.Value && TrustCertificate;
 }
