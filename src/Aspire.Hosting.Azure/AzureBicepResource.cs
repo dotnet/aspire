@@ -159,9 +159,15 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             isTempFile = directory is null;
 
             // Use TempDirectory property if set (for testing), otherwise use the provided directory or create a temp subdirectory
-            path = TempDirectory is null
-                ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.module.bicep")
-                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.module.bicep");
+            var targetDirectory = TempDirectory ?? directory ?? Directory.CreateTempSubdirectory("aspire").FullName;
+            var fileName = $"{Name.ToLowerInvariant()}.module.bicep";
+            
+            if (TemplateResourceName is not null)
+            {
+                fileName = $"{TemplateResourceName.ToLowerInvariant()}";
+            }
+            
+            path = Path.Combine(targetDirectory, fileName);
 
             if (TemplateResourceName is null)
             {
@@ -170,10 +176,6 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             }
             else
             {
-                path = directory is null
-                    ? path
-                    : Path.Combine(directory, $"{TemplateResourceName.ToLowerInvariant()}");
-
                 // REVIEW: We should allow the user to specify the assembly where the resources reside.
                 using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
                     ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
@@ -183,7 +185,8 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             }
         }
 
-        var targetPath = directory is not null ? Path.Combine(directory, path) : path;
+        // If TemplateFile was specified, combine it with directory if provided
+        var targetPath = directory is not null && TemplateFile is not null ? Path.Combine(directory, path) : path;
         return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
     }
 
