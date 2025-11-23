@@ -162,7 +162,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             rpc.StartListening();
 
             // Get the MCP connection info
-            var mcpInfo = await rpc.InvokeAsync<McpConnectionInfo>("GetMcpConnectionInfoAsync").ConfigureAwait(false);
+            var mcpInfo = await rpc.InvokeAsync<DashboardMcpConnectionInfo?>("GetDashboardMcpConnectionInfoAsync").ConfigureAwait(false);
 
             var connection = new AppHostConnection(hash, socketPath, rpc, mcpInfo);
 
@@ -179,7 +179,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             if (_connections.TryAdd(hash, connection))
             {
                 logger.LogInformation("Successfully connected to AppHost {Hash}. Dashboard: {DashboardUrl}", 
-                    hash, mcpInfo.EndpointUrl);
+                    hash, mcpInfo?.EndpointUrl ?? "N/A");
             }
             else
             {
@@ -236,7 +236,7 @@ internal sealed class AppHostConnection
     /// <summary>
     /// Initializes a new instance of the <see cref="AppHostConnection"/> class.
     /// </summary>
-    public AppHostConnection(string hash, string socketPath, JsonRpc rpc, McpConnectionInfo mcpInfo)
+    public AppHostConnection(string hash, string socketPath, JsonRpc rpc, DashboardMcpConnectionInfo? mcpInfo)
     {
         Hash = hash;
         SocketPath = socketPath;
@@ -263,7 +263,7 @@ internal sealed class AppHostConnection
     /// <summary>
     /// Gets the MCP connection information for the Dashboard.
     /// </summary>
-    public McpConnectionInfo McpInfo { get; }
+    public DashboardMcpConnectionInfo? McpInfo { get; }
 
     /// <summary>
     /// Gets the timestamp when this connection was established.
@@ -274,7 +274,7 @@ internal sealed class AppHostConnection
 /// <summary>
 /// Represents the connection information for the Dashboard MCP server.
 /// </summary>
-internal sealed class McpConnectionInfo
+internal sealed class DashboardMcpConnectionInfo
 {
     /// <summary>
     /// Gets or sets the endpoint URL for the Dashboard MCP server.

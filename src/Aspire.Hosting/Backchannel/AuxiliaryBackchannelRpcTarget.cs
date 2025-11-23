@@ -25,15 +25,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// <summary>
     /// Gets the Dashboard MCP connection information including endpoint URL and API token.
     /// </summary>
-    /// <returns>The MCP connection information.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when Dashboard is not enabled or MCP endpoint is not available.</exception>
-    public async Task<McpConnectionInfo> GetMcpConnectionInfoAsync()
+    /// <returns>The MCP connection information, or null if the dashboard is not part of the application model.</returns>
+    public async Task<DashboardMcpConnectionInfo?> GetDashboardMcpConnectionInfoAsync()
     {
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
         if (appModel is null)
         {
             logger.LogWarning("Application model not found.");
-            throw new InvalidOperationException("Application model not found.");
+            return null;
         }
 
         // Find the dashboard resource
@@ -42,8 +41,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         if (dashboardResource is null)
         {
-            logger.LogWarning("Dashboard resource not found in application model.");
-            throw new InvalidOperationException("Dashboard is not enabled.");
+            logger.LogDebug("Dashboard resource not found in application model.");
+            return null;
         }
 
         // Get the MCP endpoint from the dashboard resource
@@ -61,14 +60,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         if (!mcpEndpoint.Exists)
         {
             logger.LogWarning("Dashboard MCP endpoint not found or not allocated.");
-            throw new InvalidOperationException("Dashboard MCP endpoint URL is not available.");
+            return null;
         }
 
         var endpointUrl = await mcpEndpoint.GetValueAsync().ConfigureAwait(false);
         if (string.IsNullOrEmpty(endpointUrl))
         {
             logger.LogWarning("Dashboard MCP endpoint URL is not allocated.");
-            throw new InvalidOperationException("Dashboard MCP endpoint URL is not available.");
+            return null;
         }
 
         // Get the API key from dashboard options
@@ -78,10 +77,10 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         if (string.IsNullOrEmpty(mcpApiKey))
         {
             logger.LogWarning("Dashboard MCP API key is not available.");
-            throw new InvalidOperationException("Dashboard MCP API key is not available.");
+            return null;
         }
 
-        return new McpConnectionInfo
+        return new DashboardMcpConnectionInfo
         {
             EndpointUrl = $"{endpointUrl}/mcp",
             ApiToken = mcpApiKey
@@ -92,7 +91,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 /// <summary>
 /// Represents the connection information for the Dashboard MCP server.
 /// </summary>
-internal sealed class McpConnectionInfo
+internal sealed class DashboardMcpConnectionInfo
 {
     /// <summary>
     /// Gets or sets the endpoint URL for the Dashboard MCP server.

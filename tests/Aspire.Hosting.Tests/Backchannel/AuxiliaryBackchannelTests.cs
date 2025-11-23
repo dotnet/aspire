@@ -109,20 +109,13 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task CanInvokeRpcMethodOnAuxiliaryBackchannel()
     {
-        // This test verifies that RPC methods can be invoked, but skips actual Dashboard dependency
-        // In real scenarios, the Dashboard would provide these values
+        // This test verifies that RPC methods can be invoked
+        // When the Dashboard is not part of the app model, null should be returned
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
 
         // Register the auxiliary backchannel service
         builder.Services.AddSingleton<AuxiliaryBackchannelService>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
-        // Configure Dashboard options manually for testing
-        builder.Services.Configure<Dashboard.DashboardOptions>(options =>
-        {
-            options.McpEndpointUrl = "http://localhost:5000/mcp";
-            options.McpApiKey = "test-api-key-12345";
-        });
 
         using var app = builder.Build();
 
@@ -140,15 +133,14 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         using var stream = new NetworkStream(socket, ownsSocket: true);
         using var rpc = JsonRpc.Attach(stream);
 
-        // Invoke the GetMcpConnectionInfoAsync RPC method
-        var connectionInfo = await rpc.InvokeAsync<McpConnectionInfo>(
-            "GetMcpConnectionInfoAsync",
+        // Invoke the GetDashboardMcpConnectionInfoAsync RPC method
+        var connectionInfo = await rpc.InvokeAsync<DashboardMcpConnectionInfo?>(
+            "GetDashboardMcpConnectionInfoAsync",
             Array.Empty<object>()
         ).WaitAsync(TimeSpan.FromSeconds(60));
 
-        Assert.NotNull(connectionInfo);
-        Assert.Equal("http://localhost:5000/mcp", connectionInfo.EndpointUrl);
-        Assert.Equal("test-api-key-12345", connectionInfo.ApiToken);
+        // Since the dashboard is not part of the app model, it should return null
+        Assert.Null(connectionInfo);
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
@@ -157,18 +149,12 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
     public async Task MultipleClientsCanInvokeRpcMethodsConcurrently()
     {
         // This test verifies that multiple clients can invoke RPC methods concurrently
+        // When the Dashboard is not part of the app model, null should be returned
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
 
         // Register the auxiliary backchannel service
         builder.Services.AddSingleton<AuxiliaryBackchannelService>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
-        // Configure Dashboard options manually for testing
-        builder.Services.Configure<Dashboard.DashboardOptions>(options =>
-        {
-            options.McpEndpointUrl = "http://localhost:5000/mcp";
-            options.McpApiKey = "test-api-key-concurrent";
-        });
 
         using var app = builder.Build();
 
@@ -188,21 +174,20 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
             using var stream = new NetworkStream(socket, ownsSocket: true);
             using var rpc = JsonRpc.Attach(stream);
 
-            var connectionInfo = await rpc.InvokeAsync<McpConnectionInfo>(
-                "GetMcpConnectionInfoAsync",
+            var connectionInfo = await rpc.InvokeAsync<DashboardMcpConnectionInfo?>(
+                "GetDashboardMcpConnectionInfoAsync",
                 Array.Empty<object>()
             );
 
-            Assert.NotNull(connectionInfo);
-            Assert.Equal("http://localhost:5000/mcp", connectionInfo.EndpointUrl);
-            Assert.Equal("test-api-key-concurrent", connectionInfo.ApiToken);
+            // Since the dashboard is not part of the app model, it should return null
+            Assert.Null(connectionInfo);
 
             return connectionInfo;
         });
 
         var results = await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(60));
         Assert.Equal(5, results.Length);
-        Assert.All(results, Assert.NotNull);
+        Assert.All(results, Assert.Null);
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
