@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Backchannel;
 /// The auxiliary backchannel supports multiple concurrent connections, so this event
 /// may be published multiple times during the lifetime of the application.
 /// </remarks>
-internal sealed class AuxiliaryBackchannelConnectedEvent(IServiceProvider serviceProvider, string socketPath) : IDistributedApplicationEvent
+internal sealed class AuxiliaryBackchannelConnectedEvent(IServiceProvider serviceProvider, string socketPath, System.Net.Sockets.Socket clientSocket) : IDistributedApplicationEvent
 {
     /// <summary>
     /// Gets the service provider for the application.
@@ -23,4 +23,9 @@ internal sealed class AuxiliaryBackchannelConnectedEvent(IServiceProvider servic
     /// Gets the Unix socket path where the auxiliary backchannel is listening.
     /// </summary>
     public string SocketPath { get; } = socketPath;
+
+    /// <summary>
+    /// Gets the client socket that connected to the auxiliary backchannel.
+    /// </summary>
+    public System.Net.Sockets.Socket ClientSocket { get; } = clientSocket;
 }
