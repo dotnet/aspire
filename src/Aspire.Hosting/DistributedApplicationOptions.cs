@@ -100,10 +100,16 @@ public sealed class DistributedApplicationOptions
     public bool AllowUnsecuredTransport { get; set; }
 
     /// <summary>
-    /// Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate)
-    /// by default at runtime.
+    /// Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET development certificate)
+    /// by default at runtime. Disabling this option will also disable the automatic use of the developer certificate for server authentication.
     /// </summary>
     public bool? TrustDeveloperCertificate { get; set; }
+
+    /// <summary>
+    /// Whether to attempt to implicitly use a developer certificate (currently the ASP.NET Core development certificate) for server authentication for non-ASP.NET resources
+    /// by default at runtime.
+    /// </summary>
+    public bool? UseDeveloperCertificateForServerAuthentication { get; set; }
 
     private string? ResolveProjectDirectory()
     {

@@ -64,12 +64,19 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         string.Format(CultureInfo.InvariantCulture, Format, _manifestExpressions);
 
     /// <summary>
+    /// Indicates whether this expression was ever referenced to get its value.
+    /// </summary>
+    internal bool WasReferenced { get; private set; }
+
+    /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
     /// </summary>
     /// <param name="context">A context for resolving the value.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
+        WasReferenced = true;
+
         // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
         {

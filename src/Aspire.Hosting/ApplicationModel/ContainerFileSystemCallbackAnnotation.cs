@@ -279,32 +279,35 @@ public sealed class ContainerFileSystemCallbackContext
     public required IResource Model { get; init; }
 
     /// <summary>
-    /// Indicates whether the resource has a server authentication certificate configured.
-    /// </summary>
-    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public bool HasServerAuthenticationCertificate { get; set; }
-
-    /// <summary>
     /// The path to the server authentication certificate file inside the container.
     /// </summary>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public string? ServerAuthenticationCertificatePath { get; set; }
+    public ContainerFileSystemCallbackServerAuthenticationCertificateContext? ServerAuthenticationCertificateContext { get; set; }
+}
+
+/// <summary>
+/// Represents the context for server authentication certificate files in a <see cref="ContainerFileSystemCallbackContext"/>.
+/// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class ContainerFileSystemCallbackServerAuthenticationCertificateContext
+{
+    /// <summary>
+    /// The path to the server authentication certificate file inside the container.
+    /// </summary>
+    public ReferenceExpression CertificatePath { get; init; } = null!;
 
     /// <summary>
     /// The path to the server authentication key file inside the container.
     /// </summary>
-    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public string? ServerAuthenticationKeyPath { get; set; }
+    public ReferenceExpression KeyPath { get; init; } = null!;
 
     /// <summary>
     /// The path to the server authentication PFX file inside the container.
     /// </summary>
-    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public string? ServerAuthenticationCertificatePfxPath { get; set; }
+    public ReferenceExpression PfxPath { get; init; } = null!;
 
     /// <summary>
     /// The password for the server authentication PFX file inside the container.
     /// </summary>
-    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public string? ServerAuthenticationCertificatePassword { get; set; }
+    public string? Password { get; init; }
 }
