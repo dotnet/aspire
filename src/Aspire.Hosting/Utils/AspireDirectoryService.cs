@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Configuration;
 
-namespace Aspire.Hosting.Utils;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Default implementation of <see cref="IAspireDirectoryService"/>.
@@ -31,7 +31,6 @@ internal sealed class AspireDirectoryService : IAspireDirectoryService
     /// </summary>
     private sealed class TempDirectoryService : ITempDirectoryService
     {
-        private const string EnvironmentVariableName = "ASPIRE_TEMP_FOLDER";
         private const string ConfigurationKeyName = "Aspire:TempDirectory";
         private const string DefaultSubdirectory = ".aspire/temp";
 
@@ -43,9 +42,9 @@ internal sealed class AspireDirectoryService : IAspireDirectoryService
             // Get the base temp root (e.g., ~/.aspire/temp)
             var tempRoot = ResolveTempRoot(configuration);
             
-            // Create AppHost-specific subdirectory using name and SHA
-            // Format: {tempRoot}/{appHostName}-{first12chars-of-sha}
-            var appHostSubfolder = $"{SanitizeDirectoryName(appHostName)}-{appHostSha[..12].ToLowerInvariant()}";
+            // Create AppHost-specific subdirectory using name and SHA (lowercase for consistency)
+            // Format: {tempRoot}/{apphostname}-{first12chars-of-sha}
+            var appHostSubfolder = $"{SanitizeDirectoryName(appHostName).ToLowerInvariant()}-{appHostSha[..12].ToLowerInvariant()}";
             _basePath = Path.Combine(tempRoot, appHostSubfolder);
             
             EnsureDirectoryExists(_basePath);
@@ -98,17 +97,10 @@ internal sealed class AspireDirectoryService : IAspireDirectoryService
 
         private static string ResolveTempRoot(IConfiguration? configuration)
         {
-            // Priority:
-            // 1. Environment variable ASPIRE_TEMP_FOLDER
-            // 2. Configuration Aspire:TempDirectory
-            // 3. Default: ~/.aspire/temp
-
-            var envVar = Environment.GetEnvironmentVariable(EnvironmentVariableName);
-            if (!string.IsNullOrWhiteSpace(envVar))
-            {
-                return Path.GetFullPath(envVar);
-            }
-
+            // Priority is determined by IConfiguration source ordering
+            // Typically: Command line > Environment variables > appsettings.json
+            // 
+            // Check for Aspire:TempDirectory first (hierarchical key)
             var configValue = configuration?[ConfigurationKeyName];
             if (!string.IsNullOrWhiteSpace(configValue))
             {
@@ -119,6 +111,14 @@ internal sealed class AspireDirectoryService : IAspireDirectoryService
                     configValue = Path.Combine(homeDirectory, configValue[2..]);
                 }
                 return Path.GetFullPath(configValue);
+            }
+
+            // Also check ASPIRE_TEMP_FOLDER for convenience (flat key, common in environment variables)
+            // This allows setting just ASPIRE_TEMP_FOLDER without the hierarchical separator
+            var tempFolderValue = configuration?["ASPIRE_TEMP_FOLDER"];
+            if (!string.IsNullOrWhiteSpace(tempFolderValue))
+            {
+                return Path.GetFullPath(tempFolderValue);
             }
 
             // Default to ~/.aspire/temp

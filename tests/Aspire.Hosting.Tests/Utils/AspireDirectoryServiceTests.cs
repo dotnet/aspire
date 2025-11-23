@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Tests.Utils;
@@ -18,48 +17,15 @@ public class AspireDirectoryServiceTests
         var expected = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".aspire", "temp",
-            $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
+            $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
         
         Assert.Equal(expected, service.TempDirectory.BasePath);
     }
 
     [Fact]
-    public void TempDirectory_RespectsEnvironmentVariable()
-    {
-        var customPath = Path.Combine(Path.GetTempPath(), "custom-aspire-temp");
-        try
-        {
-            Environment.SetEnvironmentVariable("ASPIRE_TEMP_FOLDER", customPath);
-            var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
-            
-            var expectedBasePath = Path.Combine(
-                Path.GetFullPath(customPath),
-                $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            
-            Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASPIRE_TEMP_FOLDER", null);
-            // Clean up the directory if it exists
-            var expectedDir = Path.Combine(
-                Path.GetFullPath(customPath),
-                $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            if (Directory.Exists(expectedDir))
-            {
-                Directory.Delete(expectedDir, recursive: true);
-            }
-            if (Directory.Exists(customPath))
-            {
-                Directory.Delete(customPath, recursive: true);
-            }
-        }
-    }
-
-    [Fact]
     public void TempDirectory_RespectsConfiguration()
     {
-        var customPath = Path.Combine(Path.GetTempPath(), "config-aspire-temp");
+        var customPath = Path.Combine(Path.GetTempPath(), "custom-aspire-temp");
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -73,7 +39,7 @@ public class AspireDirectoryServiceTests
             
             var expectedBasePath = Path.Combine(
                 Path.GetFullPath(customPath),
-                $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
+                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
             
             Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
         }
@@ -81,7 +47,7 @@ public class AspireDirectoryServiceTests
         {
             var expectedDir = Path.Combine(
                 Path.GetFullPath(customPath),
-                $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
+                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
             if (Directory.Exists(expectedDir))
             {
                 Directory.Delete(expectedDir, recursive: true);
@@ -94,46 +60,50 @@ public class AspireDirectoryServiceTests
     }
 
     [Fact]
-    public void TempDirectory_EnvironmentVariableHasPriorityOverConfiguration()
+    public void TempDirectory_ConfigurationSourcePriorityIsRespected()
     {
-        var envPath = Path.Combine(Path.GetTempPath(), "env-aspire-temp");
-        var configPath = Path.Combine(Path.GetTempPath(), "config-aspire-temp");
+        // Test that later configuration sources override earlier ones
+        var firstPath = Path.Combine(Path.GetTempPath(), "first-aspire-temp");
+        var secondPath = Path.Combine(Path.GetTempPath(), "second-aspire-temp");
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Aspire:TempDirectory"] = configPath
+                ["Aspire:TempDirectory"] = firstPath
+            })
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Aspire:TempDirectory"] = secondPath
             })
             .Build();
 
         try
         {
-            Environment.SetEnvironmentVariable("ASPIRE_TEMP_FOLDER", envPath);
             var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
             
+            // Should use the second path (later source wins)
             var expectedBasePath = Path.Combine(
-                Path.GetFullPath(envPath),
-                $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
+                Path.GetFullPath(secondPath),
+                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
             
             Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
         }
         finally
         {
-            Environment.SetEnvironmentVariable("ASPIRE_TEMP_FOLDER", null);
-            var envDir = Path.Combine(
-                Path.GetFullPath(envPath),
-                $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            if (Directory.Exists(envDir))
+            var secondDir = Path.Combine(
+                Path.GetFullPath(secondPath),
+                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
+            if (Directory.Exists(secondDir))
             {
-                Directory.Delete(envDir, recursive: true);
+                Directory.Delete(secondDir, recursive: true);
             }
-            if (Directory.Exists(envPath))
+            if (Directory.Exists(secondPath))
             {
-                Directory.Delete(envPath, recursive: true);
+                Directory.Delete(secondPath, recursive: true);
             }
-            if (Directory.Exists(configPath))
+            if (Directory.Exists(firstPath))
             {
-                Directory.Delete(configPath, recursive: true);
+                Directory.Delete(firstPath, recursive: true);
             }
         }
     }
@@ -232,7 +202,7 @@ public class AspireDirectoryServiceTests
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var expected = Path.GetFullPath(Path.Combine(
             userProfile, "custom-temp",
-            $"{TestAppHostName}-{TestAppHostSha[..12].ToLowerInvariant()}"));
+            $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}"));
 
         try
         {
@@ -258,8 +228,8 @@ public class AspireDirectoryServiceTests
         var invalidName = "Test<>App|Host";
         var service = new AspireDirectoryService(null, invalidName, TestAppHostSha);
         
-        // Should replace invalid characters with dashes
-        var sanitizedName = "Test--App-Host";
+        // Should replace invalid characters with dashes and convert to lowercase
+        var sanitizedName = "test--app-host";
         var expectedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".aspire", "temp",

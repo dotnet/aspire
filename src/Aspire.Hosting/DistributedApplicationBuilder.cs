@@ -27,7 +27,6 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.UserSecrets;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -459,8 +458,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
-            // We need a unique path per application instance
-            _innerBuilder.Services.AddSingleton(new Locations());
+            // Locations now uses IAspireDirectoryService for DCP session storage
+            _innerBuilder.Services.AddSingleton<Locations>();
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);

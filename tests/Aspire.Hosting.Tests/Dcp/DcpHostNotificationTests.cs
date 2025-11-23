@@ -16,6 +16,12 @@ namespace Aspire.Hosting.Tests.Dcp;
 
 public sealed class DcpHostNotificationTests
 {
+    private static Locations CreateTestLocations()
+    {
+        var directoryService = new AspireDirectoryService(null, "TestAppHost", "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF");
+        return new Locations(directoryService);
+    }
+
     [Fact]
     public void DcpHost_WithIInteractionService_CanBeConstructed()
     {
@@ -24,7 +30,7 @@ public sealed class DcpHostNotificationTests
         var dcpOptions = Options.Create(new DcpOptions());
         var dependencyCheckService = new TestDcpDependencyCheckService();
         var interactionService = new TestInteractionService();
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var applicationModel = new DistributedApplicationModel(new ResourceCollection());
         var timeProvider = new FakeTimeProvider();
 
@@ -64,7 +70,7 @@ public sealed class DcpHostNotificationTests
             }
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
@@ -113,7 +119,7 @@ public sealed class DcpHostNotificationTests
             }
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
@@ -168,7 +174,7 @@ public sealed class DcpHostNotificationTests
             }
         };
         var interactionService = new TestInteractionService { IsAvailable = false }; // Dashboard disabled
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
@@ -223,7 +229,7 @@ public sealed class DcpHostNotificationTests
             }
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
@@ -273,7 +279,7 @@ public sealed class DcpHostNotificationTests
             }
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
@@ -341,7 +347,7 @@ public sealed class DcpHostNotificationTests
             }
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
-        var locations = new Locations();
+        var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
