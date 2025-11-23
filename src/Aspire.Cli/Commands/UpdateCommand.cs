@@ -113,7 +113,7 @@ internal sealed class UpdateCommand : BaseCommand
             if (IsRunningAsDotNetTool())
             {
                 InteractionService.DisplayMessage("information", UpdateCommandStrings.DotNetToolSelfUpdateMessage);
-                InteractionService.DisplayPlainText("  dotnet tool update -g Aspire.Cli.Tool");
+                InteractionService.DisplayPlainText("  dotnet tool update -g Aspire.Cli");
                 return 0;
             }
 
