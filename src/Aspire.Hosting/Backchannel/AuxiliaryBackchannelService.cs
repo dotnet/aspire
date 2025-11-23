@@ -43,7 +43,6 @@ internal sealed class AuxiliaryBackchannelService(
     {
         try
         {
-            logger.LogError("Boom!");
             // Create the socket path
             SocketPath = GetAuxiliaryBackchannelSocketPath(configuration);
             
