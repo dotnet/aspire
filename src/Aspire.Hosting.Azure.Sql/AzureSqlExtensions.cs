@@ -87,6 +87,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
+            .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         return azureSqlServer;
