@@ -39,7 +39,7 @@ public interface IInstallationManager
 /// Service that ensures required commands (executables) are available on the system.
 /// Validates commands once per application lifetime and caches the results.
 /// </summary>
-internal sealed class InstallationManager : IInstallationManager, IDisposable
+internal sealed class InstallationManager : IInstallationManager, IAsyncDisposable
 {
     private readonly IInteractionService _interactionService;
     private readonly ILogger<InstallationManager> _logger;
@@ -92,13 +92,13 @@ internal sealed class InstallationManager : IInstallationManager, IDisposable
     }
 
     /// <summary>
-    /// Disposes the installation manager and all associated resources.
+    /// Disposes the installation manager and all associated resources asynchronously.
     /// </summary>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         foreach (var validator in _validators.Values)
         {
-            validator.Dispose();
+            await validator.DisposeAsync().ConfigureAwait(false);
         }
         _validators.Clear();
     }
@@ -174,7 +174,7 @@ internal sealed class InstallationManager : IInstallationManager, IDisposable
     /// <summary>
     /// Internal class that handles validation for a specific command using coalescing async operations.
     /// </summary>
-    private sealed class CommandValidator : IDisposable
+    private sealed class CommandValidator : IAsyncDisposable
     {
         private readonly string _command;
         private readonly string? _helpLink;
@@ -319,10 +319,9 @@ internal sealed class InstallationManager : IInstallationManager, IDisposable
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            // Use GetAwaiter().GetResult() to avoid potential deadlocks from Wait()
-            _gate.WaitAsync().GetAwaiter().GetResult();
+            await _gate.WaitAsync().ConfigureAwait(false);
             try
             {
                 try
