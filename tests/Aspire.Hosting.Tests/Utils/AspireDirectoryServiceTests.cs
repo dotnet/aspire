@@ -25,7 +25,8 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_RespectsConfiguration()
     {
-        var customPath = Path.Combine(Path.GetTempPath(), "custom-aspire-temp");
+        using var tempDir = new TempDirectory();
+        var customPath = tempDir.Path;
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -33,38 +34,23 @@ public class AspireDirectoryServiceTests
             })
             .Build();
 
-        try
-        {
-            var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
-            
-            var expectedBasePath = Path.Combine(
-                Path.GetFullPath(customPath),
-                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            
-            Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
-        }
-        finally
-        {
-            var expectedDir = Path.Combine(
-                Path.GetFullPath(customPath),
-                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            if (Directory.Exists(expectedDir))
-            {
-                Directory.Delete(expectedDir, recursive: true);
-            }
-            if (Directory.Exists(customPath))
-            {
-                Directory.Delete(customPath, recursive: true);
-            }
-        }
+        var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
+        
+        var expectedBasePath = Path.Combine(
+            Path.GetFullPath(customPath),
+            $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
+        
+        Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
     }
 
     [Fact]
     public void TempDirectory_ConfigurationSourcePriorityIsRespected()
     {
         // Test that later configuration sources override earlier ones
-        var firstPath = Path.Combine(Path.GetTempPath(), "first-aspire-temp");
-        var secondPath = Path.Combine(Path.GetTempPath(), "second-aspire-temp");
+        using var firstTempDir = new TempDirectory();
+        using var secondTempDir = new TempDirectory();
+        var firstPath = firstTempDir.Path;
+        var secondPath = secondTempDir.Path;
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -77,35 +63,14 @@ public class AspireDirectoryServiceTests
             })
             .Build();
 
-        try
-        {
-            var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
-            
-            // Should use the second path (later source wins)
-            var expectedBasePath = Path.Combine(
-                Path.GetFullPath(secondPath),
-                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            
-            Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
-        }
-        finally
-        {
-            var secondDir = Path.Combine(
-                Path.GetFullPath(secondPath),
-                $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
-            if (Directory.Exists(secondDir))
-            {
-                Directory.Delete(secondDir, recursive: true);
-            }
-            if (Directory.Exists(secondPath))
-            {
-                Directory.Delete(secondPath, recursive: true);
-            }
-            if (Directory.Exists(firstPath))
-            {
-                Directory.Delete(firstPath, recursive: true);
-            }
-        }
+        var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
+        
+        // Should use the second path (later source wins)
+        var expectedBasePath = Path.Combine(
+            Path.GetFullPath(secondPath),
+            $"{TestAppHostName.ToLowerInvariant()}-{TestAppHostSha[..12].ToLowerInvariant()}");
+        
+        Assert.Equal(expectedBasePath, service.TempDirectory.BasePath);
     }
 
     [Fact]

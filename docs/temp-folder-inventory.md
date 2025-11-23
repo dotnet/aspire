@@ -1,50 +1,209 @@
 # Temporary Folder Creation Inventory
 
-This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase. Following feedback, we are implementing a centralized solution using `~/.aspire/temp/{apphost-name}-{sha}/` for AppHost-specific temporary files.
+This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase and documents the centralized directory management solution using `IAspireDirectoryService`.
 
-## Updated Proposal
+## Implementation Summary
 
-Based on review feedback, we are implementing a unified approach:
+We have implemented a centralized directory management service that:
 
-- **Location**: `~/.aspire/temp/{apphost-name}-{sha}/` for AppHost-specific temporary files
-- **Override**: Support `ASPIRE_TEMP_FOLDER` environment variable to change the base temp root
-- **Service**: `IAspireDirectoryService` with `TempDirectory` property available in both CLI and AppHost
-- **Access**: Exposed on `IDistributedApplicationBuilder.DirectoryService` and in DI container
-- **Organization**: Each AppHost gets its own subdirectory based on project name + SHA for easy identification and cleanup
-- **Migration**: Resources should use this service instead of `Path.GetTempPath()`, `Path.GetTempFileName()`, `Directory.CreateTempSubdirectory()`
+- **Location**: `~/.aspire/temp/{apphostname}-{sha}/` (lowercase) for AppHost-specific temporary files
+- **Service**: `IAspireDirectoryService` in `Aspire.Hosting` namespace with `TempDirectory` property
+- **Access**: Exposed on `IDistributedApplicationBuilder.DirectoryService` and available via DI
+- **Configuration**: Via `IConfiguration` supporting `Aspire:TempDirectory` and `ASPIRE_TEMP_FOLDER` keys
+- **Organization**: Each AppHost gets its own lowercase subdirectory based on project name + first 12 chars of SHA256 hash
 
 ## Implementation Status
 
-✅ **Created** `IAspireDirectoryService` interface in `src/Aspire.Hosting/Utils/`
-✅ **Created** `AspireDirectoryService` implementation with AppHost-specific subdirectories
-✅ **Added** property to `IDistributedApplicationBuilder.DirectoryService` (default throws NotImplementedException)
-✅ **Registered** service in DI container
-✅ **Tests** comprehensive test suite covering all scenarios
-⬜ **TODO**: Migrate existing temp usage to new service
+✅ **Infrastructure Complete**:
+- Created `IAspireDirectoryService` interface in `Aspire.Hosting` namespace
+- Created `AspireDirectoryService` implementation with AppHost-specific lowercase subdirectories
+- Added property to `IDistributedApplicationBuilder.DirectoryService` (default throws `NotImplementedException`)
+- Registered service in DI container
+- Comprehensive test suite (12 tests) using `TempDirectory` helper class
+- Configuration via `IConfiguration` (supports multiple sources)
+
+✅ **First Migration Complete**:
+- **DCP Locations** - Session files now stored in `{apphost-temp}/dcp/` subdirectory
+
+⬜ **Remaining Migrations**:
+- MAUI environment targets
+- Dashboard configuration files  
+- Pipeline build artifacts
+- Azure Bicep generation
+- CLI operations
+- And 10+ other locations (see detailed inventory below)
+
+## Configuration
+
+The service supports flexible configuration through `IConfiguration`:
+
+### Via Environment Variables
+
+```bash
+# Standard hierarchical format (IConfiguration converts to Aspire:TempDirectory)
+export ASPIRE__TempDirectory=/custom/temp
+
+# Convenient flat key
+export ASPIRE_TEMP_FOLDER=/custom/temp
+```
+
+### Via appsettings.json
+
+```json
+{
+  "Aspire": {
+    "TempDirectory": "~/my-aspire-temp"
+  }
+}
+```
+
+### Via Command Line
+
+```bash
+dotnet run --Aspire:TempDirectory=/custom/temp
+```
+
+### Priority
+
+Configuration source priority follows standard .NET configuration:
+1. Command line arguments (highest)
+2. Environment variables
+3. appsettings.json files
+4. Default: `~/.aspire/temp` (lowest)
+
+## Directory Structure
+
+```
+~/.aspire/temp/
+├── myapphost-1234567890ab/     # Lowercase AppHost-specific directory
+│   ├── dcp/                    # DCP session files (✅ migrated)
+│   │   ├── kubeconfig
+│   │   └── output.sock
+│   ├── pipelines/              # (planned) Pipeline artifacts
+│   ├── dashboard/              # (planned) Dashboard config
+│   ├── {guid}/                 # Ad-hoc temp subdirectories
+│   └── {guid}.json             # Ad-hoc temp files
+├── anotherapp-fedcba098765/    # Another AppHost
+│   └── ...
+```
+
+## API Usage
+
+### In AppHost Code
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Access temp directory service
+var tempService = builder.DirectoryService.TempDirectory;
+
+// Create subdirectory
+var dcpDir = tempService.CreateSubdirectory("dcp");
+
+// Get temp file path
+var configFile = tempService.GetFilePath(".json");
+
+// Get base path
+var basePath = tempService.BasePath; // ~/.aspire/temp/{apphost}-{sha}/
+```
+
+### In Resources (via DI)
+
+```csharp
+public class MyResource : IResource
+{
+    public async Task DoSomethingAsync(DistributedApplicationExecutionContext context)
+    {
+        var dirService = context.ServiceProvider.GetRequiredService<IAspireDirectoryService>();
+        var tempService = dirService.TempDirectory;
+        
+        // Create temp subdirectory
+        var tempDir = tempService.CreateSubdirectory("myresource");
+        
+        // Or get temp file path
+        var tempFile = tempService.GetFilePath(".tmp");
+    }
+}
+```
+
+## Migration Progress
+
+### ✅ Completed (Phase 1-2)
+
+#### 1.1 DCP (Distributed Control Plane) Session Management
+**File**: `src/Aspire.Hosting/Dcp/Locations.cs`
+- **Before**: `Directory.CreateTempSubdirectory("aspire.")`
+- **After**: Uses `IAspireDirectoryService` → `{apphost-temp}/dcp/`
+- **Status**: ✅ Migrated
+- **Benefit**: DCP files now organized per AppHost, easier cleanup
+
+### ⬜ Remaining High Priority
+
+#### 1.2 MAUI Environment Targets  
+**File**: `src/Aspire.Hosting.Android/AndroidProjectExtensions.cs`, `src/Aspire.Hosting.iOS/iOSProjectExtensions.cs`
+- **Current**: `Directory.CreateTempSubdirectory($"aspire-maui-{configuration.PackageName}")`
+- **Target**: `{apphost-temp}/maui/{configuration.PackageName}/`
+- **Priority**: High - Already well-structured
+
+#### 1.3 Dashboard Configuration
+**File**: `src/Aspire.Hosting/Dashboard/DashboardEventHandlers.cs`
+- **Current**: `Path.ChangeExtension(Path.GetTempFileName(), ".json")`
+- **Target**: `{apphost-temp}/dashboard/{guid}.json`
+- **Priority**: High - User-facing feature
+
+#### 1.4 Pipeline Output Service
+**File**: `src/Aspire.Hosting/Pipelines/PipelineOutputService.cs`
+- **Current**: `Directory.CreateTempSubdirectory($"aspire-{appHostSha}")`
+- **Target**: `{apphost-temp}/pipelines/`
+- **Priority**: High - Developer experience
+
+### ⬜ Medium Priority
+
+#### 2.1 Azure Bicep Generation
+**File**: `src/Aspire.Hosting.Azure/AzureProvisioningResource.cs`
+- **Current**: `Directory.CreateTempSubdirectory("aspire")`
+- **Target**: `{apphost-temp}/azure/bicep/`
+- **Priority**: Medium
+
+#### 2.2 CLI Operations
+**Files**: Multiple in `src/Aspire.Cli/`
+- **Current**: Various `Path.GetTempFileName()` and `Directory.CreateTempSubdirectory()`
+- **Target**: `{apphost-temp}/cli/` or CLI-specific temp directory
+- **Priority**: Medium
+
+### ⬜ Low Priority
+
+#### 3.1 Build Dockerfiles
+**Files**: `ProjectResource.cs`, `ContainerResourceBuilderExtensions.cs`
+- **Current**: `Path.GetTempFileName()` for Dockerfiles
+- **Target**: `{apphost-temp}/build/dockerfiles/`
+- **Priority**: Low - Short-lived
+
+#### 3.2 Aspire Store
+**File**: `src/Aspire.Hosting/ApplicationModel/AspireStore.cs`
+- **Current**: `Path.GetTempFileName()`
+- **Priority**: Very Low - Already has configurable path
+
+#### 3.3 User Secrets Atomic Operations
+**File**: `src/Aspire.Hosting/UserSecrets/UserSecretsManagerFactory.cs`
+- **Current**: `Path.GetTempFileName()` (Unix only)
+- **Priority**: Very Low - Needs system temp for atomic operations
 
 ## Summary Statistics
 
 - **Total locations using temp operations**: 16 source files
-- **Methods used**:
+- **Methods to replace**:
   - `Path.GetTempPath()`: 6 locations
   - `Path.GetTempFileName()`: 6 locations  
   - `Directory.CreateTempSubdirectory()`: 21 locations
+- **Migrated**: 1 location (DCP)
+- **Remaining**: 15 locations
 
-All of these will be migrated to use `IAspireDirectoryService.TempDirectory`.
+All remaining locations should be migrated to use `IAspireDirectoryService.TempDirectory`.
 
 ## Detailed Inventory by Component
 
 ### 1. Aspire.Hosting (Core)
-
-#### 1.1 DCP (Distributed Control Plane) Session Management
-**File**: `src/Aspire.Hosting/Dcp/Locations.cs`
-- **Usage**: `Directory.CreateTempSubdirectory("aspire.")`
-- **Purpose**: Creates a temporary directory for DCP session files (kubeconfig, log socket)
-- **Current Location**: System temp directory with "aspire." prefix
-- **Notes**: Used for session-specific files that need to be accessible by DCP components
-- **Recommendation**: High priority - Should move to `~/.aspire/sessions/{session-id}/`
-
-#### 1.2 Pipeline Output Service
 **File**: `src/Aspire.Hosting/Pipelines/PipelineOutputService.cs`
 - **Usage**: `Directory.CreateTempSubdirectory($"aspire-{appHostSha}")` or `Directory.CreateTempSubdirectory("aspire")`
 - **Purpose**: Creates temporary directories for pipeline build artifacts
