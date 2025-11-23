@@ -47,7 +47,7 @@ internal sealed class McpStartCommand : BaseCommand
             ServerInfo = new Implementation
             {
                 Name = "aspire-mcp-server",
-                Version = "1.0.0"
+                Version = VersionHelper.GetDefaultTemplateVersion()
             },
             Handlers = new McpServerHandlers()
             {
@@ -87,7 +87,7 @@ internal sealed class McpStartCommand : BaseCommand
                         using var httpClient = new HttpClient();
 
                         await using var transport = new HttpClientTransport(transportOptions, httpClient, _loggerFactory, ownsHttpClient: true);
-                        
+
                         // Create MCP client to communicate with the dashboard
                         await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
 
@@ -97,7 +97,8 @@ internal sealed class McpStartCommand : BaseCommand
 
                     throw new McpProtocolException($"Unknown tool: '{toolName}'", McpErrorCode.MethodNotFound);
                 }
-            }
+            },
+        
         };
 
         await using var server = McpServer.Create(new StdioServerTransport("aspire-mcp-server"), options);
