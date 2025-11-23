@@ -72,7 +72,7 @@ Configuration source priority follows standard .NET configuration:
 
 ## Directory Structure
 
-```
+```text
 ~/.aspire/temp/
 ├── myapphost-1234567890ab/     # Lowercase AppHost-specific directory
 │   ├── dcp/                    # ✅ DCP session files (Phase 1)
@@ -191,8 +191,6 @@ public class MyResource : IResource
 - **Status**: ✅ Migrated (Phase 3)
 - **Location**: `{apphost-temp}/maui/ios-env/`
 - **Benefit**: iOS targets files now organized per AppHost
-
-### ⬜ Remaining Medium Priority
 
 ### ⬜ Remaining Medium Priority
 
@@ -406,7 +404,7 @@ The following test files also use temp directories. These are not production con
 
 Based on review feedback, temporary files are organized by AppHost:
 
-```
+```text
 ~/.aspire/temp/
 ├── MyAppHost-1234567890ab/     # AppHost-specific directory (name + first 12 chars of SHA)
 │   ├── {guid}/                 # Subdirectories created by CreateSubdirectory()
@@ -534,11 +532,6 @@ public class MyResource : IResource
         
         // Or get a temp file path instead of Path.GetTempFileName()
         var tempFile = tempService.GetFilePath(".json");
-    }
-}
-```
-        // Or get a temp file path instead of Path.GetTempFileName()
-        var tempFile = tempService.GetTempFilePath(".json");
     }
 }
 ```
