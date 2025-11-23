@@ -80,7 +80,7 @@ internal sealed class McpStartCommand : BaseCommand
                             Endpoint = new Uri(connection.McpInfo.EndpointUrl),
                             AdditionalHeaders = new Dictionary<string, string>
                             {
-                                ["X-API-Key"] = connection.McpInfo.ApiToken
+                                ["x-mcp-api-key"] = connection.McpInfo.ApiToken
                             }
                         };
 
