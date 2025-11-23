@@ -503,6 +503,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
+        var directoryService = new AspireDirectoryService(null, "TestAppHost", "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF");
 
         return new DashboardEventHandlers(
             configuration,
@@ -516,7 +517,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
-            rewriter
+            rewriter,
+            directoryService
             );
     }
 

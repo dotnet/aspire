@@ -123,10 +123,12 @@ public sealed class AzureEnvironmentResource : Resource
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
         var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
+        var directoryService = context.Services.GetRequiredService<IAspireDirectoryService>();
         var publishingContext = new AzurePublishingContext(
             outputService.GetOutputDirectory(),
             azureProvisioningOptions.Value,
             context.Services,
+            directoryService,
             context.Logger,
             context.ReportingStep);
 

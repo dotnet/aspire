@@ -190,11 +190,11 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_SanitizesInvalidCharactersInAppHostName()
     {
-        var invalidName = "Test<>App|Host";
+        var invalidName = "Test/App/Host";  // Use / which is invalid on all platforms
         var service = new AspireDirectoryService(null, invalidName, TestAppHostSha);
         
         // Should replace invalid characters with dashes and convert to lowercase
-        var sanitizedName = "test--app-host";
+        var sanitizedName = "test-app-host";
         var expectedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".aspire", "temp",

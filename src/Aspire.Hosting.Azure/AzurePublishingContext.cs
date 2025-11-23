@@ -26,6 +26,7 @@ public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
     IServiceProvider serviceProvider,
+    IAspireDirectoryService directoryService,
     ILogger logger,
     IReportingStep reportingStep)
 {
@@ -143,9 +144,12 @@ public sealed class AzurePublishingContext(
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
+        // Get the azure temp directory from the directory service
+        var azureTempDir = directoryService.TempDirectory.GetSubdirectoryPath("azure");
+
         foreach (var resource in bicepResourcesToPublish)
         {
-            var file = resource.GetBicepTemplateFile();
+            var file = resource.GetBicepTemplateFile(directory: azureTempDir);
 
             var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
@@ -336,7 +340,8 @@ public sealed class AzurePublishingContext(
 
                 var modulePath = Path.Combine(moduleDirectory.FullName, $"{resource.Name}.bicep");
 
-                var file = br.GetBicepTemplateFile();
+                // Use the same azure temp directory
+                var file = br.GetBicepTemplateFile(directory: azureTempDir);
 
                 File.Copy(file.Path, modulePath, true);
 

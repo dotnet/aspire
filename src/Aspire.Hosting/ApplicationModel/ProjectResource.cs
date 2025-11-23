@@ -133,9 +133,10 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         // Add COPY --from: statements for each source
         stage.AddContainerFiles(this, containerWorkingDir, logger);
 
-        // Write the Dockerfile to a temporary location
+        // Get the directory service to create temp Dockerfile
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-        var tempDockerfilePath = Path.GetTempFileName();
+        var directoryService = ctx.Services.GetRequiredService<IAspireDirectoryService>();
+        var tempDockerfilePath = directoryService.TempDirectory.GetFilePath(".dockerfile");
 
         var builtSuccessfully = false;
         try
