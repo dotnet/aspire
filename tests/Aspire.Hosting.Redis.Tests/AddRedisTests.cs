@@ -737,9 +737,9 @@ public class AddRedisTests
     public void WithoutCertificateKeyPairDisablesTlsConfiguration()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis").WithoutCertificateKeyPair();
+        var redis = builder.AddRedis("myredis").WithoutServerAuthenticationCertificate();
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
         Assert.False(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -750,9 +750,9 @@ public class AddRedisTests
     public void WithDeveloperCertificateKeyPairEnablesDeveloperCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis").WithDeveloperCertificateKeyPair();
+        var redis = builder.AddRedis("myredis").WithServerAuthenticationDeveloperCertificate();
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
         Assert.True(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -764,9 +764,9 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var password = builder.AddParameter("certpass", "test123");
-        var redis = builder.AddRedis("myredis").WithDeveloperCertificateKeyPair(password);
+        var redis = builder.AddRedis("myredis").WithServerAuthenticationDeveloperCertificate(password);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
         Assert.True(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Equal(password.Resource, annotation.Password);
@@ -779,9 +779,9 @@ public class AddRedisTests
 
         // Create a test certificate with private key
         using var cert = CreateTestCertificate();
-        var redis = builder.AddRedis("myredis").WithCertificateKeyPair(cert);
+        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
         Assert.Null(annotation.UseDeveloperCertificate);
         Assert.Equal(cert, annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -795,9 +795,9 @@ public class AddRedisTests
 
         // Create a test certificate with private key
         using var cert = CreateTestCertificate();
-        var redis = builder.AddRedis("myredis").WithCertificateKeyPair(cert, password);
+        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert, password);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<CertificateKeyPairAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
         Assert.Null(annotation.UseDeveloperCertificate);
         Assert.Equal(cert, annotation.Certificate);
         Assert.Equal(password.Resource, annotation.Password);
@@ -809,7 +809,7 @@ public class AddRedisTests
         using var builder = TestDistributedApplicationBuilder.Create();
         using var cert = CreateTestCertificate();
 
-        var redis = builder.AddRedis("myredis").WithCertificateKeyPair(cert);
+        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -826,7 +826,7 @@ public class AddRedisTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddRedis("myredis").WithoutCertificateKeyPair();
+        var redis = builder.AddRedis("myredis").WithoutServerAuthenticationCertificate();
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

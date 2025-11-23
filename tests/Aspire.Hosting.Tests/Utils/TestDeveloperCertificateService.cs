@@ -19,5 +19,5 @@ public sealed class TestDeveloperCertificateService(List<X509Certificate2> certi
     /// <inheritdoc />
     public bool TrustCertificate => trustCertificate;
 
-    public bool DefaultTlsTerminationEnabled => supportsTlsTermination && trustCertificate;
+    public bool DefaultTlsTerminationEnabled => !OperatingSystem.IsMacOS() && supportsTlsTermination && trustCertificate;
 }

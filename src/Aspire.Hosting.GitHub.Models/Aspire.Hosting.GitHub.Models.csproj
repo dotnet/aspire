@@ -6,8 +6,6 @@
     <PackageTags>aspire integration hosting github models ai</PackageTags>
     <Description>GitHub Models resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)GitHub_256x.png</PackageIconFullPath>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>

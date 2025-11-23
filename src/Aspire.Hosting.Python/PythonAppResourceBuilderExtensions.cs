@@ -296,7 +296,7 @@ public static class PythonAppResourceBuilderExtensions
                     c.Args.Add("--reload");
                 }
             })
-            .WithCertificateKeyPairConfiguration(ctx =>
+            .WithServerAuthenticationCertificateConfiguration(ctx =>
             {
                 ctx.Arguments.Add("--ssl-keyfile");
                 ctx.Arguments.Add(ctx.KeyPath);
@@ -318,7 +318,7 @@ public static class PythonAppResourceBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
                     if (developerCertificateService.DefaultTlsTerminationEnabled)
                     {

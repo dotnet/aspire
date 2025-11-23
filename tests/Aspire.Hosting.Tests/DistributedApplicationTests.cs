@@ -644,7 +644,7 @@ public class DistributedApplicationTests
         using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
 
         var redis = testProgram.AppBuilder.AddRedis($"{testName}-redis")
-            .WithCertificateKeyPair(cert);
+            .WithServerAuthenticationCertificate(cert);
 
         await using var app = testProgram.Build();
 
@@ -694,7 +694,7 @@ public class DistributedApplicationTests
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis")
-            .WithoutCertificateKeyPair();
+            .WithoutServerAuthenticationCertificate();
         if (explicitTrust.HasValue)
         {
             container.WithDeveloperCertificateTrust(explicitTrust.Value);

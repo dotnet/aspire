@@ -10,19 +10,19 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="callback">The callback used to configure the resource to use a specific TLS certificate pair.</param>
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class CertificateKeyPairConfigurationCallbackAnnotation(Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> callback) : IResourceAnnotation
+public sealed class ServerAuthenticationCertificateConfigurationCallbackAnnotation(Func<ServerAuthenticationCertificateConfigurationCallbackAnnotationContext, Task> callback) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the callback to invoke to configure the resource to use a specific TLS certificate key pair for HTTPS endpoints.
     /// </summary>
-    public Func<CertificateKeyPairConfigurationCallbackAnnotationContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
+    public Func<ServerAuthenticationCertificateConfigurationCallbackAnnotationContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
 }
 
 /// <summary>
-/// Context provided to a <see cref="CertificateKeyPairConfigurationCallbackAnnotation"/> callback.
+/// Context provided to a <see cref="ServerAuthenticationCertificateConfigurationCallbackAnnotation"/> callback.
 /// </summary>
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class CertificateKeyPairConfigurationCallbackAnnotationContext
+public sealed class ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
 {
     /// <summary>
     /// Gets the <see cref="DistributedApplicationExecutionContext"/> for this session.
@@ -42,7 +42,7 @@ public sealed class CertificateKeyPairConfigurationCallbackAnnotationContext
     /// <example>
     /// <code language="csharp">
     /// builder.AddContainer("my-resource", "my-image:latest")
-    ///    .WithCertificateKeyPairConfiguration(ctx =>
+    ///    .WithServerAuthenticationCertificateConfiguration(ctx =>
     ///    {
     ///        ctx.Arguments.Add("--certificate");
     ///        ctx.Arguments.Add(ctx.CertificatePath);
@@ -64,7 +64,7 @@ public sealed class CertificateKeyPairConfigurationCallbackAnnotationContext
     /// <example>
     /// <code language="csharp">
     /// builder.AddContainer("my-resource", "my-image:latest")
-    ///     .WithCertificateKeyPairConfiguration(ctx =>
+    ///     .WithServerAuthenticationCertificateConfiguration(ctx =>
     ///     {
     ///         ctx.EnvironmentVariables["Kestrel__Certificates__Path"] = ctx.CertificatePath;
     ///         ctx.EnvironmentVariables["Kestrel__Certificates__KeyPath"] = ctx.KeyPath;
