@@ -1,23 +1,25 @@
 # Temporary Folder Creation Inventory
 
-This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase. Following feedback, we are implementing a centralized solution using `~/.aspire/temp` for all temporary files.
+This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase. Following feedback, we are implementing a centralized solution using `~/.aspire/temp/{apphost-name}-{sha}/` for AppHost-specific temporary files.
 
 ## Updated Proposal
 
 Based on review feedback, we are implementing a unified approach:
 
-- **Location**: `~/.aspire/temp/` for all temporary files
-- **Override**: Support `ASPIRE_TEMP_FOLDER` environment variable
-- **Service**: Create `IAspireTempDirectoryService` available in both CLI and AppHost
-- **Access**: Exposed on `IDistributedApplicationBuilder` and in DI container
+- **Location**: `~/.aspire/temp/{apphost-name}-{sha}/` for AppHost-specific temporary files
+- **Override**: Support `ASPIRE_TEMP_FOLDER` environment variable to change the base temp root
+- **Service**: `IAspireDirectoryService` with `TempDirectory` property available in both CLI and AppHost
+- **Access**: Exposed on `IDistributedApplicationBuilder.DirectoryService` and in DI container
+- **Organization**: Each AppHost gets its own subdirectory based on project name + SHA for easy identification and cleanup
 - **Migration**: Resources should use this service instead of `Path.GetTempPath()`, `Path.GetTempFileName()`, `Directory.CreateTempSubdirectory()`
 
 ## Implementation Status
 
-✅ **Created** `IAspireTempDirectoryService` interface in `src/Aspire.Hosting/Utils/`
-✅ **Created** `AspireTempDirectoryService` implementation
-✅ **Added** property to `IDistributedApplicationBuilder.TempDirectoryService`
+✅ **Created** `IAspireDirectoryService` interface in `src/Aspire.Hosting/Utils/`
+✅ **Created** `AspireDirectoryService` implementation with AppHost-specific subdirectories
+✅ **Added** property to `IDistributedApplicationBuilder.DirectoryService` (default throws NotImplementedException)
 ✅ **Registered** service in DI container
+✅ **Tests** comprehensive test suite covering all scenarios
 ⬜ **TODO**: Migrate existing temp usage to new service
 
 ## Summary Statistics
@@ -28,7 +30,7 @@ Based on review feedback, we are implementing a unified approach:
   - `Path.GetTempFileName()`: 6 locations  
   - `Directory.CreateTempSubdirectory()`: 21 locations
 
-All of these will be migrated to use `IAspireTempDirectoryService`.
+All of these will be migrated to use `IAspireDirectoryService.TempDirectory`.
 
 ## Detailed Inventory by Component
 
@@ -192,41 +194,57 @@ The following test files also use temp directories. These are not production con
 - CLI tests create temporary execution contexts with test-specific SDK/runtime directories
 - Several tests use `Path.Combine(Path.GetTempPath(), "aspire-test-*")` pattern
 
-## Simplified Directory Structure for `~/.aspire/temp`
+## Directory Structure for `~/.aspire/temp`
 
-Based on review feedback, all temporary files will be consolidated into a single directory:
+Based on review feedback, temporary files are organized by AppHost:
 
 ```
 ~/.aspire/temp/
-├── {random-guid}/      # Subdirectories created by CreateTempSubdirectory()
-├── {random-guid}.json  # Temp files created by GetTempFilePath()
-├── aspire-{guid}/      # Subdirectories with prefix
-└── ...                 # All temp files and directories in one location
+├── MyAppHost-1234567890ab/     # AppHost-specific directory (name + first 12 chars of SHA)
+│   ├── {guid}/                 # Subdirectories created by CreateSubdirectory()
+│   ├── {guid}.json             # Temp files created by GetFilePath()
+│   ├── build-{guid}/           # Subdirectories with prefix
+│   └── ...                     # All temp files for this AppHost
+├── AnotherApp-fedcba098765/    # Another AppHost's temp directory
+│   └── ...
+└── ...
 ```
 
 ### Key Benefits
 
-1. **Simplicity**: Single location for all temp files
-2. **Consistency**: All code uses the same service
-3. **Override**: `ASPIRE_TEMP_FOLDER` environment variable or `Aspire:TempDirectory` configuration
-4. **Cleanup**: Easier to manage and clean up all temp files in one place
+1. **Organization**: Each AppHost gets its own subdirectory for easy identification
+2. **Cleanup**: Easy to identify and clean up temp files for specific AppHosts
+3. **Consistency**: All code uses the same service
+4. **Override**: `ASPIRE_TEMP_FOLDER` environment variable changes the base temp root
 5. **Cross-platform**: Works consistently across Windows, Linux, and macOS
+6. **No Conflicts**: Different AppHosts don't interfere with each other
 
-## IAspireTempDirectoryService API
+## IAspireDirectoryService API
 
-The service provides these methods:
+The service provides a hierarchical API for different directory types:
 
-- `BaseTempDirectory`: Gets the base path (`~/.aspire/temp` by default)
-- `CreateTempSubdirectory(prefix)`: Creates a unique subdirectory (replaces `Directory.CreateTempSubdirectory`)
-- `GetTempFilePath(extension)`: Gets a unique temp file path (replaces `Path.GetTempFileName`)
-- `GetTempSubdirectoryPath(subdirectory)`: Gets a subdirectory path without creating it
+```csharp
+// Access the directory service
+var dirService = builder.DirectoryService;
+
+// Use the temp directory
+var tempDir = dirService.TempDirectory;
+
+// Methods available on ITempDirectoryService:
+- BasePath: Gets the AppHost-specific base path (~/.aspire/temp/{apphost-name}-{sha})
+- CreateSubdirectory(prefix): Creates a unique subdirectory (replaces Directory.CreateTempSubdirectory)
+- GetFilePath(extension): Gets a unique temp file path (replaces Path.GetTempFileName)
+- GetSubdirectoryPath(subdirectory): Gets a subdirectory path without creating it
+```
 
 ## Migration Strategy
 
 ### Phase 1: Infrastructure (Completed)
-✅ Create `IAspireTempDirectoryService` interface and implementation
+✅ Create `IAspireDirectoryService` interface and implementation
 ✅ Register in DI container
-✅ Expose on `IDistributedApplicationBuilder`
+✅ Expose on `IDistributedApplicationBuilder.DirectoryService`
+✅ AppHost-specific subdirectories using project name + SHA
+✅ Comprehensive test suite
 
 ### Phase 2: High Priority Migration
 1. DCP session files (`Locations.cs`)
@@ -243,10 +261,6 @@ The service provides these methods:
 1. Build-time Dockerfiles
 2. MySQL init scripts
 3. Project resource temporary files
-### Phase 4: Low Priority Migration
-1. Build-time Dockerfiles
-2. MySQL init scripts
-3. Project resource temporary files
 4. Init command templates
 
 ### Phase 5: Very Low Priority (Requires careful consideration)
@@ -255,24 +269,28 @@ The service provides these methods:
 
 ## Configuration Approach
 
-The service supports three ways to override the default `~/.aspire/temp` location:
+The service supports three ways to override the default `~/.aspire/temp` base location:
 
 ### 1. Environment Variable (Highest Priority)
 ```bash
-export ASPIRE_TEMP_FOLDER=/custom/temp/path
+export ASPIRE_TEMP_FOLDER=/custom/temp/root
+# Result: /custom/temp/root/{apphost-name}-{sha}/
 ```
 
 ### 2. Configuration (Second Priority)
 ```json
 {
   "Aspire": {
-    "TempDirectory": "~/.aspire/temp"
+    "TempDirectory": "~/custom-temp"
   }
 }
 ```
+Result: `~/custom-temp/{apphost-name}-{sha}/`
 
 ### 3. Default (Fallback)
-`~/.aspire/temp` in the user's profile directory
+`~/.aspire/temp/{apphost-name}-{sha}/` in the user's profile directory
+
+Note: The AppHost-specific subdirectory (name + SHA) is always appended for organization.
 
 ## Usage Examples
 
@@ -281,13 +299,15 @@ export ASPIRE_TEMP_FOLDER=/custom/temp/path
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Access via builder property
-var tempDir = builder.TempDirectoryService.CreateTempSubdirectory("my-prefix");
+var tempService = builder.DirectoryService.TempDirectory;
+var tempDir = tempService.CreateSubdirectory("my-prefix");
+var tempFile = tempService.GetFilePath(".json");
 
 // Or via DI in services
 services.AddSingleton<MyService>(sp =>
 {
-    var tempService = sp.GetRequiredService<IAspireTempDirectoryService>();
-    return new MyService(tempService);
+    var dirService = sp.GetRequiredService<IAspireDirectoryService>();
+    return new MyService(dirService.TempDirectory);
 });
 ```
 
@@ -298,11 +318,17 @@ public class MyResource : IResource
     public async Task DoSomethingAsync(DistributedApplicationExecutionContext context)
     {
         // Get the service from context
-        var tempService = context.ServiceProvider.GetRequiredService<IAspireTempDirectoryService>();
+        var dirService = context.ServiceProvider.GetRequiredService<IAspireDirectoryService>();
+        var tempService = dirService.TempDirectory;
         
         // Create a temp subdirectory instead of using Path.GetTempPath()
-        var tempDir = tempService.CreateTempSubdirectory("myresource");
+        var tempDir = tempService.CreateSubdirectory("myresource");
         
+        // Or get a temp file path instead of Path.GetTempFileName()
+        var tempFile = tempService.GetFilePath(".json");
+    }
+}
+```
         // Or get a temp file path instead of Path.GetTempFileName()
         var tempFile = tempService.GetTempFilePath(".json");
     }

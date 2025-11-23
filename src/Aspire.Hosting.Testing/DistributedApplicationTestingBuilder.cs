@@ -245,7 +245,7 @@ public static class DistributedApplicationTestingBuilder
 
             public IDistributedApplicationPipeline Pipeline => innerBuilder.Pipeline;
 
-            public IAspireTempDirectoryService TempDirectoryService => innerBuilder.TempDirectoryService;
+            public IAspireDirectoryService DirectoryService => innerBuilder.DirectoryService;
 
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
@@ -399,7 +399,7 @@ public static class DistributedApplicationTestingBuilder
 
         public IDistributedApplicationPipeline Pipeline => _innerBuilder.Pipeline;
 
-        public IAspireTempDirectoryService TempDirectoryService => _innerBuilder.TempDirectoryService;
+        public IAspireDirectoryService DirectoryService => _innerBuilder.DirectoryService;
 
         public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 

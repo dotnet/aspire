@@ -66,7 +66,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
-    private readonly IAspireTempDirectoryService _tempDirectoryService;
+    private readonly IAspireDirectoryService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -99,7 +99,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
 
     /// <inheritdoc />
-    public IAspireTempDirectoryService TempDirectoryService => _tempDirectoryService;
+    public IAspireDirectoryService DirectoryService => _directoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -299,9 +299,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
         
-        // Create and register the temp directory service
-        _tempDirectoryService = new AspireTempDirectoryService(_innerBuilder.Configuration);
-        _innerBuilder.Services.AddSingleton<IAspireTempDirectoryService>(_tempDirectoryService);
+        // Create and register the directory service with AppHost-specific subdirectory
+        _directoryService = new AspireDirectoryService(_innerBuilder.Configuration, appHostName, appHostPathSha);
+        _innerBuilder.Services.AddSingleton<IAspireDirectoryService>(_directoryService);
         
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();

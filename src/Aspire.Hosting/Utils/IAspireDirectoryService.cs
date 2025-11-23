@@ -4,14 +4,36 @@
 namespace Aspire.Hosting.Utils;
 
 /// <summary>
-/// Service for managing Aspire temporary directories.
+/// Service for managing Aspire directories.
 /// </summary>
 /// <remarks>
-/// This service provides a centralized way to manage temporary directories for Aspire,
-/// consolidating temp storage into ~/.aspire/temp by default. The location can be
-/// overridden using the ASPIRE_TEMP_FOLDER environment variable or configuration.
+/// This service provides a centralized way to manage directories used by Aspire,
+/// including temporary files, cache, and other storage needs. Directory locations
+/// can be overridden using environment variables or configuration.
 /// </remarks>
-public interface IAspireTempDirectoryService
+public interface IAspireDirectoryService
+{
+    /// <summary>
+    /// Gets the temporary directory service for managing temporary files and directories.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The temp directory defaults to ~/.aspire/temp but can be overridden via:
+    /// - ASPIRE_TEMP_FOLDER environment variable
+    /// - Aspire:TempDirectory configuration setting
+    /// </para>
+    /// <para>
+    /// Use this instead of <see cref="Path.GetTempPath"/>, <see cref="Path.GetTempFileName"/>,
+    /// or <see cref="Directory.CreateTempSubdirectory"/> to ensure consistent temp file management.
+    /// </para>
+    /// </remarks>
+    ITempDirectoryService TempDirectory { get; }
+}
+
+/// <summary>
+/// Service for managing temporary directories and files within Aspire.
+/// </summary>
+public interface ITempDirectoryService
 {
     /// <summary>
     /// Gets the base path for all Aspire temporary files.
@@ -21,7 +43,7 @@ public interface IAspireTempDirectoryService
     /// - ASPIRE_TEMP_FOLDER environment variable
     /// - Aspire:TempDirectory configuration setting
     /// </remarks>
-    string BaseTempDirectory { get; }
+    string BasePath { get; }
 
     /// <summary>
     /// Creates and returns the path to a temporary subdirectory.
@@ -32,7 +54,7 @@ public interface IAspireTempDirectoryService
     /// The subdirectory will be created if it doesn't exist.
     /// This method is thread-safe.
     /// </remarks>
-    string CreateTempSubdirectory(string? prefix = null);
+    string CreateSubdirectory(string? prefix = null);
 
     /// <summary>
     /// Gets the path to a temporary file within the Aspire temp directory.
@@ -43,7 +65,7 @@ public interface IAspireTempDirectoryService
     /// The file is not created by this method, only the path is returned.
     /// The caller is responsible for creating and managing the file.
     /// </remarks>
-    string GetTempFilePath(string? extension = null);
+    string GetFilePath(string? extension = null);
 
     /// <summary>
     /// Gets the path to a subdirectory within the Aspire temp directory without creating it.
@@ -54,5 +76,5 @@ public interface IAspireTempDirectoryService
     /// The directory is not created by this method.
     /// Use this when you want to check for existence or manage the directory lifecycle manually.
     /// </remarks>
-    string GetTempSubdirectoryPath(string subdirectory);
+    string GetSubdirectoryPath(string subdirectory);
 }
