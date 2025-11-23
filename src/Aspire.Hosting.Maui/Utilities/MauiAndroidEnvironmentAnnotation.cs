@@ -38,7 +38,8 @@ internal sealed class MauiAndroidEnvironmentProcessedAnnotation : IResourceAnnot
 internal sealed class MauiAndroidEnvironmentSubscriber(
     DistributedApplicationExecutionContext executionContext,
     ResourceLoggerService loggerService,
-    ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
+    ResourceNotificationService notificationService,
+    IAspireDirectoryService directoryService) : IDistributedApplicationEventingSubscriber
 {
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {
@@ -72,6 +73,9 @@ internal sealed class MauiAndroidEnvironmentSubscriber(
 
         try
         {
+            // Get the Android environment directory from the directory service
+            var androidEnvDirectory = directoryService.TempDirectory.GetSubdirectoryPath("maui/android-env");
+            
             // Add a CommandLineArgsCallback that will generate the targets file
             // This runs AFTER all environment callbacks have been processed
             // The callback itself ensures idempotency by only generating the file once
@@ -86,6 +90,7 @@ internal sealed class MauiAndroidEnvironmentSubscriber(
                         resource,
                         executionContext,
                         logger,
+                        androidEnvDirectory,
                         cancellationToken
                     ).ConfigureAwait(false);
 

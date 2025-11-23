@@ -38,7 +38,8 @@ internal sealed class MauiiOSEnvironmentProcessedAnnotation : IResourceAnnotatio
 internal sealed class MauiiOSEnvironmentSubscriber(
     DistributedApplicationExecutionContext executionContext,
     ResourceLoggerService loggerService,
-    ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
+    ResourceNotificationService notificationService,
+    IAspireDirectoryService directoryService) : IDistributedApplicationEventingSubscriber
 {
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {
@@ -72,6 +73,9 @@ internal sealed class MauiiOSEnvironmentSubscriber(
 
         try
         {
+            // Get the iOS environment directory from the directory service
+            var iosEnvDirectory = directoryService.TempDirectory.GetSubdirectoryPath("maui/ios-env");
+            
             // Add a CommandLineArgsCallback that will generate the targets file
             // This runs AFTER all environment callbacks have been processed
             // The callback itself ensures idempotency by only generating the file once
@@ -86,6 +90,7 @@ internal sealed class MauiiOSEnvironmentSubscriber(
                         resource,
                         executionContext,
                         logger,
+                        iosEnvDirectory,
                         cancellationToken
                     ).ConfigureAwait(false);
 

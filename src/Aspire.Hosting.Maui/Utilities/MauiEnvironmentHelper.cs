@@ -25,12 +25,14 @@ internal static class MauiEnvironmentHelper
     /// <param name="resource">The resource to collect environment variables from.</param>
     /// <param name="executionContext">The execution context.</param>
     /// <param name="logger">Logger for diagnostic output.</param>
+    /// <param name="androidEnvDirectory">The directory to store Android environment targets files.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The path to the generated targets file, or null if no environment variables are present.</returns>
     public static async Task<string?> CreateAndroidEnvironmentTargetsFileAsync(
         IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
+        string androidEnvDirectory,
         CancellationToken cancellationToken)
     {
         var environmentVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -67,16 +69,15 @@ internal static class MauiEnvironmentHelper
             return null;
         }
 
-        // Create a temporary targets file
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "android-env");
-        Directory.CreateDirectory(tempDirectory);
+        // Create the directory if it doesn't exist
+        Directory.CreateDirectory(androidEnvDirectory);
 
         // Prune old targets files
-        PruneOldTargets(tempDirectory, logger);
+        PruneOldTargets(androidEnvDirectory, logger);
 
         var sanitizedName = SanitizeFileName(resource.Name + "-android");
         var uniqueId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
-        var targetsFilePath = Path.Combine(tempDirectory, $"{sanitizedName}-{uniqueId}.targets");
+        var targetsFilePath = Path.Combine(androidEnvDirectory, $"{sanitizedName}-{uniqueId}.targets");
 
         // Generate the targets file content
         var targetsContent = GenerateAndroidTargetsFileContent(environmentVariables);
@@ -218,12 +219,14 @@ internal static class MauiEnvironmentHelper
     /// <param name="resource">The resource to collect environment variables from.</param>
     /// <param name="executionContext">The execution context.</param>
     /// <param name="logger">Logger for diagnostic output.</param>
+    /// <param name="iosEnvDirectory">The directory to store iOS environment targets files.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The path to the generated targets file, or null if no environment variables are present.</returns>
     public static async Task<string?> CreateiOSEnvironmentTargetsFileAsync(
         IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
+        string iosEnvDirectory,
         CancellationToken cancellationToken)
     {
         var environmentVariables = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -250,16 +253,15 @@ internal static class MauiEnvironmentHelper
             return null;
         }
 
-        // Create a temporary targets file
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "mlaunch-env");
-        Directory.CreateDirectory(tempDirectory);
+        // Create the directory if it doesn't exist
+        Directory.CreateDirectory(iosEnvDirectory);
 
         // Prune old targets files
-        PruneOldTargetsiOS(tempDirectory, logger);
+        PruneOldTargetsiOS(iosEnvDirectory, logger);
 
         var sanitizedName = SanitizeFileName(resource.Name + "-ios");
         var uniqueId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
-        var targetsFilePath = Path.Combine(tempDirectory, $"{sanitizedName}-{uniqueId}.targets");
+        var targetsFilePath = Path.Combine(iosEnvDirectory, $"{sanitizedName}-{uniqueId}.targets");
 
         // Generate the targets file content
         var targetsContent = GenerateiOSTargetsFileContent(environmentVariables);

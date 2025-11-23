@@ -22,16 +22,15 @@ We have implemented a centralized directory management service that:
 - Comprehensive test suite (12 tests) using `TempDirectory` helper class
 - Configuration via `IConfiguration` (supports multiple sources)
 
-✅ **First Migration Complete**:
-- **DCP Locations** - Session files now stored in `{apphost-temp}/dcp/` subdirectory
+✅ **Migrations Complete (8 of 16 locations)**:
+- **Phase 1**: DCP session management
+- **Phase 2**: PipelineOutputService, ProjectResource, ContainerResourceBuilderExtensions, DashboardEventHandlers, Azure Bicep
+- **Phase 3**: MAUI environment targets (Android & iOS)
 
 ⬜ **Remaining Migrations**:
-- MAUI environment targets
-- Dashboard configuration files  
-- Pipeline build artifacts
-- Azure Bicep generation
-- CLI operations
-- And 10+ other locations (see detailed inventory below)
+- CLI operations (6 locations)
+- MySQL scripts (1 location)
+- User Secrets atomic operations (needs system temp)
 
 ## Configuration
 
@@ -76,13 +75,18 @@ Configuration source priority follows standard .NET configuration:
 ```
 ~/.aspire/temp/
 ├── myapphost-1234567890ab/     # Lowercase AppHost-specific directory
-│   ├── dcp/                    # DCP session files (✅ migrated)
+│   ├── dcp/                    # ✅ DCP session files (Phase 1)
 │   │   ├── kubeconfig
 │   │   └── output.sock
-│   ├── pipelines/              # (planned) Pipeline artifacts
-│   ├── dashboard/              # (planned) Dashboard config
-│   ├── {guid}/                 # Ad-hoc temp subdirectories
-│   └── {guid}.json             # Ad-hoc temp files
+│   ├── pipelines/              # ✅ Pipeline artifacts (Phase 2)
+│   ├── azure/                  # ✅ Azure Bicep generation (Phase 2)
+│   ├── maui/                   # ✅ MAUI environment targets (Phase 3)
+│   │   ├── android-env/        # ✅ Android targets files
+│   │   └── ios-env/            # ✅ iOS targets files
+│   ├── {guid}.dockerfile       # ✅ ProjectResource temp Dockerfiles (Phase 2)
+│   ├── {guid}.Dockerfile.{name}# ✅ Container factory Dockerfiles (Phase 2)
+│   ├── {guid}.json             # ✅ Dashboard config files (Phase 2)
+│   └── {guid}/                 # Ad-hoc temp subdirectories
 ├── anotherapp-fedcba098765/    # Another AppHost
 │   └── ...
 ```
@@ -128,26 +132,71 @@ public class MyResource : IResource
 
 ## Migration Progress
 
-### ✅ Completed (Phase 1-2)
+### ✅ Completed (Phases 1-3)
 
 #### 1.1 DCP (Distributed Control Plane) Session Management
 **File**: `src/Aspire.Hosting/Dcp/Locations.cs`
 - **Before**: `Directory.CreateTempSubdirectory("aspire.")`
 - **After**: Uses `IAspireDirectoryService` → `{apphost-temp}/dcp/`
-- **Status**: ✅ Migrated
+- **Status**: ✅ Migrated (Phase 1)
 - **Benefit**: DCP files now organized per AppHost, easier cleanup
 
-### ⬜ Remaining High Priority
+#### 1.2 PipelineOutputService
+**File**: `src/Aspire.Hosting/Pipelines/PipelineOutputService.cs`
+- **Before**: `Directory.CreateTempSubdirectory($"aspire-{appHostSha}")`
+- **After**: Uses `directoryService.TempDirectory.GetSubdirectoryPath("pipelines")`
+- **Status**: ✅ Migrated (Phase 2)
+- **Location**: `{apphost-temp}/pipelines/`
 
-#### 1.2 MAUI Environment Targets  
-**File**: `src/Aspire.Hosting.Android/AndroidProjectExtensions.cs`, `src/Aspire.Hosting.iOS/iOSProjectExtensions.cs`
-- **Current**: `Directory.CreateTempSubdirectory($"aspire-maui-{configuration.PackageName}")`
-- **Target**: `{apphost-temp}/maui/{configuration.PackageName}/`
-- **Priority**: High - Already well-structured
+#### 1.3 ProjectResource (Dockerfile building)
+**File**: `src/Aspire.Hosting/ApplicationModel/ProjectResource.cs`
+- **Before**: `Path.GetTempFileName()`
+- **After**: `directoryService.TempDirectory.GetFilePath(".dockerfile")`
+- **Status**: ✅ Migrated (Phase 2)
+- **Location**: `{apphost-temp}/{guid}.dockerfile`
 
-#### 1.3 Dashboard Configuration
+#### 1.4 ContainerResourceBuilderExtensions (WithDockerfileFactory)
+**File**: `src/Aspire.Hosting/ContainerResourceBuilderExtensions.cs`
+- **Before**: `Path.Combine(Path.GetTempPath(), $"Dockerfile.{resource.Name}.{Guid.NewGuid():N}")`
+- **After**: `directoryService.TempDirectory.GetFilePath($".Dockerfile.{resource.Name}")`
+- **Status**: ✅ Migrated (Phase 2)
+- **Location**: `{apphost-temp}/{guid}.Dockerfile.{resource-name}`
+
+#### 1.5 DashboardEventHandlers (2 locations)
 **File**: `src/Aspire.Hosting/Dashboard/DashboardEventHandlers.cs`
-- **Current**: `Path.ChangeExtension(Path.GetTempFileName(), ".json")`
+- **Before**: `Path.ChangeExtension(Path.GetTempFileName(), ".json")`
+- **After**: `directoryService.TempDirectory.GetFilePath(".json")`
+- **Status**: ✅ Migrated (Phase 2)
+- **Location**: `{apphost-temp}/{guid}.json`
+
+#### 1.6 Azure Bicep Generation (AzureProvisioningResource & AzureBicepResource)
+**Files**: `src/Aspire.Hosting.Azure/AzureProvisioningResource.cs`, `AzureBicepResource.cs`, `BicepProvisioner.cs`, `AzurePublishingContext.cs`
+- **Before**: `Directory.CreateTempSubdirectory("aspire")`
+- **After**: Pass azure temp directory from `directoryService.TempDirectory.GetSubdirectoryPath("azure")`
+- **Status**: ✅ Migrated (Phase 2)
+- **Location**: `{apphost-temp}/azure/`
+
+#### 1.7 MAUI Android Environment Targets
+**File**: `src/Aspire.Hosting.Maui/Utilities/MauiEnvironmentHelper.cs`, `MauiAndroidEnvironmentAnnotation.cs`
+- **Before**: `Path.Combine(Path.GetTempPath(), "aspire", "maui", "android-env")`
+- **After**: `directoryService.TempDirectory.GetSubdirectoryPath("maui/android-env")`
+- **Status**: ✅ Migrated (Phase 3)
+- **Location**: `{apphost-temp}/maui/android-env/`
+- **Benefit**: Android targets files now organized per AppHost
+
+#### 1.8 MAUI iOS Environment Targets
+**File**: `src/Aspire.Hosting.Maui/Utilities/MauiEnvironmentHelper.cs`, `MauiiOSEnvironmentAnnotation.cs`
+- **Before**: `Path.Combine(Path.GetTempPath(), "aspire", "maui", "mlaunch-env")`
+- **After**: `directoryService.TempDirectory.GetSubdirectoryPath("maui/ios-env")`
+- **Status**: ✅ Migrated (Phase 3)
+- **Location**: `{apphost-temp}/maui/ios-env/`
+- **Benefit**: iOS targets files now organized per AppHost
+
+### ⬜ Remaining Medium Priority
+
+### ⬜ Remaining Medium Priority
+
+#### 2.1 CLI Download Operations
 - **Target**: `{apphost-temp}/dashboard/{guid}.json`
 - **Priority**: High - User-facing feature
 
