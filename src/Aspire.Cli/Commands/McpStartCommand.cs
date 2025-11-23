@@ -19,10 +19,10 @@ namespace Aspire.Cli.Commands;
 internal sealed class McpStartCommand : BaseCommand
 {
     private readonly Dictionary<string, CliMcpTool> _tools;
-    private readonly AuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
+    private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
     private readonly ILoggerFactory _loggerFactory;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;

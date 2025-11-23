@@ -16,7 +16,7 @@ namespace Aspire.Cli.Backchannel;
 /// </summary>
 internal sealed class AuxiliaryBackchannelMonitor(
     ILogger<AuxiliaryBackchannelMonitor> logger,
-    CliExecutionContext executionContext) : BackgroundService
+    CliExecutionContext executionContext) : BackgroundService, IAuxiliaryBackchannelMonitor
 {
     private readonly ConcurrentDictionary<string, AppHostConnection> _connections = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
