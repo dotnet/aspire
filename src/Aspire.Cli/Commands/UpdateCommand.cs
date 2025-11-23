@@ -59,34 +59,31 @@ internal sealed class UpdateCommand : BaseCommand
         projectOption.Description = UpdateCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
 
-        // Only add --self option if not running as dotnet tool
-        if (!IsRunningAsDotNetTool())
+        // Add --self option regardless of whether running as dotnet tool
+        var selfOption = new Option<bool>("--self");
+        selfOption.Description = "Update the Aspire CLI itself to the latest version";
+        Options.Add(selfOption);
+
+        // Customize description based on whether staging channel is enabled
+        var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+        
+        var channelOption = new Option<string?>("--channel")
         {
-            var selfOption = new Option<bool>("--self");
-            selfOption.Description = "Update the Aspire CLI itself to the latest version";
-            Options.Add(selfOption);
+            Description = isStagingEnabled 
+                ? UpdateCommandStrings.ChannelOptionDescriptionWithStaging
+                : UpdateCommandStrings.ChannelOptionDescription
+        };
+        Options.Add(channelOption);
 
-            // Customize description based on whether staging channel is enabled
-            var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-            
-            var channelOption = new Option<string?>("--channel")
-            {
-                Description = isStagingEnabled 
-                    ? UpdateCommandStrings.ChannelOptionDescriptionWithStaging
-                    : UpdateCommandStrings.ChannelOptionDescription
-            };
-            Options.Add(channelOption);
-
-            // Keep --quality for backward compatibility but hide it
-            var qualityOption = new Option<string?>("--quality")
-            {
-                Description = isStagingEnabled 
-                    ? UpdateCommandStrings.QualityOptionDescriptionWithStaging
-                    : UpdateCommandStrings.QualityOptionDescription,
-                Hidden = true
-            };
-            Options.Add(qualityOption);
-        }
+        // Keep --quality for backward compatibility but hide it
+        var qualityOption = new Option<string?>("--quality")
+        {
+            Description = isStagingEnabled 
+                ? UpdateCommandStrings.QualityOptionDescriptionWithStaging
+                : UpdateCommandStrings.QualityOptionDescription,
+            Hidden = true
+        };
+        Options.Add(qualityOption);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
@@ -112,6 +109,14 @@ internal sealed class UpdateCommand : BaseCommand
         // If --self is specified, handle CLI self-update
         if (isSelfUpdate)
         {
+            // When running as a dotnet tool, print the update command instead of executing
+            if (IsRunningAsDotNetTool())
+            {
+                InteractionService.DisplayMessage("information", UpdateCommandStrings.DotNetToolSelfUpdateMessage);
+                InteractionService.DisplayPlainText("  dotnet tool update -g Aspire.Cli.Tool");
+                return 0;
+            }
+
             if (_cliDownloader is null)
             {
                 InteractionService.DisplayError("CLI self-update is not available in this environment.");

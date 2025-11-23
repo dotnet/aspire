@@ -67,6 +67,11 @@
         <target state="translated">Consente di aggiornare le integrazioni nel progetto di Aspire. (Anteprima)</target>
         <note />
       </trans-unit>
+      <trans-unit id="DotNetToolSelfUpdateMessage">
+        <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
+        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
         <target state="translated">Esecuzione in corso: {0}</target>
