@@ -71,12 +71,20 @@ internal sealed class McpStartCommand : BaseCommand
                         var connection = _auxiliaryBackchannelMonitor.Connections.Values.FirstOrDefault();
                         if (connection == null)
                         {
-                            throw new McpProtocolException("No auxiliary backchannel connection available. Ensure an Aspire app is running.", McpErrorCode.InternalError);
+                            throw new McpProtocolException(
+                                "No Aspire AppHost is currently running. " +
+                                "To use Aspire MCP tools, you must first start an Aspire application by running 'aspire run' in your AppHost project directory. " +
+                                "Once the application is running, the MCP tools will be able to connect to the dashboard and execute commands.",
+                                McpErrorCode.InternalError);
                         }
 
                         if (connection.McpInfo == null)
                         {
-                            throw new McpProtocolException("Dashboard MCP endpoint is not available. Ensure the Aspire dashboard is running.", McpErrorCode.InternalError);
+                            throw new McpProtocolException(
+                                "The Aspire Dashboard is not available in the running AppHost. " +
+                                "The dashboard must be enabled to use MCP tools. " +
+                                "Ensure your AppHost is configured with the dashboard enabled (this is the default configuration).",
+                                McpErrorCode.InternalError);
                         }
 
                         // Create HTTP transport to the dashboard's MCP server
