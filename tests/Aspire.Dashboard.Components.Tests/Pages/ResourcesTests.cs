@@ -353,7 +353,7 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Contains(filteredResources, r => r.Name == "Resource3");
     }
 
-    private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports)
+    private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports, bool isHidden = false)
     {
         return new ResourceViewModel
         {
@@ -376,34 +376,7 @@ public partial class ResourcesTests : DashboardTestContext
             Relationships = default,
             Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             Commands = [],
-            IsHidden = false,
-        };
-    }
-
-    private static ResourceViewModel CreateHiddenResource(string name, string type, string? state = null)
-    {
-        return new ResourceViewModel
-        {
-            Name = name,
-            ResourceType = type,
-            State = state,
-            KnownState = state is not null ? Enum.Parse<KnownResourceState>(state) : null,
-            DisplayName = name,
-            Uid = name,
-            HealthReports = [],
-
-            // unused properties
-            StateStyle = null,
-            CreationTimeStamp = null,
-            StartTimeStamp = null,
-            StopTimeStamp = null,
-            Environment = default,
-            Urls = [],
-            Volumes = default,
-            Relationships = default,
-            Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
-            Commands = [],
-            IsHidden = true,
+            IsHidden = isHidden,
         };
     }
 
@@ -415,7 +388,7 @@ public partial class ResourcesTests : DashboardTestContext
         var initialResources = new List<ResourceViewModel>
         {
             CreateResource("Resource1", "Type1", "Running", null),
-            CreateHiddenResource("HiddenResource", "Type2"), // Hidden resource without parent relationship
+            CreateResource("HiddenResource", "Type2", null, null, isHidden: true), // Hidden resource without parent relationship
         };
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
         ResourceSetupHelpers.SetupResourcesPage(
