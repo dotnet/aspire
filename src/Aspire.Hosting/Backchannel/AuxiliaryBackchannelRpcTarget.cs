@@ -27,7 +27,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// </summary>
     /// <returns>The MCP connection information.</returns>
     /// <exception cref="InvalidOperationException">Thrown when Dashboard is not enabled or MCP endpoint is not available.</exception>
-    public Task<McpConnectionInfo> GetMcpConnectionInfoAsync()
+    public async Task<McpConnectionInfo> GetMcpConnectionInfoAsync()
     {
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
         if (appModel is null)
@@ -58,9 +58,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             }
         }
 
-        if (!mcpEndpoint.Exists || string.IsNullOrEmpty(mcpEndpoint.Url))
+        if (!mcpEndpoint.Exists)
         {
             logger.LogWarning("Dashboard MCP endpoint not found or not allocated.");
+            throw new InvalidOperationException("Dashboard MCP endpoint URL is not available.");
+        }
+
+        var endpointUrl = await mcpEndpoint.GetValueAsync().ConfigureAwait(false);
+        if (string.IsNullOrEmpty(endpointUrl))
+        {
+            logger.LogWarning("Dashboard MCP endpoint URL is not allocated.");
             throw new InvalidOperationException("Dashboard MCP endpoint URL is not available.");
         }
 
@@ -74,11 +81,11 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             throw new InvalidOperationException("Dashboard MCP API key is not available.");
         }
 
-        return Task.FromResult(new McpConnectionInfo
+        return new McpConnectionInfo
         {
-            EndpointUrl = $"{mcpEndpoint.Url}/mcp",
+            EndpointUrl = $"{endpointUrl}/mcp",
             ApiToken = mcpApiKey
-        });
+        };
     }
 }
 

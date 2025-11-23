@@ -43,7 +43,6 @@ internal sealed class AuxiliaryBackchannelService(
     {
         try
         {
-            logger.LogError("Boom!");
             // Create the socket path
             SocketPath = GetAuxiliaryBackchannelSocketPath(configuration);
             
@@ -68,7 +67,7 @@ internal sealed class AuxiliaryBackchannelService(
             _serverSocket.Bind(endpoint);
             _serverSocket.Listen(backlog: 10); // Allow multiple pending connections
 
-            logger.LogInformation("Auxiliary backchannel listening on {SocketPath}", SocketPath);
+            logger.LogDebug("Auxiliary backchannel listening on {SocketPath}", SocketPath);
 
             // Accept connections in a loop (supporting multiple concurrent connections)
             while (!stoppingToken.IsCancellationRequested)
@@ -124,7 +123,7 @@ internal sealed class AuxiliaryBackchannelService(
             logger.LogDebug("Client connected to auxiliary backchannel");
 
             // Publish the connected event
-            var connectedEvent = new AuxiliaryBackchannelConnectedEvent(serviceProvider, SocketPath!);
+            var connectedEvent = new AuxiliaryBackchannelConnectedEvent(serviceProvider, SocketPath!, clientSocket);
             await eventing.PublishAsync(
                 connectedEvent,
                 EventDispatchBehavior.NonBlockingConcurrent,
