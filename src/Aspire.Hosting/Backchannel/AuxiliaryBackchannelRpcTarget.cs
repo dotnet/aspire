@@ -76,7 +76,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         return Task.FromResult(new McpConnectionInfo
         {
-            EndpointUrl = mcpEndpoint.Url,
+            EndpointUrl = $"{mcpEndpoint.Url}/mcp",
             ApiToken = mcpApiKey
         });
     }
