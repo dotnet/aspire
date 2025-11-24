@@ -17,6 +17,10 @@ on:
         required: false
         type: string
         default: "15m"
+      testHangTimeout:
+        required: false
+        type: string
+        default: "7m"
       extraTestArgs:
         required: false
         type: string
@@ -282,6 +286,7 @@ jobs:
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --ignore-exit-code 8
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
+          --blame-hang --blame-hang-timeout ${{ inputs.testHangTimeout }} --blame-hang-dump-type none
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
           --filter-not-trait "category=failing"
@@ -312,6 +317,7 @@ jobs:
           --
           --ignore-exit-code 8
           --report-trx
+          --blame-hang --blame-hang-timeout ${{ inputs.testHangTimeout }} --blame-hang-dump-type none
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}
