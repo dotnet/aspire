@@ -25,29 +25,37 @@ public sealed class GetNonExecutableReferences : Microsoft.Build.Utilities.Task
 
     public override bool Execute()
     {
-        HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
+        var nonExecutableReferences = new HashSet<ITaskItem>();
 
-        foreach (var appProject in AppProjectTargetFramework)
+        try
         {
-            var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
-            if (string.IsNullOrEmpty(additionalProperties))
+            foreach (var appProject in AppProjectTargetFramework)
             {
-                // Skip any projects that don't contain the right metadata
-                continue;
-            }
-
-            var additionalPropertiesXml = XElement.Parse(additionalProperties);
-            foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
-            {
-                var isExe = targetFrameworkElement.Element("_IsExecutable");
-                if (isExe is null || !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
+                var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
+                if (string.IsNullOrEmpty(additionalProperties))
                 {
-                    nonExecutableReferences.Add(appProject);
+                    // Skip any projects that don't contain the right metadata
+                    Log.LogMessage(MessageImportance.Low, $"Skipping project '{appProject.ItemSpec}' because it does not contain AdditionalPropertiesFromProject metadata.");
+                    continue;
+                }
+
+                var additionalPropertiesXml = XElement.Parse(additionalProperties);
+                foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
+                {
+                    var isExe = targetFrameworkElement.Element("_IsExecutable");
+                    if (isExe is null || !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        nonExecutableReferences.Add(appProject);
+                    }
                 }
             }
         }
+        catch (Exception ex)
+        {
+            Log.LogWarning($"Failed to validate Aspire host project resources: {ex.Message}. To disable this validation, set the MSBuild property 'SkipValidateAspireHostProjectResources' to 'true'.");
+        }
 
-        NonExecutableReferences = nonExecutableReferences.ToArray();
+        NonExecutableReferences = [.. nonExecutableReferences];
         return true;
     }
 }
