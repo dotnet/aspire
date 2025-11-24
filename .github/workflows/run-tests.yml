@@ -281,6 +281,7 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
           Logging__Console__LogLevel__Default: None
+          Logging__Console__LogLevel__Aspire: None
         run: >
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --ignore-exit-code 8
@@ -305,6 +306,7 @@ jobs:
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           Logging__Console__LogLevel__Default: None
+          Logging__Console__LogLevel__Aspire: None
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true

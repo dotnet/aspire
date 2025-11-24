@@ -122,6 +122,7 @@ jobs:
       - name: Test ${{ matrix.tests.label }}
         env:
           Logging__Console__LogLevel__Default: None
+          Logging__Console__LogLevel__Aspire: None
         run: |
           ${{ matrix.tests.command }}
 
@@ -186,6 +187,7 @@ jobs:
         env:
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Release/Shipping
           Logging__Console__LogLevel__Default: None
+          Logging__Console__LogLevel__Aspire: None
         run: |
           ${{ matrix.tests.command }}
 

@@ -1754,18 +1754,25 @@ public class DistributedApplicationTests
         }
     }
 
-    private static TestProgram CreateTestProgram(
+    private TestProgram CreateTestProgram(
         string testName,
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
         bool randomizePorts = true,
-        bool? trustDeveloperCertificate = false) =>
-        TestProgram.Create<DistributedApplicationTests>(
+        bool? trustDeveloperCertificate = false)
+    {
+        var testProgram = TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,
             includeIntegrationServices: includeIntegrationServices,
             disableDashboard: disableDashboard,
             randomizePorts: randomizePorts,
             trustDeveloperCertificate: trustDeveloperCertificate);
+
+        testProgram.AppBuilder.Services.AddXunitLogging(_testOutputHelper);
+        testProgram.AppBuilder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+
+        return testProgram;
+    }
 }

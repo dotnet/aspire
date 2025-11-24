@@ -2,10 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Lifecycle;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -97,7 +93,6 @@ public class TestProgram : IDisposable
             }
         }
 
-        AppBuilder.Services.TryAddEventingSubscriber<EndPointWriterHook>();
         AppBuilder.Services.AddHttpClient();
     }
 
@@ -160,51 +155,5 @@ public class TestProgram : IDisposable
     }
 
     public void Dispose() => App?.Dispose();
-
-    /// <summary>
-    /// Writes the allocated endpoints to the console in JSON format.
-    /// This allows for easier consumption by the external test process.
-    /// </summary>
-    private sealed class EndPointWriterHook : IDistributedApplicationEventingSubscriber
-    {
-        public async Task OnAfterResourcesCreated(AfterResourcesCreatedEvent @event, CancellationToken cancellationToken)
-        {
-            var root = new JsonObject();
-            foreach (var project in @event.Model.Resources.OfType<ProjectResource>())
-            {
-                var projectJson = new JsonObject();
-                root[project.Name] = projectJson;
-
-                var endpointsJsonArray = new JsonArray();
-                projectJson["Endpoints"] = endpointsJsonArray;
-
-                foreach (var endpoint in project.Annotations.OfType<EndpointAnnotation>())
-                {
-                    var allocatedEndpoint = endpoint.AllocatedEndpoint;
-                    if (allocatedEndpoint is null)
-                    {
-                        continue;
-                    }
-
-                    var endpointJsonObject = new JsonObject
-                    {
-                        ["Name"] = endpoint.Name,
-                        ["Uri"] = allocatedEndpoint.UriString
-                    };
-                    endpointsJsonArray.Add(endpointJsonObject);
-                }
-            }
-
-            // write the whole json in a single line so it's easier to parse by the external process
-            await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
-        }
-
-        public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            // We can assume endpoints are allocated before project resources are created
-            eventing.Subscribe<AfterResourcesCreatedEvent>(OnAfterResourcesCreated);
-            return Task.CompletedTask;
-        }
-    }
 }
 
