@@ -671,7 +671,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             return Task.CompletedTask;
         }
 
-        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        public Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }

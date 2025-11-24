@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -17,14 +18,14 @@ public interface IContainerRuntime
     /// Gets the name of the container runtime.
     /// </summary>
     string Name { get; }
-    
+
     /// <summary>
     /// Checks if the container runtime is running and available.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>True if the container runtime is running; otherwise, false.</returns>
     Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
-    
+
     /// <summary>
     /// Builds a container image from a Dockerfile.
     /// </summary>
@@ -37,7 +38,7 @@ public interface IContainerRuntime
     /// <param name="stage">The target build stage.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
-    
+
     /// <summary>
     /// Tags a container image with a new name.
     /// </summary>
@@ -45,21 +46,21 @@ public interface IContainerRuntime
     /// <param name="targetImageName">The new name to assign to the image.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken);
-    
+
     /// <summary>
     /// Removes a container image.
     /// </summary>
     /// <param name="imageName">The name of the image to remove.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task RemoveImageAsync(string imageName, CancellationToken cancellationToken);
-    
+
     /// <summary>
     /// Pushes a container image to a registry.
     /// </summary>
-    /// <param name="imageName">The name of the image to push.</param>
+    /// <param name="resource">The resource containing push configuration.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task PushImageAsync(string imageName, CancellationToken cancellationToken);
-    
+    Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Logs in to a container registry.
     /// </summary>

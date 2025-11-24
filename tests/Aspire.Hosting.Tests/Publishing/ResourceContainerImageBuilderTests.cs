@@ -491,18 +491,20 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
         builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
 
+        var testResource = builder.AddContainer("test-image", "test-image:latest");
+
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
         // Act
-        await imageBuilder.PushImageAsync("test-image:latest", cts.Token);
+        await imageBuilder.PushImageAsync(testResource.Resource, cts.Token);
 
         // Assert
         Assert.True(fakeContainerRuntime.WasPushImageCalled);
         Assert.Collection(fakeContainerRuntime.PushImageCalls,
-            imageName => Assert.Equal("test-image:latest", imageName));
+            resource => Assert.Equal(testResource.Resource, resource));
     }
 
     [Fact]
@@ -534,6 +536,8 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: true);
         builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
 
+        var testResource = builder.AddContainer("test-image", "test-image:latest");
+
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
@@ -541,7 +545,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            imageBuilder.PushImageAsync("test-image:latest", cts.Token));
+            imageBuilder.PushImageAsync(testResource.Resource, cts.Token));
 
         Assert.Equal("Fake container runtime is configured to fail", exception.Message);
         Assert.True(fakeContainerRuntime.WasPushImageCalled);

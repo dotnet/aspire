@@ -129,9 +129,9 @@ public interface IResourceContainerImageBuilder
     /// <summary>
     /// Pushes a container image to a registry.
     /// </summary>
-    /// <param name="imageName">The name of the image to push.</param>
+    /// <param name="resource">The resource to push.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task PushImageAsync(string imageName, CancellationToken cancellationToken = default);
+    Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -428,9 +428,9 @@ internal sealed class ResourceContainerImageBuilder(
         await ContainerRuntime.TagImageAsync(localImageName, targetImageName, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+    public async Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default)
     {
-        await ContainerRuntime.PushImageAsync(imageName, cancellationToken).ConfigureAwait(false);
+        await ContainerRuntime.PushImageAsync(resource, cancellationToken).ConfigureAwait(false);
     }
 
     // .NET Container builds that push OCI images to a local file path do not need a runtime
