@@ -100,6 +100,17 @@ sealed partial class TestSummaryGenerator
         }
 
         var overallTableBuilder = new StringBuilder();
+
+        // Add Table of Contents
+        overallTableBuilder.AppendLine("# Test Summary");
+        overallTableBuilder.AppendLine();
+        overallTableBuilder.AppendLine("## Table of Contents");
+        overallTableBuilder.AppendLine("- [Overall Summary](#overall-summary)");
+        overallTableBuilder.AppendLine("- [Test Project Duration Distribution](#test-project-duration-distribution)");
+        overallTableBuilder.AppendLine("- [Slowest Tests Per Test Run](#slowest-tests-per-test-run)");
+        overallTableBuilder.AppendLine("- [Duration Statistics](#duration-statistics)");
+        overallTableBuilder.AppendLine();
+
         overallTableBuilder.AppendLine("## Overall Summary");
 
         overallTableBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
@@ -394,6 +405,7 @@ sealed partial class TestSummaryGenerator
     private static string GenerateTopTestsPerRun(string basePath)
     {
         var resultBuilder = new StringBuilder();
+        const double MinSlowTestDurationSeconds = 30.0;
 
         var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
         foreach (var filePath in trxFiles.OrderBy(f => Path.GetFileName(f)))
@@ -414,17 +426,21 @@ sealed partial class TestSummaryGenerator
 
             var testRunName = GetTestTitle(filePath);
 
-            // Collect test durations for this run
+            // Collect test durations for this run, filtering for slow tests (> 30s)
             var testDetails = new List<(string TestName, double DurationSeconds, string Outcome)>();
             foreach (var test in testRun.Results.UnitTestResults)
             {
                 if (test.Duration is string durationStr && TimeSpan.TryParse(durationStr, out var duration))
                 {
                     var seconds = duration.TotalSeconds;
-                    testDetails.Add((test.TestName ?? "Unknown", seconds, test.Outcome ?? "Unknown"));
+                    if (seconds > MinSlowTestDurationSeconds)
+                    {
+                        testDetails.Add((test.TestName ?? "Unknown", seconds, test.Outcome ?? "Unknown"));
+                    }
                 }
             }
 
+            // Only show test runs that have slow tests
             if (testDetails.Count == 0)
             {
                 continue;
@@ -441,9 +457,12 @@ sealed partial class TestSummaryGenerator
 
             // Get top 10 slowest tests
             var slowestTests = testDetails.OrderByDescending(t => t.DurationSeconds).Take(10);
+            var totalSlowTestCount = testDetails.Count;
 
             resultBuilder.AppendLine();
             resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"### [{os}] {testRunName}");
+            resultBuilder.AppendLine();
+            resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"**{totalSlowTestCount} tests > 30 seconds** (showing top 10)");
             resultBuilder.AppendLine();
             resultBuilder.AppendLine("| # | Duration | Status | Test Name |");
             resultBuilder.AppendLine("|---|----------|--------|-----------|");
@@ -455,6 +474,12 @@ sealed partial class TestSummaryGenerator
                 resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {rank} | {test.DurationSeconds:F2}s | {icon} {test.Outcome} | {test.TestName} |");
                 rank++;
             }
+        }
+
+        if (resultBuilder.Length == 0)
+        {
+            resultBuilder.AppendLine();
+            resultBuilder.AppendLine("*No tests found that take longer than 30 seconds.*");
         }
 
         return resultBuilder.ToString();
