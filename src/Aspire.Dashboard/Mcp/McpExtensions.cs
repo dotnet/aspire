@@ -79,7 +79,7 @@ public static class McpExtensions
     {
         // Record the tool name to telemetry.
         OperationContextProperty? operationId = null;
-        var telemetryService = request.Services?.GetRequiredService<DashboardTelemetryService>();
+        var telemetryService = request.Services?.GetService<DashboardTelemetryService>();
         if (telemetryService != null && toolCallName != null)
         {
             var startToolCall = telemetryService.StartOperation(TelemetryEventKeys.McpToolCall,

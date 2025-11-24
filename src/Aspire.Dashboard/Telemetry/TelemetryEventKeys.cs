@@ -17,6 +17,5 @@ public static class TelemetryEventKeys
 
     public const string AIAssistantFeedback = AspireDashboardEventPrefix + "aiassistant/feedback";
 
-    public const string McpInitialize = AspireDashboardEventPrefix + "mcp/initialize";
     public const string McpToolCall = AspireDashboardEventPrefix + "mcp/toolcall";
 }
