@@ -10,9 +10,8 @@ public class DotnetToolResource : ExecutableResource
 {
     /// <param name="name">The name of the resource.</param>
     /// <param name="packageId">The package id of the tool</param>
-    /// <param name="command">The command to execute.</param>
-    public DotnetToolResource(string name, string packageId, string command) 
-        : base(name, command, string.Empty)
+    public DotnetToolResource(string name, string packageId) 
+        : base(name, "dotnet", string.Empty)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId, nameof(packageId));
         Annotations.Add(new DotNetToolAnnotation { PackageId = packageId });
