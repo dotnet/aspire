@@ -120,6 +120,7 @@
     <PackageVersion Include="StreamJsonRpc" Version="2.22.23" />
     <PackageVersion Include="Semver" Version="3.0.0" />
     <PackageVersion Include="Microsoft.DevTunnels.Connections" Version="1.3.6" />
+    <PackageVersion Include="NuGet.Configuration" Version="7.0.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.4" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="$(OpenTelemetryNet8Version)" />
