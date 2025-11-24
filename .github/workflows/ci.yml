@@ -68,23 +68,20 @@ jobs:
     with:
       versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
 
-  # Disabled for debugging - not needed when only running Hosting tests
-  # build_cli_archives:
-  #   uses: ./.github/workflows/build-cli-native-archives.yml
-  #   name: Build native CLI archives
-  #   needs: [prepare_for_ci]
-  #   if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
-  #   with:
-  #     versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
+  build_cli_archives:
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    name: Build native CLI archives
+    needs: [prepare_for_ci]
+    if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
+    with:
+      versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
 
   # This job is used for branch protection. It fails if any of the dependent jobs failed
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [prepare_for_ci, tests]
-    # Disabled dependency for debugging:
-    # build_cli_archives
+    needs: [prepare_for_ci, tests, build_cli_archives]
 
     steps:
       - name: Fail if any of the dependent jobs failed
