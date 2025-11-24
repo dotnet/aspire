@@ -841,13 +841,13 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 
 Aspire 9.5 introduces first-class support for Azure Redis Enterprise, providing a high-performance, fully managed Redis service with enterprise-grade features.
 
-The new `AddAzureRedisEnterprise` extension method enables Redis Enterprise resource modeling:
+The new `AddAzureManagedRedis` extension method enables Redis Enterprise resource modeling:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure Redis Enterprise resource
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise");
+var redisEnterprise = builder.AddAzureManagedRedis("redis-enterprise");
 
 // Use in your applications
 var api = builder.AddProject<Projects.Api>("api")
@@ -859,7 +859,7 @@ builder.Build().Run();
 **Local development with container emulation:**
 
 ```csharp
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+var redisEnterprise = builder.AddAzureManagedRedis("redis-enterprise")
     .RunAsContainer(container => container
         .WithHostPort(6379));
 ```
@@ -868,12 +868,12 @@ var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
 
 ```csharp
 // With access key authentication (default)
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+var redisEnterprise = builder.AddAzureManagedRedis("redis-enterprise")
     .WithAccessKeyAuthentication();
 
 // With Key Vault integration for access keys
 var keyVault = builder.AddAzureKeyVault("keyvault");
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+var redisEnterprise = builder.AddAzureManagedRedis("redis-enterprise")
     .WithAccessKeyAuthentication(keyVault);
 ```
 

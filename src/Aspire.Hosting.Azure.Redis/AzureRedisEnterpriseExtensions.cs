@@ -34,7 +34,7 @@ public static class AzureRedisEnterpriseExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var cache = builder.AddAzureRedisEnterprise("cache");
+    /// var cache = builder.AddAzureManagedRedis("cache");
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
     ///     .WithReference(cache);
@@ -43,7 +43,7 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<AzureRedisEnterpriseResource> AddAzureRedisEnterprise(
+    public static IResourceBuilder<AzureRedisEnterpriseResource> AddAzureManagedRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
     {
@@ -70,7 +70,7 @@ public static class AzureRedisEnterpriseExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var cache = builder.AddAzureRedisEnterprise("cache")
+    /// var cache = builder.AddAzureManagedRedis("cache")
     ///     .RunAsContainer();
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
@@ -114,7 +114,7 @@ public static class AzureRedisEnterpriseExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var cache = builder.AddAzureRedisEnterprise("cache")
+    /// var cache = builder.AddAzureManagedRedis("cache")
     ///     .WithAccessKeyAuthentication();
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()

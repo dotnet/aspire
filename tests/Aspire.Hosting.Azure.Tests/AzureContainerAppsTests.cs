@@ -1066,7 +1066,7 @@ public class AzureContainerAppsTests
 
         builder.AddAzureContainerAppEnvironment("env");
 
-        var redis = builder.AddAzureRedisEnterprise("redis")
+        var redis = builder.AddAzureManagedRedis("redis")
             .PublishAsExisting("myredis", "myRG");
 
         builder.AddProject<Project>("api", launchProfileName: null)
