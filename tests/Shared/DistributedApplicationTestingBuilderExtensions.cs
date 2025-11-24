@@ -19,9 +19,15 @@ public static class DistributedApplicationTestingBuilderExtensions
 
     public static IDistributedApplicationTestingBuilder WithTestAndResourceLogging(this IDistributedApplicationTestingBuilder builder, ITestOutputHelper testOutputHelper)
     {
-        builder.Services.AddXunitLogging(testOutputHelper);
-        builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+        builder.Services.AddTestAndResourceLogging(testOutputHelper);
         return builder;
+    }
+
+    public static IServiceCollection AddTestAndResourceLogging(this IServiceCollection services, ITestOutputHelper testOutputHelper)
+    {
+        services.AddXunitLogging(testOutputHelper);
+        services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+        return services;
     }
 
     public static IDistributedApplicationTestingBuilder WithTempAspireStore(this IDistributedApplicationTestingBuilder builder, string? path = null)
