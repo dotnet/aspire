@@ -60,11 +60,12 @@ jobs:
   #         includeIntegrations: true
   #         includeTemplates: true
 
-  build_packages:
-    name: Build packages
-    uses: ./.github/workflows/build-packages.yml
-    with:
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+  # Disabled for debugging - not needed when only running Hosting tests
+  # build_packages:
+  #   name: Build packages
+  #   uses: ./.github/workflows/build-packages.yml
+  #   with:
+  #     versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
