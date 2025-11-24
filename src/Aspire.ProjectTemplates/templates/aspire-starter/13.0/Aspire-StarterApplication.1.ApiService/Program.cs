@@ -25,7 +25,7 @@ if (app.Environment.IsDevelopment())
 #endif
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
 
-app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
+app.MapGet("/", () => new { link = "/weatherforecast", message = "API service is running. Use the link to see sample data." });
 
 app.MapGet("/weatherforecast", () =>
 {
