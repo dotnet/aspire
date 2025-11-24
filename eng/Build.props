@@ -49,7 +49,7 @@
   </ItemGroup>
 
   <!-- Native build only -->
-  <ItemGroup Condition="'$(SkipNativeBuild)' != 'true'">
+  <ItemGroup Condition="'$(SkipNativeBuild)' != 'true' and '$(BuildTestsOnly)' != 'true'">
     <!-- Add Aspire.Cli project here for native-only builds so it gets picked
          up Restore, because Aspire.Cli.$(RID).csproj uses MSBuild task to build
          instead of a ProjectReference -->
