@@ -66,7 +66,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <summary>
     /// Indicates whether this expression was ever referenced to get its value.
     /// </summary>
-    internal bool WasReferenced { get; private set; }
+    internal bool WasResolved { get; set; }
 
     /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
@@ -75,7 +75,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
-        WasReferenced = true;
+        WasResolved = true;
 
         // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)

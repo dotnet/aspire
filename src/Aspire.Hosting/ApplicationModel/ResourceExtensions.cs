@@ -757,12 +757,12 @@ public static class ResourceExtensions
         /// <summary>
         /// Indicates whether the resource references a PEM key for server authentication.
         /// </summary>
-        public required bool ReferencesPemKey { get; set; }
+        public required ReferenceExpression KeyPathReference { get; set; }
 
         /// <summary>
         /// Indicates whether the resource references a PFX file for server authentication.
         /// </summary>
-        public required bool ReferencesPfx { get; set; }
+        public required ReferenceExpression PfxReference { get; set; }
 
         /// <summary>
         /// The passphrase for the server authentication certificate, if any.
@@ -845,8 +845,8 @@ public static class ResourceExtensions
             {
                 Certificate = certificate,
                 Password = password,
-                ReferencesPemKey = context.KeyPath.WasReferenced,
-                ReferencesPfx = context.PfxPath.WasReferenced,
+                KeyPathReference = context.KeyPath,
+                PfxReference = context.PfxPath,
             });
     }
 
