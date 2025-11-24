@@ -607,6 +607,26 @@ public class AzureAppServiceTests
     }
 
     [Fact]
+    public async Task AddAppServiceWithMixedNullAndExplicitTargetPortsThrowsNotSupportedException()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        // Add project with one endpoint with null target port and one with explicit target port
+        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint() // null target port (default)
+            .WithHttpsEndpoint(targetPort: 8443) // explicit target port
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Equal("App Service does not support resources with multiple external endpoints.", ex.Message);
+    }
+
+    [Fact]
     public async Task AddAppServiceProjectWithoutTargetPortUsesContainerPort()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

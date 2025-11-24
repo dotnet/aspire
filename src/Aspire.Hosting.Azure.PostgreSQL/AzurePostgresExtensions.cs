@@ -142,6 +142,7 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresFlexibleServerResource(name, infrastructure => ConfigurePostgreSqlInfrastructure(infrastructure, builder));
         return builder.AddResource(resource)
+            .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 

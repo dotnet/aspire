@@ -1023,7 +1023,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // and a compute resource that references the Redis cache
         builder.AddAzureAppServiceEnvironment("env");
 
-        var cache = builder.AddAzureRedis("cache")
+        var cache = builder.AddAzureRedisEnterprise("cache")
             .WithAccessKeyAuthentication();
 
         var azpg = builder.AddAzurePostgresFlexibleServer("pg")
@@ -1201,7 +1201,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             ".aspire",
             "deployments",
             appHostSha,
-            $"Production.json"
+            $"production.json"
         );
         Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
         var cachedState = new JsonObject

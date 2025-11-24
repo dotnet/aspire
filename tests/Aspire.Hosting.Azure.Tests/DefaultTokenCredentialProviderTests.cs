@@ -183,6 +183,161 @@ public class DefaultTokenCredentialProviderTests
         Assert.IsType<InteractiveBrowserCredential>(provider.TokenCredential);
     }
 
+    [Fact]
+    public void TokenCredential_TenantIdChanges_RecreatesCredential()
+    {
+        // Arrange
+        var azureOptions = new AzureProvisionerOptions
+        {
+            CredentialSource = "AzureCli",
+            TenantId = "tenant-1"
+        };
+        var options = new TestOptions<AzureProvisionerOptions>(azureOptions);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            options,
+            executionContext);
+
+        // Act - Access credential with first tenant
+        var credential1 = provider.TokenCredential;
+        Assert.IsType<AzureCliCredential>(credential1);
+
+        // Change tenant ID
+        azureOptions.TenantId = "tenant-2";
+
+        // Access credential again
+        var credential2 = provider.TokenCredential;
+
+        // Assert - Should get a new credential instance
+        Assert.IsType<AzureCliCredential>(credential2);
+        Assert.NotSame(credential1, credential2);
+    }
+
+    [Fact]
+    public void TokenCredential_TenantIdUnchanged_ReturnsSameCredential()
+    {
+        // Arrange
+        var azureOptions = new AzureProvisionerOptions
+        {
+            CredentialSource = "AzureCli",
+            TenantId = "tenant-1"
+        };
+        var options = new TestOptions<AzureProvisionerOptions>(azureOptions);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            options,
+            executionContext);
+
+        // Act - Access credential multiple times without changing tenant
+        var credential1 = provider.TokenCredential;
+        var credential2 = provider.TokenCredential;
+        var credential3 = provider.TokenCredential;
+
+        // Assert - Should get the same credential instance
+        Assert.Same(credential1, credential2);
+        Assert.Same(credential2, credential3);
+    }
+
+    [Fact]
+    public void TokenCredential_TenantIdSetFromNull_RecreatesCredential()
+    {
+        // Arrange
+        var azureOptions = new AzureProvisionerOptions
+        {
+            CredentialSource = "AzureDeveloperCli",
+            TenantId = null
+        };
+        var options = new TestOptions<AzureProvisionerOptions>(azureOptions);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            options,
+            executionContext);
+
+        // Act - Access credential with null tenant
+        var credential1 = provider.TokenCredential;
+        Assert.IsType<AzureDeveloperCliCredential>(credential1);
+
+        // Set tenant ID
+        azureOptions.TenantId = "70a036f6-8e4d-4615-bad6-149c02e7720d";
+
+        // Access credential again
+        var credential2 = provider.TokenCredential;
+
+        // Assert - Should get a new credential instance
+        Assert.IsType<AzureDeveloperCliCredential>(credential2);
+        Assert.NotSame(credential1, credential2);
+    }
+
+    [Fact]
+    public void TokenCredential_MultipleCredentialTypes_RespectsCurrentTenantId()
+    {
+        // Arrange
+        var azureOptions = new AzureProvisionerOptions
+        {
+            CredentialSource = "AzurePowerShell",
+            TenantId = "tenant-1"
+        };
+        var options = new TestOptions<AzureProvisionerOptions>(azureOptions);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            options,
+            executionContext);
+
+        // Act - Access credential
+        var credential1 = provider.TokenCredential;
+        Assert.IsType<AzurePowerShellCredential>(credential1);
+
+        // Change both credential source and tenant ID
+        azureOptions.CredentialSource = "VisualStudio";
+        azureOptions.TenantId = "tenant-2";
+
+        // Access credential again
+        var credential2 = provider.TokenCredential;
+
+        // Assert - Should get a new credential of the new type
+        Assert.IsType<VisualStudioCredential>(credential2);
+        Assert.NotSame(credential1, credential2);
+    }
+
+    [Fact]
+    public void TokenCredential_LazyInitialization_DoesNotCreateUntilAccessed()
+    {
+        // Arrange
+        var azureOptions = new AzureProvisionerOptions
+        {
+            CredentialSource = "AzureCli",
+            TenantId = "tenant-1"
+        };
+        var options = new TestOptions<AzureProvisionerOptions>(azureOptions);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        // Act - Create provider but don't access TokenCredential property
+        var provider = new DefaultTokenCredentialProvider(
+            NullLogger<DefaultTokenCredentialProvider>.Instance,
+            options,
+            executionContext);
+
+        // Change tenant ID before first access
+        azureOptions.TenantId = "tenant-2";
+
+        // Now access the credential
+        var credential = provider.TokenCredential;
+
+        // Assert - Should create credential with the current (second) tenant ID
+        Assert.IsType<AzureCliCredential>(credential);
+        // The credential should have been created with tenant-2, not tenant-1
+        // We can't directly verify the tenant ID in the credential, but we verified
+        // it was created after the tenant ID change
+    }
+
     private static IOptions<AzureProvisionerOptions> CreateAzureOptions(string? credentialSource)
     {
         var options = new AzureProvisionerOptions
@@ -191,6 +346,14 @@ public class DefaultTokenCredentialProviderTests
             CredentialSource = credentialSource!
         };
         return Options.Create(options);
+    }
+
+    /// <summary>
+    /// Test implementation of IOptions that allows modifying the underlying options object.
+    /// </summary>
+    private sealed class TestOptions<T>(T value) : IOptions<T> where T : class
+    {
+        public T Value => value;
     }
 
 }

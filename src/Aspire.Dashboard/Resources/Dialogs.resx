@@ -476,6 +476,21 @@
   <data name="McpServerDialogConfigurationHeading" xml:space="preserve">
     <value>Aspire MCP configuration</value>
   </data>
+  <data name="McpServerDialogVSCodeApiKeyInstructions" xml:space="preserve">
+    <value>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</value>
+  </data>
+  <data name="McpServerDialogApiKeyLabel" xml:space="preserve">
+    <value>Aspire MCP API key</value>
+  </data>
+  <data name="McpServerDialogCopyButton" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="McpServerDialogManuallyUpdatingAccordionHeading" xml:space="preserve">
+    <value>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</value>
+  </data>
+  <data name="McpServerDialogVisualStudioApiKeyInstructions" xml:space="preserve">
+    <value>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</value>
+  </data>
   <data name="GenAIMessageCategoryToolResponse" xml:space="preserve">
     <value>Tool response</value>
   </data>

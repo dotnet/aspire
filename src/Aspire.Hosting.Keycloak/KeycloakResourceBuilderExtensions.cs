@@ -87,7 +87,7 @@ public static class KeycloakResourceBuilderExtensions
                 }
             })
             .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly)
-            .WithCertificateKeyPairConfiguration(ctx =>
+            .WithServerAuthenticationCertificateConfiguration(ctx =>
             {
                 if (ctx.Password is null)
                 {
@@ -111,7 +111,7 @@ public static class KeycloakResourceBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
                     if (developerCertificateService.DefaultTlsTerminationEnabled)
                     {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Markdown;
@@ -17,7 +18,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
+public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTelemetry, IDisposable
 {
     private static readonly Icon s_wrenchIcon = new Icons.Regular.Size16.Wrench();
     private static readonly Icon s_toolIcon = new Icons.Regular.Size16.Code();
@@ -59,8 +60,14 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     [Inject]
     public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     public bool NoPreviousGenAISpan => _currentSpanContextIndex == 0;
     public bool NoNextGenAISpan => _currentSpanContextIndex >= _contextSpans.Count - 1;
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.GenAIVisualizerDialog);
 
     protected override void OnInitialized()
     {
@@ -68,6 +75,8 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _resourcesSubscription = TelemetryRepository.OnNewResources(UpdateDialogData);
         _tracesSubscription = TelemetryRepository.OnNewTraces(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
         _logsSubscription = TelemetryRepository.OnNewLogs(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
+
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override void OnParametersSet()
@@ -310,6 +319,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _resourcesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         _logsSubscription?.Dispose();
+        TelemetryContext.Dispose();
     }
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,

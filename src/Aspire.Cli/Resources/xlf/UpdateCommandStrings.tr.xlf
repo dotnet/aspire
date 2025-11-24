@@ -37,6 +37,16 @@
         <target state="translated">Merkezi paket yönetimi şu anda 'aspire update' tarafından desteklenmiyor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChannelOptionDescription">
+        <source>Channel to update to (stable, daily)</source>
+        <target state="translated">Güncelleştirme yapılacak kanal (kararlı, günlük)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChannelOptionDescriptionWithStaging">
+        <source>Channel to update to (stable, staging, daily)</source>
+        <target state="translated">Güncelleştirme yapılacak kanal (kararlı, hazırlama, günlük)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">{1} içinde '{0}' için PackageVersion öğesi bulunamadı</target>
@@ -140,6 +150,16 @@
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
         <target state="translated">Proje güncel! (güncelleştirme gerekmiyor)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QualityOptionDescription">
+        <source>Quality level to update to (stable, daily)</source>
+        <target state="translated">Güncelleştirilecek kalite seviyesi (kararlı, günlük)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QualityOptionDescriptionWithStaging">
+        <source>Quality level to update to (stable, staging, daily)</source>
+        <target state="translated">Güncelleştirilecek kalite seviyesi (kararlı, hazırlama, günlük)</target>
         <note />
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">

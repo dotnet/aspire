@@ -5,8 +5,6 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure container registry cloud</PackageTags>
     <Description>Azure Container Registry resource types for Aspire.</Description>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>

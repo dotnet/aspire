@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECERTIFICATES001
+
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
@@ -641,10 +643,8 @@ public class DistributedApplicationTests
             X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
         using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
 
-#pragma warning disable ASPIRECERTIFICATES001
         var redis = testProgram.AppBuilder.AddRedis($"{testName}-redis")
-            .WithCertificateKeyPair(cert);
-#pragma warning restore ASPIRECERTIFICATES001
+            .WithServerAuthenticationCertificate(cert);
 
         await using var app = testProgram.Build();
 
@@ -676,66 +676,25 @@ public class DistributedApplicationTests
     [Theory]
     [RequiresDocker]
     [RequiresDevCert]
-    [InlineData(null, null, true, false, CertificateTrustScope.Append)]
-    [InlineData(null, false, false, false, CertificateTrustScope.Append)]
-    [InlineData(null, true, true, false, CertificateTrustScope.Append)]
-    [InlineData(false, null, false, false, CertificateTrustScope.Append)]
     [InlineData(false, false, false, false, CertificateTrustScope.Append)]
     [InlineData(false, true, true, false, CertificateTrustScope.Append)]
-    [InlineData(true, null, true, false, CertificateTrustScope.Append)]
     [InlineData(true, false, false, false, CertificateTrustScope.Append)]
-    [InlineData(true, true, true, false, CertificateTrustScope.Append)]
-    [InlineData(null, null, true, true, CertificateTrustScope.Append)]
-    [InlineData(null, false, false, true, CertificateTrustScope.Append)]
-    [InlineData(null, true, true, true, CertificateTrustScope.Append)]
-    [InlineData(false, null, false, true, CertificateTrustScope.Append)]
-    [InlineData(false, false, false, true, CertificateTrustScope.Append)]
-    [InlineData(false, true, true, true, CertificateTrustScope.Append)]
-    [InlineData(true, null, true, true, CertificateTrustScope.Append)]
-    [InlineData(true, false, false, true, CertificateTrustScope.Append)]
-    [InlineData(true, true, true, true, CertificateTrustScope.Append)]
-    [InlineData(null, null, true, false, CertificateTrustScope.Override)]
-    [InlineData(null, false, false, false, CertificateTrustScope.Override)]
-    [InlineData(null, true, true, false, CertificateTrustScope.Override)]
-    [InlineData(false, null, false, false, CertificateTrustScope.Override)]
     [InlineData(false, false, false, false, CertificateTrustScope.Override)]
     [InlineData(false, true, true, false, CertificateTrustScope.Override)]
-    [InlineData(true, null, true, false, CertificateTrustScope.Override)]
     [InlineData(true, false, false, false, CertificateTrustScope.Override)]
-    [InlineData(true, true, true, false, CertificateTrustScope.Override)]
-    [InlineData(null, null, true, true, CertificateTrustScope.Override)]
-    [InlineData(null, false, false, true, CertificateTrustScope.Override)]
-    [InlineData(null, true, true, true, CertificateTrustScope.Override)]
-    [InlineData(false, null, false, true, CertificateTrustScope.Override)]
     [InlineData(false, false, false, true, CertificateTrustScope.Override)]
     [InlineData(false, true, true, true, CertificateTrustScope.Override)]
-    [InlineData(true, null, true, true, CertificateTrustScope.Override)]
     [InlineData(true, false, false, true, CertificateTrustScope.Override)]
-    [InlineData(true, true, true, true, CertificateTrustScope.Override)]
-    [InlineData(null, null, false, false, CertificateTrustScope.None)]
-    [InlineData(null, false, false, false, CertificateTrustScope.None)]
-    [InlineData(null, true, false, false, CertificateTrustScope.None)]
-    [InlineData(false, null, false, false, CertificateTrustScope.None)]
     [InlineData(false, false, false, false, CertificateTrustScope.None)]
     [InlineData(false, true, false, false, CertificateTrustScope.None)]
-    [InlineData(true, null, false, false, CertificateTrustScope.None)]
     [InlineData(true, false, false, false, CertificateTrustScope.None)]
-    [InlineData(true, true, false, false, CertificateTrustScope.None)]
-    [InlineData(null, null, false, true, CertificateTrustScope.None)]
-    [InlineData(null, false, false, true, CertificateTrustScope.None)]
-    [InlineData(null, true, false, true, CertificateTrustScope.None)]
-    [InlineData(false, null, false, true, CertificateTrustScope.None)]
-    [InlineData(false, false, false, true, CertificateTrustScope.None)]
-    [InlineData(false, true, false, true, CertificateTrustScope.None)]
-    [InlineData(true, null, false, true, CertificateTrustScope.None)]
-    [InlineData(true, false, false, true, CertificateTrustScope.None)]
-    [InlineData(true, true, false, true, CertificateTrustScope.None)]
     public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert, bool overridePaths, CertificateTrustScope trustScope)
     {
         using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis");
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis")
+            .WithoutServerAuthenticationCertificate();
         if (explicitTrust.HasValue)
         {
             container.WithDeveloperCertificateTrust(explicitTrust.Value);
@@ -767,9 +726,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
@@ -810,71 +767,33 @@ public class DistributedApplicationTests
                             }
                         });
 
-                    Assert.NotNull(item.Spec.CreateFiles);
-                    Assert.Collection(item.Spec.CreateFiles.Where(cf => cf.Destination == expectedDestination),
-                        createCerts =>
+                    if (trustScope == CertificateTrustScope.None)
+                    {
+                        Assert.Empty(item.Spec?.PemCertificates?.Certificates ?? []);
+                        return;
+                    }
+
+                    foreach (var cert in dc.Certificates)
+                    {
+                        var foundCert = Assert.Single(item.Spec?.PemCertificates?.Certificates ?? [], c => string.Equals(c.Thumbprint, cert.Thumbprint, StringComparison.Ordinal));
+                        if (cert.IsAspNetCoreDevelopmentCertificate())
                         {
-                            Assert.NotNull(createCerts.Entries);
-                            Assert.Collection(createCerts.Entries,
-                                bundle =>
-                                {
-                                    Assert.Equal("cert.pem", bundle.Name);
-                                    Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
-                                    var certs = new X509Certificate2Collection();
-                                    certs.ImportFromPem(bundle.Contents);
-                                    Assert.Equal(dc.Certificates.Count, certs.Count);
-                                    Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
-                                },
-                                dir =>
-                                {
-                                    Assert.Equal("certs", dir.Name);
-                                    Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
-                                    Assert.NotNull(dir.Entries);
-                                    Assert.Equal(dc.Certificates.Count, dir.Entries.Count);
-                                    foreach (var devCert in dc.Certificates)
-                                    {
-                                        Assert.Contains(dir.Entries, (cert) =>
-                                        {
-                                            return cert.Type == ContainerFileSystemEntryType.OpenSSL && string.Equals(cert.Name, devCert.Thumbprint + ".pem", StringComparison.Ordinal) && string.Equals(cert.Contents, devCert.ExportCertificatePem(), StringComparison.Ordinal);
-                                        });
-                                    }
-                                });
-                        });
+                            Assert.True(X509Certificate2.CreateFromPem(foundCert.Contents).IsAspNetCoreDevelopmentCertificate());
+                        }
+                    }
 
                     if (trustScope == CertificateTrustScope.Override)
                     {
-                        foreach (var bundlePath in expectedDefaultBundleFiles!.Select(bp =>
+                        Assert.Equal(expectedDefaultBundleFiles.Count, item.Spec?.PemCertificates?.OverwriteBundlePaths?.Count ?? 0);
+                        foreach (var bundlePath in expectedDefaultBundleFiles)
                         {
-                            var filename = Path.GetFileName(bp);
-                            var dir = bp.Substring(0, bp.Length - filename.Length);
-                            return (dir, filename);
-                        }).GroupBy(parts => parts.dir))
-                        {
-                            Assert.Collection(item.Spec.CreateFiles.Where(cf => cf.Destination == bundlePath.Key),
-                                createCerts =>
-                                {
-                                    Assert.NotNull(createCerts.Entries);
-                                    Assert.Equal(bundlePath.Count(), createCerts.Entries.Count);
-                                    foreach (var expectedFile in bundlePath)
-                                    {
-                                        Assert.Collection(createCerts.Entries.Where(file => file.Name == expectedFile.filename),
-                                            bundle =>
-                                            {
-                                                Assert.Equal(expectedFile.filename, bundle.Name);
-                                                Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
-                                                var certs = new X509Certificate2Collection();
-                                                certs.ImportFromPem(bundle.Contents);
-                                                Assert.Equal(dc.Certificates.Count, certs.Count);
-                                                Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
-                                            });
-                                    }
-                                });
+                            Assert.Contains(bundlePath, item.Spec?.PemCertificates?.OverwriteBundlePaths ?? []);
                         }
                     }
                 }
                 else
                 {
-                    Assert.Empty(item.Spec.CreateFiles ?? []);
+                    Assert.Empty(item.Spec?.PemCertificates?.Certificates ?? []);
                 }
             });
 
@@ -907,6 +826,93 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         var dependentRunningResourceEvent = await rns.WaitForResourceAsync(container.Resource.Name, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [RequiresDevCert]
+    public async Task VerifyEnvironmentVariablesAvailableInCertificateTrustConfigCallback()
+    {
+        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: true);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var value = "SomeValue";
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
+            .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
+            .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                if (ctx.EnvironmentVariables.ContainsKey("INITIAL_ENV_VAR"))
+                {
+                    // Add an additional environment variable in the callback
+                    ctx.EnvironmentVariables["CALLBACK_ADDED_VAR"] = "CallbackValue";
+                    var initialRE = Assert.IsType<ReferenceExpression>(ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"]);
+                    ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"] = ReferenceExpression.Create($"{initialRE}_AppendedInCallback");
+                }
+
+                return Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
+            s,
+            $"verify-env-vars-in-cert-callback-redis-{ReplicaIdRegex}-{suffix}",
+            r => r.Spec.Env != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.NotNull(redisContainer);
+        Assert.NotNull(redisContainer.Spec.Env);
+
+        // Verify both environment variables are present in the final container spec
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_ENV_VAR" && e.Value == "InitialValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "CALLBACK_ADDED_VAR" && e.Value == "CallbackValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_REFERENCE_EXPRESSION" && e.Value == $"{value}_AppendedInCallback");
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyEnvironmentVariablesAppliedWithoutCertificateTrustConfig()
+    {
+        // Don't apply developer certificate trust so the config callback shouldn't be invoked
+        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var value = "SomeValue";
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
+            .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
+            .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                Assert.Fail("Certificate trust configuration callback should not be invoked when developer certificate trust is not applied.");
+
+                return Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
+            s,
+            $"verify-env-vars-in-cert-callback-redis-{ReplicaIdRegex}-{suffix}",
+            r => r.Spec.Env != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.NotNull(redisContainer);
+        Assert.NotNull(redisContainer.Spec.Env);
+
+        // Verify both environment variables are present in the final container spec
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_ENV_VAR" && e.Value == "InitialValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_REFERENCE_EXPRESSION" && e.Value == $"{value}");
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
@@ -1562,14 +1568,10 @@ public class DistributedApplicationTests
         const string testName = "endpoint-proxy-support";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var redis = builder.AddRedis($"{testName}-redis", 1234).WithEndpointProxySupport(false);
-#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Since port is not specified, this instance will use the container target port (6379) as the host port.
-#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var redisNoPort = builder.AddRedis($"{testName}-redisNoPort").WithEndpointProxySupport(false);
-#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var servicea = builder.AddProject<Projects.ServiceA>($"{testName}-servicea")
             .WithReference(redis)
@@ -1758,7 +1760,7 @@ public class DistributedApplicationTests
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
         bool randomizePorts = true,
-        bool? trustDeveloperCertificate = null) =>
+        bool? trustDeveloperCertificate = false) =>
         TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,

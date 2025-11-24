@@ -86,7 +86,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
-                Tags = ["print-summary"]
+                Tags = ["print-summary"],
+                RequiredBySteps = [WellKnownPipelineSteps.Deploy]
             };
 
             var deployStep = new PipelineStep
