@@ -379,7 +379,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
-        <target state="new">Aspire MCP API key</target>
+        <target state="translated">Aspire MCP API 키</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
@@ -389,7 +389,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogCopyButton">
         <source>Copy</source>
-        <target state="new">Copy</target>
+        <target state="translated">복사</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
@@ -419,7 +419,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogManuallyUpdatingAccordionHeading">
         <source>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</source>
-        <target state="new">Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</target>
+        <target state="translated">수동으로 &lt;code&gt;mcp.json&lt;/code&gt; 업데이트</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogOtherDescription">
@@ -459,7 +459,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogVSCodeApiKeyInstructions">
         <source>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</source>
-        <target state="new">The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</target>
+        <target state="translated">Aspire MCP가 처음 시작되면 VS Code에서 API 키를 요청하는 메시지가 표시됩니다. VS Code 입력 텍스트 상자에 아래 API 키를 입력합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVSCodeTab">
@@ -489,7 +489,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
         <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
-        <target state="new">You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</target>
+        <target state="translated">API 키를 사용하려면 Aspire MCP에 API 키를 추가해야 합니다. GitHub Copilot Chat에서 도구 단추를 선택한 다음 Aspire MCP 서버를 선택하세요. 아래 텍스트 상자에 API 키를 입력하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">
