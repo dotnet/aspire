@@ -28,7 +28,7 @@
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:20203"
       }
     },
-    "manifest": {
+    "generate-manifest": {
       "commandName": "Project",
       "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
       "dotnetRunMessages": true,

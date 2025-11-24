@@ -26,6 +26,15 @@
         "ASPIRE_DASHBOARD_MCP_ENDPOINT_URL": "http://localhost:18011",
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20029"
       }
+    },
+    "generate-manifest": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     }
   }
 }
