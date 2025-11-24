@@ -109,6 +109,11 @@ sealed partial class TestSummaryGenerator
         overallTableBuilder.AppendLine();
         overallTableBuilder.Append(tableBuilder);
 
+        // Add duration statistics
+        overallTableBuilder.AppendLine();
+        overallTableBuilder.AppendLine("## Duration Statistics");
+        overallTableBuilder.Append(GenerateDurationStatistics(basePath));
+
         return overallTableBuilder.ToString();
     }
 
@@ -203,6 +208,144 @@ sealed partial class TestSummaryGenerator
             }
         }
         reportBuilder.AppendLine();
+    }
+
+    private static string GenerateDurationStatistics(string basePath)
+    {
+        var allDurations = new List<double>();
+        var testDetails = new List<(string TestName, double DurationSeconds, string Outcome, string TestRun)>();
+
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
+        foreach (var filePath in trxFiles)
+        {
+            TestRun? testRun;
+            try
+            {
+                testRun = TrxReader.DeserializeTrxFile(filePath);
+                if (testRun?.Results?.UnitTestResults is null)
+                {
+                    continue;
+                }
+            }
+            catch
+            {
+                continue;
+            }
+
+            var testRunName = GetTestTitle(filePath);
+
+            foreach (var test in testRun.Results.UnitTestResults)
+            {
+                if (test.Duration is string durationStr && TimeSpan.TryParse(durationStr, out var duration))
+                {
+                    var seconds = duration.TotalSeconds;
+                    allDurations.Add(seconds);
+                    testDetails.Add((test.TestName ?? "Unknown", seconds, test.Outcome ?? "Unknown", testRunName));
+                }
+            }
+        }
+
+        if (allDurations.Count == 0)
+        {
+            return "No test duration data available.\n";
+        }
+
+        var statsBuilder = new StringBuilder();
+
+        // Calculate statistics
+        allDurations.Sort();
+        var count = allDurations.Count;
+        var sum = allDurations.Sum();
+        var mean = sum / count;
+        var median = allDurations[count / 2];
+
+        // Calculate standard deviation
+        var variance = allDurations.Select(d => Math.Pow(d - mean, 2)).Sum() / count;
+        var stdDev = Math.Sqrt(variance);
+        var cv = (stdDev / mean) * 100;
+
+        // Percentiles
+        var p50 = allDurations[(int)(count * 0.50)];
+        var p90 = allDurations[(int)(count * 0.90)];
+        var p95 = allDurations[(int)(count * 0.95)];
+        var p99 = allDurations[(int)(count * 0.99)];
+
+        // Basic statistics table
+        statsBuilder.AppendLine("### Overall Statistics");
+        statsBuilder.AppendLine();
+        statsBuilder.AppendLine("| Metric | Value |");
+        statsBuilder.AppendLine("|--------|-------|");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Total Tests | {count:N0} |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Total Time | {sum / 60:F2} minutes |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Mean | {mean:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Median | {median:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Std Dev | {stdDev:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Coeff. of Variation | {cv:F1}% |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Min | {allDurations[0]:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Max | {allDurations[^1]:F3}s |");
+        statsBuilder.AppendLine();
+
+        // Percentiles table
+        statsBuilder.AppendLine("### Percentiles");
+        statsBuilder.AppendLine();
+        statsBuilder.AppendLine("| Percentile | Duration |");
+        statsBuilder.AppendLine("|------------|----------|");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| 50th (Median) | {p50:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| 90th | {p90:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| 95th | {p95:F3}s |");
+        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| 99th | {p99:F3}s |");
+        statsBuilder.AppendLine();
+
+        // Distribution buckets
+        statsBuilder.AppendLine("### Duration Distribution");
+        statsBuilder.AppendLine();
+        var buckets = new (string Label, double Min, double Max, int Count)[]
+        {
+            ("< 1s", 0, 1, 0),
+            ("1-5s", 1, 5, 0),
+            ("5-10s", 5, 10, 0),
+            ("10-30s", 10, 30, 0),
+            ("30-60s", 30, 60, 0),
+            ("> 60s", 60, double.MaxValue, 0)
+        };
+
+        var bucketCounts = new int[buckets.Length];
+        foreach (var duration in allDurations)
+        {
+            for (int i = 0; i < buckets.Length; i++)
+            {
+                if (duration >= buckets[i].Min && duration < buckets[i].Max)
+                {
+                    bucketCounts[i]++;
+                    break;
+                }
+            }
+        }
+
+        statsBuilder.AppendLine("| Range | Count | Percentage |");
+        statsBuilder.AppendLine("|-------|-------|------------|");
+        for (int i = 0; i < buckets.Length; i++)
+        {
+            var percentage = (bucketCounts[i] / (double)count) * 100;
+            statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {buckets[i].Label} | {bucketCounts[i]:N0} | {percentage:F1}% |");
+        }
+        statsBuilder.AppendLine();
+
+        // Top 10 slowest tests
+        statsBuilder.AppendLine("### Top 10 Slowest Tests");
+        statsBuilder.AppendLine();
+        var slowestTests = testDetails.OrderByDescending(t => t.DurationSeconds).Take(10);
+        statsBuilder.AppendLine("| Duration | Status | Test Name | Test Run |");
+        statsBuilder.AppendLine("|----------|--------|-----------|----------|");
+
+        foreach (var test in slowestTests)
+        {
+            var icon = test.Outcome == "Passed" ? "✅" : test.Outcome == "Failed" ? "❌" : "⚠️";
+            statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {test.DurationSeconds:F2}s | {icon} {test.Outcome} | {test.TestName} | {test.TestRun} |");
+        }
+        statsBuilder.AppendLine();
+
+        return statsBuilder.ToString();
     }
 
     public static string GetTestTitle(string trxFileName)
