@@ -6,8 +6,10 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -237,6 +239,58 @@ public class McpServiceTests
         var tools = jsonResponse["result"]!["tools"]!.AsArray();
 
         Assert.NotEmpty(tools);
+    }
+
+    [Fact]
+    public async Task CallService_McpTool_TelemetryRecorded()
+    {
+        // Arrange
+        var testTelemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            _testOutputHelper,
+            preConfigureBuilder: builder =>
+            {
+                // Replace the telemetry sender with our test version
+                builder.Services.AddSingleton<IDashboardTelemetrySender>(testTelemetrySender);
+            });
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Initialize telemetry service
+        var telemetryService = app.Services.GetRequiredService<DashboardTelemetryService>();
+        await telemetryService.InitializeAsync();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        responseMessage.EnsureSuccessStatusCode();
+
+        // Wait a bit for telemetry to be queued
+        await Task.Delay(100);
+
+        // Dispose the sender to complete the channel
+        await testTelemetrySender.DisposeAsync();
+
+        // Assert
+        // Verify that telemetry was recorded
+        var contexts = new List<OperationContext>();
+        await foreach (var context in testTelemetrySender.ContextChannel.Reader.ReadAllAsync())
+        {
+            contexts.Add(context);
+        }
+
+        // Should have recorded StartOperation for the list_tools call
+        var startOperationContext = contexts.FirstOrDefault(c => c.Name.Contains(TelemetryEventKeys.McpToolCall) && c.Name.Contains(TelemetryEndpoints.TelemetryStartOperation));
+        Assert.NotNull(startOperationContext);
+        Assert.Equal(2, startOperationContext.Properties.Length); // StartOperation creates 2 properties (operationId and correlation)
+
+        // Should have recorded EndOperation for the list_tools call
+        var endOperationContext = contexts.FirstOrDefault(c => c.Name.Contains(TelemetryEndpoints.TelemetryEndOperation));
+        Assert.NotNull(endOperationContext);
     }
 
     internal static HttpRequestMessage CreateListToolsRequest()
