@@ -1465,34 +1465,38 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Processes image push options callbacks for the specified resource.
     /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, string> callback) where T : class, IResource
+    /// <param name="resource">The resource to process image push options for.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>The resolved image push options.</returns>
+#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    internal static async Task<ContainerImagePushOptions> ProcessImagePushOptionsCallbackAsync(
+        this IResource resource,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
+        var options = new ContainerImagePushOptions
+        {
+            RemoteImageName = resource.Name.ToLowerInvariant(),
+            RemoteImageTag = "latest"
+        };
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        var context = new ContainerImagePushOptionsCallbackContext
+        {
+            Resource = resource,
+            CancellationToken = cancellationToken,
+            Options = options
+        };
+
+        var callbacks = resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>();
+
+        foreach (var callback in callbacks)
+        {
+            await callback.Callback(context).ConfigureAwait(false);
+        }
+
+        return options;
     }
+#pragma warning restore ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-    /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback) where T : class, IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
-    }
 }
