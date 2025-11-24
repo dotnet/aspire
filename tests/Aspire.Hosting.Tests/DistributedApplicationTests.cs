@@ -1386,7 +1386,8 @@ public class DistributedApplicationTests
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
-    [Fact(Skip = "Timing out - takes 182s")]
+    [Fact]
+    [OuterloopTest("Long-running endpoint proxy test")]
     [RequiresSSLCertificate]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
@@ -1455,7 +1456,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [Fact(Skip = "Timing out - takes 191s")]
+    [Fact]
+    [OuterloopTest("Long-running container test")]
     [RequiresDocker]
     public async Task ProxylessContainerCanBeReferenced()
     {
@@ -1527,7 +1529,8 @@ public class DistributedApplicationTests
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
-    [Fact(Skip = "Timing out - takes 192s")]
+    [Fact]
+    [OuterloopTest("Long-running endpoint proxy test")]
     [RequiresDocker]
     public async Task WithEndpointProxySupportDisablesProxies()
     {
