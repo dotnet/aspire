@@ -171,6 +171,9 @@
   <Folder Name="/playground/CustomResources/">
     <Project Path="playground/CustomResources/CustomResources.AppHost/CustomResources.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/DotnetTool/">
+    <Project Path="playground/DotnetTool/DotnetTool.AppHost/DotnetTool.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/DatabaseMigration/">
     <Project Path="playground/DatabaseMigration/DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.ApiService/DatabaseMigration.ApiService.csproj" />
