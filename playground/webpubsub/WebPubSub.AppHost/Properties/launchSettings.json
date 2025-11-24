@@ -5,7 +5,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:17370",
+      "applicationUrl": "http://localhost:16490",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
@@ -18,7 +18,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:17370",
+      "applicationUrl": "http://localhost:16490",
       "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",

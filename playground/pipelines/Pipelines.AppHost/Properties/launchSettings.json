@@ -29,7 +29,7 @@
     },
     "deploy": {
       "commandName": "Project",
-      "commandLineArgs": "--publisher default --deploy true --output-path ./deploy-output",
+      "commandLineArgs": "--publisher default --deploy true --output-path ./deploy-output"
     },
     "generate-manifest": {
       "commandName": "Project",
