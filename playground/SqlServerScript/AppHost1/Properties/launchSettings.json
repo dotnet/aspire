@@ -35,7 +35,7 @@
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16175"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:15888"
+      "applicationUrl": "http://localhost:16300"
     }
   }
 }

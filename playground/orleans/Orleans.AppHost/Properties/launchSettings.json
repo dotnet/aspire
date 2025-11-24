@@ -4,12 +4,12 @@
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:15887;http://localhost:15888",
+      "applicationUrl": "https://localhost:16419;http://localhost:16420",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:16031",
-        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:17037",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:17169",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:17169",
         "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
       }
     },
@@ -17,12 +17,12 @@
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:15888",
+      "applicationUrl": "http://localhost:16420",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
-        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:17038",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:17170",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:17170",
         "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
@@ -32,11 +32,11 @@
       "launchBrowser": true,
       "dotnetRunMessages": true,
       "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
-      "applicationUrl": "http://localhost:15888",
+      "applicationUrl": "http://localhost:16420",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:17170"
       }
     }
   },
