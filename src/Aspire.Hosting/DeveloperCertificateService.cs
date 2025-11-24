@@ -77,9 +77,9 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             true;
 
         // By default, only use for server authentication if trust is also enabled (and a developer certificate with a private key is available)
-        UseForServerAuthentication = configuration.GetBool(KnownConfigNames.UseDeveloperCertificateForServerAuthentication) ??
+        UseForServerAuthentication = (configuration.GetBool(KnownConfigNames.UseDeveloperCertificateForServerAuthentication) ??
             options.UseDeveloperCertificateForServerAuthentication ??
-            true && TrustCertificate && _supportsTlsTermination.Value;
+            true ) && TrustCertificate && _supportsTlsTermination.Value;
     }
 
     /// <inheritdoc />
