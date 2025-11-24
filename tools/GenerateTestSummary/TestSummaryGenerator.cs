@@ -331,10 +331,10 @@ sealed partial class TestSummaryGenerator
         }
         statsBuilder.AppendLine();
 
-        // Top 10 slowest tests
-        statsBuilder.AppendLine("### Top 10 Slowest Tests");
+        // Top 100 slowest tests
+        statsBuilder.AppendLine("### Top 100 Slowest Tests");
         statsBuilder.AppendLine();
-        var slowestTests = testDetails.OrderByDescending(t => t.DurationSeconds).Take(10);
+        var slowestTests = testDetails.OrderByDescending(t => t.DurationSeconds).Take(100);
         statsBuilder.AppendLine("| Duration | Status | Test Name | Test Run |");
         statsBuilder.AppendLine("|----------|--------|-----------|----------|");
 
