@@ -11,7 +11,7 @@
     <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="13.0.0" />
     <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.0.0" />
     <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="13.0.0" />
-    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.0.0" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="13.0.0" />
     <PackageVersion Include="Aspire.Hosting" Version="13.0.0" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.0.0" />
@@ -68,7 +68,7 @@
     <PackageVersion Include="Aspire.MySqlConnector" Version="13.0.0" />
     <PackageVersion Include="Aspire.NATS.Net" Version="13.0.0" />
     <PackageVersion Include="Aspire.Npgsql" Version="13.0.0" />
-    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.0.0" />
     <PackageVersion Include="Aspire.Oracle.EntityFrameworkCore" Version="13.0.0" />
     <PackageVersion Include="Aspire.Pomelo.EntityFrameworkCore.MySql" Version="13.0.0" />
     <PackageVersion Include="Aspire.Qdrant.Client" Version="13.0.0" />
