@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\XmlEncodedProjectName.ApiService\XmlEncodedProjectName.ApiService.csproj" />
+    <ProjectReference Include="..\XmlEncodedProjectName.Backend\XmlEncodedProjectName.Backend.csproj" />
   </ItemGroup>
 
   <ItemGroup>

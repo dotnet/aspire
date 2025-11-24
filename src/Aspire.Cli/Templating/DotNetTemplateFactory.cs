@@ -54,10 +54,10 @@ internal class DotNetTemplateFactory(
             "aspire-js-frontend-starter",
             TemplatingStrings.AspireJsFrontendStarter_Description,
             projectName => $"./{projectName}",
-            ApplyExtraAspireStarterOptions,
+            ApplyExtraAspireJsFrontendStarterOptions,
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
-                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
             );
 
         // Single-file AppHost templates
@@ -189,6 +189,16 @@ internal class DotNetTemplateFactory(
         return extraArgs.ToArray();
     }
 
+    private async Task<string[]> PromptForExtraAspireJsFrontendStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
     private async Task<string[]> PromptForExtraAspireXUnitOptionsAsync(ParseResult result, CancellationToken cancellationToken)
     {
         var extraArgs = new List<string>();
@@ -311,6 +321,16 @@ internal class DotNetTemplateFactory(
         var xunitVersionOption = new Option<string?>("--xunit-version");
         xunitVersionOption.Description = TemplatingStrings.EnterXUnitVersion_Description;
         command.Options.Add(xunitVersionOption);
+    }
+
+    private static void ApplyExtraAspireJsFrontendStarterOptions(Command command)
+    {
+        ApplyDevLocalhostTldOption(command);
+
+        var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
+        useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
+        useRedisCacheOption.DefaultValueFactory = _ => false;
+        command.Options.Add(useRedisCacheOption);
     }
 
     private static void ApplyDevLocalhostTldOption(Command command)

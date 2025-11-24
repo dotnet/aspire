@@ -10,11 +10,7 @@
     "Service",
     "Cloud",
     "JavaScript",
-    "React",
-    "Test",
-    "MSTest",
-    "NUnit",
-    "xUnit"
+    "React"
   ],
   "name": "React (Vite) & Minimal API starter",
   "defaultName": "AspireApp",
@@ -33,12 +29,10 @@
   "groupIdentity": "Aspire.JsFrontendStarter",
   "guids": [
     "80B24B1B-1E78-4FCB-BDC9-13678F1789F4",
-    "DB7A3AC1-6E4F-4805-B710-2FCD1084E96E",
     "9FEB877E-015D-4E20-AE63-06C596E242E4",
     "AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F",
     "EB6E56D3-85C9-43D0-A65C-775F4C780950",
-    "98048C9C-BF28-46BA-A98E-63767EE5E3A8",
-    "BAAC2850-FDA3-40E4-8D41-6E024DDBC980"
+    "98048C9C-BF28-46BA-A98E-63767EE5E3A8"
   ],
   "sources": [
     {
@@ -52,9 +46,9 @@
           ]
         },
         {
-          "condition": "(TestFx == None)",
+          "condition": "(hostIdentifier != \"vs\")",
           "exclude": [
-            "Aspire-StarterApplication.1.Tests/**/*.*"
+            "frontend/frontend.esproj"
           ]
         }
       ]
@@ -92,73 +86,6 @@
       "defaultValue": "false",
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
-    },
-    "TestFx": {
-      "type": "parameter",
-      "datatype": "choice",
-      "defaultValue": "None",
-      "displayName": "Create a _test project",
-      "description": "Configures whether to create a project for integration tests using the AppHost project.",
-      "choices": [
-        {
-          "choice": "None",
-          "description": "Do not create a test project."
-        },
-        {
-          "choice": "MSTest",
-          "description": "Creates an MSTest test project using the AppHost project."
-        },
-        {
-          "choice": "NUnit",
-          "description": "Creates an NUnit test project using the AppHost project."
-        },
-        {
-          "choice": "xUnit.net",
-          "description": "Creates an xUnit.net test project using the AppHost project."
-        }
-      ]
-    },
-    "XUnitVersion": {
-      "type": "parameter",
-      "description": "The version of xUnit.net to use.",
-      "displayName": "xUnit.net version",
-      "datatype": "choice",
-      "isEnabled": "(TestFx == xUnit.net)",
-      "replaces": "XUnitVersion",
-      "choices": [
-        {
-          "choice": "v2",
-          "displayName": "v2",
-          "description": "Chooses xUnit.net v2 with VSTest"
-        },
-        {
-          "choice": "v3",
-          "displayName": "v3",
-          "description": "Chooses xUnit.net v3 with VSTest (Aspire version 9.2 and later only)"
-        },
-        {
-          "choice": "v3mtp",
-          "displayName": "v3 with Microsoft Test Platform",
-          "description": "Chooses xUnit.net v3 with Microsoft Test Platform (Aspire version 9.2 and later only)"
-        }
-      ],
-      "defaultValue": "v2"
-    },
-    "IsXunit": {
-      "type": "generated",
-      "generator": "switch",
-      "parameters": {
-        "cases": [
-          {
-            "condition": "(TestFx == xUnit.net)",
-            "value": "true"
-          },
-          {
-            "condition": "",
-            "value": "false"
-          }
-        ]
-      }
     },
     "appHostHttpPort": {
       "type": "parameter",
@@ -336,12 +263,12 @@
       },
       "replaces": "22000"
     },
-    "apiServiceHttpPort": {
+    "backendHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the ApiService project."
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the Backend project."
     },
-    "apiServiceHttpPortGenerated": {
+    "backendHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -349,21 +276,21 @@
         "high": 5600
       }
     },
-    "apiServiceHttpPortReplacer": {
+    "backendHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "apiServiceHttpPort",
-        "fallbackVariableName": "apiServiceHttpPortGenerated"
+        "sourceVariableName": "backendHttpPort",
+        "fallbackVariableName": "backendHttpPortGenerated"
       },
       "replaces": "5301"
     },
-    "apiServiceHttpsPort": {
+    "backendHttpsPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the ApiService project. This option is only applicable when the parameter no-https is not used."
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Backend project. This option is only applicable when the parameter no-https is not used."
     },
-    "apiServiceHttpsPortGenerated": {
+    "backendHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -371,12 +298,12 @@
         "high": 7600
       }
     },
-    "apiServiceHttpsPortReplacer": {
+    "backendHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "apiServiceHttpsPort",
-        "fallbackVariableName": "apiServiceHttpsPortGenerated"
+        "sourceVariableName": "backendHttpsPort",
+        "fallbackVariableName": "backendHttpsPortGenerated"
       },
       "replaces": "7301"
     },
@@ -436,14 +363,11 @@
       "path": "Aspire-StarterApplication.1.AppHost\\Aspire-StarterApplication.1.AppHost.csproj"
     },
     {
-      "path": "Aspire-StarterApplication.1.ServiceDefaults\\Aspire-StarterApplication.1.ServiceDefaults.csproj"
+      "path": "Aspire-StarterApplication.1.Backend\\Aspire-StarterApplication.1.Backend.csproj"
     },
     {
-      "path": "Aspire-StarterApplication.1.ApiService\\Aspire-StarterApplication.1.ApiService.csproj"
-    },
-    {
-      "path": "Aspire-StarterApplication.1.Tests\\Aspire-StarterApplication.1.Tests.csproj",
-      "condition": "(TestFx != None)"
+      "path": "frontend\\frontend.esproj",
+      "condition": "(hostIdentifier == \"vs\")"
     }
   ],
   "postActions": [
