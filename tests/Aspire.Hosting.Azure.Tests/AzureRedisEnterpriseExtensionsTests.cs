@@ -190,7 +190,7 @@ public class AzureRedisEnterpriseExtensionsTests
     public void AddAsExistingResource_ShouldBeIdempotent_ForAzureRedisCacheResource()
     {
         // Arrange
-        var redisResource = new AzureRedisEnterpriseResource("test-redis", _ => { });
+        var redisResource = new AzureManagedRedisResource("test-redis", _ => { });
         var infrastructure = new AzureResourceInfrastructure(redisResource, "test-redis");
 
         // Act - Call AddAsExistingResource twice
