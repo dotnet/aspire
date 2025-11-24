@@ -14,13 +14,8 @@ using StreamJsonRpc;
 namespace Aspire.Hosting.Backchannel;
 
 /// <summary>
-/// Background service that listens for multiple concurrent connections on a Unix socket
-/// and provides MCP-related RPC operations via the auxiliary backchannel.
+/// Background service that listens for multiple concurrent connections on a Unix socket and provides MCP-related RPC operations.
 /// </summary>
-/// <remarks>
-/// Unlike the existing backchannel which accepts a single connection, the auxiliary backchannel
-/// supports multiple concurrent client connections. Each connection gets its own RPC target instance.
-/// </remarks>
 internal sealed class AuxiliaryBackchannelService(
     ILogger<AuxiliaryBackchannelService> logger,
     IConfiguration configuration,
@@ -33,10 +28,6 @@ internal sealed class AuxiliaryBackchannelService(
     /// <summary>
     /// Gets the Unix socket path where the auxiliary backchannel is listening.
     /// </summary>
-    /// <remarks>
-    /// The socket path follows the pattern: $HOME/.aspire/cli/backchannels/aux.sock.[hash]
-    /// where [hash] is derived from AppHost:PathSha256 configuration value for uniqueness.
-    /// </remarks>
     public string? SocketPath { get; private set; }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -156,11 +147,6 @@ internal sealed class AuxiliaryBackchannelService(
     /// <summary>
     /// Generates the Unix socket path for the auxiliary backchannel.
     /// </summary>
-    /// <remarks>
-    /// Pattern: $HOME/.aspire/cli/backchannels/aux.sock.[hash]
-    /// The hash is derived from AppHost:PathSha256 configuration to ensure uniqueness per app host instance.
-    /// Falls back to process ID hash if configuration value is not available.
-    /// </remarks>
     private static string GetAuxiliaryBackchannelSocketPath(IConfiguration configuration)
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

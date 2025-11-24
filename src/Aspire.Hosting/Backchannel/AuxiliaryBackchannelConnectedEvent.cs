@@ -8,10 +8,6 @@ namespace Aspire.Hosting.Backchannel;
 /// <summary>
 /// Event that is published when a client connects to the auxiliary backchannel.
 /// </summary>
-/// <remarks>
-/// The auxiliary backchannel supports multiple concurrent connections, so this event
-/// may be published multiple times during the lifetime of the application.
-/// </remarks>
 internal sealed class AuxiliaryBackchannelConnectedEvent(IServiceProvider serviceProvider, string socketPath, System.Net.Sockets.Socket clientSocket) : IDistributedApplicationEvent
 {
     /// <summary>

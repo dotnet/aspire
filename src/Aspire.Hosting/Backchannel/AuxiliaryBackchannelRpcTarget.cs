@@ -12,10 +12,6 @@ namespace Aspire.Hosting.Backchannel;
 /// <summary>
 /// RPC target for the auxiliary backchannel that provides MCP-related operations.
 /// </summary>
-/// <remarks>
-/// This target provides stateless request/response operations for clients connecting
-/// to the auxiliary backchannel, primarily to obtain Dashboard MCP connection information.
-/// </remarks>
 internal sealed class AuxiliaryBackchannelRpcTarget(
     ILogger<AuxiliaryBackchannelRpcTarget> logger,
     IServiceProvider serviceProvider)
@@ -86,20 +82,4 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             ApiToken = mcpApiKey
         };
     }
-}
-
-/// <summary>
-/// Represents the connection information for the Dashboard MCP server.
-/// </summary>
-internal sealed class DashboardMcpConnectionInfo
-{
-    /// <summary>
-    /// Gets or sets the endpoint URL for the Dashboard MCP server.
-    /// </summary>
-    public required string EndpointUrl { get; init; }
-
-    /// <summary>
-    /// Gets or sets the API token for authenticating with the Dashboard MCP server.
-    /// </summary>
-    public required string ApiToken { get; init; }
 }
