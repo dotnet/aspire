@@ -81,6 +81,8 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// </remarks>
     public string DefaultServiceType { get; set; } = "ClusterIP";
 
+    internal IPortAllocator PortAllocator { get; } = new PortAllocator();
+
     /// <param name="name">The name of the Kubernetes environment.</param>
     public KubernetesEnvironmentResource(string name) : base(name)
     {
