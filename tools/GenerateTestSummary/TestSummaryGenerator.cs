@@ -118,7 +118,43 @@ sealed partial class TestSummaryGenerator
         overallTableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {overallPassedTestCount} | {overallFailedTestCount} | {overallSkippedTestCount} | {overallTotalTestCount} |");
 
         overallTableBuilder.AppendLine();
-        overallTableBuilder.Append(tableBuilder);
+        
+        // Split test projects into > 5 mins and the rest
+        var slowProjects = testRunData.Where(t => t.DurationMinutes > 5).ToList();
+        var fastProjects = testRunData.Where(t => t.DurationMinutes <= 5).ToList();
+        
+        if (slowProjects.Count > 0)
+        {
+            overallTableBuilder.AppendLine("### Test Projects > 5mins");
+            overallTableBuilder.AppendLine();
+            overallTableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total | Duration (minutes) |");
+            overallTableBuilder.AppendLine("|------|--------|--------|---------|-------|-------------------|");
+            
+            foreach (var data in slowProjects)
+            {
+                overallTableBuilder.AppendLine(CultureInfo.InvariantCulture, 
+                    $"| {data.Icon} [{data.Os}] {data.Title} | {data.Passed} | {data.Failed} | {data.Skipped} | {data.Total} | {data.DurationMinutes:F2} |");
+            }
+            overallTableBuilder.AppendLine();
+        }
+        
+        if (fastProjects.Count > 0)
+        {
+            overallTableBuilder.AppendLine("<details>");
+            overallTableBuilder.AppendLine("<summary>All Other Test Projects</summary>");
+            overallTableBuilder.AppendLine();
+            overallTableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total | Duration (minutes) |");
+            overallTableBuilder.AppendLine("|------|--------|--------|---------|-------|-------------------|");
+            
+            foreach (var data in fastProjects)
+            {
+                overallTableBuilder.AppendLine(CultureInfo.InvariantCulture, 
+                    $"| {data.Icon} [{data.Os}] {data.Title} | {data.Passed} | {data.Failed} | {data.Skipped} | {data.Total} | {data.DurationMinutes:F2} |");
+            }
+            
+            overallTableBuilder.AppendLine("</details>");
+            overallTableBuilder.AppendLine();
+        }
 
         // Add test project duration distribution
         overallTableBuilder.AppendLine();
@@ -455,12 +491,15 @@ sealed partial class TestSummaryGenerator
                                 ? "mac"
                                 : "unk";
 
+            // Get total duration for this test run
+            var totalDurationMinutes = TrxReader.GetTestRunDurationInMinutes(testRun);
+            
             // Get top 10 slowest tests
             var slowestTests = testDetails.OrderByDescending(t => t.DurationSeconds).Take(10);
             var totalSlowTestCount = testDetails.Count;
 
             resultBuilder.AppendLine();
-            resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"### [{os}] {testRunName}");
+            resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"### [{os}] {testRunName} (total time: {totalDurationMinutes:F2} mins)");
             resultBuilder.AppendLine();
             resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"**{totalSlowTestCount} tests > 30 seconds** (showing top 10)");
             resultBuilder.AppendLine();
