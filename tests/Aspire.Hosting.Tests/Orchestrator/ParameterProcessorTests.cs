@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Resources;
@@ -853,5 +854,156 @@ public class ParameterProcessorTests
         Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
         Assert.True(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompletedSuccessfully);
         Assert.Equal("existingValue", await parameterWithGenerateDefault.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task ConnectionStringParameterStateIsSavedWithCorrectKey()
+    {
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var connectionStringParam = new ConnectionStringParameterResource(
+            "mydb",
+            _ => throw new MissingParameterValueException("Connection string 'mydb' is missing"),
+            null);
+        connectionStringParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [connectionStringParam];
+
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "Server=localhost;Database=mydb";
+        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        await handleTask;
+
+        // Verify the value was saved correctly
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("ConnectionStrings:mydb", out var sectionNode));
+        var sectionData = sectionNode!.AsObject();
+        Assert.Equal("Server=localhost;Database=mydb", sectionData[""]?.GetValue<string>());
+
+        // Verify the entire state structure as JSON (mimics what gets saved to disk)
+        await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    [Fact]
+    public async Task RegularParameterStateIsSavedWithCorrectKey()
+    {
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var regularParam = new ParameterResource(
+            "myparam",
+            _ => throw new MissingParameterValueException("Parameter 'myparam' is missing"),
+            secret: false);
+        regularParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [regularParam];
+
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "myvalue";
+        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        await handleTask;
+
+        // Verify the value was saved correctly
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("Parameters:myparam", out var sectionNode));
+        var sectionData = sectionNode!.AsObject();
+        Assert.Equal("myvalue", sectionData[""]?.GetValue<string>());
+
+        // Verify the entire state structure as JSON (mimics what gets saved to disk)
+        await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    [Fact]
+    public async Task CustomConfigurationKeyParameterStateIsSavedWithCorrectKey()
+    {
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var customParam = new ParameterResource(
+            "customparam",
+            _ => throw new MissingParameterValueException("Parameter 'customparam' is missing"),
+            secret: false)
+        {
+            ConfigurationKey = "MyCustomSection:MyCustomKey"
+        };
+        customParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [customParam];
+
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "customvalue";
+        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        await handleTask;
+
+        // Verify the value was saved correctly
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("MyCustomSection:MyCustomKey", out var sectionNode));
+        var sectionData = sectionNode!.AsObject();
+        Assert.Equal("customvalue", sectionData[""]?.GetValue<string>());
+
+        // Verify the entire state structure as JSON (mimics what gets saved to disk)
+        await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    private sealed class CapturingMockDeploymentStateManager : IDeploymentStateManager
+    {
+        // Stores the entire state as a single JsonObject, mimicking FileDeploymentStateManager
+        // Structure: { "SectionName": { "key": "value" }, ... }
+        public JsonObject State { get; } = new();
+        public string? StateFilePath => null;
+
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        {
+            // Return existing section data if it exists, otherwise return empty
+            var sectionData = State.TryGetPropertyValue(sectionName, out var sectionNode) && sectionNode is JsonObject obj
+                ? obj.DeepClone().AsObject()
+                : null;
+
+            return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
+        }
+
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            // Increment version to allow multiple saves with the same instance (mimics FileDeploymentStateManager)
+            section.Version++;
+
+            // Store the section data in the state object, just like FileDeploymentStateManager
+            State[section.SectionName] = section.Data.DeepClone().AsObject();
+            return Task.CompletedTask;
+        }
     }
 }

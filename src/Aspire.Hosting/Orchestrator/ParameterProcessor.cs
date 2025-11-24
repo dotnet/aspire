@@ -229,22 +229,9 @@ public sealed class ParameterProcessor(
     // Internal for testing purposes - allows passing specific parameters to test.
     internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
     {
-        DeploymentStateSection? parametersStateSection = null;
-
-        if (executionContext.IsRunMode)
-        {
-            try
-            {
-                parametersStateSection = await deploymentStateManager.AcquireSectionAsync("Parameters").ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
-            }
-        }
+        var stateModified = false;
 
         {
-            var stateModified = false;
 
             // This method will continue in a loop until all unresolved parameters are resolved.
             while (unresolvedParameters.Count > 0)
@@ -346,10 +333,20 @@ public sealed class ParameterProcessor(
                             if (executionContext.IsRunMode && showSaveToSecrets && saveParameters?.Value is not null)
                             {
                                 var shouldSave = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
-                                if (shouldSave && parametersStateSection is not null)
+                                if (shouldSave)
                                 {
-                                    parametersStateSection.Data[parameter.Name] = JsonValue.Create(inputValue);
-                                    stateModified = true;
+                                    try
+                                    {
+                                        var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey).ConfigureAwait(false);
+                                        slot.Data.Clear();
+                                        slot.Data[""] = JsonValue.Create(inputValue);
+                                        await deploymentStateManager.SaveSectionAsync(slot).ConfigureAwait(false);
+                                        stateModified = true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
+                                    }
                                 }
                             }
 
@@ -360,45 +357,39 @@ public sealed class ParameterProcessor(
                 }
             }
 
-            if (stateModified && parametersStateSection is not null)
+            if (stateModified)
             {
-                try
-                {
-                    await deploymentStateManager.SaveSectionAsync(parametersStateSection).ConfigureAwait(false);
-                    logger.LogInformation("Parameter values saved to deployment state.");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
-                }
+                logger.LogInformation("Parameter values saved to deployment state.");
             }
         }
     }
 
     private async Task SaveParametersToDeploymentStateAsync(IEnumerable<ParameterResource> parameters, CancellationToken cancellationToken)
     {
-        try
+        var savedCount = 0;
+        foreach (var parameter in parameters)
         {
-            var parametersSection = await deploymentStateManager.AcquireSectionAsync("Parameters", cancellationToken).ConfigureAwait(false);
-
-            foreach (var parameter in parameters)
+            try
             {
                 var value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(value))
                 {
-                    parametersSection.Data[parameter.Name] = JsonValue.Create(value);
+                    var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey, cancellationToken).ConfigureAwait(false);
+                    slot.Data.Clear();
+                    slot.Data[""] = JsonValue.Create(value);
+                    await deploymentStateManager.SaveSectionAsync(slot, cancellationToken).ConfigureAwait(false);
+                    savedCount++;
                 }
             }
-
-            if (parametersSection.Data.Count > 0)
+            catch (Exception ex)
             {
-                await deploymentStateManager.SaveSectionAsync(parametersSection, cancellationToken).ConfigureAwait(false);
-                logger.LogInformation("Parameter values saved to deployment state.");
+                logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
             }
         }
-        catch (Exception ex)
+
+        if (savedCount > 0)
         {
-            logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+            logger.LogInformation("Parameter values saved to deployment state.");
         }
     }
 }
