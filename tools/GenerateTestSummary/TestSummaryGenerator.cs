@@ -257,17 +257,19 @@ sealed partial class TestSummaryGenerator
         var count = allDurations.Count;
         var sum = allDurations.Sum();
         var mean = sum / count;
-        var median = allDurations[count / 2];
+        var median = count % 2 == 0
+            ? (allDurations[(count - 1) / 2] + allDurations[count / 2]) / 2.0
+            : allDurations[count / 2];
 
         // Calculate standard deviation
         var variance = allDurations.Select(d => Math.Pow(d - mean, 2)).Sum() / count;
         var stdDev = Math.Sqrt(variance);
 
         // Percentiles
-        var p50 = allDurations[(int)(count * 0.50)];
-        var p90 = allDurations[(int)(count * 0.90)];
-        var p95 = allDurations[(int)(count * 0.95)];
-        var p99 = allDurations[(int)(count * 0.99)];
+        var p50 = allDurations[Math.Min((int)(count * 0.50), count - 1)];
+        var p90 = allDurations[Math.Min((int)(count * 0.90), count - 1)];
+        var p95 = allDurations[Math.Min((int)(count * 0.95), count - 1)];
+        var p99 = allDurations[Math.Min((int)(count * 0.99), count - 1)];
 
         // Basic statistics table
         statsBuilder.AppendLine("### Overall Statistics");
