@@ -822,6 +822,13 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         return _resourceByName.Values.Any(r => !string.IsNullOrEmpty(r.GetResourcePropertyValue(KnownProperties.Resource.ParentName)));
     }
 
+    private bool HasViewOptionsMenu()
+    {
+        // Show the menu if there are any child resources (for collapse/expand)
+        // OR if there are any hidden resources (for show/hide hidden resources)
+        return HasAnyChildResources() || _resourceByName.Values.Any(r => r.IsResourceHidden(showHiddenResources: false));
+    }
+
     private Task OnTabChangeAsync(FluentTab newTab)
     {
         var id = newTab.Id?.Substring("tab-".Length);
