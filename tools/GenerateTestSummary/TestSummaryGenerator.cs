@@ -262,7 +262,6 @@ sealed partial class TestSummaryGenerator
         // Calculate standard deviation
         var variance = allDurations.Select(d => Math.Pow(d - mean, 2)).Sum() / count;
         var stdDev = Math.Sqrt(variance);
-        var cv = (stdDev / mean) * 100;
 
         // Percentiles
         var p50 = allDurations[(int)(count * 0.50)];
@@ -280,7 +279,6 @@ sealed partial class TestSummaryGenerator
         statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Mean | {mean:F3}s |");
         statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Median | {median:F3}s |");
         statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Std Dev | {stdDev:F3}s |");
-        statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Coeff. of Variation | {cv:F1}% |");
         statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Min | {allDurations[0]:F3}s |");
         statsBuilder.AppendLine(CultureInfo.InvariantCulture, $"| Max | {allDurations[^1]:F3}s |");
         statsBuilder.AppendLine();
