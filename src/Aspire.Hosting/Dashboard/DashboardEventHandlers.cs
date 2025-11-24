@@ -38,7 +38,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
                                              CodespacesUrlRewriter codespaceUrlRewriter,
-                                             IAspireDirectoryService directoryService
+                                             IDirectoryService directoryService
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing

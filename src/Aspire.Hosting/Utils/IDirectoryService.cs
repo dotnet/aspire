@@ -11,7 +11,7 @@ namespace Aspire.Hosting;
 /// including temporary files, cache, and other storage needs. Directory locations
 /// can be overridden using environment variables or configuration.
 /// </remarks>
-public interface IAspireDirectoryService
+public interface IDirectoryService
 {
     /// <summary>
     /// Gets the temporary directory service for managing temporary files and directories.

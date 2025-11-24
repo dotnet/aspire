@@ -23,7 +23,7 @@ internal sealed class PipelineOutputService : IPipelineOutputService
     /// </summary>
     private readonly string _tempDirectory;
 
-    public PipelineOutputService(IOptions<PipelineOptions> options, IAspireDirectoryService directoryService)
+    public PipelineOutputService(IOptions<PipelineOptions> options, IDirectoryService directoryService)
     {
         ArgumentNullException.ThrowIfNull(directoryService);
         

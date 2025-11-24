@@ -2048,7 +2048,7 @@ public class DcpExecutorTests
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
-            new Locations(new AspireDirectoryService(null, "TestAppHost", "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF")),
+            new Locations(new DirectoryService(null, "TestAppHost", "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF")),
             developerCertificateService);
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }

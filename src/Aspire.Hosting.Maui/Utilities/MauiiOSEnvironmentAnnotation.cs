@@ -39,7 +39,7 @@ internal sealed class MauiiOSEnvironmentSubscriber(
     DistributedApplicationExecutionContext executionContext,
     ResourceLoggerService loggerService,
     ResourceNotificationService notificationService,
-    IAspireDirectoryService directoryService) : IDistributedApplicationEventingSubscriber
+    IDirectoryService directoryService) : IDistributedApplicationEventingSubscriber
 {
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {

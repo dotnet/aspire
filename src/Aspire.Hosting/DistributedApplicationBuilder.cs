@@ -65,7 +65,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
-    private readonly IAspireDirectoryService _directoryService;
+    private readonly IDirectoryService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -98,7 +98,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
 
     /// <inheritdoc />
-    public IAspireDirectoryService DirectoryService => _directoryService;
+    public IDirectoryService DirectoryService => _directoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -299,8 +299,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
         
         // Create and register the directory service with AppHost-specific subdirectory
-        _directoryService = new AspireDirectoryService(_innerBuilder.Configuration, appHostName, appHostPathSha);
-        _innerBuilder.Services.AddSingleton<IAspireDirectoryService>(_directoryService);
+        _directoryService = new DirectoryService(_innerBuilder.Configuration, appHostName, appHostPathSha);
+        _innerBuilder.Services.AddSingleton<IDirectoryService>(_directoryService);
         
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
@@ -458,7 +458,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
-            // Locations now uses IAspireDirectoryService for DCP session storage
+            // Locations now uses IDirectoryService for DCP session storage
             _innerBuilder.Services.AddSingleton<Locations>();
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 

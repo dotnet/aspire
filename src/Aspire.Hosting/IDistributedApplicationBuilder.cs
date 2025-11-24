@@ -155,7 +155,7 @@ public interface IDistributedApplicationBuilder
     /// environment variable or the Aspire:TempDirectory configuration setting.
     /// </para>
     /// </remarks>
-    public IAspireDirectoryService DirectoryService => throw new NotImplementedException();
+    public IDirectoryService DirectoryService => throw new NotImplementedException();
 
     /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.

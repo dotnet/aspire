@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Tests.Utils;
 
-public class AspireDirectoryServiceTests
+public class DirectoryServiceTests
 {
     private const string TestAppHostName = "TestAppHost";
     private const string TestAppHostSha = "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF";
@@ -13,7 +13,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_BasePath_ReturnsAppHostSpecificDirectory()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var expected = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".aspire", "temp",
@@ -34,7 +34,7 @@ public class AspireDirectoryServiceTests
             })
             .Build();
 
-        var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(config, TestAppHostName, TestAppHostSha);
         
         var expectedBasePath = Path.Combine(
             Path.GetFullPath(customPath),
@@ -63,7 +63,7 @@ public class AspireDirectoryServiceTests
             })
             .Build();
 
-        var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(config, TestAppHostName, TestAppHostSha);
         
         // Should use the second path (later source wins)
         var expectedBasePath = Path.Combine(
@@ -76,7 +76,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_CreateSubdirectory_CreatesDirectoryWithoutPrefix()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var tempDir = service.TempDirectory.CreateSubdirectory();
 
         try
@@ -96,7 +96,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_CreateSubdirectory_CreatesDirectoryWithPrefix()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var tempDir = service.TempDirectory.CreateSubdirectory("test-prefix");
 
         try
@@ -116,7 +116,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_GetFilePath_ReturnsUniquePathWithoutExtension()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var path1 = service.TempDirectory.GetFilePath();
         var path2 = service.TempDirectory.GetFilePath();
 
@@ -128,7 +128,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_GetFilePath_ReturnsPathWithExtension()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var path = service.TempDirectory.GetFilePath(".json");
 
         Assert.EndsWith(".json", path);
@@ -138,7 +138,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_GetFilePath_AddsExtensionIfMissingDot()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var path = service.TempDirectory.GetFilePath("txt");
 
         Assert.EndsWith(".txt", path);
@@ -147,7 +147,7 @@ public class AspireDirectoryServiceTests
     [Fact]
     public void TempDirectory_GetSubdirectoryPath_ReturnsCombinedPath()
     {
-        var service = new AspireDirectoryService(null, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(null, TestAppHostName, TestAppHostSha);
         var path = service.TempDirectory.GetSubdirectoryPath("my-subdir");
 
         Assert.Equal(Path.Combine(service.TempDirectory.BasePath, "my-subdir"), path);
@@ -163,7 +163,7 @@ public class AspireDirectoryServiceTests
             })
             .Build();
 
-        var service = new AspireDirectoryService(config, TestAppHostName, TestAppHostSha);
+        var service = new DirectoryService(config, TestAppHostName, TestAppHostSha);
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var expected = Path.GetFullPath(Path.Combine(
             userProfile, "custom-temp",
@@ -191,7 +191,7 @@ public class AspireDirectoryServiceTests
     public void TempDirectory_SanitizesInvalidCharactersInAppHostName()
     {
         var invalidName = "Test/App/Host";  // Use / which is invalid on all platforms
-        var service = new AspireDirectoryService(null, invalidName, TestAppHostSha);
+        var service = new DirectoryService(null, invalidName, TestAppHostSha);
         
         // Should replace invalid characters with dashes and convert to lowercase
         var sanitizedName = "test-app-host";

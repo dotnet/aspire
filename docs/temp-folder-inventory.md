@@ -1,13 +1,13 @@
 # Temporary Folder Creation Inventory
 
-This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase and documents the centralized directory management solution using `IAspireDirectoryService`.
+This document provides a comprehensive inventory of all temporary folder and file creation in the Aspire codebase and documents the centralized directory management solution using `IDirectoryService`.
 
 ## Implementation Summary
 
 We have implemented a centralized directory management service that:
 
 - **Location**: `~/.aspire/temp/{apphostname}-{sha}/` (lowercase) for AppHost-specific temporary files
-- **Service**: `IAspireDirectoryService` in `Aspire.Hosting` namespace with `TempDirectory` property
+- **Service**: `IDirectoryService` in `Aspire.Hosting` namespace with `TempDirectory` property
 - **Access**: Exposed on `IDistributedApplicationBuilder.DirectoryService` and available via DI
 - **Configuration**: Via `IConfiguration` supporting `Aspire:TempDirectory` and `ASPIRE_TEMP_FOLDER` keys
 - **Organization**: Each AppHost gets its own lowercase subdirectory based on project name + first 12 chars of SHA256 hash
@@ -15,8 +15,8 @@ We have implemented a centralized directory management service that:
 ## Implementation Status
 
 ✅ **Infrastructure Complete**:
-- Created `IAspireDirectoryService` interface in `Aspire.Hosting` namespace
-- Created `AspireDirectoryService` implementation with AppHost-specific lowercase subdirectories
+- Created `IDirectoryService` interface in `Aspire.Hosting` namespace
+- Created `DirectoryService` implementation with AppHost-specific lowercase subdirectories
 - Added property to `IDistributedApplicationBuilder.DirectoryService` (default throws `NotImplementedException`)
 - Registered service in DI container
 - Comprehensive test suite (12 tests) using `TempDirectory` helper class
@@ -118,7 +118,7 @@ public class MyResource : IResource
 {
     public async Task DoSomethingAsync(DistributedApplicationExecutionContext context)
     {
-        var dirService = context.ServiceProvider.GetRequiredService<IAspireDirectoryService>();
+        var dirService = context.ServiceProvider.GetRequiredService<IDirectoryService>();
         var tempService = dirService.TempDirectory;
         
         // Create temp subdirectory
@@ -137,7 +137,7 @@ public class MyResource : IResource
 #### 1.1 DCP (Distributed Control Plane) Session Management
 **File**: `src/Aspire.Hosting/Dcp/Locations.cs`
 - **Before**: `Directory.CreateTempSubdirectory("aspire.")`
-- **After**: Uses `IAspireDirectoryService` → `{apphost-temp}/dcp/`
+- **After**: Uses `IDirectoryService` → `{apphost-temp}/dcp/`
 - **Status**: ✅ Migrated (Phase 1)
 - **Benefit**: DCP files now organized per AppHost, easier cleanup
 
@@ -246,7 +246,7 @@ public class MyResource : IResource
 - **Migrated**: 1 location (DCP)
 - **Remaining**: 15 locations
 
-All remaining locations should be migrated to use `IAspireDirectoryService.TempDirectory`.
+All remaining locations should be migrated to use `IDirectoryService.TempDirectory`.
 
 ## Detailed Inventory by Component
 
@@ -425,7 +425,7 @@ Based on review feedback, temporary files are organized by AppHost:
 5. **Cross-platform**: Works consistently across Windows, Linux, and macOS
 6. **No Conflicts**: Different AppHosts don't interfere with each other
 
-## IAspireDirectoryService API
+## IDirectoryService API
 
 The service provides a hierarchical API for different directory types:
 
@@ -446,7 +446,7 @@ var tempDir = dirService.TempDirectory;
 ## Migration Strategy
 
 ### Phase 1: Infrastructure (Completed)
-✅ Create `IAspireDirectoryService` interface and implementation
+✅ Create `IDirectoryService` interface and implementation
 ✅ Register in DI container
 ✅ Expose on `IDistributedApplicationBuilder.DirectoryService`
 ✅ AppHost-specific subdirectories using project name + SHA
@@ -512,7 +512,7 @@ var tempFile = tempService.GetFilePath(".json");
 // Or via DI in services
 services.AddSingleton<MyService>(sp =>
 {
-    var dirService = sp.GetRequiredService<IAspireDirectoryService>();
+    var dirService = sp.GetRequiredService<IDirectoryService>();
     return new MyService(dirService.TempDirectory);
 });
 ```
@@ -524,7 +524,7 @@ public class MyResource : IResource
     public async Task DoSomethingAsync(DistributedApplicationExecutionContext context)
     {
         // Get the service from context
-        var dirService = context.ServiceProvider.GetRequiredService<IAspireDirectoryService>();
+        var dirService = context.ServiceProvider.GetRequiredService<IDirectoryService>();
         var tempService = dirService.TempDirectory;
         
         // Create a temp subdirectory instead of using Path.GetTempPath()

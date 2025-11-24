@@ -23,7 +23,7 @@ internal sealed class BicepProvisioner(
     ISecretClientProvider secretClientProvider,
     IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext executionContext,
-    IAspireDirectoryService directoryService,
+    IDirectoryService directoryService,
     ILogger<BicepProvisioner> logger) : IBicepProvisioner
 {
     /// <inheritdoc />

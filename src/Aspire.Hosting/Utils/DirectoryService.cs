@@ -6,19 +6,19 @@ using Microsoft.Extensions.Configuration;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Default implementation of <see cref="IAspireDirectoryService"/>.
+/// Default implementation of <see cref="IDirectoryService"/>.
 /// </summary>
-internal sealed class AspireDirectoryService : IAspireDirectoryService
+internal sealed class DirectoryService : IDirectoryService
 {
     private readonly TempDirectoryService _tempDirectory;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="AspireDirectoryService"/>.
+    /// Initializes a new instance of <see cref="DirectoryService"/>.
     /// </summary>
     /// <param name="configuration">Configuration to read settings from.</param>
     /// <param name="appHostName">Name of the AppHost project.</param>
     /// <param name="appHostSha">SHA256 hash of the AppHost path for uniqueness.</param>
-    public AspireDirectoryService(IConfiguration? configuration, string appHostName, string appHostSha)
+    public DirectoryService(IConfiguration? configuration, string appHostName, string appHostSha)
     {
         _tempDirectory = new TempDirectoryService(configuration, appHostName, appHostSha);
     }

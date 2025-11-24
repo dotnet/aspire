@@ -36,8 +36,8 @@ public sealed class AzurePublishingContext(
 
     private IServiceProvider ServiceProvider => serviceProvider;
 
-    // Resolve IAspireDirectoryService from the service provider to avoid breaking change
-    private IAspireDirectoryService DirectoryService => serviceProvider.GetRequiredService<IAspireDirectoryService>();
+    // Resolve IDirectoryService from the service provider to avoid breaking change
+    private IDirectoryService DirectoryService => serviceProvider.GetRequiredService<IDirectoryService>();
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
