@@ -1086,7 +1086,7 @@ public static class ResourceExtensions
             ResolvedPort exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort.Value) switch
             {
                 // Port set explicitly, use it
-                (_, int port, int) => ResolvedPort.Explicit(port),
+                (_, int port, _) => ResolvedPort.Explicit(port),
 
                 // We have a target port, infer the exposedPort from it
                 (_, null, int targetPortValue) => ResolvedPort.Implicit(targetPortValue),
