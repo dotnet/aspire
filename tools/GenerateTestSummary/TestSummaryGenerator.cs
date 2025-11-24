@@ -109,6 +109,48 @@ sealed partial class TestSummaryGenerator
         overallTableBuilder.AppendLine();
         overallTableBuilder.Append(tableBuilder);
 
+        // Add test project duration distribution
+        overallTableBuilder.AppendLine();
+        overallTableBuilder.AppendLine("## Test Project Duration Distribution");
+        overallTableBuilder.AppendLine();
+
+        var projectBuckets = new (string Label, double Min, double Max, int Count)[]
+        {
+            ("< 5 min", 0, 5, 0),
+            ("5-10 min", 5, 10, 0),
+            ("10-15 min", 10, 15, 0),
+            ("15-20 min", 15, 20, 0),
+            ("20-30 min", 20, 30, 0),
+            ("> 30 min", 30, double.MaxValue, 0)
+        };
+
+        var projectBucketCounts = new int[projectBuckets.Length];
+        foreach (var testRun in testRunData)
+        {
+            for (int i = 0; i < projectBuckets.Length; i++)
+            {
+                if (testRun.DurationMinutes >= projectBuckets[i].Min && testRun.DurationMinutes < projectBuckets[i].Max)
+                {
+                    projectBucketCounts[i]++;
+                    break;
+                }
+            }
+        }
+
+        overallTableBuilder.AppendLine("| Duration Range | Count | Percentage |");
+        overallTableBuilder.AppendLine("|----------------|-------|------------|");
+        var totalProjectCount = testRunData.Count;
+        for (int i = 0; i < projectBuckets.Length; i++)
+        {
+            var percentage = totalProjectCount > 0 ? (projectBucketCounts[i] / (double)totalProjectCount) * 100 : 0;
+            overallTableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {projectBuckets[i].Label} | {projectBucketCounts[i]:N0} | {percentage:F1}% |");
+        }
+
+        // Add top tests per run
+        overallTableBuilder.AppendLine();
+        overallTableBuilder.AppendLine("## Slowest Tests Per Test Run");
+        overallTableBuilder.Append(GenerateTopTestsPerRun(basePath));
+
         // Add duration statistics
         overallTableBuilder.AppendLine();
         overallTableBuilder.AppendLine("## Duration Statistics");
@@ -306,7 +348,8 @@ sealed partial class TestSummaryGenerator
             ("5-10s", 5, 10, 0),
             ("10-30s", 10, 30, 0),
             ("30-60s", 30, 60, 0),
-            ("> 60s", 60, double.MaxValue, 0)
+            ("1-5 min", 60, 300, 0),
+            ("> 5 min", 300, double.MaxValue, 0)
         };
 
         var bucketCounts = new int[buckets.Length];
@@ -346,6 +389,75 @@ sealed partial class TestSummaryGenerator
         statsBuilder.AppendLine();
 
         return statsBuilder.ToString();
+    }
+
+    private static string GenerateTopTestsPerRun(string basePath)
+    {
+        var resultBuilder = new StringBuilder();
+
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
+        foreach (var filePath in trxFiles.OrderBy(f => Path.GetFileName(f)))
+        {
+            TestRun? testRun;
+            try
+            {
+                testRun = TrxReader.DeserializeTrxFile(filePath);
+                if (testRun?.Results?.UnitTestResults is null)
+                {
+                    continue;
+                }
+            }
+            catch
+            {
+                continue;
+            }
+
+            var testRunName = GetTestTitle(filePath);
+
+            // Collect test durations for this run
+            var testDetails = new List<(string TestName, double DurationSeconds, string Outcome)>();
+            foreach (var test in testRun.Results.UnitTestResults)
+            {
+                if (test.Duration is string durationStr && TimeSpan.TryParse(durationStr, out var duration))
+                {
+                    var seconds = duration.TotalSeconds;
+                    testDetails.Add((test.TestName ?? "Unknown", seconds, test.Outcome ?? "Unknown"));
+                }
+            }
+
+            if (testDetails.Count == 0)
+            {
+                continue;
+            }
+
+            // Determine the OS from the path
+            var os = filePath.Contains("windows-")
+                        ? "win"
+                        : filePath.Contains("ubuntu-")
+                            ? "lin"
+                            : filePath.Contains("macos-")
+                                ? "mac"
+                                : "unk";
+
+            // Get top 10 slowest tests
+            var slowestTests = testDetails.OrderByDescending(t => t.DurationSeconds).Take(10);
+
+            resultBuilder.AppendLine();
+            resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"### [{os}] {testRunName}");
+            resultBuilder.AppendLine();
+            resultBuilder.AppendLine("| # | Duration | Status | Test Name |");
+            resultBuilder.AppendLine("|---|----------|--------|-----------|");
+
+            int rank = 1;
+            foreach (var test in slowestTests)
+            {
+                var icon = test.Outcome == "Passed" ? "✅" : test.Outcome == "Failed" ? "❌" : "⚠️";
+                resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {rank} | {test.DurationSeconds:F2}s | {icon} {test.Outcome} | {test.TestName} |");
+                rank++;
+            }
+        }
+
+        return resultBuilder.ToString();
     }
 
     public static string GetTestTitle(string trxFileName)
