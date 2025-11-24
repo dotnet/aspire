@@ -285,8 +285,7 @@ jobs:
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --ignore-exit-code 8
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
-          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
-          --crashdump
+          --blame-hang --blame-hang-timeout ${{ inputs.testHangTimeout }} --blame-hang-dump-type none
           --results-directory ${{ github.workspace }}/testresults
           --filter-not-trait "category=failing"
           --timeout ${{ inputs.testSessionTimeout }}
@@ -314,8 +313,7 @@ jobs:
           --
           --ignore-exit-code 8
           --report-trx
-          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
-          --crashdump
+          --blame-hang --blame-hang-timeout ${{ inputs.testHangTimeout }} --blame-hang-dump-type none
           --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
@@ -326,26 +324,26 @@ jobs:
         shell: pwsh
         run: |
           $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
-          
+
           if ($trxFiles.Count -eq 0) {
             Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
             exit 1
           }
-          
+
           Write-Host "Found $($trxFiles.Count) .trx file(s)"
-          
+
           $validFileCount = 0
           foreach ($trxFile in $trxFiles) {
             Write-Host "Checking $($trxFile.Name)..."
-            
+
             try {
               [xml]$trxContent = Get-Content -Path $trxFile.FullName
-              
+
               # Check if the XML is valid and non-empty
               if ($trxContent -and $trxContent.TestRun) {
                 $validFileCount++
                 $countersNode = $trxContent.TestRun.ResultSummary.Counters
-                
+
                 if ($countersNode -and $countersNode.total) {
                   $testCount = [int]$countersNode.total
                   Write-Host "  Total tests in file: $testCount"
@@ -360,12 +358,12 @@ jobs:
               Write-Warning "Failed to parse $($trxFile.Name): $_"
             }
           }
-          
+
           if ($validFileCount -eq 0) {
             Write-Error "No valid .trx files found. All .trx files are empty or invalid XML."
             exit 1
           }
-          
+
           Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
 
       - name: Dump docker info
