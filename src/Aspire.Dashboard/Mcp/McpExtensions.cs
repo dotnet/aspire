@@ -61,6 +61,8 @@ public static class McpExtensions
             .AddListToolsFilter((next) => async (RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken) =>
             {
                 // Listing tools doesn't have a tool name. Hardcoding to list_tools here so we can reuse the same event.
+                // We want to track when users list tools as it's an indicator of whether Aspire MCP is configured (client tools refresh tools via it).
+                // It's called even if no Aspire tools end up being used.
                 return await RecordCallToolNameAsync<ListToolsRequestParams, ListToolsResult>(next, request, "list_tools", cancellationToken).ConfigureAwait(false);
             })
             .AddCallToolFilter((next) => async (RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken) =>
