@@ -23,22 +23,22 @@ Steps with no dependencies run first, followed by steps that depend on them.
   7. create-provisioning-context
   8. provision-api-identity
   9. provision-cache-kv
- 10. provision-api-roles-cache-kv
+ 10. provision-cache
  11. provision-cosmos-kv
- 12. provision-api-roles-cosmos-kv
- 13. provision-pg-kv
- 14. provision-api-roles-pg-kv
- 15. provision-cache
- 16. provision-cosmos
- 17. provision-env
- 18. provision-pg
- 19. login-to-acr-env
- 20. push-api
- 21. provision-api-website
- 22. provision-azure-bicep-resources
- 23. print-dashboard-url-env
- 24. deploy
- 25. print-api-summary
+ 12. provision-cosmos
+ 13. provision-env
+ 14. provision-pg-kv
+ 15. provision-pg
+ 16. login-to-acr-env
+ 17. push-api
+ 18. provision-api-website
+ 19. print-api-summary
+ 20. provision-api-roles-cache-kv
+ 21. provision-api-roles-cosmos-kv
+ 22. provision-api-roles-pg-kv
+ 23. provision-azure-bicep-resources
+ 24. print-dashboard-url-env
+ 25. deploy
  26. deploy-api
  27. diagnostics
  28. publish-prereq
@@ -67,7 +67,7 @@ Step: create-provisioning-context
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: deploy
-    Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
+    Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ print-api-summary, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
 
 Step: deploy-api
     Dependencies: ✓ print-api-summary
@@ -230,8 +230,8 @@ If targeting 'create-provisioning-context':
     [3] create-provisioning-context
 
 If targeting 'deploy':
-  Direct dependencies: build-api, create-provisioning-context, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
-  Total steps: 23
+  Direct dependencies: build-api, create-provisioning-context, print-api-summary, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
+  Total steps: 24
   Execution order:
     [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
@@ -241,7 +241,7 @@ If targeting 'deploy':
     [5] login-to-acr-env | provision-api-roles-cache-kv | provision-api-roles-cosmos-kv | provision-api-roles-pg-kv | provision-cache | provision-cosmos | provision-pg (parallel)
     [6] push-api
     [7] provision-api-website
-    [8] provision-azure-bicep-resources
+    [8] print-api-summary | provision-azure-bicep-resources (parallel)
     [9] print-dashboard-url-env
     [10] deploy
 
