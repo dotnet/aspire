@@ -7,8 +7,6 @@
     <Description>An Azure Database for PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzurePostgreSQL_256x.png</PackageIconFullPath>
     <EnablePackageValidation>false</EnablePackageValidation>
-    <!-- Temporarily we need to ship this as prerelease until Npgsql.EntityFrameworkCore.PostgreSQL ships a stable version that depends on .NET 10 stable -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
