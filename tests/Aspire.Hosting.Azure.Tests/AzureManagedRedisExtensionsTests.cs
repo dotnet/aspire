@@ -9,7 +9,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureRedisEnterpriseExtensionsTests
+public class AzureManagedRedisExtensionsTests
 {
     /// <summary>
     /// Test both with and without ACA infrastructure because the role assignments
