@@ -201,7 +201,7 @@ public class AddKafkaTests
             configureContainerInvocations++;
         };
         builder.AddKafka("kafka1")
-            .WithKafkaSchemaRegistry(containerName: containerName, kafkaSchemaRegistryCallback);
+            .WithKafkaSchemaRegistry(kafkaSchemaRegistryCallback, containerName: containerName);
 
         Assert.Single(builder.Resources.OfType<KafkaSchemaRegistryResource>());
         var kafkaSchemaResource = Assert.Single(builder.Resources, r => r.Name == expectedContainerName);
