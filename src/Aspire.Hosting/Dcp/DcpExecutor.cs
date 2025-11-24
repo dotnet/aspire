@@ -81,8 +81,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly IDeveloperCertificateService _developerCertificateService;
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
-    private readonly ConcurrentDictionary<string, char[]> _serverAuthenticationKeyCache = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, byte[]> _serverAuthenticationPfxCache = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _serverCertificateCacheSemaphore = new(1, 1);
 
     private readonly string _normalizedApplicationName;
@@ -290,8 +288,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var disposeCts = new CancellationTokenSource();
         disposeCts.CancelAfter(s_disposeTimeout);
         _serverCertificateCacheSemaphore.Dispose();
-        _serverAuthenticationKeyCache.Clear();
-        _serverAuthenticationPfxCache.Clear();
         await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
@@ -2487,34 +2483,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             if (configuration.KeyPathReference.WasResolved)
             {
+                var keyFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.key");
                 if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
                 {
                     // On MacOS, we cache development certificate key material to avoid triggering repeated keychain prompts
                     // when referencing the development certificate key. We don't do this for other OSes or other certificates.
                     try
                     {
-                        if (Directory.Exists(s_macOSUserDevCertificateLocation))
+                        // Attempt to read the cached development certificate key
+                        if (File.Exists(keyFileName))
                         {
-                            var keyFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.key");
-                            // Attempt to read the cached development certificate key
-                            if (File.Exists(keyFileName))
+                            var keyCandidate = File.ReadAllText(keyFileName);
+
+                            if (!string.IsNullOrEmpty(keyCandidate))
                             {
-                                var keyCandidate = File.ReadAllText(keyFileName);
-
-                                /*using var tempKey = RSA.Create();
-                                if (configuration.Password is null)
-                                {
-                                    tempKey.ImportFromPem(keyCandidate);
-                                }
-                                else
-                                {
-                                    tempKey.ImportFromEncryptedPem(keyCandidate, configuration.Password);
-                                }
-
-                                // Just to validate that this is the correct private key; if not an exception will be thrown
-                                // and we'll proceed to re-export from the given certificate
-                                certificate.CopyWithPrivateKey(tempKey);*/
-
                                 pemKey = keyCandidate.ToCharArray();
                             }
                         }
@@ -2527,107 +2509,100 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 if (pemKey is null)
                 {
-                    pemKey = _serverAuthenticationKeyCache.GetOrAdd(lookup, _ =>
+                    // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
+                    using var privateKey = certificate.GetRSAPrivateKey();
+                    if (privateKey is null)
                     {
-                        // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
-                        using var privateKey = certificate.GetRSAPrivateKey();
-                        if (privateKey is null)
-                        {
-                            throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
-                        }
+                        throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
+                    }
 
-                        var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
-                            configuration.Password ?? string.Empty,
-                            new PbeParameters(
-                                PbeEncryptionAlgorithm.Aes256Cbc,
-                                HashAlgorithmName.SHA256,
-                                iterationCount: configuration.Password is null ? 1 : 100_000));
-                        var pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
+                    var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
+                        configuration.Password ?? string.Empty,
+                        new PbeParameters(
+                            PbeEncryptionAlgorithm.Aes256Cbc,
+                            HashAlgorithmName.SHA256,
+                            iterationCount: configuration.Password is null ? 1 : 100_000));
+                    pemKey = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
 
-                        if (configuration.Password is null)
-                        {
-                            using var tempKey = RSA.Create();
-                            tempKey.ImportFromEncryptedPem(pem, string.Empty);
-                            Array.Clear(keyBytes, 0, keyBytes.Length);
-                            Array.Clear(pem, 0, pem.Length);
-                            keyBytes = tempKey.ExportPkcs8PrivateKey();
-                            pem = PemEncoding.Write("PRIVATE KEY", keyBytes);
-                        }
-
+                    if (configuration.Password is null)
+                    {
+                        using var tempKey = RSA.Create();
+                        tempKey.ImportFromEncryptedPem(pemKey, string.Empty);
                         Array.Clear(keyBytes, 0, keyBytes.Length);
-
-                        return pem;
-                    });
-                }
-
-                if (pemKey is not null && OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
-                {
-                    try
-                    {
-                        // Create the directory for storing macOS user dev certificates if it doesn't exist
-                        Directory.CreateDirectory(s_macOSUserDevCertificateLocation, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
-
-                        var keyFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.key");
-                        await File.WriteAllTextAsync(keyFileName, new string(pemKey), cancellationToken).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // This is a best effort caching operation
-                    }
-                }
-            }
-
-            if (configuration.PfxReference.WasResolved)
-            {
-                pfxBytes = _serverAuthenticationPfxCache.GetOrAdd(lookup, _ =>
-                {
-                    if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
-                    {
-                        // On MacOS, we cache development certificate key material to avoid triggering repeated keychain prompts
-                        // when referencing the development certificate key. We don't do this for other OSes or other certificates.
-                        try
-                        {
-                            if (Directory.Exists(s_macOSUserDevCertificateLocation))
-                            {
-                                var pfxFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.pfx");
-                                // Attempt to read the cached development certificate key
-                                if (File.Exists(pfxFileName))
-                                {
-                                    var pfxCandidate = File.ReadAllBytes(pfxFileName);
-                                    using var tempCert = new X509Certificate2(pfxCandidate, configuration.Password);
-                                    if (tempCert.Thumbprint.Equals(certificate.Thumbprint, StringComparison.Ordinal))
-                                    {
-                                        return pfxCandidate;
-                                    }
-                                }
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore errors and retrieve the key from the certificate
-                        }
+                        Array.Clear(pemKey, 0, pemKey.Length);
+                        keyBytes = tempKey.ExportPkcs8PrivateKey();
+                        pemKey = PemEncoding.Write("PRIVATE KEY", keyBytes);
                     }
 
-                    var pfx = certificate.Export(X509ContentType.Pfx, configuration.Password);
+                    Array.Clear(keyBytes, 0, keyBytes.Length);
 
-                    if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                    if (pemKey is not null && OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
                     {
+                        // On Mac, cache the development certificate key material if we had to load it from the keychain
                         try
                         {
                             // Create the directory for storing macOS user dev certificates if it doesn't exist
                             Directory.CreateDirectory(s_macOSUserDevCertificateLocation, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
 
-                            var keyFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.pfx");
-                            File.WriteAllBytes(keyFileName, pfx);
+                            await File.WriteAllTextAsync(keyFileName, new string(pemKey), cancellationToken).ConfigureAwait(false);
                         }
                         catch
                         {
                             // This is a best effort caching operation
                         }
                     }
+                }
+            }
 
-                    return pfx;
-                });
+            if (configuration.PfxReference.WasResolved)
+            {
+                var pfxFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.pfx");
+                if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                {
+                    // On MacOS, we cache development certificate key material to avoid triggering repeated keychain prompts
+                    // when referencing the development certificate key. We don't do this for other OSes or other certificates.
+                    try
+                    {
+                        // Attempt to read the cached development certificate key
+                        if (File.Exists(pfxFileName))
+                        {
+                            var pfxCandidate = File.ReadAllBytes(pfxFileName);
+                            if (pfxCandidate.Length > 0)
+                            {
+                                using var tempCert = new X509Certificate2(pfxCandidate, configuration.Password);
+                                if (tempCert.Thumbprint.Equals(certificate.Thumbprint, StringComparison.Ordinal))
+                                {
+                                    pfxBytes = pfxCandidate;
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors and retrieve the key from the certificate
+                    }
+                }
+
+                if (pfxBytes is null)
+                {
+                    // On Mac, cache the development certificate pfx if we had to export it from the keychain
+                    pfxBytes = certificate.Export(X509ContentType.Pfx, configuration.Password);
+
+                    if (pfxBytes is not null && OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                    {
+                        try
+                        {
+                            // Create the directory for storing macOS user dev certificates if it doesn't exist
+                            Directory.CreateDirectory(s_macOSUserDevCertificateLocation, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+
+                            File.WriteAllBytes(pfxFileName, pfxBytes);
+                        }
+                        catch
+                        {
+                            // This is a best effort caching operation
+                        }
+                    }
+                }
             }
         }
         finally
