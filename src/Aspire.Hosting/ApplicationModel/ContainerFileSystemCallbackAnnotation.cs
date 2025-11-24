@@ -292,22 +292,25 @@ public sealed class ContainerFileSystemCallbackContext
 public sealed class ContainerFileSystemCallbackServerAuthenticationCertificateContext
 {
     /// <summary>
-    /// The path to the server authentication certificate file inside the container.
+    /// A reference expression that resolves to the path to the server authentication certificate file inside the container.
+    /// Use GetValueAsync to resolve the path.
     /// </summary>
     public ReferenceExpression CertificatePath { get; init; } = null!;
 
     /// <summary>
-    /// The path to the server authentication key file inside the container.
+    /// A reference expression that resolves to the path to the server authentication key file inside the container.
+    /// Use GetValueAsync to resolve the path.
     /// </summary>
     public ReferenceExpression KeyPath { get; init; } = null!;
 
     /// <summary>
-    /// The path to the server authentication PFX file inside the container.
+    /// A reference expression that resolves to the path to the server authentication PFX file inside the container.
+    /// Use GetValueAsync to resolve the path.
     /// </summary>
     public ReferenceExpression PfxPath { get; init; } = null!;
 
     /// <summary>
-    /// The password for the server authentication PFX file inside the container.
+    /// The password for the server authentication key inside the container or null if no password is required.
     /// </summary>
     public string? Password { get; init; }
 }
