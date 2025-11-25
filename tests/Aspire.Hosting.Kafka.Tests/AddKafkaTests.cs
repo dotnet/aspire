@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Kafka.Tests;
 
-public class AddKafkaTests
+public class AddKafkaTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddKafkaContainerWithDefaultsAddsAnnotationMetadata()
@@ -74,7 +74,7 @@ public class AddKafkaTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka");
 
@@ -112,7 +112,7 @@ public class AddKafkaTests
     [Fact]
     public async Task WithDataVolumeConfigureCorrectEnvironment()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
@@ -130,7 +130,7 @@ public class AddKafkaTests
     [Fact]
     public async Task WithDataBindConfigureCorrectEnvironment()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
@@ -160,7 +160,7 @@ public class AddKafkaTests
     [MemberData(nameof(WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallbackTestVariations))]
     public void WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallback(string? containerName, string expectedContainerName, int? port)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var configureContainerInvocations = 0;
         Action<IResourceBuilder<KafkaUIContainerResource>> kafkaUIConfigurationCallback = kafkaUi =>
         {
@@ -181,7 +181,7 @@ public class AddKafkaTests
     [Fact]
     public async Task KafkaEnvironmentCallbackIsIdempotent()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
@@ -202,7 +202,7 @@ public class AddKafkaTests
     [Fact]
     public async Task KafkaUIEnvironmentCallbackIsIdempotent()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka1")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
