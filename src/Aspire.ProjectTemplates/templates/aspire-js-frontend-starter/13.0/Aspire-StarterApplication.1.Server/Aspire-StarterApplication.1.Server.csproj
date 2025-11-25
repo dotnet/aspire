@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--#if (UseRedisCache) -->
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+    <!--#endif -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="!!REPLACE_WITH_ASPNETCORE_OPENAPI_9_VERSION!!" Condition=" '$(Framework)' == 'net9.0' " />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="!!REPLACE_WITH_ASPNETCORE_OPENAPI_10_VERSION!!" Condition=" '$(Framework)' == 'net10.0' " />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!" />
@@ -22,11 +25,4 @@
     <PackageReference Condition=" '$(Framework)' != 'net8.0' " Include="OpenTelemetry.Instrumentation.Http" Version="!!REPLACE_WITH_OTEL_HTTP_VERSION!!" />
     <PackageReference Condition=" '$(Framework)' != 'net8.0' " Include="OpenTelemetry.Instrumentation.Runtime" Version="!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!" />
   </ItemGroup>
-
-  <!--#if (UseRedisCache) -->
-  <ItemGroup>
-    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-  </ItemGroup>
-
-  <!--#endif -->
 </Project>
