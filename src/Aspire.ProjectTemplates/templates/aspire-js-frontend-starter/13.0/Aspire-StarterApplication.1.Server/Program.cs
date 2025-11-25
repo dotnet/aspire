@@ -33,8 +33,6 @@ app.UseOutputCache();
 
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
 
-app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
-
 var api = app.MapGroup("/api");
 api.MapGet("weatherforecast", () =>
 {
