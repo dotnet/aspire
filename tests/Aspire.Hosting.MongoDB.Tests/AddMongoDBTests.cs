@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
-public class AddMongoDBTests
+public class AddMongoDBTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddMongoDBContainerWithDefaultsAddsAnnotationMetadata()
@@ -100,7 +100,7 @@ public class AddMongoDBTests
     [Fact]
     public void WithMongoExpressAddsContainer()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         builder.AddMongoDB("mongo")
             .WithMongoExpress();
 
@@ -142,7 +142,7 @@ public class AddMongoDBTests
     [Fact]
     public async Task WithMongoExpressUsesContainerHost()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         builder.AddMongoDB("mongo")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000))
             .WithMongoExpress();
@@ -182,7 +182,7 @@ public class AddMongoDBTests
     [Fact]
     public void WithMongoExpressOnMultipleResources()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         builder.AddMongoDB("mongo").WithMongoExpress();
         builder.AddMongoDB("mongo2").WithMongoExpress();
 
@@ -232,7 +232,7 @@ public class AddMongoDBTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var db = builder.AddMongoDB("mongo1");
         db.AddDatabase("db");
@@ -243,7 +243,7 @@ public class AddMongoDBTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         builder.AddMongoDB("mongo1")
             .AddDatabase("db");
@@ -255,7 +255,7 @@ public class AddMongoDBTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var mongo1 = builder.AddMongoDB("mongo1");
 
@@ -272,7 +272,7 @@ public class AddMongoDBTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var db1 = builder.AddMongoDB("mongo1")
             .AddDatabase("db1", "imports");
@@ -290,7 +290,7 @@ public class AddMongoDBTests
     [Fact]
     public async Task MongoExpressEnvironmentCallbackIsIdempotent()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var mongo = appBuilder.AddMongoDB("mongo")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
