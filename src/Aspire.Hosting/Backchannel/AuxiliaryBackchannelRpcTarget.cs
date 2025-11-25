@@ -23,7 +23,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// Gets information about the AppHost for the MCP server.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The AppHost information including the fully qualified path.</returns>
+    /// <returns>The AppHost information including the fully qualified path and process ID.</returns>
     /// <exception cref="InvalidOperationException">Thrown when AppHost information is not available.</exception>
     public Task<AppHostInformation> GetAppHostInformationAsync(CancellationToken cancellationToken = default)
     {
@@ -45,7 +45,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         return Task.FromResult(new AppHostInformation
         {
-            AppHostPath = appHostPath
+            AppHostPath = appHostPath,
+            ProcessId = Environment.ProcessId
         });
     }
 

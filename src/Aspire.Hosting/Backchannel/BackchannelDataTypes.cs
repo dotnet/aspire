@@ -275,4 +275,9 @@ internal sealed class AppHostInformation
     /// Gets or sets the fully qualified path to the AppHost project.
     /// </summary>
     public required string AppHostPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the AppHost.
+    /// </summary>
+    public required int ProcessId { get; init; }
 }

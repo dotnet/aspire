@@ -182,6 +182,9 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         Assert.NotNull(appHostInfo.AppHostPath);
         Assert.NotEmpty(appHostInfo.AppHostPath);
 
+        // The ProcessId should be set and valid
+        Assert.True(appHostInfo.ProcessId > 0);
+
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
 
