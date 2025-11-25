@@ -249,3 +249,19 @@ internal class PublishingPromptInputAnswer
     public string? Name { get; set; }
     public string? Value { get; set; }
 }
+
+/// <summary>
+/// Represents the connection information for the Dashboard MCP server.
+/// </summary>
+internal sealed class DashboardMcpConnectionInfo
+{
+    /// <summary>
+    /// Gets or sets the endpoint URL for the Dashboard MCP server.
+    /// </summary>
+    public required string EndpointUrl { get; init; }
+
+    /// <summary>
+    /// Gets or sets the API token for authenticating with the Dashboard MCP server.
+    /// </summary>
+    public required string ApiToken { get; init; }
+}
