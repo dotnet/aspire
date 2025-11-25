@@ -386,9 +386,9 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ContainerBuildOptions_CanSetAllProperties()
+    public void ContainerImageBuildOptions_CanSetAllProperties()
     {
-        var options = new ContainerBuildOptions
+        var options = new ContainerImageBuildOptions
         {
             ImageFormat = ContainerImageFormat.Oci,
             OutputPath = "/custom/path",

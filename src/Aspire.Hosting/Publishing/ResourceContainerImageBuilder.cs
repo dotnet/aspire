@@ -77,7 +77,7 @@ public enum ContainerTargetPlatform
 /// Options for building container images.
 /// </summary>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class ContainerBuildOptions
+public class ContainerImageBuildOptions
 {
     /// <summary>
     /// Gets the name to assign to the built image.
@@ -426,8 +426,8 @@ internal sealed class ResourceContainerImageBuilder(
         var imageNameOnly = imageNameParts[0];
         var imageTag = imageNameParts.Length > 1 ? imageNameParts[1] : null;
 
-        // Create a ContainerBuildOptions for the container runtime
-        var containerBuildOptions = new ContainerBuildOptions
+        // Create a ContainerImageBuildOptions for the container runtime
+        var containerBuildOptions = new ContainerImageBuildOptions
         {
             ImageName = imageNameOnly,
             Tag = imageTag,

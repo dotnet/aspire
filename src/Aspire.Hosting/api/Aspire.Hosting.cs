@@ -2585,7 +2585,7 @@ namespace Aspire.Hosting.Publishing
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public partial class ContainerBuildOptions
+    public partial class ContainerImageBuildOptions
     {
         public ContainerImageFormat? ImageFormat { get { throw null; } init { } }
 
@@ -2641,8 +2641,8 @@ namespace Aspire.Hosting.Publishing
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IResourceContainerImageBuilder
     {
-        System.Threading.Tasks.Task BuildImageAsync(ApplicationModel.IResource resource, ContainerBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
-        System.Threading.Tasks.Task BuildImagesAsync(System.Collections.Generic.IEnumerable<ApplicationModel.IResource> resources, ContainerBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task BuildImageAsync(ApplicationModel.IResource resource, ContainerImageBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task BuildImagesAsync(System.Collections.Generic.IEnumerable<ApplicationModel.IResource> resources, ContainerImageBuildOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task PushImageAsync(string imageName, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task TagImageAsync(string localImageName, string targetImageName, System.Threading.CancellationToken cancellationToken = default);
     }

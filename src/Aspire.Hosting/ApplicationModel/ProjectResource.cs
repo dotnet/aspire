@@ -165,7 +165,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 logger,
                 cancellationToken: ctx.CancellationToken).ConfigureAwait(false);
 
-            var buildOptions = new ContainerBuildOptions
+            var buildOptions = new ContainerImageBuildOptions
             {
                 ImageName = originalImageName,
                 TargetPlatform = context.TargetPlatform ?? ContainerTargetPlatform.LinuxAmd64
