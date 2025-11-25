@@ -10,9 +10,21 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
     [Theory]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire", ""])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-starter", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-maui-servicedefaults", "--aspire-version 13.0"])]
     [Trait("category", "basic-build")]
     public async Task CanNewAndBuild(string templateName, string extraArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
+        // MAUI templates require .NET 10.0 or later. Skip tests with earlier target frameworks,
+        // unless an error is expected (which means we're testing that the SDK correctly rejects it).
+        if (templateName == "aspire-maui-servicedefaults")
+        {
+            var tfmString = tfm.ToTFMString();
+            if ((tfmString == "net8.0" || tfmString == "net9.0") && string.IsNullOrEmpty(error))
+            {
+                Assert.Skip($"MAUI templates require .NET 10.0 or later, skipping TFM {tfmString}");
+            }
+        }
+
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
         var buildEnvToUse = sdk switch
