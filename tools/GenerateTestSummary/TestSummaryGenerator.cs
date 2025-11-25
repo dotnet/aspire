@@ -101,14 +101,7 @@ sealed partial class TestSummaryGenerator
 
         var overallTableBuilder = new StringBuilder();
 
-        // Add Table of Contents
         overallTableBuilder.AppendLine("# Test Summary");
-        overallTableBuilder.AppendLine();
-        overallTableBuilder.AppendLine("## Table of Contents");
-        overallTableBuilder.AppendLine("- [Overall Summary](#overall-summary)");
-        overallTableBuilder.AppendLine("- [Test Project Duration Distribution](#test-project-duration-distribution)");
-        overallTableBuilder.AppendLine("- [Slowest Tests Per Test Run](#slowest-tests-per-test-run)");
-        overallTableBuilder.AppendLine("- [Duration Statistics](#duration-statistics)");
         overallTableBuilder.AppendLine();
 
         overallTableBuilder.AppendLine("## Overall Summary");
