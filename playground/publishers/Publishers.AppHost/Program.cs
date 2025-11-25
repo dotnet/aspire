@@ -21,6 +21,8 @@ IResourceBuilder<IComputeEnvironmentResource>? environment = (publisher, target)
     _ => null
 };
 
+builder.AddKubernetesEnvironment("env");
+
 var param0 = builder.AddParameter("param0");
 var param1 = builder.AddParameter("param1", secret: true);
 var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);

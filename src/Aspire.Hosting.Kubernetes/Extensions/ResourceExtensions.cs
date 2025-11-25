@@ -200,10 +200,9 @@ internal static class ResourceExtensions
                     break;
 
                 case "pvc":
-                    var existingAnnotations = context.TargetResource.TryGetAnnotationsOfType<KubernetesProvisioningPolicyAnnotation>(out var annotations);
-                    var shouldDynamicallyProvision = existingAnnotations
-                        ? annotations!.First().ShouldDynamicallyProvision
-                        : context.Parent.DefaultShouldDynamicallyProvision;
+                    context.TryGetLastAnnotation(out KubernetesProvisioningPolicyAnnotation? existingAnnotation);
+                    var shouldDynamicallyProvision = existingAnnotation?.ShouldDynamicallyProvision ??
+                                                     context.Parent.DefaultShouldDynamicallyProvision;
 
                     if (!shouldDynamicallyProvision)
                     {
