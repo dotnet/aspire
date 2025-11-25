@@ -8,7 +8,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Milvus.Tests;
-public class AddMilvusTests
+public class AddMilvusTests(ITestOutputHelper testOutputHelper)
 {
     private const int MilvusPortGrpc = 19530;
 
@@ -173,7 +173,7 @@ public class AddMilvusTests
     [Fact]
     public void AddMilvusWithSpecifyingPorts()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var pass = builder.AddParameter("apikey", "pass");
 
