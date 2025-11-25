@@ -6,8 +6,8 @@
     <PackageTags>$(ComponentEfCorePackageTags) postgressql postgres npgsql sql</PackageTags>
     <Description>A PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
-    <!-- Temporarily we need to ship this as prerelease until Npgsql.EntityFrameworkCore.PostgreSQL ships a stable version that depends on .NET 10 stable -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- Use an older baseline until 13.0.x ships -->
+    <PackageValidationBaselineVersion>9.5.2</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,11 +18,6 @@
     <Compile Include="..\Common\EntityFrameworkUtils.cs" Link="EntityFrameworkUtils.cs" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <!-- Temporary until Npgsql.EntityFrameworkCore.PostgreSQL ships a stable version that depends on 10.0 -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" VersionOverride="10.0.0-rc.2.25502.107" />
-  </ItemGroup>
-  
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
@@ -38,6 +33,10 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql8Version)" />
     <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql8Version)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql9Version)" />
+    <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql9Version)" />
   </ItemGroup>
 
 </Project>
