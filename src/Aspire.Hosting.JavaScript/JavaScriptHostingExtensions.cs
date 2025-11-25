@@ -693,6 +693,28 @@ public static class JavaScriptHostingExtensions
                 await installationManager.EnsureInstalledAsync("node", helpLink: "https://nodejs.org/", cancellationToken: ct).ConfigureAwait(false);
             });
 
+            // Add a second validation hook for the specific package manager, registered only once
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Get the parent resource to access the package manager annotation
+                var parentRelationship = installerResource.Annotations
+                    .OfType<ResourceRelationshipAnnotation>()
+                    .FirstOrDefault(r => r.Type == "Parent");
+
+                if (parentRelationship is null ||
+                    !parentRelationship.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    throw new InvalidOperationException("JavaScriptPackageManagerAnnotation is required for package manager validation.");
+                }
+
+                // Validate the package manager is installed
+                var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+                await installationManager.EnsureInstalledAsync(
+                    packageManager.ExecutableName,
+                    helpLink: packageManager.InstallHelpLink,
+                    cancellationToken: ct).ConfigureAwait(false);
+            });
+
             resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // set the installer's working directory to match the resource's working directory
@@ -707,17 +729,6 @@ public static class JavaScriptHostingExtensions
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(resource.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
-
-                // Add a second validation hook for the specific package manager after the command is set
-                installerBuilder.OnBeforeResourceStarted(async (installerResource, e, ct) =>
-                {
-                    // Validate the package manager is installed
-                    var installationManager = e.Services.GetRequiredService<IInstallationManager>();
-                    await installationManager.EnsureInstalledAsync(
-                        packageManager.ExecutableName,
-                        helpLink: packageManager.InstallHelpLink,
-                        cancellationToken: ct).ConfigureAwait(false);
-                });
 
                 return Task.CompletedTask;
             });

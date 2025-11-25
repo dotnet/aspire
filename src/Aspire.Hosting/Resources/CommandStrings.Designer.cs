@@ -113,5 +113,50 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("StopName", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Missing command.
+        /// </summary>
+        internal static string MissingCommandNotificationTitle {
+            get {
+                return ResourceManager.GetString("MissingCommandNotificationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} See installation instructions for more details..
+        /// </summary>
+        internal static string MissingCommandWithHelpLink {
+            get {
+                return ResourceManager.GetString("MissingCommandWithHelpLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Required command '{0}' was not found. See installation instructions for more details..
+        /// </summary>
+        internal static string MissingCommandNotFoundWithHelpLink {
+            get {
+                return ResourceManager.GetString("MissingCommandNotFoundWithHelpLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Required command '{0}' was not found on PATH or at a specified location..
+        /// </summary>
+        internal static string MissingCommandNotFoundOnPath {
+            get {
+                return ResourceManager.GetString("MissingCommandNotFoundOnPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Installation instructions.
+        /// </summary>
+        internal static string InstallationInstructions {
+            get {
+                return ResourceManager.GetString("InstallationInstructions", resourceCulture);
+            }
+        }
     }
 }

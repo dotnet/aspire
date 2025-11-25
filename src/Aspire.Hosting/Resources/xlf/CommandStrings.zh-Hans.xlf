@@ -2,6 +2,31 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../CommandStrings.resx">
     <body>
+      <trans-unit id="InstallationInstructions">
+        <source>Installation instructions</source>
+        <target state="new">Installation instructions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingCommandNotFoundOnPath">
+        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
+        <target state="new">Required command '{0}' was not found on PATH or at a specified location.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingCommandNotFoundWithHelpLink">
+        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
+        <target state="new">Required command '{0}' was not found. See installation instructions for more details.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingCommandNotificationTitle">
+        <source>Missing command</source>
+        <target state="new">Missing command</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingCommandWithHelpLink">
+        <source>{0} See installation instructions for more details.</source>
+        <target state="new">{0} See installation instructions for more details.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart resource</source>
         <target state="translated">重启资源</target>

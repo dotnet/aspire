@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -28,6 +29,30 @@ public interface IInstallationManager
     /// <param name="additionalValidation">Optional callback to perform additional validation (e.g., version checks) after the command is found.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if the command is installed and valid, false otherwise.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method validates the command only once per application lifetime and caches the result.
+    /// If the command is not found, a warning is logged and a notification is shown to the user (if the interaction service is available).
+    /// </para>
+    /// <para>
+    /// The validation does not throw exceptions; instead, it returns <see langword="false"/> to allow the application to fail naturally.
+    /// </para>
+    /// <para>
+    /// Note: The first call for a given command determines the <paramref name="helpLink"/> and <paramref name="additionalValidation"/>
+    /// parameters used for the lifetime of the application. Subsequent calls with different parameters for the same command
+    /// will reuse the cached result without the new parameters.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Validate that Node.js is installed:
+    /// <code>
+    /// var installationManager = services.GetRequiredService&lt;IInstallationManager&gt;();
+    /// var isInstalled = await installationManager.EnsureInstalledAsync(
+    ///     "node",
+    ///     helpLink: "https://nodejs.org/",
+    ///     cancellationToken: cancellationToken);
+    /// </code>
+    /// </example>
     Task<bool> EnsureInstalledAsync(
         string command,
         string? helpLink = null,
@@ -107,24 +132,31 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
     /// Attempts to resolve a command (file name or path) to a full path.
     /// </summary>
     /// <param name="command">The command string.</param>
+    /// <param name="logger">Logger for debug output.</param>
     /// <returns>Full path if resolved; otherwise null.</returns>
-    private static string? ResolveCommand(string command)
+    private static string? ResolveCommand(string command, ILogger logger)
     {
+        logger.LogDebug("Attempting to resolve command: {Command}", command);
+
         // If the command includes any directory separator, treat it as a path (relative or absolute)
         if (command.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
         {
             var candidate = Path.GetFullPath(command);
-            return File.Exists(candidate) ? candidate : null;
+            var exists = File.Exists(candidate);
+            logger.LogDebug("Command contains path separator. Full path: {Candidate}, Exists: {Exists}", candidate, exists);
+            return exists ? candidate : null;
         }
 
         // Search PATH
         var pathEnv = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrEmpty(pathEnv))
         {
+            logger.LogDebug("PATH environment variable is empty or not set");
             return null;
         }
 
         var paths = pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        logger.LogDebug("Searching {PathCount} directories in PATH", paths.Length);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -140,6 +172,7 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                     var candidate = Path.Combine(dir, command);
                     if (File.Exists(candidate))
                     {
+                        logger.LogDebug("Found command at: {Candidate}", candidate);
                         return candidate;
                     }
                 }
@@ -150,6 +183,7 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                         var candidate = Path.Combine(dir, command + ext);
                         if (File.Exists(candidate))
                         {
+                            logger.LogDebug("Found command at: {Candidate}", candidate);
                             return candidate;
                         }
                     }
@@ -163,11 +197,13 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                 var candidate = Path.Combine(dir, command);
                 if (File.Exists(candidate))
                 {
+                    logger.LogDebug("Found command at: {Candidate}", candidate);
                     return candidate;
                 }
             }
         }
 
+        logger.LogDebug("Command '{Command}' was not found in any PATH directory", command);
         return null;
     }
 
@@ -218,10 +254,8 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                     _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     current = _runningTask = ExecuteAsync(_cts.Token);
 
-                    _ = _runningTask.ContinueWith(ClearCompleted,
-                        CancellationToken.None,
-                        TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default);
+                    // Fire-and-forget cleanup when task completes
+                    _ = current.ContinueWith(ClearCompleted, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }
             }
             finally
@@ -234,13 +268,17 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
 
         private async Task<bool> ExecuteAsync(CancellationToken cancellationToken)
         {
-            var resolved = ResolveCommand(_command);
+            _logger.LogDebug("Starting validation for command: {Command}", _command);
+
+            var resolved = ResolveCommand(_command, _logger);
             var isValid = true;
             string? validationMessage = null;
 
             if (resolved is not null && _additionalValidation is not null)
             {
+                _logger.LogDebug("Running additional validation for command: {Command}", _command);
                 (isValid, validationMessage) = await _additionalValidation(resolved, cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("Additional validation result for {Command}: IsValid={IsValid}", _command, isValid);
             }
 
             if (resolved is null || !isValid)
@@ -248,9 +286,9 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                 var message = (_helpLink, validationMessage) switch
                 {
                     (null, not null) => validationMessage,
-                    (not null, not null) => string.Format(CultureInfo.CurrentCulture, "{0} See installation instructions for more details.", validationMessage),
-                    (not null, null) => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found. See installation instructions for more details.", _command),
-                    _ => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at a specified location.", _command)
+                    (not null, not null) => string.Format(CultureInfo.CurrentCulture, CommandStrings.MissingCommandWithHelpLink, validationMessage),
+                    (not null, null) => string.Format(CultureInfo.CurrentCulture, CommandStrings.MissingCommandNotFoundWithHelpLink, _command),
+                    _ => string.Format(CultureInfo.CurrentCulture, CommandStrings.MissingCommandNotFoundOnPath, _command)
                 };
 
                 _logger.LogWarning("{Message}", message);
@@ -262,14 +300,14 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                         var options = new NotificationInteractionOptions
                         {
                             Intent = MessageIntent.Warning,
-                            LinkText = _helpLink is null ? null : "Installation instructions",
+                            LinkText = _helpLink is null ? null : CommandStrings.InstallationInstructions,
                             LinkUrl = _helpLink,
                             ShowDismiss = true,
                             ShowSecondaryButton = false
                         };
 
                         _ = _interactionService.PromptNotificationAsync(
-                            title: "Missing command",
+                            title: CommandStrings.MissingCommandNotificationTitle,
                             message: message,
                             options,
                             cancellationToken);
@@ -283,39 +321,31 @@ internal sealed class InstallationManager : IInstallationManager, IAsyncDisposab
                 return false;
             }
 
+            _logger.LogDebug("Command '{Command}' validation successful, resolved to: {Resolved}", _command, resolved);
             return true;
         }
 
-        private void ClearCompleted(Task completed)
+        private async void ClearCompleted(Task completed)
         {
-            // Fire-and-forget cleanup - exceptions are acceptable here as this is just cleanup
-            _ = ClearCompletedAsync(completed).ContinueWith(
-                static t =>
-                {
-                    if (t.IsFaulted)
-                    {
-                        // Log the exception if needed, but don't rethrow as this is cleanup
-                        _ = t.Exception;
-                    }
-                },
-                CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously,
-                TaskScheduler.Default);
-        }
-
-        private async Task ClearCompletedAsync(Task completed)
-        {
-            await _gate.WaitAsync().ConfigureAwait(false);
+            // Catch and ignore errors - this is just cleanup
             try
             {
-                if (ReferenceEquals(completed, _runningTask))
+                await _gate.WaitAsync().ConfigureAwait(false);
+                try
                 {
-                    _runningTask = null;
+                    if (ReferenceEquals(completed, _runningTask))
+                    {
+                        _runningTask = null;
+                    }
+                }
+                finally
+                {
+                    _gate.Release();
                 }
             }
-            finally
+            catch
             {
-                _gate.Release();
+                // Ignore errors in cleanup
             }
         }
 
