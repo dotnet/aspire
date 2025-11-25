@@ -27,7 +27,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// <exception cref="InvalidOperationException">Thrown when AppHost information is not available.</exception>
     public Task<AppHostInformation> GetAppHostInformationAsync(CancellationToken cancellationToken = default)
     {
-        _ = cancellationToken; // Reserved for future use
+        // The cancellationToken parameter is not currently used, but is retained for API consistency and potential future support for cancellation.
+        _ = cancellationToken;
 
         var configuration = serviceProvider.GetService<IConfiguration>();
         if (configuration is null)
