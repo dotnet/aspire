@@ -512,7 +512,7 @@ public class ExistingAzureResourceTests
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
         var existingSubscriptionId = builder.AddParameter("existingSubscriptionId");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName, existingResourceGroupName, existingSubscriptionId);
+            .PublishAsExistingInResourceGroup(existingResourceName, existingResourceGroupName, existingSubscriptionId);
         serviceBus.AddServiceBusQueue("queue");
 
         using var app = builder.Build();
@@ -537,7 +537,7 @@ public class ExistingAzureResourceTests
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingSubscriptionId = builder.AddParameter("existingSubscriptionId");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName, null, existingSubscriptionId);
+            .PublishAsExistingInSubscription(existingResourceName, existingSubscriptionId);
         serviceBus.AddServiceBusQueue("queue");
 
         using var app = builder.Build();
@@ -564,7 +564,7 @@ public class ExistingAzureResourceTests
         var existingSubscriptionId = builder.AddParameter("existingSubscriptionId");
         var existingTenantId = builder.AddParameter("existingTenantId");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName, existingResourceGroupName, existingSubscriptionId, existingTenantId);
+            .PublishAsExistingInTenant(existingResourceName, existingResourceGroupName, existingSubscriptionId, existingTenantId);
         serviceBus.AddServiceBusQueue("queue");
 
         using var app = builder.Build();
