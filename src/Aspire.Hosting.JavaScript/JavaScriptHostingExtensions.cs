@@ -47,14 +47,16 @@ public static class JavaScriptHostingExtensions
     console.log('Applying Aspire specific Vite configuration for HTTPS support.')
     console.log('Found original Vite configuration at "%%ASPIRE_VITE_ABSOLUTE_CONFIG_PATH%%"')
 
+    const aspireHttpsConfig = process.env['TLS_CONFIG_PFX'] ? {
+        pfx: process.env['TLS_CONFIG_PFX'],
+        passphrase: process.env['TLS_CONFIG_PASSWORD'],
+    } : undefined
+
     const wrapConfig = (innerConfig) => ({
         ...innerConfig,
         server: {
             ...innerConfig.server,
-            https: innerConfig.server?.https ? innerConfig.server.https : process.env['TLS_CONFIG_PFX'] ? {
-                pfx: process.env['TLS_CONFIG_PFX'],
-                passphrase: process.env['TLS_CONFIG_PASSWORD'],
-            } : undefined,
+            https: innerConfig.server?.https ?? aspireHttpsConfig,
         }
     })
 
