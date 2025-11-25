@@ -76,7 +76,6 @@ jobs:
       os: "ubuntu-latest"
       # Docker tests are run on linux, and Hosting tests take longer to finish
       testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
-      testHangTimeout: "7m"
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
@@ -91,7 +90,6 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "macos-latest"
-      testHangTimeout: "7m"
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
@@ -106,7 +104,6 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      testHangTimeout: "7m"
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
