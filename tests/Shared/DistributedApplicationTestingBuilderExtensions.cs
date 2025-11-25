@@ -4,6 +4,7 @@
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Xunit;
 
 namespace Aspire.Hosting.Utils;
@@ -26,7 +27,12 @@ public static class DistributedApplicationTestingBuilderExtensions
     public static IServiceCollection AddTestAndResourceLogging(this IServiceCollection services, ITestOutputHelper testOutputHelper)
     {
         services.AddXunitLogging(testOutputHelper);
-        services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+        services.AddLogging(builder =>
+        {
+            builder.AddFilter("Aspire.Hosting", LogLevel.Trace);
+            // Suppress all console logging during tests to reduce noise
+            builder.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
+        });
         return services;
     }
 
