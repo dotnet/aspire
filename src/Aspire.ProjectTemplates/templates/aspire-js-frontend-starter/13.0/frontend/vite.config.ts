@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // Proxy API calls to the app service
       '/api': {
-        target: process.env.APP_HTTPS || process.env.APP_HTTP,
+        target: process.env.BACKEND_HTTPS || process.env.BACKEND_HTTP,
         changeOrigin: true
       }
     }

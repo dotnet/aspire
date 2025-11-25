@@ -16,4 +16,6 @@ var webfrontend = builder.AddViteApp("webfrontend", "../frontend")
     .WaitFor(backend)
     .WithExternalHttpEndpoints();
 
+backend.PublishWithContainerFiles(webfrontend, "wwwroot");
+
 builder.Build().Run();

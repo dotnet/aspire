@@ -14,12 +14,8 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.JavaScript" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-  </ItemGroup>
-
   <!--#if (UseRedisCache) -->
-  <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Redis" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-  </ItemGroup>
-
   <!--#endif -->
+  </ItemGroup>
 </Project>

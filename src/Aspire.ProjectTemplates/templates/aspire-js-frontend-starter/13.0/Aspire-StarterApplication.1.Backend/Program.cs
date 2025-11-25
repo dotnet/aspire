@@ -27,7 +27,8 @@ string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "
 
 app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
 
-app.MapGet("/weatherforecast", () =>
+var api = app.MapGroup("/api");
+api.MapGet("weatherforecast", () =>
 {
     var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
@@ -42,6 +43,8 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast");
 
 app.MapDefaultEndpoints();
+
+app.UseFileServer();
 
 app.Run();
 
