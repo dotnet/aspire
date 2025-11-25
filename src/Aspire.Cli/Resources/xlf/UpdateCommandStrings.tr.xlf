@@ -67,6 +67,11 @@
         <target state="translated">Aspire projesindeki tümleştirme güncelleştirmelerini yapın. (Önizleme)</target>
         <note />
       </trans-unit>
+      <trans-unit id="DotNetToolSelfUpdateMessage">
+        <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
+        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
         <target state="translated">Yürütülüyor: {0}</target>

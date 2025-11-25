@@ -113,12 +113,12 @@ public static class KeycloakResourceBuilderExtensions
                 bool addHttps = false;
                 if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    if (developerCertificateService.UseForServerAuthentication)
                     {
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }

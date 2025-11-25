@@ -485,12 +485,7 @@ public static class ResourceExtensions
         /// <summary>
         /// The server authentication certificate for the resource, if any.
         /// </summary>
-        public X509Certificate2? ServerAuthCertificate { get; init; }
-
-        /// <summary>
-        /// The password for the server authentication certificate, if any.
-        /// </summary>
-        public string? ServerAuthPassword { get; init; }
+        public ServerAuthenticationCertificateConfigurationDetails? ServerAuthenticationCertificateConfiguration { get; init; }
 
         /// <summary>
         /// Any exception that occurred during the configuration processing.
@@ -547,11 +542,10 @@ public static class ResourceExtensions
                 cancellationToken).ConfigureAwait(false);
         }
 
-        X509Certificate2? serverAuthCertificate = null;
-        string? serverAuthPassword = null;
+        ServerAuthenticationCertificateConfigurationDetails? serverAuthCertificateConfiguration = null;
         if (withServerAuthCertificateConfig)
         {
-            (args, envVars, serverAuthCertificate, serverAuthPassword) = await resource.GatherServerAuthCertificateConfigAsync(
+            (args, envVars, serverAuthCertificateConfiguration) = await resource.GatherServerAuthCertificateConfigAsync(
                 executionContext,
                 args,
                 envVars,
@@ -616,8 +610,7 @@ public static class ResourceExtensions
             EnvironmentVariables = resolvedEnvVars,
             CertificateTrustScope = certificateTrustScope,
             TrustedCertificates = trustedCertificates!,
-            ServerAuthCertificate = serverAuthCertificate,
-            ServerAuthPassword = serverAuthPassword,
+            ServerAuthenticationCertificateConfiguration = serverAuthCertificateConfiguration,
             Exception = exception,
         };
     }
@@ -752,6 +745,32 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Holds the details of server authentication certificate configuration.
+    /// </summary>
+    internal sealed class ServerAuthenticationCertificateConfigurationDetails
+    {
+        /// <summary>
+        /// The server authentication certificate for the resource, if any.
+        /// </summary>
+        public required X509Certificate2 Certificate { get; init; }
+
+        /// <summary>
+        /// Indicates whether the resource references a PEM key for server authentication.
+        /// </summary>
+        public required ReferenceExpression KeyPathReference { get; set; }
+
+        /// <summary>
+        /// Indicates whether the resource references a PFX file for server authentication.
+        /// </summary>
+        public required ReferenceExpression PfxReference { get; set; }
+
+        /// <summary>
+        /// The passphrase for the server authentication certificate, if any.
+        /// </summary>
+        public string? Password { get; init; }
+    }
+
+    /// <summary>
     /// Gathers server authentication certificate configuration for the specified resource within the given execution context.
     /// </summary>
     /// <param name="resource">The resource for which to gather server authentication certificate configuration.</param>
@@ -760,8 +779,8 @@ public static class ResourceExtensions
     /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
     /// <param name="certificateConfigContextFactory">A factory function to create the context for building server authentication certificate configuration; provides the paths for the certificate, key, and PFX files.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>The resulting command line arguments, environment variables, and optionally the certificate and passphrase for server auth.</returns>
-    internal static async ValueTask<(List<object> arguments, Dictionary<string, object> environmentVariables, X509Certificate2? serverAuthCertificate, string? passphrase)> GatherServerAuthCertificateConfigAsync(
+    /// <returns>The resulting command line arguments, environment variables, and optionally the specific server authentication certificate configuration details.</returns>
+    internal static async ValueTask<(List<object> arguments, Dictionary<string, object> environmentVariables, ServerAuthenticationCertificateConfigurationDetails? details)> GatherServerAuthCertificateConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         List<object> arguments,
@@ -778,14 +797,14 @@ public static class ResourceExtensions
         if (effectiveAnnotation is null)
         {
             // Should never happen
-            return (arguments, environmentVariables, null, null);
+            return (arguments, environmentVariables, null);
         }
 
         X509Certificate2? certificate = effectiveAnnotation.Certificate;
         if (certificate is null)
         {
             var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled))
+            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication))
             {
                 certificate = developerCertificateService.Certificates.FirstOrDefault();
             }
@@ -794,7 +813,7 @@ public static class ResourceExtensions
         if (certificate is null)
         {
             // No certificate to configure, do nothing
-            return (arguments, environmentVariables, null, null);
+            return (arguments, environmentVariables, null);
         }
 
         var configBuilderContext = certificateConfigContextFactory(certificate);
@@ -819,7 +838,16 @@ public static class ResourceExtensions
 
         string? password = effectiveAnnotation.Password is not null ? await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false) : null;
 
-        return (arguments, environmentVariables, certificate, password);
+        return (
+            arguments,
+            environmentVariables,
+            new ServerAuthenticationCertificateConfigurationDetails()
+            {
+                Certificate = certificate,
+                Password = password,
+                KeyPathReference = context.KeyPath,
+                PfxReference = context.PfxPath,
+            });
     }
 
     internal static async ValueTask<ResolvedValue?> ResolveValueAsync(

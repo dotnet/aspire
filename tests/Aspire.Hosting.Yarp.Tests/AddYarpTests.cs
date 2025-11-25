@@ -44,7 +44,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             containerCertificateSupport,
             trustCertificate: true,
-            supportsTlsTermination: false));
+            tlsTerminate: false));
         testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 
@@ -93,7 +93,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
             trustCertificate: true,
-            supportsTlsTermination: false));
+            tlsTerminate: false));
         testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 
@@ -116,7 +116,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
             trustCertificate: true,
-            supportsTlsTermination: false));
+            tlsTerminate: false));
         testProvider.AddService(new DistributedApplicationOptions());
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
@@ -138,7 +138,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
             trustCertificate: true,
-            supportsTlsTermination: false));
+            tlsTerminate: false));
         testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 

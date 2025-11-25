@@ -707,6 +707,35 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         Assert.True(cancellationMessageDisplayed, "Cancellation message should have been displayed");
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
+
+    [Fact]
+    public async Task UpdateCommand_SelfOption_IsAvailableAndParseable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    // Create a fake archive file
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        
+        // Act - Parse command with --self option
+        var result = command.Parse("update --self --channel stable");
+        
+        // Assert - Command should parse successfully without errors
+        Assert.Empty(result.Errors);
+    }
 }
 
 // Helper class to track DisplayCancellationMessage calls

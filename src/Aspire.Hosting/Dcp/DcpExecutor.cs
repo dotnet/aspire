@@ -55,6 +55,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     // it probably means DCP crashed and there is no point trying further.
     private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
 
+    // Well-known location on disk where dev-cert key material is cached.
+    private static readonly string s_macOSUserDevCertificateLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire", "dev-certs", "https");
+
     // Regex for normalizing application names.
     [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
     private static partial Regex ApplicationNameRegex();
@@ -78,6 +81,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly IDeveloperCertificateService _developerCertificateService;
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+    private readonly SemaphoreSlim _serverCertificateCacheSemaphore = new(1, 1);
 
     private readonly string _normalizedApplicationName;
 
@@ -283,6 +287,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     {
         var disposeCts = new CancellationTokenSource();
         disposeCts.CancelAfter(s_disposeTimeout);
+        _serverCertificateCacheSemaphore.Dispose();
         await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
@@ -1559,23 +1564,39 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             },
             cancellationToken).ConfigureAwait(false);
 
-        if (configContext.ServerAuthCertificate is not null)
+        if (configContext.ServerAuthenticationCertificateConfiguration is not null)
         {
-            (var certificatePem, var keyPem) = GetCertificateKeyPair(configContext.ServerAuthCertificate, configContext.ServerAuthPassword);
-            var pfxBytes = configContext.ServerAuthCertificate.Export(X509ContentType.Pfx, configContext.ServerAuthPassword);
+            var thumbprint = configContext.ServerAuthenticationCertificateConfiguration.Certificate.Thumbprint;
+            var publicCetificatePem = configContext.ServerAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
+            (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(configContext.ServerAuthenticationCertificateConfiguration, cancellationToken).ConfigureAwait(false);
 
-            var certificateBytes = Encoding.ASCII.GetBytes(certificatePem);
-            var keyBytes = Encoding.ASCII.GetBytes(keyPem);
+            if (OperatingSystem.IsWindows())
+            {
+                Directory.CreateDirectory(baseServerAuthOutputPath);
+            }
+            else
+            {
+                Directory.CreateDirectory(baseServerAuthOutputPath, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+            }
 
-            Directory.CreateDirectory(baseServerAuthOutputPath);
+            File.WriteAllText(Path.Join(baseServerAuthOutputPath, $"{thumbprint}.crt"), publicCetificatePem);
 
-            // Write each of the certificate, key, and PFX assets to the temp folder
-            File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.key"), keyBytes);
-            File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.crt"), certificateBytes);
-            File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.pfx"), pfxBytes);
+            if (keyPem is not null)
+            {
+                var keyBytes = Encoding.ASCII.GetBytes(keyPem);
 
-            Array.Clear(keyPem, 0, keyPem.Length);
-            Array.Clear(keyBytes, 0, keyBytes.Length);
+                // Write each of the certificate, key, and PFX assets to the temp folder
+                File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{thumbprint}.key"), keyBytes);
+
+                Array.Clear(keyPem, 0, keyPem.Length);
+                Array.Clear(keyBytes, 0, keyBytes.Length);
+            }
+
+            if (pfxBytes is not null)
+            {
+                File.WriteAllBytes(Path.Join(baseServerAuthOutputPath, $"{thumbprint}.pfx"), pfxBytes);
+                Array.Clear(pfxBytes, 0, pfxBytes.Length);
+            }
         }
 
         // Add the certificates to the executable spec so they'll be placed in the DCP config
@@ -1898,55 +1919,76 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         spec.PemCertificates = pemCertificates;
 
-        // Build files that need to be created inside the container
-        var createFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
-
-        if (configContext.ServerAuthCertificate is not null)
+        var buildCreateFilesContext = new BuildCreateFilesContext
         {
-            (var certificatePem, var keyPem) = GetCertificateKeyPair(configContext.ServerAuthCertificate, configContext.ServerAuthPassword);
-            var pfxBytes = configContext.ServerAuthCertificate.Export(X509ContentType.Pfx, configContext.ServerAuthPassword);
+            Resource = modelContainerResource,
+            CertificateTrustScope = configContext.CertificateTrustScope,
+            CertificateTrustBundlePath = $"{certificatesDestination}/cert.pem",
+        };
 
-            var baseOutputPath = Path.Join(_locations.DcpSessionDir, dcpContainerResource.Name(), "private");
-            if (spec.Persistent == true)
+        if (configContext.ServerAuthenticationCertificateConfiguration is not null)
+        {
+            var thumbprint = configContext.ServerAuthenticationCertificateConfiguration.Certificate.Thumbprint;
+            buildCreateFilesContext.ServerAuthenticationCertificateContext = new ContainerFileSystemCallbackServerAuthenticationCertificateContext
             {
-                // Need to write the pfx cert to a persistent location so it won't trigger a lifecycle key invalidation
-                baseOutputPath = Path.Join(Path.GetTempPath(), "aspire", _configuration["AppHost:Sha256"], spec.ContainerName, "private");
+                CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{thumbprint}.crt"),
+                KeyPath = configContext.ServerAuthenticationCertificateConfiguration.KeyPathReference,
+                PfxPath = configContext.ServerAuthenticationCertificateConfiguration.PfxReference,
+                Password = configContext.ServerAuthenticationCertificateConfiguration.Password,
+            };
+        }
+
+        // Build files that need to be created inside the container
+        var createFiles = await BuildCreateFilesAsync(
+            buildCreateFilesContext,
+            cancellationToken).ConfigureAwait(false);
+
+        if (configContext.ServerAuthenticationCertificateConfiguration is not null)
+        {
+            var thumbprint = configContext.ServerAuthenticationCertificateConfiguration.Certificate.Thumbprint;
+            var publicCertificatePem = configContext.ServerAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
+            (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(configContext.ServerAuthenticationCertificateConfiguration, cancellationToken).ConfigureAwait(false);
+
+            var certificateFiles = new List<ContainerFileSystemEntry>()
+            {
+                new ContainerFileSystemEntry
+                {
+                    Name = thumbprint + ".crt",
+                    Type = ContainerFileSystemEntryType.File,
+                    Contents = new string(publicCertificatePem),
+                }
+            };
+
+            if (keyPem is not null)
+            {
+                certificateFiles.Add(new ContainerFileSystemEntry
+                {
+                    Name = thumbprint + ".key",
+                    Type = ContainerFileSystemEntryType.File,
+                    Contents = new string(keyPem),
+                });
+
+                Array.Clear(keyPem, 0, keyPem.Length);
             }
 
-            // The PFX file is binary, so we need to write it to a temp file first
-            var pfxOutputPath = Path.Join(baseOutputPath, $"{configContext.ServerAuthCertificate.Thumbprint}.pfx");
-            Directory.CreateDirectory(baseOutputPath);
-            File.WriteAllBytes(pfxOutputPath, pfxBytes);
+            if (pfxBytes is not null)
+            {
+                certificateFiles.Add(new ContainerFileSystemEntry
+                {
+                    Name = thumbprint + ".pfx",
+                    Type = ContainerFileSystemEntryType.File,
+                    RawContents = Convert.ToBase64String(pfxBytes),
+                });
+
+                Array.Clear(pfxBytes, 0, pfxBytes.Length);
+            }
 
             // Write the certificate and key to the container filesystem
             createFiles.Add(new ContainerCreateFileSystem
             {
                 Destination = serverAuthCertificatesBasePath,
-                Entries = [
-                    new ContainerFileSystemEntry
-                    {
-                        Name = configContext.ServerAuthCertificate.Thumbprint + ".key",
-                        Type = ContainerFileSystemEntryType.File,
-                        Contents = new string(keyPem),
-                    },
-                    new ContainerFileSystemEntry
-                    {
-                        Name = configContext.ServerAuthCertificate.Thumbprint + ".crt",
-                        Type = ContainerFileSystemEntryType.File,
-                        Contents = new string(certificatePem),
-                    },
-                    // Copy the PFX file from the temp location
-                    new ContainerFileSystemEntry
-                    {
-                        Name = configContext.ServerAuthCertificate.Thumbprint + ".pfx",
-                        Type = ContainerFileSystemEntryType.File,
-                        Source = pfxOutputPath,
-                    },
-                ],
+                Entries = certificateFiles,
             });
-
-            Array.Clear(keyPem, 0, keyPem.Length);
-            Array.Clear(pfxBytes, 0, pfxBytes.Length);
         }
 
         // Set the final args, env vars, and create files on the container spec
@@ -2347,19 +2389,29 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(IResource modelResource, CancellationToken cancellationToken)
+    private class BuildCreateFilesContext
+    {
+        public required IResource Resource { get; init; }
+        public CertificateTrustScope CertificateTrustScope { get; init; }
+        public string? CertificateTrustBundlePath { get; set; }
+        public string? CertificateTrustDirectoriesPath { get; set; }
+        public ContainerFileSystemCallbackServerAuthenticationCertificateContext? ServerAuthenticationCertificateContext { get; set; }
+    }
+
+    private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(BuildCreateFilesContext context, CancellationToken cancellationToken)
     {
         var createFiles = new List<ContainerCreateFileSystem>();
 
-        if (modelResource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var createFileAnnotations))
+        if (context.Resource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var createFileAnnotations))
         {
             foreach (var a in createFileAnnotations)
             {
                 var entries = await a.Callback(
                     new()
                     {
-                        Model = modelResource,
-                        ServiceProvider = _executionContext.ServiceProvider
+                        Model = context.Resource,
+                        ServiceProvider = _executionContext.ServiceProvider,
+                        ServerAuthenticationCertificateContext = context.ServerAuthenticationCertificateContext,
                     },
                     cancellationToken).ConfigureAwait(false);
 
@@ -2403,38 +2455,162 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return (runArgs, failedToApplyArgs);
     }
 
-    private static (char[] certificatePem, char[] keyPem) GetCertificateKeyPair(X509Certificate2 certificate, string? passphrase)
+    /// <summary>
+    /// Returns the certificate PEM format key and/or PFX bytes based on the provided configuration.
+    /// Only the formats referenced in resource configuration will be returned.
+    /// </summary>
+    /// <param name="configuration">The configuration details.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+    /// <returns>A tuple containing the PEM-encoded key and PFX bytes, if appropriate for the configuration.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(ResourceExtensions.ServerAuthenticationCertificateConfigurationDetails configuration, CancellationToken cancellationToken)
     {
-        // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
-        using var privateKey = certificate.GetRSAPrivateKey();
-        if (privateKey is null)
+        var certificate = configuration.Certificate;
+        var lookup = certificate.Thumbprint;
+        if (configuration.Password is not null)
         {
-            throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
+            lookup += $"-{configuration.Password}";
         }
 
-        var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
-            passphrase ?? string.Empty,
-            new PbeParameters(
-                PbeEncryptionAlgorithm.Aes256Cbc,
-                HashAlgorithmName.SHA256,
-                iterationCount: passphrase is null ? 1 : 100_000));
-        var pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
+        lookup = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(lookup)));
 
-        if (passphrase is null)
+        char[]? pemKey = null;
+        byte[]? pfxBytes = null;
+        // Ensure only one thread at a time is resolving certificates to avoid concurrent cache misses all trying to update
+        // the cache at the same time.
+        await _serverCertificateCacheSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            using var tempKey = RSA.Create();
-            tempKey.ImportFromEncryptedPem(pem, string.Empty);
-            Array.Clear(keyBytes, 0, keyBytes.Length);
-            Array.Clear(pem, 0, pem.Length);
-            keyBytes = tempKey.ExportPkcs8PrivateKey();
-            pem = PemEncoding.Write("PRIVATE KEY", keyBytes);
+            if (configuration.KeyPathReference.WasResolved)
+            {
+                var keyFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.key");
+                if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                {
+                    // On MacOS, we cache development certificate key material to avoid triggering repeated keychain prompts
+                    // when referencing the development certificate key. We don't do this for other OSes or other certificates.
+                    try
+                    {
+                        // Attempt to read the cached development certificate key
+                        if (File.Exists(keyFileName))
+                        {
+                            var keyCandidate = File.ReadAllText(keyFileName);
+
+                            if (!string.IsNullOrEmpty(keyCandidate))
+                            {
+                                pemKey = keyCandidate.ToCharArray();
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors and retrieve the key from the certificate
+                    }
+                }
+
+                if (pemKey is null)
+                {
+                    // See: https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/CertificateManager.cs
+                    using var privateKey = certificate.GetRSAPrivateKey();
+                    if (privateKey is null)
+                    {
+                        throw new InvalidOperationException("The certificate does not have an associated RSA private key.");
+                    }
+
+                    var keyBytes = privateKey.ExportEncryptedPkcs8PrivateKey(
+                        configuration.Password ?? string.Empty,
+                        new PbeParameters(
+                            PbeEncryptionAlgorithm.Aes256Cbc,
+                            HashAlgorithmName.SHA256,
+                            iterationCount: configuration.Password is null ? 1 : 100_000));
+                    pemKey = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
+
+                    if (configuration.Password is null)
+                    {
+                        using var tempKey = RSA.Create();
+                        tempKey.ImportFromEncryptedPem(pemKey, string.Empty);
+                        Array.Clear(keyBytes, 0, keyBytes.Length);
+                        Array.Clear(pemKey, 0, pemKey.Length);
+                        keyBytes = tempKey.ExportPkcs8PrivateKey();
+                        pemKey = PemEncoding.Write("PRIVATE KEY", keyBytes);
+                    }
+
+                    Array.Clear(keyBytes, 0, keyBytes.Length);
+
+                    if (pemKey is not null && OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                    {
+                        // On Mac, cache the development certificate key material if we had to load it from the keychain
+                        try
+                        {
+                            // Create the directory for storing macOS user dev certificates if it doesn't exist
+                            Directory.CreateDirectory(s_macOSUserDevCertificateLocation, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+
+                            await File.WriteAllTextAsync(keyFileName, new string(pemKey), cancellationToken).ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // This is a best effort caching operation
+                        }
+                    }
+                }
+            }
+
+            if (configuration.PfxReference.WasResolved)
+            {
+                var pfxFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.pfx");
+                if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                {
+                    // On MacOS, we cache development certificate key material to avoid triggering repeated keychain prompts
+                    // when referencing the development certificate key. We don't do this for other OSes or other certificates.
+                    try
+                    {
+                        // Attempt to read the cached development certificate key
+                        if (File.Exists(pfxFileName))
+                        {
+                            var pfxCandidate = File.ReadAllBytes(pfxFileName);
+                            if (pfxCandidate.Length > 0)
+                            {
+                                using var tempCert = new X509Certificate2(pfxCandidate, configuration.Password);
+                                if (tempCert.Thumbprint.Equals(certificate.Thumbprint, StringComparison.Ordinal))
+                                {
+                                    pfxBytes = pfxCandidate;
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors and retrieve the key from the certificate
+                    }
+                }
+
+                if (pfxBytes is null)
+                {
+                    // On Mac, cache the development certificate pfx if we had to export it from the keychain
+                    pfxBytes = certificate.Export(X509ContentType.Pfx, configuration.Password);
+
+                    if (pfxBytes is not null && OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
+                    {
+                        try
+                        {
+                            // Create the directory for storing macOS user dev certificates if it doesn't exist
+                            Directory.CreateDirectory(s_macOSUserDevCertificateLocation, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+
+                            File.WriteAllBytes(pfxFileName, pfxBytes);
+                        }
+                        catch
+                        {
+                            // This is a best effort caching operation
+                        }
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _serverCertificateCacheSemaphore.Release();
         }
 
-        var contents = PemEncoding.Write("CERTIFICATE", certificate.Export(X509ContentType.Cert));
-
-        Array.Clear(keyBytes, 0, keyBytes.Length);
-
-        return (contents, pem);
+        return (pemKey, pfxBytes);
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(RenderedModelResource cr)
