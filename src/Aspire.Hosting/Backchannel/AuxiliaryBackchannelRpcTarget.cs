@@ -36,7 +36,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             throw new InvalidOperationException("Configuration not found.");
         }
 
-        var appHostPath = configuration["AppHost:Path"];
+        // First try to get the file path (with extension), otherwise fall back to the path (without extension)
+        var appHostPath = configuration["AppHost:FilePath"] ?? configuration["AppHost:Path"];
         if (string.IsNullOrEmpty(appHostPath))
         {
             logger.LogError("AppHost path not found in configuration.");

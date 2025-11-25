@@ -234,4 +234,56 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
+
+    [Fact]
+    public async Task GetAppHostInformationAsyncReturnsFilePathWithExtension()
+    {
+        // This test verifies that GetAppHostInformationAsync returns the full file path with extension
+        // For .csproj-based AppHosts, it should include the .csproj extension
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetAppHostInformationAsync RPC method
+        var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Verify the AppHost path is returned
+        Assert.NotNull(appHostInfo);
+        Assert.NotNull(appHostInfo.AppHostPath);
+        Assert.NotEmpty(appHostInfo.AppHostPath);
+        
+        // The path should be an absolute path
+        Assert.True(Path.IsPathRooted(appHostInfo.AppHostPath), $"Expected absolute path but got: {appHostInfo.AppHostPath}");
+        
+        // For .csproj-based AppHosts, the path should end with .csproj
+        // For single-file AppHosts, the path should end with .cs
+        var extension = Path.GetExtension(appHostInfo.AppHostPath);
+        Assert.True(
+            extension == ".csproj" || extension == ".cs",
+            $"Expected .csproj or .cs extension but got: {extension}"
+        );
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
 }
