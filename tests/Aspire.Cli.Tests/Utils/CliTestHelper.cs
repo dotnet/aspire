@@ -24,6 +24,7 @@ using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
+using Aspire.Cli.AppHostRunning;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -96,6 +97,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        services.AddTransient<IAppHostRunnerFactory, AppHostRunnerFactory>();
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
