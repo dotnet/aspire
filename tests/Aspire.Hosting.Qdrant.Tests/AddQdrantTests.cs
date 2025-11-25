@@ -17,7 +17,7 @@ public class AddQdrantTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AddQdrantAddsGeneratedApiKeyParameterWithUserSecretsParameterDefaultInRunMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var qd = appBuilder.AddQdrant("qd");
 
@@ -274,7 +274,7 @@ public class AddQdrantTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AddQdrantWithSpecifyingPorts()
     {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var qdrant = builder.AddQdrant("my-qdrant", grpcPort: 5503, httpPort: 5504);
 

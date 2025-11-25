@@ -14,7 +14,7 @@ public class AddNatsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AddNatsAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var nats = appBuilder.AddNats("nats");
         Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", nats.Resource.PasswordParameter!.Default?.GetType().FullName);
@@ -177,7 +177,7 @@ public class AddNatsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void WithNatsContainerOnMultipleResources()
     {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.AddNats("nats1");
         builder.AddNats("nats2");
 
@@ -187,7 +187,7 @@ public class AddNatsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var nats = builder.AddNats("nats");
 
         var manifest = await ManifestUtils.GetManifest(nats.Resource);
@@ -220,7 +220,7 @@ public class AddNatsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task VerifyManifestWihtParameters()
     {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var userNameParameter = builder.AddParameter("user");
         var passwordParameter = builder.AddParameter("pass");
 

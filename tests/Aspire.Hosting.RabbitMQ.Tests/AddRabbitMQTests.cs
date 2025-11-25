@@ -13,7 +13,7 @@ public class AddRabbitMQTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AddRabbitMQAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var rmq = appBuilder.AddRabbitMQ("rmq");
 
@@ -36,7 +36,7 @@ public class AddRabbitMQTests(ITestOutputHelper testOutputHelper)
     [InlineData(true, 15672)]
     public void AddRabbitMQContainerWithDefaultsAddsAnnotationMetadata(bool withManagementPlugin, int? withManagementPluginPort)
     {
-        var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
 
@@ -127,7 +127,7 @@ public class AddRabbitMQTests(ITestOutputHelper testOutputHelper)
     [InlineData("12345.00.12", "12345.00.12-management")]
     public void WithManagementPluginUpdatesContainerImageTagToEnableManagementPlugin(string? imageTag, string expectedTag)
     {
-        var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         if (imageTag is not null)
@@ -157,7 +157,7 @@ public class AddRabbitMQTests(ITestOutputHelper testOutputHelper)
     [InlineData("not-supported")]
     public void WithManagementPluginThrowsForUnsupportedContainerImageTag(string imageTag)
     {
-        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         rabbitmq.WithImageTag(imageTag);
@@ -170,7 +170,7 @@ public class AddRabbitMQTests(ITestOutputHelper testOutputHelper)
     [InlineData("not-supported")]
     public void WithManagementPluginThrowsForUnsupportedContainerImageName(string imageName)
     {
-        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         rabbitmq.WithImage(imageName);
@@ -184,7 +184,7 @@ public class AddRabbitMQTests(ITestOutputHelper testOutputHelper)
     [InlineData("not.the.default")]
     public void WithManagementPluginThrowsForUnsupportedContainerImageRegistry(string registry)
     {
-        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         rabbitmq.WithImageRegistry(registry);

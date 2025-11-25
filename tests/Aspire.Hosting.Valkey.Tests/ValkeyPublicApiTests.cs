@@ -25,7 +25,7 @@ public class ValkeyPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void AddValkeyShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddValkey(name);
@@ -64,7 +64,7 @@ public class ValkeyPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
+        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
             .AddValkey("valkey");
         var source = isNull ? null! : string.Empty;
 

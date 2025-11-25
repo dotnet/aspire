@@ -173,7 +173,7 @@ public class AddMilvusTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AddMilvusWithSpecifyingPorts()
     {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var pass = builder.AddParameter("apikey", "pass");
 

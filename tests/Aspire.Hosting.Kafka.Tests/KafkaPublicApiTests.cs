@@ -25,7 +25,7 @@ public class KafkaPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void AddKafkaShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafka(name);
@@ -87,7 +87,7 @@ public class KafkaPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
+        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
             .AddKafka("kafka");
         var source = isNull ? null! : string.Empty;
 

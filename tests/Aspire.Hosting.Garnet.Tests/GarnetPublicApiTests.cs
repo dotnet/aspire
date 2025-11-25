@@ -25,7 +25,7 @@ public class GarnetPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void AddGarnetShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddGarnet(name);
@@ -64,7 +64,7 @@ public class GarnetPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
+        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper)
             .AddGarnet("garnet");
         var source = isNull ? null! : string.Empty;
 
