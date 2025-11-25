@@ -23,9 +23,9 @@
       <_TestRuntime>%(TestToRun.TestRuntime)</_TestRuntime>
       <_TestTimeout>%(TestToRun.TestTimeout)</_TestTimeout>
       <_TestRunnerAdditionalArguments>%(TestToRun.TestRunnerAdditionalArguments)</_TestRunnerAdditionalArguments>
-      <_TestRunnerAdditionalArguments Condition="$(RunOuterloopTests)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-trait outerloop=true</_TestRunnerAdditionalArguments>
-      <_TestRunnerAdditionalArguments Condition="$(RunQuarantinedTests)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-trait qurantined=true</_TestRunnerAdditionalArguments>
-      <_TestRunnerAdditionalArguments Condition="$(_RunRegularTestsOnly)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-not-trait quarantined=true --filter-not-trait outerloop=true</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments Condition="'$(RunOuterloopTests)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-trait outerloop=true</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-trait qurantined=true</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments Condition="'$(_RunRegularTestsOnly)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-not-trait quarantined=true --filter-not-trait outerloop=true</_TestRunnerAdditionalArguments>
       <_TestRunnerAdditionalArguments>$(_TestRunnerAdditionalArguments) --filter-not-trait category=failing</_TestRunnerAdditionalArguments>
 
       <_TestRunner>$(_TestAssembly)</_TestRunner>
