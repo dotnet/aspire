@@ -105,5 +105,6 @@ namespace Aspire.Cli.Resources {
     internal static string ChannelOptionDescriptionWithStaging => ResourceManager.GetString("ChannelOptionDescriptionWithStaging", resourceCulture);
     internal static string QualityOptionDescription => ResourceManager.GetString("QualityOptionDescription", resourceCulture);
     internal static string QualityOptionDescriptionWithStaging => ResourceManager.GetString("QualityOptionDescriptionWithStaging", resourceCulture);
+    internal static string DotNetToolSelfUpdateMessage => ResourceManager.GetString("DotNetToolSelfUpdateMessage", resourceCulture);
     }
 }

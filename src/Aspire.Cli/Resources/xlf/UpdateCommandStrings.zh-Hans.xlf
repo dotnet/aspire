@@ -67,6 +67,11 @@
         <target state="translated">更新 Aspire 项目中的集成。(预览版)</target>
         <note />
       </trans-unit>
+      <trans-unit id="DotNetToolSelfUpdateMessage">
+        <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
+        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
         <target state="translated">正在执行: {0}</target>
