@@ -363,7 +363,7 @@
       "path": "Aspire-StarterApplication.1.AppHost\\Aspire-StarterApplication.1.AppHost.csproj"
     },
     {
-      "path": "Aspire-StarterApplication.1.Backend\\Aspire-StarterApplication.1.Backend.csproj"
+      "path": "Aspire-StarterApplication.1.Server\\Aspire-StarterApplication.1.Server.csproj"
     },
     {
       "path": "frontend\\frontend.esproj",
