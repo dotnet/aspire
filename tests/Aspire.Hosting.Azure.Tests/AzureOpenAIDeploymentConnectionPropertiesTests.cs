@@ -29,7 +29,7 @@ public class AzureOpenAIDeploymentConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Deployment", property.Key);
+                Assert.Equal("Model", property.Key);
                 Assert.Equal("mydeployment", property.Value.ValueExpression);
             });
     }

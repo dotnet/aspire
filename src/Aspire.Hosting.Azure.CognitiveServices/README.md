@@ -71,7 +71,7 @@ The Azure OpenAI deployment resource inherits all properties from its parent Azu
 
 | Property Name | Description |
 |---------------|-------------|
-| `Deployment`  | The name of the Azure OpenAI deployment |
+| `Model`  | The name of the Azure OpenAI deployment, e.g., `chat` |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 
