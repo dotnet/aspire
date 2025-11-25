@@ -166,7 +166,7 @@ public class MSTest_AspireVersionNext_NewUpAndBuildSupportProjectTemplatesTests(
 public class MauiServiceDefaults_AspireVersionNext_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : NewUpAndBuildSupportProjectTemplatesBase(testOutput)
 {
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["maui-aspire-servicedefaults", $"--aspire-version {AspireVersionNext}"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-maui-servicedefaults", $"--aspire-version {AspireVersionNext}"])]
     public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         // MAUI templates require .NET 10.0 or later. Skip tests with earlier target frameworks,
