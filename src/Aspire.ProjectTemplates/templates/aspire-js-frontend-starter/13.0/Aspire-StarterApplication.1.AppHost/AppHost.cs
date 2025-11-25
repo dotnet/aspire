@@ -4,7 +4,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 #endif
-var backend = builder.AddProject<Projects.GeneratedClassNamePrefix_Backend>("backend")
+var server = builder.AddProject<Projects.GeneratedClassNamePrefix_Server>("server")
 #if UseRedisCache
     .WithReference(cache)
     .WaitFor(cache)
@@ -12,10 +12,10 @@ var backend = builder.AddProject<Projects.GeneratedClassNamePrefix_Backend>("bac
     .WithHttpHealthCheck("/health");
 
 var webfrontend = builder.AddViteApp("webfrontend", "../frontend")
-    .WithReference(backend)
-    .WaitFor(backend)
+    .WithReference(server)
+    .WaitFor(server)
     .WithExternalHttpEndpoints();
 
-backend.PublishWithContainerFiles(webfrontend, "wwwroot");
+server.PublishWithContainerFiles(webfrontend, "wwwroot");
 
 builder.Build().Run();

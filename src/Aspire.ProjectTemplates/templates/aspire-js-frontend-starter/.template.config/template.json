@@ -263,12 +263,12 @@
       },
       "replaces": "22000"
     },
-    "backendHttpPort": {
+    "serverHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the Backend project."
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the Server project."
     },
-    "backendHttpPortGenerated": {
+    "serverHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -276,21 +276,21 @@
         "high": 5600
       }
     },
-    "backendHttpPortReplacer": {
+    "serverHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "backendHttpPort",
-        "fallbackVariableName": "backendHttpPortGenerated"
+        "sourceVariableName": "serverHttpPort",
+        "fallbackVariableName": "serverHttpPortGenerated"
       },
       "replaces": "5301"
     },
-    "backendHttpsPort": {
+    "serverHttpsPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Backend project. This option is only applicable when the parameter no-https is not used."
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Server project. This option is only applicable when the parameter no-https is not used."
     },
-    "backendHttpsPortGenerated": {
+    "serverHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -298,12 +298,12 @@
         "high": 7600
       }
     },
-    "backendHttpsPortReplacer": {
+    "serverHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "backendHttpsPort",
-        "fallbackVariableName": "backendHttpsPortGenerated"
+        "sourceVariableName": "serverHttpsPort",
+        "fallbackVariableName": "serverHttpsPortGenerated"
       },
       "replaces": "7301"
     },

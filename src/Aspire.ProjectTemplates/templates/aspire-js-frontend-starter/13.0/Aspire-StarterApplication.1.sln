@@ -4,7 +4,7 @@ VisualStudioVersion = 17.8.0.0
 MinimumVisualStudioVersion = 17.8.0.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire-StarterApplication.1.AppHost", "Aspire-StarterApplication.1.AppHost\Aspire-StarterApplication.1.AppHost.csproj", "{80B24B1B-1E78-4FCB-BDC9-13678F1789F4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire-StarterApplication.1.Backend", "Aspire-StarterApplication.1.Backend\Aspire-StarterApplication.1.Backend.csproj", "{9FEB877E-015D-4E20-AE63-06C596E242E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire-StarterApplication.1.Server", "Aspire-StarterApplication.1.Server\Aspire-StarterApplication.1.Server.csproj", "{9FEB877E-015D-4E20-AE63-06C596E242E4}"
 EndProject
 #if (hostIdentifier == "vs")
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "frontend", "frontend\frontend.esproj", "{AC2DB38C-F5AD-4CEF-BC4C-04AE6EE86C9F}"
