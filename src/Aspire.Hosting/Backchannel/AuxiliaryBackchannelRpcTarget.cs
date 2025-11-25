@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,10 +20,41 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     private const string McpEndpointName = "mcp";
 
     /// <summary>
+    /// Gets information about the AppHost for the MCP server.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The AppHost information including the fully qualified path.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when AppHost information is not available.</exception>
+    public Task<AppHostInformation> GetAppHostInformationAsync(CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken; // Reserved for future use
+
+        var configuration = serviceProvider.GetService<IConfiguration>();
+        if (configuration is null)
+        {
+            logger.LogError("Configuration not found.");
+            throw new InvalidOperationException("Configuration not found.");
+        }
+
+        var appHostPath = configuration["AppHost:Path"];
+        if (string.IsNullOrEmpty(appHostPath))
+        {
+            logger.LogError("AppHost path not found in configuration.");
+            throw new InvalidOperationException("AppHost path not found in configuration.");
+        }
+
+        return Task.FromResult(new AppHostInformation
+        {
+            AppHostPath = appHostPath
+        });
+    }
+
+    /// <summary>
     /// Gets the Dashboard MCP connection information including endpoint URL and API token.
     /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The MCP connection information, or null if the dashboard is not part of the application model.</returns>
-    public async Task<DashboardMcpConnectionInfo?> GetDashboardMcpConnectionInfoAsync()
+    public async Task<DashboardMcpConnectionInfo?> GetDashboardMcpConnectionInfoAsync(CancellationToken cancellationToken = default)
     {
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
         if (appModel is null)
@@ -59,7 +91,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             return null;
         }
 
-        var endpointUrl = await mcpEndpoint.GetValueAsync().ConfigureAwait(false);
+        var endpointUrl = await mcpEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrEmpty(endpointUrl))
         {
             logger.LogWarning("Dashboard MCP endpoint URL is not allocated.");

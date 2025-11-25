@@ -265,3 +265,14 @@ internal sealed class DashboardMcpConnectionInfo
     /// </summary>
     public required string ApiToken { get; init; }
 }
+
+/// <summary>
+/// Represents information about the AppHost for the MCP server.
+/// </summary>
+internal sealed class AppHostInformation
+{
+    /// <summary>
+    /// Gets or sets the fully qualified path to the AppHost project.
+    /// </summary>
+    public required string AppHostPath { get; init; }
+}

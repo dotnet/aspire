@@ -12,4 +12,9 @@ internal interface IAuxiliaryBackchannelMonitor
     /// Gets the collection of active AppHost connections.
     /// </summary>
     IReadOnlyDictionary<string, AppHostConnection> Connections { get; }
+
+    /// <summary>
+    /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
+    /// </summary>
+    string? SelectedAppHostPath { get; set; }
 }
