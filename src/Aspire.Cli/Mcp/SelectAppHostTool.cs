@@ -70,8 +70,13 @@ internal sealed class SelectAppHostTool(IAuxiliaryBackchannelMonitor auxiliaryBa
 
         // Check if there's a running AppHost with this path
         var matchingConnection = auxiliaryBackchannelMonitor.Connections.Values
-            .FirstOrDefault(c => c.AppHostInfo?.AppHostPath != null &&
-                                 string.Equals(Path.GetFullPath(c.AppHostInfo.AppHostPath), resolvedPath, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(c =>
+            {
+                if (c.AppHostInfo?.AppHostPath is null)
+                    return false;
+                var candidatePath = Path.GetFullPath(c.AppHostInfo.AppHostPath);
+                return string.Equals(candidatePath, resolvedPath, StringComparison.OrdinalIgnoreCase);
+            });
 
         if (matchingConnection == null)
         {
