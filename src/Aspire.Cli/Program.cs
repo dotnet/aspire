@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Globalization;
 using System.Text;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -163,6 +164,9 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+
+        // Agent environment detection.
+        builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
