@@ -12,8 +12,6 @@ namespace Aspire.Hosting.Azure;
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 internal sealed class FuncCoreToolsInstallationManager : RequiredCommandValidator
 {
-    private string? _resolvedCommandPath;
-
     public FuncCoreToolsInstallationManager(
         IInteractionService interactionService,
         ILogger<FuncCoreToolsInstallationManager> logger)
@@ -34,12 +32,6 @@ internal sealed class FuncCoreToolsInstallationManager : RequiredCommandValidato
     }
 
     protected override string GetCommandPath() => "func";
-
-    protected override Task OnValidatedAsync(string resolvedCommandPath, CancellationToken cancellationToken)
-    {
-        _resolvedCommandPath = resolvedCommandPath;
-        return Task.CompletedTask;
-    }
 
     protected override string? GetHelpLink() => "https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools";
 }
