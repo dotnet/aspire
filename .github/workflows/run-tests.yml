@@ -307,9 +307,11 @@ jobs:
           /p:ContinuousIntegrationBuild=true
           /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
           -bl:${{ github.workspace }}/testresults/test.binlog
+          -tl:false
           --no-restore
           --no-build
           --
+          --no-progress
           --ignore-exit-code 8
           --report-trx
           --crashdump
