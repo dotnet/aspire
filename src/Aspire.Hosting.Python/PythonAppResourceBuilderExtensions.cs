@@ -320,14 +320,14 @@ public static class PythonAppResourceBuilderExtensions
                 bool addHttps = false;
                 if (!resourceBuilder.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    if (developerCertificateService.UseForServerAuthentication)
                     {
                         // If no certificate is configured, and the developer certificate service supports container trust,
                         // configure the resource to use the developer certificate for its key pair.
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }

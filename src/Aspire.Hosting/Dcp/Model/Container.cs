@@ -404,9 +404,13 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     [JsonPropertyName("source")]
     public string? Source { get; set; }
 
-    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error. Contents and Source are mutually exclusive.
+    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error. Contents, RawContents, and Source are mutually exclusive.
     [JsonPropertyName("contents")]
     public string? Contents { get; set; }
+
+    // If the file system entry is a file, this is the base64-encoded raw contents of the file system entry. Setting RawContents for a directory is an error. RawContents, Contents, and Source are mutually exclusive.
+    [JsonPropertyName("rawContents")]
+    public string? RawContents { get; set; }
 
     // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
     [JsonPropertyName("entries")]
