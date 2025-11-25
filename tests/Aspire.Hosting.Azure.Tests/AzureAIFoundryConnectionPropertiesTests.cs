@@ -9,10 +9,32 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureAIFoundryConnectionPropertiesTests
 {
     [Fact]
-    public void AzureAIFoundryResourceGetConnectionPropertiesReturnsExpectedValues()
+    public void AzureAIFoundryResourceGetConnectionPropertiesReturnsExpectedValues_Azure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var aiFoundry = builder.AddAzureAIFoundry("aifoundry");
+
+        var properties = ((IResourceWithConnectionString)aiFoundry.Resource).GetConnectionProperties().ToArray();
+
+        Assert.Single(properties);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{aifoundry.outputs.aiFoundryApiEndpoint}", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureAIFoundryResourceGetConnectionPropertiesReturnsExpectedValues_Local()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var aiFoundry = builder.AddAzureAIFoundry("aifoundry").RunAsFoundryLocal();
+
+        // These would be set when the resource starts
+        aiFoundry.Resource.EmulatorServiceUri = new Uri("http://localhost:8080");
+        aiFoundry.Resource.ApiKey = "OPENAI_KEY";
 
         var properties = ((IResourceWithConnectionString)aiFoundry.Resource).GetConnectionProperties().ToArray();
 
@@ -22,13 +44,12 @@ public class AzureAIFoundryConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{aifoundry.outputs.endpoint}", property.Value.ValueExpression);
+                Assert.Equal("http://localhost:8080/", property.Value.ValueExpression);
             },
             property =>
             {
                 Assert.Equal("Key", property.Key);
-                // Key is empty unless ApiKey is set or resource is in emulator mode
-                Assert.Equal("", property.Value.ValueExpression);
+                Assert.Equal("OPENAI_KEY", property.Value.ValueExpression);
             });
     }
 }

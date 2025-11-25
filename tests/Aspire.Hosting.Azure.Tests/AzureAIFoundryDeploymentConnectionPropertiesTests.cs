@@ -16,6 +16,10 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
             .RunAsFoundryLocal()
             .AddDeployment("chat", AIFoundryModel.Local.Phi4);
 
+        // These would be set when the resource starts
+        deployment.Resource.Parent.EmulatorServiceUri = new Uri("http://localhost:8080");
+        deployment.Resource.Parent.ApiKey = "OPENAI_KEY";
+
         var properties = ((IResourceWithConnectionString)deployment.Resource).GetConnectionProperties().ToArray();
 
         Assert.Equal(5, properties.Length);
@@ -25,14 +29,12 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                // Assigned dynamically
-                Assert.Equal("", property.Value.ValueExpression);
+                Assert.Equal("http://localhost:8080/", property.Value.ValueExpression);
             },
             property =>
             {
                 Assert.Equal("Key", property.Key);
-                // Assigned dynamically
-                Assert.Equal("", property.Value.ValueExpression);
+                Assert.Equal("OPENAI_KEY", property.Value.ValueExpression);
             },
             property =>
             {
@@ -67,7 +69,7 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{aifoundry.outputs.endpoint}", property.Value.ValueExpression);
+                Assert.Equal("{aifoundry.outputs.aiFoundryApiEndpoint}", property.Value.ValueExpression);
             },
             property =>
             {
