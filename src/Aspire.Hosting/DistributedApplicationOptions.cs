@@ -167,10 +167,10 @@ public sealed class DistributedApplicationOptions
             var fullPath = Path.GetFullPath(projectPath);
             if (Directory.Exists(fullPath))
             {
-                var projectName = ProjectName;
-                if (!string.IsNullOrEmpty(projectName))
+                var name = ProjectName;
+                if (!string.IsNullOrEmpty(name))
                 {
-                    var csprojPath = Path.Combine(fullPath, $"{projectName}.csproj");
+                    var csprojPath = Path.Combine(fullPath, $"{name}.csproj");
                     if (File.Exists(csprojPath))
                     {
                         return csprojPath;

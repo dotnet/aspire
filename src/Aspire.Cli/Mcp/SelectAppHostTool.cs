@@ -73,7 +73,9 @@ internal sealed class SelectAppHostTool(IAuxiliaryBackchannelMonitor auxiliaryBa
             .FirstOrDefault(c =>
             {
                 if (c.AppHostInfo?.AppHostPath is null)
+                {
                     return false;
+                }
                 var candidatePath = Path.GetFullPath(c.AppHostInfo.AppHostPath);
                 return string.Equals(candidatePath, resolvedPath, StringComparison.OrdinalIgnoreCase);
             });
