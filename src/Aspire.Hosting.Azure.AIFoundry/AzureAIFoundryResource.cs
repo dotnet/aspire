@@ -42,9 +42,11 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// In Azure mode, resolves to the Azure AI Foundry endpoint.
     /// </remarks>
     public ReferenceExpression UriExpression =>
-        IsEmulator && EmulatorServiceUri is not null ?
-            ReferenceExpression.Create($"{EmulatorServiceUri.ToString()}") :
-            ReferenceExpression.Create($"{Endpoint}");
+        IsEmulator ?
+            EmulatorServiceUri is not null ?
+                ReferenceExpression.Create($"{EmulatorServiceUri.ToString()}") :
+                ReferenceExpression.Empty :
+            ReferenceExpression.Create($"{AIFoundryApiEndpoint}");
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
@@ -108,6 +110,10 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Uri", UriExpression);
-        yield return new("Key", ReferenceExpression.Create($"{ApiKey}"));
+
+        if (IsEmulator)
+        {
+            yield return new("Key", ReferenceExpression.Create($"{ApiKey}"));
+        }
     }
 }
