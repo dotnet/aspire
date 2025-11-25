@@ -311,7 +311,6 @@ jobs:
           --no-restore
           --no-build
           --
-          --no-progress
           --ignore-exit-code 8
           --report-trx
           --crashdump
