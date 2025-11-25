@@ -43,10 +43,19 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             throw new InvalidOperationException("AppHost path not found in configuration.");
         }
 
+        // Get the CLI process ID if the AppHost was launched via the CLI
+        int? cliProcessId = null;
+        var cliPidString = configuration[KnownConfigNames.CliProcessId];
+        if (!string.IsNullOrEmpty(cliPidString) && int.TryParse(cliPidString, out var parsedCliPid))
+        {
+            cliProcessId = parsedCliPid;
+        }
+
         return Task.FromResult(new AppHostInformation
         {
             AppHostPath = appHostPath,
-            ProcessId = Environment.ProcessId
+            ProcessId = Environment.ProcessId,
+            CliProcessId = cliProcessId
         });
     }
 

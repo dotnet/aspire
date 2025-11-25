@@ -280,4 +280,10 @@ internal sealed class AppHostInformation
     /// Gets or sets the process ID of the AppHost.
     /// </summary>
     public required int ProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the CLI that launched the AppHost, if applicable.
+    /// This value is only set when the AppHost is launched via the Aspire CLI.
+    /// </summary>
+    public int? CliProcessId { get; init; }
 }

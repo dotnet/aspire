@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net.Sockets;
 using Aspire.Cli.Commands;
 using Microsoft.Extensions.Hosting;
@@ -189,8 +190,21 @@ internal sealed class AuxiliaryBackchannelMonitor(
 
             if (_connections.TryAdd(hash, connection))
             {
-                logger.LogInformation("Successfully connected to AppHost {Hash}. Dashboard: {DashboardUrl}, AppHostPath: {AppHostPath}, InScope: {InScope}", 
-                    hash, mcpInfo?.EndpointUrl ?? "N/A", appHostInfo?.AppHostPath ?? "N/A", isInScope);
+                logger.LogInformation(
+                    "Successfully connected to AppHost {Hash}. " +
+                    "AppHost Path: {AppHostPath}, " +
+                    "AppHost PID: {AppHostPid}, " +
+                    "CLI PID: {CliPid}, " +
+                    "Dashboard URL: {DashboardUrl}, " +
+                    "Dashboard Token: {DashboardToken}, " +
+                    "In Scope: {InScope}",
+                    hash,
+                    appHostInfo?.AppHostPath ?? "N/A",
+                    appHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
+                    appHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A",
+                    mcpInfo?.EndpointUrl ?? "N/A",
+                    mcpInfo?.ApiToken is not null ? "***" + mcpInfo.ApiToken[^4..] : "N/A",
+                    isInScope);
             }
             else
             {

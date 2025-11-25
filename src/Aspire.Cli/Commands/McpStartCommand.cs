@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -126,7 +127,16 @@ internal sealed class McpStartCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            _logger.LogDebug("Connecting to dashboard MCP server at {EndpointUrl}", connection.McpInfo.EndpointUrl);
+            _logger.LogInformation(
+                "Connecting to dashboard MCP server. " +
+                "Dashboard URL: {EndpointUrl}, " +
+                "AppHost Path: {AppHostPath}, " +
+                "AppHost PID: {AppHostPid}, " +
+                "CLI PID: {CliPid}",
+                connection.McpInfo.EndpointUrl,
+                connection.AppHostInfo?.AppHostPath ?? "N/A",
+                connection.AppHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
+                connection.AppHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A");
 
             // Create HTTP transport to the dashboard's MCP server
             var transportOptions = new HttpClientTransportOptions
