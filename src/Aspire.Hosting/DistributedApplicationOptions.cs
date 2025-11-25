@@ -162,8 +162,27 @@ public sealed class DistributedApplicationOptions
         
         if (!string.IsNullOrEmpty(projectPath))
         {
-            // The metadata contains the full path to the .csproj file
-            return Path.GetFullPath(projectPath);
+            // The metadata may contain either the full path to the .csproj file or just the project directory.
+            // If it's a directory, combine with the project name to form the .csproj file path.
+            var fullPath = Path.GetFullPath(projectPath);
+            if (Directory.Exists(fullPath))
+            {
+                var projectName = ProjectName;
+                if (!string.IsNullOrEmpty(projectName))
+                {
+                    var csprojPath = Path.Combine(fullPath, $"{projectName}.csproj");
+                    if (File.Exists(csprojPath))
+                    {
+                        return csprojPath;
+                    }
+                }
+                // If we can't resolve the file, fall through to fallback logic below.
+            }
+            else if (File.Exists(fullPath) && fullPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return fullPath;
+            }
+            // If neither, fall through to fallback logic below.
         }
 
         // Fallback: construct the path from directory and project name
