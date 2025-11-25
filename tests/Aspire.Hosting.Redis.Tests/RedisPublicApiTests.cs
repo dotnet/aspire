@@ -25,7 +25,7 @@ public class RedisPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void AddRedisShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddRedis(name);
@@ -110,7 +110,7 @@ public class RedisPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void WithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("Redis");
         var source = isNull ? null! : string.Empty;
 
@@ -161,7 +161,7 @@ public class RedisPublicApiTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void RedisInsightWithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
         var redis = builder.AddRedis("Redis").WithRedisInsight(resource => { redisInsightBuilder = resource; });
         var source = isNull ? null! : string.Empty;
