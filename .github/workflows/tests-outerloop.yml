@@ -37,4 +37,5 @@ jobs:
       testRunnerName: "OuterloopTestRunsheetBuilder"
       extraRunSheetBuilderArgs: "-p:RunOuterloopTests=true"
       extraTestArgs: "--filter-trait outerloop=true"
+      extraTestProjectArgs: "/p:RunOuterloopTests=true"
       enablePlaywrightInstall: true

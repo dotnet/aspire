@@ -14,6 +14,8 @@
     </PropertyGroup>
 
     <PropertyGroup>
+      <_RunRegularTestsOnly Condition="'$(RunOuterloopTests)' != 'true' and '$(RunQuarantinedTests)' != 'true'">true</_RunRegularTestsOnly>
+
       <_TestEnvironment>%(TestToRun.EnvironmentDisplay)</_TestEnvironment>
       <_TestAssembly>%(TestToRun.Identity)</_TestAssembly>
       <_TestAssembly Condition="'$(OS)'=='Windows_NT'">$([System.IO.Path]::ChangeExtension($(_TestAssembly), '.exe'))</_TestAssembly>
@@ -21,6 +23,10 @@
       <_TestRuntime>%(TestToRun.TestRuntime)</_TestRuntime>
       <_TestTimeout>%(TestToRun.TestTimeout)</_TestTimeout>
       <_TestRunnerAdditionalArguments>%(TestToRun.TestRunnerAdditionalArguments)</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments Condition="$(RunOuterloopTests)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-trait outerloop=true</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments Condition="$(RunQuarantinedTests)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-trait qurantined=true</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments Condition="$(_RunRegularTestsOnly)' == 'true'">$(_TestRunnerAdditionalArguments) --filter-not-trait quarantined=true --filter-not-trait outerloop=true</_TestRunnerAdditionalArguments>
+      <_TestRunnerAdditionalArguments>$(_TestRunnerAdditionalArguments) --filter-not-trait category=failing</_TestRunnerAdditionalArguments>
 
       <_TestRunner>$(_TestAssembly)</_TestRunner>
       <_TestRunnerArgs>$(_TestRunnerAdditionalArguments) --results-directory "$(_TestResultDirectory)" --report-xunit --report-xunit-filename "$(_TestResultXmlFileName)" --report-xunit-html --report-xunit-html-filename "$(_TestResultHtmlFileName)" --report-trx --report-trx-filename "$(_TestResultTrxFileName)"</_TestRunnerArgs>
