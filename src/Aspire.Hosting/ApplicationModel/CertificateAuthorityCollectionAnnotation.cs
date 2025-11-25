@@ -41,6 +41,34 @@ public enum CertificateTrustScope
 public sealed class CertificateAuthorityCollectionAnnotation : IResourceAnnotation
 {
     /// <summary>
+    /// Creates a new <see cref="CertificateAuthorityCollectionAnnotation"/> instance from one or more merged <see cref="CertificateAuthorityCollectionAnnotation"/> instances.
+    /// Certificate authority collections from all provided instances will be combined into the new instance, while the last vlaues for <see cref="TrustDeveloperCertificates"/>
+    /// and <see cref="Scope"/> will be used, with null values being ignored (previous value if any will be retained).
+    /// </summary>
+    /// <param name="other">The other <see cref="CertificateAuthorityCollectionAnnotation"/>s that will be merged to create the new instance.</param>
+    /// <returns>A merged copy of the provided <see cref="CertificateAuthorityCollectionAnnotation"/> instances</returns>
+    public static CertificateAuthorityCollectionAnnotation From(params CertificateAuthorityCollectionAnnotation[] other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation();
+        foreach (var item in other)
+        {
+            annotation.CertificateAuthorityCollections.AddRange(item.CertificateAuthorityCollections);
+            if (item.TrustDeveloperCertificates.HasValue)
+            {
+                annotation.TrustDeveloperCertificates = item.TrustDeveloperCertificates;
+            }
+            if (item.Scope.HasValue)
+            {
+                annotation.Scope = item.Scope;
+            }
+        }
+
+        return annotation;
+    }
+
+    /// <summary>
     /// Gets the <see cref="CertificateAuthorityCollection"/> that is being referenced.
     /// </summary>
     public List<CertificateAuthorityCollection> CertificateAuthorityCollections { get; internal set; } = new List<CertificateAuthorityCollection>();

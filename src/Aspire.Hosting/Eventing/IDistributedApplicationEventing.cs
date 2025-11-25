@@ -19,7 +19,7 @@ public interface IDistributedApplicationEventing
     DistributedApplicationEventSubscription Subscribe<T>(Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationEvent;
 
     /// <summary>
-    /// Subscribes a callback to a specific event type 
+    /// Subscribes a callback to a specific event type
     /// </summary>
     /// <typeparam name="T">The type of the event.</typeparam>
     /// <param name="resource">The resource instance associated with the event.</param>
@@ -53,4 +53,27 @@ public interface IDistributedApplicationEventing
     /// <returns>A task that can be awaited.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
     Task PublishAsync<T>(T @event, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
+
+    /// <summary>
+    /// Publishes an event to all subscribes of the specific event type in reverse subscription order.
+    /// </summary>
+    /// <typeparam name="T">The type of the event</typeparam>
+    /// <param name="reverseOrder">Whether to publish the events in reverse subscription order.</param>
+    /// <param name="event">The event.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that can be awaited.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
+    Task PublishAsync<T>(T @event, bool reverseOrder, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
+
+    /// <summary>
+    /// Publishes an event to all subscribes of the specific event type in reverse subscription order.
+    /// </summary>
+    /// <typeparam name="T">The type of the event</typeparam>
+    /// <param name="event">The event.</param>
+    /// <param name="reverseOrder">Whether to publish the events in reverse subscription order.</param>
+    /// <param name="dispatchBehavior">The dispatch behavior for the event.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that can be awaited.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
+    Task PublishAsync<T>(T @event, bool reverseOrder, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
 }

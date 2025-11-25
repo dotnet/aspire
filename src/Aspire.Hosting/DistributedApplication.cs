@@ -498,6 +498,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
             {
                 await lifecycleHook.BeforeStartAsync(appModel, cancellationToken).ConfigureAwait(false);
             }
+
+            foreach (var resource in appModel.Resources)
+            {
+                // Publish finalizer events in reverse order to ensure that any event
+                await eventing.PublishAsync(new FinalizeResourceAnnotationsEvent(resource, _host.Services), reverseOrder: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {

@@ -26,5 +26,5 @@ public enum EventDispatchBehavior
     /// <summary>
     /// Fires events concurrently but does not block.
     /// </summary>
-    NonBlockingConcurrent
+    NonBlockingConcurrent,
 }
