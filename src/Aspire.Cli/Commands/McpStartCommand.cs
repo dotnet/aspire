@@ -202,7 +202,7 @@ internal sealed class McpStartCommand : BaseCommand
         {
             var selectedConnection = connections.FirstOrDefault(c =>
                 c.AppHostInfo?.AppHostPath != null &&
-                string.Equals(Path.GetFullPath(c.AppHostInfo.AppHostPath), Path.GetFullPath(selectedPath), StringComparison.OrdinalIgnoreCase));
+                string.Equals(c.AppHostInfo.AppHostPath, selectedPath, StringComparison.OrdinalIgnoreCase));
 
             if (selectedConnection != null)
             {
