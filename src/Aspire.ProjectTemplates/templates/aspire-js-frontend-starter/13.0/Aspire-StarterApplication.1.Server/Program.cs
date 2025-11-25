@@ -5,8 +5,6 @@ builder.AddServiceDefaults();
 #if (UseRedisCache)
 builder.AddRedisClientBuilder("cache")
     .WithOutputCache();
-#else
-builder.Services.AddOutputCache();
 #endif
 
 // Add services to the container.
@@ -29,7 +27,9 @@ if (app.Environment.IsDevelopment())
 }
 
 #endif
+#if (UseRedisCache)
 app.UseOutputCache();
+#endif
 
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
 
@@ -46,7 +46,9 @@ api.MapGet("weatherforecast", () =>
         .ToArray();
     return forecast;
 })
+#if (UseRedisCache)
 .CacheOutput(p => p.Expire(TimeSpan.FromSeconds(5)))
+#endif
 .WithName("GetWeatherForecast");
 
 app.MapDefaultEndpoints();
