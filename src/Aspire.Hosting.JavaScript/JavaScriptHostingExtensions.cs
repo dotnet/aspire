@@ -27,38 +27,53 @@ public static class JavaScriptHostingExtensions
     private const string DefaultNodeVersion = "22";
 
     // See https://github.com/vitejs/vite/blob/4f8171eb3046bd70c83964689897dab4c6b58bc0/packages/vite/src/node/constants.ts#L97
+    // This is the order of config files that Vite will look for by default
     private static readonly string[] s_defaultConfigFiles = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs", "vite.config.mts", "vite.config.cts"];
 
-    private const string AspireViteConfig = @"import { defineConfig, UserConfig, UserConfigFnObject } from 'vite'
-import config from '%%ASPIRE_VITE_CONFIG_PATH%%'
+    // The token to replace with the relative path to the user's Vite config file
+    private const string AspireViteRelativeConfigToken = "%%ASPIRE_VITE_RELATIVE_CONFIG_PATH%%";
 
-const wrapConfig = (innerConfig: UserConfig): UserConfig => ({
-    ...innerConfig,
-    server: {
-        ...innerConfig.server,
-        https: innerConfig.server?.https ? innerConfig.server.https : process.env['TLS_CONFIG_PFX'] ? {
-            pfx: process.env['TLS_CONFIG_PFX'],
-            passphrase: process.env['TLS_CONFIG_PASSWORD'],
-        } : undefined,
+    // The token to replace with the absolute path to the original Vite config file
+    private const string AspireViteAbsoluteConfigToken = "%%ASPIRE_VITE_ABSOLUTE_CONFIG_PATH%%";
+
+    // A template Vite config that loads an existing config provides a default https configuration if one isn't present
+    // Uses environment variables to configure a TLS certificate in PFX format and its password if specified
+    // The value of %%ASPIRE_VITE_RELATIVE_CONFIG_PATH%% is replaced with the path to the user's actual Vite config file at runtime
+    // Vite only supports module style config files, so we don't have to handle commonjs style imports or exports here
+    private const string AspireViteConfig = """
+    import { defineConfig, UserConfig, UserConfigFnObject } from 'vite'
+    import config from '%%ASPIRE_VITE_RELATIVE_CONFIG_PATH%%'
+
+    console.log('Applying Aspire specific Vite configuration for HTTPS support.')
+    console.log('Overriding default Vite server configuration at "%%ASPIRE_VITE_ABSOLUTE_CONFIG_PATH%%"')
+
+    const wrapConfig = (innerConfig) => ({
+        ...innerConfig,
+        server: {
+            ...innerConfig.server,
+            https: innerConfig.server?.https ? innerConfig.server.https : process.env['TLS_CONFIG_PFX'] ? {
+                pfx: process.env['TLS_CONFIG_PFX'],
+                passphrase: process.env['TLS_CONFIG_PASSWORD'],
+            } : undefined,
+        }
+    })
+
+    let finalConfig: UserConfig | UserConfigFnObject
+    if (typeof config === 'function') {
+        finalConfig = defineConfig((cfg) => {
+            let innerConfig = config(cfg)
+
+            return wrapConfig(innerConfig)
+        });
+    } else if (typeof config === 'object' && config !== null) {
+        let innerConfig = config as UserConfig
+        finalConfig = defineConfig(wrapConfig(innerConfig))
+    } else {
+        throw new Error('Could not load inner config')
     }
-})
 
-let finalConfig: UserConfig | UserConfigFnObject
-if (typeof config === 'function') {
-    finalConfig = defineConfig((cfg) => {
-        let innerConfig = config(cfg)
-
-        console.log('Overriding base config:', JSON.stringify(innerConfig, null, 2))
-        return wrapConfig(innerConfig)
-    });
-} else if (typeof config === 'object' && config !== null) {
-    let innerConfig = config as UserConfig
-    finalConfig = defineConfig(wrapConfig(innerConfig))
-} else {
-    throw new Error('Could not load inner config')
-}
-
-export default finalConfig";
+    export default finalConfig
+    """;
 
     /// <summary>
     /// Adds a node application to the application model. Node should be available on the PATH.
@@ -494,14 +509,94 @@ export default finalConfig";
 
                 c.Args.Add("--port");
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
+
+                if (!string.IsNullOrEmpty(resource.ViteConfigPath))
+                {
+                    c.Args.Add("--config");
+                    c.Args.Add(resource.ViteConfigPath);
+                }
             })
             .WithHttpEndpoint(env: "PORT")
-            .WithCertificateKeyPairConfiguration(ctx =>
+            .WithServerAuthenticationCertificateConfiguration(async ctx =>
             {
-                ctx.EnvironmentVariables["TLS_CONFIG_PFX"] = ctx.PfxPath;
-                ctx.EnvironmentVariables["TLS_CONFIG_PASSWORD"] = ctx.Password;
+                string? configTarget = resource.ViteConfigPath;
 
-                return Task.CompletedTask;
+                // First we need to determine if there's an existing --config argument specified
+                var cfgIndex = ctx.Arguments.IndexOf("--config");
+                if (cfgIndex >= 0 && cfgIndex + 1 < ctx.Arguments.Count)
+                {
+                    configTarget = ctx.Arguments[cfgIndex + 1] switch
+                    {
+                        string s when !string.IsNullOrEmpty(s) && !s.StartsWith("--") => s,
+                        ReferenceExpression re => await re.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false),
+                        _ => null,
+                    };
+
+                    if (configTarget is null)
+                    {
+                        // Couldn't determine the config target, so don't modify anything
+                        return;
+                    }
+
+                    // Remove the original --config argument and its value
+                    ctx.Arguments.RemoveAt(cfgIndex);
+                    ctx.Arguments.RemoveAt(cfgIndex);
+                }
+                else if (cfgIndex >= 0)
+                {
+                    // --config argument is present but is missing a value
+                    return;
+                }
+
+                if (configTarget is null)
+                {
+                    // The user didn't specify a specific vite config file, so we need to look for one of the default config files
+                    foreach (var configFile in s_defaultConfigFiles)
+                    {
+                        var candidatePath = Path.Combine(appDirectory, configFile);
+                        if (File.Exists(candidatePath))
+                        {
+                            configTarget = Path.GetRelativePath(Path.Join(appDirectory, "node_modules", ".bin"), candidatePath);
+                            break;
+                        }
+                    }
+                }
+
+                if (configTarget is not null)
+                {
+                    try
+                    {
+                        // We generate an Aspire specific Vite config file that will mutate the original user config to add HTTPS support
+                        var absoluteConfigPath = Path.GetFullPath(configTarget, appDirectory);
+                        // If we are expecting to run the vite app with HTTPS termination, generate an Aspire specific Vite config file that can mutate the user's original config
+                        var aspireConfig = AspireViteConfig
+                            .Replace(AspireViteRelativeConfigToken, configTarget.Replace("\\", "/"), StringComparison.Ordinal)
+                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath, StringComparison.Ordinal);
+                        var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", $"aspire.{Path.GetFileName(configTarget)}");
+                        File.WriteAllText(aspireConfigPath, aspireConfig);
+
+                        // Override the path to the Vite config file to use the Aspire generated one. If we made it here, we
+                        // know there isn't an existing --config argument present.
+                        ctx.Arguments.Add("--config");
+                        ctx.Arguments.Add(aspireConfigPath);
+
+                        ctx.EnvironmentVariables["TLS_CONFIG_PFX"] = ctx.PfxPath;
+                        if (ctx.Password is not null)
+                        {
+                            ctx.EnvironmentVariables["TLS_CONFIG_PASSWORD"] = ctx.Password;
+                        }
+                    }
+                    catch
+                    {
+                        // TODO: Log failure to write Aspire Vite config file
+                        if (!string.IsNullOrEmpty(configTarget))
+                        {
+                            // Fallback to using the existing config target
+                            ctx.Arguments.Add("--config");
+                            ctx.Arguments.Add(configTarget);
+                        }
+                    }
+                }
             });
 
         if (builder.ExecutionContext.IsRunMode)
@@ -511,7 +606,7 @@ export default finalConfig";
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
                     if (developerCertificateService.DefaultTlsTerminationEnabled)
                     {
@@ -527,45 +622,7 @@ export default finalConfig";
 
                 if (addHttps)
                 {
-                    string? configTarget = null;
-                    if (resource.TryGetLastAnnotation<ViteConfigAnnotation>(out var viteConfig) && !string.IsNullOrEmpty(viteConfig.ConfigPath))
-                    {
-                        configTarget = Path.GetRelativePath(Path.Join(appDirectory, "node_modules", ".bin"), Path.Join(appDirectory, viteConfig.ConfigPath));
-                    }
-                    else
-                    {
-                        foreach (var configFile in s_defaultConfigFiles)
-                        {
-                            var candidatePath = Path.Combine(appDirectory, configFile);
-                            if (File.Exists(candidatePath))
-                            {
-                                configTarget = Path.GetRelativePath(Path.Join(appDirectory, "node_modules", ".bin"), candidatePath);
-                                break;
-                            }
-                        }
-                    }
-
-                    if (configTarget is not null)
-                    {
-                        try
-                        {
-                            var aspireConfig = AspireViteConfig.Replace("%%ASPIRE_VITE_CONFIG_PATH%%", configTarget.Replace("\\", "/"), StringComparison.Ordinal);
-                            var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", "aspire.vite.config.ts");
-                            File.WriteAllText(aspireConfigPath, aspireConfig);
-
-                            resourceBuilder.WithArgs("--config", aspireConfigPath);
-                            resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
-                        }
-                        catch
-                        {
-                            // TODO: Log failure to write Aspire Vite config file
-                            if (!string.IsNullOrEmpty(viteConfig?.ConfigPath))
-                            {
-                                // Fallback to using the existing config file
-                                resourceBuilder.WithArgs("--config", viteConfig.ConfigPath);
-                            }
-                        }
-                    }
+                    resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
                 }
 
                 return Task.CompletedTask;
@@ -581,12 +638,14 @@ export default finalConfig";
     /// <param name="builder">The resource builder.</param>
     /// <param name="configPath">The path to the Vite configuration file. Relative to the service root.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<ViteAppResource> WithConfig(this IResourceBuilder<ViteAppResource> builder, string configPath)
+    public static IResourceBuilder<ViteAppResource> WithViteConfig(this IResourceBuilder<ViteAppResource> builder, string configPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(configPath);
 
-        return builder.WithAnnotation(new ViteConfigAnnotation { ConfigPath = configPath }, ResourceAnnotationMutationBehavior.Replace);
+        builder.Resource.ViteConfigPath = configPath;
+
+        return builder;
     }
 
     /// <summary>
