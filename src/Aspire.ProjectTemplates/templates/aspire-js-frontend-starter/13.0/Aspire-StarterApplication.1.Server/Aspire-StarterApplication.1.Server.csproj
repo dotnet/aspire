@@ -23,4 +23,10 @@
     <PackageReference Condition=" '$(Framework)' != 'net8.0' " Include="OpenTelemetry.Instrumentation.Runtime" Version="!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!" />
   </ItemGroup>
 
+  <!--#if (UseRedisCache) -->
+  <ItemGroup>
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+  </ItemGroup>
+
+  <!--#endif -->
 </Project>
