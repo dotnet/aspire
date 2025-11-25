@@ -167,6 +167,7 @@ public class Program
 
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
