@@ -233,8 +233,10 @@ internal sealed class AuxiliaryBackchannelMonitor(
         var workingDirectory = Path.GetFullPath(executionContext.WorkingDirectory.FullName);
         var normalizedAppHostPath = Path.GetFullPath(appHostPath);
 
-        // Check if the AppHost path is within the working directory
-        return normalizedAppHostPath.StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase);
+        // Check if the AppHost path is within the working directory using a robust, cross-platform method
+        var relativePath = Path.GetRelativePath(workingDirectory, normalizedAppHostPath);
+        // If the relative path starts with ".." or is equal to "..", then it's outside the working directory
+        return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
     }
 
     private static async Task DisconnectAsync(AppHostConnection connection)
