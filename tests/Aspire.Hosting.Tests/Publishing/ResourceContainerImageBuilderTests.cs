@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIRECOMPUTE001
 
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;

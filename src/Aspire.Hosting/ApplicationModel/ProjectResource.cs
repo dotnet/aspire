@@ -3,11 +3,11 @@
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -49,18 +49,10 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         }));
 
         // Add default container build options annotation
-        Annotations.Add(new ContainerBuildOptionsCallbackAnnotation(async context =>
+        Annotations.Add(new ContainerBuildOptionsCallbackAnnotation(context =>
         {
-            var projectMetadata = this.GetProjectMetadata();
-            var projectPath = projectMetadata.ProjectPath;
-
-            // Resolve ContainerRepository and ContainerImageTag from project file
-            var containerRepository = await EvaluateProjectPropertyAsync(projectPath, "ContainerRepository", context.CancellationToken, context.Logger).ConfigureAwait(false);
-            var containerImageTag = await EvaluateProjectPropertyAsync(projectPath, "ContainerImageTag", context.CancellationToken, context.Logger).ConfigureAwait(false);
-
-            // Use resolved values or fall back to defaults
-            context.LocalImageName = !string.IsNullOrEmpty(containerRepository) ? containerRepository : name.ToLowerInvariant();
-            context.LocalImageTag = !string.IsNullOrEmpty(containerImageTag) ? containerImageTag : "latest";
+            context.LocalImageName = name.ToLowerInvariant();
+            context.LocalImageTag = "latest";
             context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         }));
 
@@ -210,59 +202,6 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             // Remove the temporary tagged image
             logger.LogDebug("Removing temporary image {TempImageName}", tempImageName);
             await containerRuntime.RemoveImageAsync(tempImageName, ctx.CancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task<string?> EvaluateProjectPropertyAsync(string projectPath, string propertyName, CancellationToken cancellationToken, ILogger logger)
-    {
-        try
-        {
-            var output = new StringBuilder();
-
-            var spec = new Dcp.Process.ProcessSpec("dotnet")
-            {
-                Arguments = $"msbuild \"{projectPath}\" -nologo -v:m -t:EvaluateProjectProperty -p:Property={propertyName}",
-                ThrowOnNonZeroReturnCode = false,
-                OnOutputData = data => output.AppendLine(data),
-                OnErrorData = error => logger.LogDebug("dotnet msbuild (stderr): {Error}", error)
-            };
-
-            logger.LogDebug("Evaluating MSBuild property {PropertyName} for project {ProjectPath}", propertyName, projectPath);
-            var (pendingProcessResult, processDisposable) = Dcp.Process.ProcessUtil.Run(spec);
-
-            await using (processDisposable.ConfigureAwait(false))
-            {
-                var processResult = await pendingProcessResult
-                    .WaitAsync(cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (processResult.ExitCode != 0)
-                {
-                    logger.LogDebug("Failed to evaluate MSBuild property {PropertyName} for project {ProjectPath}. Exit code: {ExitCode}",
-                        propertyName, projectPath, processResult.ExitCode);
-                    return null;
-                }
-            }
-
-            // The output format is typically:
-            // EvaluateProjectProperty:
-            //   PropertyValue
-            // We need to parse and extract the value
-            var lines = output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (lines.Length > 1)
-            {
-                var value = lines[1];
-                logger.LogDebug("Resolved MSBuild property {PropertyName} for project {ProjectPath}: {Value}", propertyName, projectPath, value);
-                return value;
-            }
-
-            logger.LogDebug("MSBuild property {PropertyName} not found for project {ProjectPath}", propertyName, projectPath);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Error evaluating MSBuild property {PropertyName} for project {ProjectPath}", propertyName, projectPath);
-            return null;
         }
     }
 
