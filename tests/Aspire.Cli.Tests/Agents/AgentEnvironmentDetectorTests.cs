@@ -38,12 +38,10 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var scanner = new TestAgentEnvironmentScanner
         {
-            ApplicatorToAdd = new AgentEnvironmentApplicator
-            {
-                Description = "Test Environment",
-                Fingerprint = "test-fingerprint",
-                ApplyCallback = _ => Task.CompletedTask
-            }
+            ApplicatorToAdd = new AgentEnvironmentApplicator(
+                "Test Environment",
+                "test-fingerprint",
+                _ => Task.CompletedTask)
         };
         var detector = new AgentEnvironmentDetector([scanner]);
 
@@ -60,21 +58,17 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var scanner1 = new TestAgentEnvironmentScanner
         {
-            ApplicatorToAdd = new AgentEnvironmentApplicator
-            {
-                Description = "Environment 1",
-                Fingerprint = "fingerprint-1",
-                ApplyCallback = _ => Task.CompletedTask
-            }
+            ApplicatorToAdd = new AgentEnvironmentApplicator(
+                "Environment 1",
+                "fingerprint-1",
+                _ => Task.CompletedTask)
         };
         var scanner2 = new TestAgentEnvironmentScanner
         {
-            ApplicatorToAdd = new AgentEnvironmentApplicator
-            {
-                Description = "Environment 2",
-                Fingerprint = "fingerprint-2",
-                ApplyCallback = _ => Task.CompletedTask
-            }
+            ApplicatorToAdd = new AgentEnvironmentApplicator(
+                "Environment 2",
+                "fingerprint-2",
+                _ => Task.CompletedTask)
         };
         var detector = new AgentEnvironmentDetector([scanner1, scanner2]);
 

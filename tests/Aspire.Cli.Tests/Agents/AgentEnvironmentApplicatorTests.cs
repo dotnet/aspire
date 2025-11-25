@@ -11,16 +11,14 @@ public class AgentEnvironmentApplicatorTests
     public async Task ApplyAsync_InvokesCallback()
     {
         var callbackInvoked = false;
-        var applicator = new AgentEnvironmentApplicator
-        {
-            Description = "Test Environment",
-            Fingerprint = "test-fingerprint",
-            ApplyCallback = _ =>
+        var applicator = new AgentEnvironmentApplicator(
+            "Test Environment",
+            "test-fingerprint",
+            _ =>
             {
                 callbackInvoked = true;
                 return Task.CompletedTask;
-            }
-        };
+            });
 
         await applicator.ApplyAsync(CancellationToken.None);
 
@@ -32,16 +30,14 @@ public class AgentEnvironmentApplicatorTests
     {
         using var cts = new CancellationTokenSource();
         CancellationToken receivedToken = default;
-        var applicator = new AgentEnvironmentApplicator
-        {
-            Description = "Test Environment",
-            Fingerprint = "test-fingerprint",
-            ApplyCallback = ct =>
+        var applicator = new AgentEnvironmentApplicator(
+            "Test Environment",
+            "test-fingerprint",
+            ct =>
             {
                 receivedToken = ct;
                 return Task.CompletedTask;
-            }
-        };
+            });
 
         await applicator.ApplyAsync(cts.Token);
 
@@ -51,15 +47,12 @@ public class AgentEnvironmentApplicatorTests
     [Fact]
     public void Applicator_HasRequiredProperties()
     {
-        var applicator = new AgentEnvironmentApplicator
-        {
-            Description = "My Description",
-            Fingerprint = "my-fingerprint",
-            ApplyCallback = _ => Task.CompletedTask
-        };
+        var applicator = new AgentEnvironmentApplicator(
+            "My Description",
+            "my-fingerprint",
+            _ => Task.CompletedTask);
 
         Assert.Equal("My Description", applicator.Description);
         Assert.Equal("my-fingerprint", applicator.Fingerprint);
-        Assert.NotNull(applicator.ApplyCallback);
     }
 }

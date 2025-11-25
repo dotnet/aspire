@@ -28,5 +28,5 @@ internal sealed class AgentEnvironmentScanContext
     /// <summary>
     /// Gets the collection of detected applicators.
     /// </summary>
-    internal IReadOnlyList<AgentEnvironmentApplicator> Applicators => _applicators;
+    public IReadOnlyList<AgentEnvironmentApplicator> Applicators => _applicators;
 }
