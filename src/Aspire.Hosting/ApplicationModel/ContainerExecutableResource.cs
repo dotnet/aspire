@@ -9,8 +9,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Executable resource that runs in a container.
 /// </summary>
-internal class ContainerExecutableResource(string name, ContainerResource containerResource, string command, string? workingDirectory)
-    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
+public class ContainerExecutableResource(string name, ContainerResource containerResource, string command, string? workingDirectory)
+    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithWaitSupport, IResourceWithParent<ContainerResource>
 {
     /// <summary>
     /// Gets the command associated with this executable resource.
@@ -20,17 +20,27 @@ internal class ContainerExecutableResource(string name, ContainerResource contai
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string? WorkingDirectory { get; } = workingDirectory;
+    public string? WorkingDirectory { get; } = ValidateWorkingDirectory(workingDirectory);
 
     /// <summary>
-    /// Args of the command to run in the container.
+    /// The parent container resource that this executable runs in.
     /// </summary>
-    public ICollection<string>? Args { get; init; }
+    public ContainerResource Parent => containerResource ?? throw new ArgumentNullException(nameof(containerResource));
 
-    /// <summary>
-    /// Target container resource that this executable runs in.
-    /// </summary>
-    public ContainerResource? TargetContainerResource { get; } = containerResource ?? throw new ArgumentNullException(nameof(containerResource));
+    private static string? ValidateWorkingDirectory(string? workingDirectory)
+    {
+        // in DCP if working directory is specified and is not rooted (does not start with "/")
+        // then execution will blow up with something like 'OCI runtime exec failed: exec failed: Cwd must be an absolute path: unknown'
+        if (workingDirectory is not null)
+        {
+            if (!workingDirectory.StartsWith("/"))
+            {
+                workingDirectory = "/" + workingDirectory;
+            }
+        }
+
+        return workingDirectory;
+    }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
