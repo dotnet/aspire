@@ -6,6 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -104,6 +106,9 @@ public static class AzureFunctionsProjectResourceExtensions
                 .Resource;
         }
 
+        // Register the FuncCoreToolsInstallationManager service for validating Azure Functions Core Tools
+        builder.Services.TryAddSingleton<FuncCoreToolsInstallationManager>();
+
         builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
         {
             var removeStorage = true;
@@ -136,6 +141,17 @@ public static class AzureFunctionsProjectResourceExtensions
         var functionsBuilder = builder.AddResource(resource)
             .WithAnnotation(projectMetadata)
             .WithAnnotation(new AzureFunctionsAnnotation());
+
+        // Only validate Azure Functions Core Tools in run mode (not during publish)
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            functionsBuilder.OnBeforeResourceStarted(static async (functionsResource, e, ct) =>
+            {
+                // Validate that Azure Functions Core Tools (func) is installed
+                var funcToolsManager = e.Services.GetRequiredService<FuncCoreToolsInstallationManager>();
+                await funcToolsManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
+        }
 
         // Add launch profile annotations like regular projects do.
         // This ensures proper VS integration and port handling.
