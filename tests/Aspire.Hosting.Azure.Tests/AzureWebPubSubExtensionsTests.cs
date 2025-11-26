@@ -62,7 +62,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]

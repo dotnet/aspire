@@ -50,6 +50,7 @@ public class AzureContainerAppEnvironmentExtensionsTests(ITestOutputHelper testO
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create parameters for existing Log Analytics Workspace in resource group "X"
         var lawName = builder.AddParameter("log-env-shared-name");

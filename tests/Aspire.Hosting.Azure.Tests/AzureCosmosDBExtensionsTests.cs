@@ -204,7 +204,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
 
         var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "cosmos-roles");
         var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
@@ -261,7 +260,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
-    
+
     [Fact]
     public async Task AddAzureCosmosDBEmulator()
     {
@@ -614,7 +613,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         // Assert - Verify that the SecretOwner is set to the Cosmos resource
         Assert.NotNull(cosmos.Resource.ConnectionStringSecretOutput);
         Assert.Same(cosmos.Resource, cosmos.Resource.ConnectionStringSecretOutput.SecretOwner);
-        
+
         // Also verify that References includes both the KeyVault and the Cosmos resource
         var references = ((IValueWithReferences)cosmos.Resource.ConnectionStringSecretOutput).References.ToList();
         Assert.Contains(cosmos.Resource, references);

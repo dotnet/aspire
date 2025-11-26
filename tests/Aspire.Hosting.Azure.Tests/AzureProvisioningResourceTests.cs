@@ -9,12 +9,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureProvisioningResourceTests
+public class AzureProvisioningResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task PublishAsAzureContainerApp_CreatesAzureContainerAppResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureContainerAppEnvironment("env");
 
@@ -49,6 +50,7 @@ public class AzureProvisioningResourceTests
     public async Task PublishAsAzureAppServiceWebsite_CreatesAzureWebSiteResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureAppServiceEnvironment("env");
 
@@ -83,6 +85,7 @@ public class AzureProvisioningResourceTests
     public async Task ContainerResource_WithPublishAsContainerApp_CreatesAzureContainerAppResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureContainerAppEnvironment("env");
 

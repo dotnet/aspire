@@ -31,6 +31,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task RequiresPublishAsExistingInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -48,6 +49,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task AddExistingAzureServiceBusInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -65,6 +67,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingServiceBusWithResourceGroupInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -90,6 +93,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingServiceBusWithStaticArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var serviceBus = builder.AddAzureServiceBus("messaging")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName");
         serviceBus.AddServiceBusQueue("queue");
@@ -105,6 +109,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingStorageAccountWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -122,6 +127,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingStorageAccountWithResourceGroupAndStaticArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storageAccount = builder.AddAzureStorage("storage")
             .PublishAsExisting("existingResourcename", "existingResourceGroupName");
@@ -137,6 +143,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAppConfigurationWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -154,6 +161,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingEventHubsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -171,6 +179,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingKeyVaultWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -188,6 +197,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingLogAnalyticsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -205,6 +215,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingPostgresSqlWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -222,6 +233,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingPostgresSqlWithResourceGroupWithPasswordAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -243,6 +255,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureSearchWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -260,6 +273,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureSignalRWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -277,6 +291,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureWebPubSubWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -294,6 +309,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureSqlServerWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -311,6 +327,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureSqlServerInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var sqlServer = builder.AddAzureSqlServer("sqlServer")
@@ -328,6 +345,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureRedisWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -346,6 +364,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureRedisWithResouceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var redis = builder.AddAzureRedis("redis")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName")
@@ -362,6 +381,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureRedisEnterpriseWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -378,6 +398,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureRedisEnterpriseWithResourceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var redis = builder.AddAzureRedisEnterprise("redis")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName")
@@ -393,6 +414,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureApplicationInsightsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -410,6 +432,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureOpenAIWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -433,6 +456,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureCosmosDBWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -453,6 +477,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureCosmosDBWithResourceGroupAccessKey()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -474,6 +499,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureContainerRegistryInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var acr = builder.AddAzureContainerRegistry("acr")
@@ -490,6 +516,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
     public async Task SupportsExistingAzureContainerRegistryInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");

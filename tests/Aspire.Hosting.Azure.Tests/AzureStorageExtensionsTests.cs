@@ -20,6 +20,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -46,6 +47,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -72,6 +74,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -98,6 +101,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -121,6 +125,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             builder.WithBlobPort(9001);
@@ -141,6 +146,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public async Task AddAzureStorage_WithApiVersionCheck_ShouldSetSkipApiVersionCheck(bool enableApiVersionCheck)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(x => x.WithApiVersionCheck(enableApiVersionCheck));
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(storage.Resource);
@@ -161,6 +167,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public async Task AddAzureStorage_RunAsEmulator_SetSkipApiVersionCheck()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(storage.Resource);
@@ -195,6 +202,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
         const string blobsConnectionString = "https://myblob";
 
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage");
@@ -209,6 +217,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AddBlobs_ConnectionString_unresolved_expected()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blob");
@@ -249,6 +258,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
         const string blobContainerName = "my-blob-container";
 
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage");
@@ -267,6 +277,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AddBlobContainer_ConnectionString_unresolved_expected()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storage = builder.AddAzureStorage("storage");
         var blobContainer = storage.AddBlobContainer(name: "myContainer");
@@ -301,6 +312,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
         const string connectionString = "https://myblob";
 
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage");
@@ -315,6 +327,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AddQueues_ConnectionString_unresolved_expected()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storage = builder.AddAzureStorage("storage");
         var queues = storage.AddQueues("queues");
@@ -353,6 +366,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
         const string queueName = "my-queue";
 
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage");
@@ -371,6 +385,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AddQueue_ConnectionString_unresolved_expected()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storage = builder.AddAzureStorage("storage");
         var queues = storage.AddQueues("queues");
@@ -383,6 +398,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public async Task ResourceNamesBicepValid()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage");
 
         var blobs = storage.AddBlobs("myblobs");
@@ -439,6 +455,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public async Task AddAzureStorageViaRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
@@ -523,6 +540,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public async Task AddAzureStorageViaRunModeAllowSharedKeyAccessOverridesDefaultFalse()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
@@ -830,6 +848,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AddBlobsReturnsExistingResourceWhenNamesMatch(bool addContainerFirst)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage");
 
         if (addContainerFirst)
@@ -857,6 +876,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void AddQueuesServiceReturnsExistingResourceWhenNamesMatch(bool addQueueFirst)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage");
 
         if (addQueueFirst)
@@ -882,6 +902,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage")
                             .RunAsEmulator();
 
@@ -909,6 +930,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper testOutputHelper)
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureStorageResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var existingName = builder.AddParameter("existing-storage-name");
         var existingResourceGroup = builder.AddParameter("existing-storage-rg");
 

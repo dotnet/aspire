@@ -19,6 +19,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory(".azure-environment-resource-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
+        builder.WithTestAndResourceLogging(output);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
@@ -51,6 +52,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory(".azure-environment-resource-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
+        builder.WithTestAndResourceLogging(output);
 
         var locationParam = builder.AddParameter("location", "eastus2");
         var resourceGroupParam = builder.AddParameter("resourceGroup", "my-rg");
@@ -84,6 +86,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
             tempDir.FullName);
+        builder.WithTestAndResourceLogging(output);
 
         builder.AddAzureContainerAppEnvironment("acaEnv");
 
@@ -132,6 +135,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
             tempDir.FullName);
+        builder.WithTestAndResourceLogging(output);
         builder.AddAzureContainerAppEnvironment("acaEnv");
         var storageSku = builder.AddParameter("storage-Sku", "Standard_LRS", publishValueAsDefault: true);
         var description = builder.AddParameter("skuDescription", "The sku is ", publishValueAsDefault: true);
@@ -187,6 +191,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
             tempDir.Path);
+        builder.WithTestAndResourceLogging(output);
 
         // Add an Azure storage resource that will be included
         var includedStorage = builder.AddAzureStorage("included-storage");
@@ -220,6 +225,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     {
         using var tempDir = new TempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.WithTestAndResourceLogging(output);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 

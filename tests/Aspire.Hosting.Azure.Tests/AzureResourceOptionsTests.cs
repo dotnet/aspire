@@ -25,6 +25,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
         using (var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath, step: "publish-manifest"))
         {
+            builder.WithTestAndResourceLogging(output);
             builder.Services.Configure<AzureProvisioningOptions>(options =>
             {
                 options.ProvisioningBuildOptions.InfrastructureResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
