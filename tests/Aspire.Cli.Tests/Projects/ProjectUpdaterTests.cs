@@ -2171,6 +2171,131 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(shouldMatch, match);
     }
+
+    [Fact]
+    public async Task UpdateProjectFileAsync_ManagePackageVersionsCentrallyFalse_UpdatesLocalProjectFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var appHostFolder = workspace.CreateDirectory("UpdateTester.AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostFolder.FullName, "UpdateTester.AppHost.csproj"));
+
+        var directoryPackagesPropsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Packages.props"));
+
+        // Create AppHost project file with ManagePackageVersionsCentrally set to false
+        await File.WriteAllTextAsync(
+            appHostProjectFile.FullName,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.2" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.2" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        // Create Directory.Packages.props (which should be ignored due to ManagePackageVersionsCentrally=false)
+        await File.WriteAllTextAsync(
+            directoryPackagesPropsFile.FullName,
+            """
+            <Project>
+                <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+                <ItemGroup>
+                </ItemGroup>
+            </Project>
+            """);
+
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = (sp) =>
+            {
+                return new TestDotNetCliRunner()
+                {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.6.0", Source = "nuget.org" },
+                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.6.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
+                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
+                    {
+                        var itemsAndProperties = new JsonObject();
+                        itemsAndProperties.WithSdkVersion("9.5.2");
+                        
+                        // Set ManagePackageVersionsCentrally to false
+                        itemsAndProperties.WithProperty("ManagePackageVersionsCentrally", "false");
+                        
+                        // Package has version in the project file (not in Directory.Packages.props)
+                        itemsAndProperties.WithPackageReference("Aspire.Hosting.AppHost", "9.5.2");
+
+                        var json = itemsAndProperties.ToJsonString();
+                        var document = JsonDocument.Parse(json);
+                        return (0, document);
+                    },
+                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
+                    {
+                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!));
+                        return 0;
+                    }
+                };
+            };
+
+            config.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.ConfirmCallback = (promptText, defaultValue) =>
+                {
+                    return true;
+                };
+
+                return interactionService;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var logger = provider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = provider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var packagingService = provider.GetRequiredService<IPackagingService>();
+
+        var channels = await packagingService.GetChannelsAsync();
+        var selectedChannel = channels.Single(c => c.Name == "default");
+
+        var projectUpdater = provider.GetRequiredService<IProjectUpdater>();
+        var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        Assert.True(updateResult.UpdatedApplied);
+
+        // Verify that the package was updated via dotnet add package (traditional management),
+        // not by updating Directory.Packages.props
+        Assert.Single(packagesAddsExecuted);
+        var packageUpdate = packagesAddsExecuted.Single();
+        Assert.Equal("Aspire.Hosting.AppHost", packageUpdate.PackageId);
+        Assert.Equal("9.6.0", packageUpdate.PackageVersion);
+        Assert.Equal(appHostProjectFile.FullName, packageUpdate.ProjectFile.FullName);
+
+        // Verify Directory.Packages.props was NOT modified (should still be empty)
+        var directoryPackagesContent = await File.ReadAllTextAsync(directoryPackagesPropsFile.FullName);
+        Assert.DoesNotContain("Aspire.Hosting.AppHost", directoryPackagesContent);
+    }
 }
 
 internal static class MSBuildJsonDocumentExtensions
