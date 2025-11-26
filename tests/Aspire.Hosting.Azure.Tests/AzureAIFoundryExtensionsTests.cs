@@ -8,12 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureAIFoundryExtensionsTests
+public class AzureAIFoundryExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddAzureAIFoundry_ShouldAddResourceToBuilder()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         Assert.NotNull(resourceBuilder);
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
@@ -23,7 +23,7 @@ public class AzureAIFoundryExtensionsTests
     [Fact]
     public void AddDeployment_ShouldAddDeploymentToResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var deploymentBuilder = resourceBuilder.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         Assert.NotNull(deploymentBuilder);
@@ -39,7 +39,7 @@ public class AzureAIFoundryExtensionsTests
     [Fact]
     public void WithProperties_ShouldApplyConfiguration()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var deploymentBuilder = resourceBuilder.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         bool configured = false;
@@ -57,7 +57,7 @@ public class AzureAIFoundryExtensionsTests
     [Fact]
     public void AddAzureAIFoundry_ConnectionString_IsCorrect()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         // The connection string should reference the aiFoundryApiEndpoint output
@@ -71,7 +71,7 @@ public class AzureAIFoundryExtensionsTests
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.False(resource.IsEmulator);
@@ -99,7 +99,7 @@ public class AzureAIFoundryExtensionsTests
     [Fact]
     public void RunAsFoundryLocal_DeploymentIsMarkedLocal()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         resourceBuilder.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
@@ -115,7 +115,7 @@ public class AzureAIFoundryExtensionsTests
     [Fact]
     public void RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
 
@@ -147,7 +147,7 @@ public class AzureAIFoundryExtensionsTests
     [Fact]
     public void AIFoundry_DeploymentConnectionString_HasDeploymentProperty()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
 
@@ -161,6 +161,7 @@ public class AzureAIFoundryExtensionsTests
     public async Task AddAzureAIFoundry_GeneratesValidBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var foundry = builder.AddAzureAIFoundry("foundry");
         var deployment1 = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
