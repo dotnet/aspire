@@ -11,7 +11,7 @@ on:
       attributeName:
         required: true
         type: string
-        description: 'Attribute name to filter tests by like QuarantinedTest or OuterLoopTest'
+        description: 'Attribute name to filter tests by like QuarantinedTest or OuterloopTest'
       extraRunSheetBuilderArgs:
         required: false
         type: string
