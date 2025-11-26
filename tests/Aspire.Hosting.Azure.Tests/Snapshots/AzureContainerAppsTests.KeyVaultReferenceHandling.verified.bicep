@@ -46,6 +46,11 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
           keyVaultUrl: mydb_kv_connectionstrings__mydb.properties.secretUri
         }
         {
+          name: 'mydb-uri'
+          identity: api_identity_outputs_id
+          keyVaultUrl: mydb_kv_connectionstrings__mydb.properties.secretUri
+        }
+        {
           name: 'secret-value'
           identity: api_identity_outputs_id
           keyVaultUrl: existingKv_secret.properties.secretUri
@@ -63,6 +68,10 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
             {
               name: 'ConnectionStrings__mydb'
               secretRef: 'connectionstrings--mydb'
+            }
+            {
+              name: 'MYDB_URI'
+              secretRef: 'mydb-uri'
             }
             {
               name: 'SECRET_VALUE'

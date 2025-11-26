@@ -25,6 +25,16 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(db);
 ```
 
+## Connection Properties
+
+When you reference Azure Kusto resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri`         | The cluster endpoint URI, typically `https://<cluster-name>.<region>.kusto.windows.net/` (or the HTTP endpoint when using the emulator) |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/en-us/kusto/
