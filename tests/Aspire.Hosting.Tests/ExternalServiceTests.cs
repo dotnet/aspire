@@ -9,12 +9,12 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Tests;
 
-public class ExternalServiceTests
+public class ExternalServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddExternalServiceWithString()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
 
@@ -26,7 +26,7 @@ public class ExternalServiceTests
     [Fact]
     public void AddExternalServiceWithUri()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var uri = new Uri("https://nuget.org/");
         var externalService = builder.AddExternalService("nuget", uri);
@@ -39,7 +39,7 @@ public class ExternalServiceTests
     [Fact]
     public void AddExternalServiceWithParameter()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var urlParam = builder.AddParameter("nuget-url");
         var externalService = builder.AddExternalService("nuget", urlParam);
@@ -58,7 +58,7 @@ public class ExternalServiceTests
     [InlineData("https://example.com#fragment")]
     public void AddExternalServiceThrowsWithInvalidUrl(string invalidUrl)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("nuget", invalidUrl));
         Assert.Contains("invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -67,7 +67,7 @@ public class ExternalServiceTests
     [Fact]
     public void AddExternalServiceThrowsWithRelativeUri()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var relativeUri = new Uri("/relative", UriKind.Relative);
         var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("nuget", relativeUri));
@@ -77,7 +77,7 @@ public class ExternalServiceTests
     [Fact]
     public void AddExternalServiceThrowsWithUriWithPath()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var uriWithPath = new Uri("https://api.example.com/api/v1");
         var ex = Assert.Throws<ArgumentException>(() => builder.AddExternalService("nuget", uriWithPath));
@@ -90,7 +90,7 @@ public class ExternalServiceTests
     [InlineData("https://example.com:8080/")]
     public void AddExternalServiceAcceptsValidUrls(string validUrl)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", validUrl);
 
@@ -101,7 +101,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithHttpsCanBeReferenced()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
         var project = builder.AddProject<TestProject>("project")
@@ -118,7 +118,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithHttpCanBeReferenced()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "http://nuget.org/");
         var project = builder.AddProject<TestProject>("project")
@@ -135,7 +135,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithParameterCanBeReferencedInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Configuration["Parameters:nuget-url"] = "https://nuget.org/";
 
         var urlParam = builder.AddParameter("nuget-url");
@@ -154,7 +154,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithParameterCanBeReferencedInPublishMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithTestAndResourceLogging(testOutputHelper);
 
         var urlParam = builder.AddParameter("nuget-url");
         var externalService = builder.AddExternalService("nuget", urlParam);
@@ -176,7 +176,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithInvalidParameterThrowsInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Configuration["Parameters:nuget-url"] = "invalid-url";
 
         var urlParam = builder.AddParameter("nuget-url");
@@ -194,7 +194,7 @@ public class ExternalServiceTests
     [Fact]
     public void ExternalServiceWithHttpHealthCheck()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/")
                                      .WithHttpHealthCheck();
@@ -210,7 +210,7 @@ public class ExternalServiceTests
     [Fact]
     public void ExternalServiceWithHttpHealthCheckCustomPath()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/")
                                      .WithHttpHealthCheck("/health", 200);
@@ -226,7 +226,7 @@ public class ExternalServiceTests
     [Fact]
     public void ExternalServiceWithHttpHealthCheckInvalidPath()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
 
@@ -237,7 +237,7 @@ public class ExternalServiceTests
     [Fact]
     public void ExternalServiceResourceHasExpectedInitialState()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
 
@@ -251,7 +251,7 @@ public class ExternalServiceTests
     public void ExternalServiceResourceIsExcludedFromPublishingManifest()
     {
         //ManifestPublishingCallbackAnnotation
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
 
@@ -283,7 +283,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithParameterGetValueAsyncErrorMarksAsFailedToStart()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         // Create a parameter with a broken value callback
         var urlParam = builder.AddParameter("failing-url", () => throw new InvalidOperationException("Parameter resolution failed"));
@@ -310,7 +310,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithParameterInvalidUrlMarksAsFailedToStart()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         // Create a parameter that returns an invalid URL
         var urlParam = builder.AddParameter("invalid-url", () => "invalid-url-not-absolute");
@@ -337,7 +337,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithValidParameterMarksAsRunning()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         // Create a parameter that returns a valid URL
         var urlParam = builder.AddParameter("valid-url", () => "https://example.com/");
@@ -364,7 +364,7 @@ public class ExternalServiceTests
     [Fact]
     public void ExternalServiceWithParameterHttpHealthCheckRegistersCustomHealthCheck()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var urlParam = builder.AddParameter("external-url");
         var externalService = builder.AddExternalService("external", urlParam)
@@ -386,7 +386,7 @@ public class ExternalServiceTests
     [Fact]
     public void ExternalServiceWithStaticUrlHttpHealthCheckUsesUrlGroup()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var externalService = builder.AddExternalService("external", "https://example.com/")
                                      .WithHttpHealthCheck();
@@ -407,7 +407,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithParameterHttpHealthCheckResolvesUrlAsync()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Configuration["Parameters:external-url"] = "https://example.com/";
 
         var urlParam = builder.AddParameter("external-url");
@@ -436,7 +436,7 @@ public class ExternalServiceTests
     [Fact]
     public async Task ExternalServiceWithParameterPublishManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithTestAndResourceLogging(testOutputHelper);
 
         var urlParam = builder.AddParameter("external-url");
         var externalService = builder.AddExternalService("external", urlParam);

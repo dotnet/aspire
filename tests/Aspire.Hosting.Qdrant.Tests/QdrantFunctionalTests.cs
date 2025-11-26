@@ -222,7 +222,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task AddQdrantWithDefaultsAddsUrlAnnotations()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var qdrant = builder.AddQdrant("qdrant");
 
