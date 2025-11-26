@@ -625,7 +625,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private void StartLogStream<T>(T resource) where T : CustomResource
+    private void StartLogStream<T>(T resource) where T : CustomResource, IKubernetesStaticMetadata
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
@@ -2288,50 +2288,58 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     public async Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Stopping resource '{ResourceName}'...", resourceReference.DcpResourceName);
+        var dcpResource = ((RenderedModelResource)resourceReference).DcpResource;
+        bool stopped = false;
 
-        var result = await DeleteResourceRetryPipeline.ExecuteAsync(async (resourceName, attemptCancellationToken) =>
+        AspireEventSource.Instance.StopResourceStart(dcpResource.Kind, dcpResource.Metadata.Name);
+        try
         {
-            var appResource = (RenderedModelResource)resourceReference;
-
-            V1Patch patch;
-            switch (appResource.DcpResource)
+            stopped = await DeleteResourceRetryPipeline.ExecuteAsync(async (resourceName, attemptCancellationToken) =>
             {
-                case Container c:
-                    patch = CreatePatch(c, obj => obj.Spec.Stop = true);
-                    await _kubernetesService.PatchAsync(c, patch, attemptCancellationToken).ConfigureAwait(false);
-                    var cu = await _kubernetesService.GetAsync<Container>(c.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                    if (cu.Status?.State == ContainerState.Exited)
-                    {
-                        _logger.LogDebug("Container '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
-                        return true;
-                    }
-                    else
-                    {
-                        _logger.LogDebug("Container '{ResourceName}' is still running; trying again to stop it...", resourceReference.DcpResourceName);
-                        return false;
-                    }
+                V1Patch patch;
+                switch (dcpResource)
+                {
+                    case Container c:
+                        patch = CreatePatch(c, obj => obj.Spec.Stop = true);
+                        await _kubernetesService.PatchAsync(c, patch, attemptCancellationToken).ConfigureAwait(false);
+                        var cu = await _kubernetesService.GetAsync<Container>(c.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        if (cu.Status?.State == ContainerState.Exited)
+                        {
+                            _logger.LogDebug("Container '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
+                            return true;
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Container '{ResourceName}' is still running; trying again to stop it...", resourceReference.DcpResourceName);
+                            return false;
+                        }
 
-                case Executable e:
-                    patch = CreatePatch(e, obj => obj.Spec.Stop = true);
-                    await _kubernetesService.PatchAsync(e, patch, attemptCancellationToken).ConfigureAwait(false);
-                    var eu = await _kubernetesService.GetAsync<Executable>(e.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                    if (eu.Status?.State == ExecutableState.Finished || eu.Status?.State == ExecutableState.Terminated)
-                    {
-                        _logger.LogDebug("Executable '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
-                        return true;
-                    }
-                    else
-                    {
-                        _logger.LogDebug("Executable '{ResourceName}' is still running; trying again to stop it...", resourceReference.DcpResourceName);
-                        return false;
-                    }
+                    case Executable e:
+                        patch = CreatePatch(e, obj => obj.Spec.Stop = true);
+                        await _kubernetesService.PatchAsync(e, patch, attemptCancellationToken).ConfigureAwait(false);
+                        var eu = await _kubernetesService.GetAsync<Executable>(e.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        if (eu.Status?.State == ExecutableState.Finished || eu.Status?.State == ExecutableState.Terminated)
+                        {
+                            _logger.LogDebug("Executable '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
+                            return true;
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Executable '{ResourceName}' is still running; trying again to stop it...", resourceReference.DcpResourceName);
+                            return false;
+                        }
 
-                default:
-                    throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
-            }
-        }, resourceReference.DcpResourceName, cancellationToken).ConfigureAwait(false);
+                    default:
+                        throw new InvalidOperationException($"Unexpected resource type: {dcpResource.Kind}");
+                }
+            }, resourceReference.DcpResourceName, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.StopResourceStart(dcpResource.Kind, dcpResource.Metadata.Name);
+        }
 
-        if (!result)
+        if (!stopped)
         {
             throw new InvalidOperationException($"Failed to stop resource '{resourceReference.DcpResourceName}'.");
         }
@@ -2356,6 +2364,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var appResource = (RenderedModelResource)resourceReference;
         var resourceType = GetResourceType(appResource.DcpResource, appResource.ModelResource);
         var resourceLogger = _loggerService.GetLogger(appResource.DcpResourceName);
+        AspireEventSource.Instance.StartResourceStart(appResource.DcpResource.Kind, appResource.DcpResource.Metadata.Name);
 
         try
         {
@@ -2382,7 +2391,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     break;
 
                 default:
-                    throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
+                    throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.Kind}");
             }
         }
         catch (FailedToApplyEnvironmentException)
@@ -2397,6 +2406,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             _logger.LogError(ex, "Failed to start resource {ResourceName}", appResource.ModelResource.Name);
             await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
             throw;
+        }
+        finally
+        {
+            AspireEventSource.Instance.StartResourceStop(appResource.DcpResource.Kind, appResource.DcpResource.Metadata.Name);
         }
 
         async Task EnsureResourceDeletedAsync<T>(string resourceName) where T : CustomResource, IKubernetesStaticMetadata

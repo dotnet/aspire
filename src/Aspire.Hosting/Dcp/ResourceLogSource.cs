@@ -16,7 +16,7 @@ internal sealed class ResourceLogSource<TResource>(
     TResource resource,
     bool follow) :
     IAsyncEnumerable<LogEntryList>
-    where TResource : CustomResource
+    where TResource : CustomResource, IKubernetesStaticMetadata
 {
     public async IAsyncEnumerator<LogEntryList> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
