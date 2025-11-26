@@ -150,7 +150,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
                 infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                 {
-                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.{resource.AzureAppServiceDnsSuffix}")
                 });
             }
 
@@ -289,6 +289,18 @@ public static partial class AzureAppServiceEnvironmentExtensions
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
     {
         builder.Resource.EnableAutomaticScaling = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Azure cloud to deploy the Azure App Service environment to.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
+    /// <param name="azureCloudName">The Azure cloud to deploy to. Defaults to <see cref="AzureCloudName.AzurePublic"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureCloudName(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, AzureCloudName azureCloudName)
+    {
+        builder.Resource.AzureCloudName = azureCloudName;
         return builder;
     }
 }
