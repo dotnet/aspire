@@ -18,7 +18,7 @@ ATTRIBUTE_NAME="${1:?Usage: $0 <attribute_name>}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 OUTPUT_FILE="$2"
 
-mkdir -p `dirname $OUTPUT_FILE`
+mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 # Find all test files with the attribute and extract unique top-level test directories
 PROJECTS=$(grep -rl "^ *\[${ATTRIBUTE_NAME}(\"[^\"]*\")\]" "$REPO_ROOT/tests" 2>/dev/null \
