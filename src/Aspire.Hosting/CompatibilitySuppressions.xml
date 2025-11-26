@@ -8,4 +8,11 @@
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>P:Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>
