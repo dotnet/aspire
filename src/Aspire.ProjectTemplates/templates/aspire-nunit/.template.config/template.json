@@ -23,7 +23,7 @@
     "type": "project"
   },
   "precedence": "9000",
-  "identity": "Aspire.Tests.NUnit.CSharp.13.0",
+  "identity": "Aspire.Tests.NUnit.CSharp.!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.Tests.NUnit",
   "sources": [

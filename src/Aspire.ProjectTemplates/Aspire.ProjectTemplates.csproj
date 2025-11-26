@@ -25,6 +25,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Template config files: template.json -->
+    <TemplateConfigFiles Include="$(MSBuildThisFileDirectory)templates\**\.template.config\template.json">
+      <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateConfigFiles>
+
+    <TemplateConfigFilesObj Include="@(TemplateConfigFiles->'%(DestinationFile)')" />
+
     <!-- Template project files: *.csproj -->
     <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\**\*.csproj">
       <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
@@ -64,16 +72,23 @@
   <!-- Replaces the versions referenced by the templates projects to use the version of the packages being live-built -->
   <Target Name="ReplacePackageVersionOnTemplates"
           DependsOnTargets="CopyTemplatesToIntermediateOutputPath"
-          Inputs="@(TemplateProjectFiles)"
-          Outputs="@(TemplateProjectFilesObj)">
+          Inputs="@(TemplateConfigFiles);@(TemplateProjectFiles)"
+          Outputs="@(TemplateConfigFilesObj);@(TemplateProjectFilesObj)">
     <PropertyGroup>
       <!-- Extract purely numeric portions before any '-' prerelease tag -->
-      <_VersionBase>$([System.String]::Copy($(PackageVersion).Split('-')[0]))</_VersionBase>
+      <_VersionBase>$(PackageVersion.Split('-')[0])</_VersionBase>
       <!-- Build major.minor version -->
-      <_VersionMajor>$([System.String]::Copy($(_VersionBase).Split('.')[0]))</_VersionMajor>
-      <_VersionMinor>$([System.String]::Copy($(_VersionBase).Split('.')[1]))</_VersionMinor>
-      <_VersionMajorMinor>$(_VersionMajor)$(_VersionMinor)</_VersionMajorMinor>
+      <_VersionMajor>$(_VersionBase.Split('.')[0])</_VersionMajor>
+      <_VersionMinor>$(_VersionBase.Split('.')[1])</_VersionMinor>
+      <_VersionMajorMinor>$(_VersionMajor).$(_VersionMinor)</_VersionMajorMinor>
     </PropertyGroup>
+
+    <WriteLinesToFile File="%(TemplateConfigFiles.DestinationFile)"
+                      Lines="$([System.IO.File]::ReadAllText('%(TemplateConfigFiles.FullPath)')
+                                                 .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
+                                                 .Replace('!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!', '$(_VersionMajorMinor)') )"
+                      WriteOnlyWhenDifferent="True"
+                      Overwrite="true" />
 
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')

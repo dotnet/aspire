@@ -12,7 +12,7 @@
   "sourceName": "SingleFileAppHost.1",
   "defaultName": "AspireSingleFileHost",
   "description": "A minimal Aspire AppHost for single-file scenarios (.NET 10+).",
-  "identity": "Aspire.AppHost.SingleFile.CSharp.13.0",
+  "identity": "Aspire.AppHost.SingleFile.CSharp.!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!",
   "groupIdentity": "Aspire.AppHost.SingleFile",
   "precedence": "8900",
   "tags": {
