@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk" InitialTargets="AddTemplatesToPackageAsContent">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Template config files: template.json -->
-    <TemplateConfigFiles Include="$(MSBuildThisFileDirectory)templates\**\.template.config\template.json">
+    <!-- Template config files: .template.config\*.json -->
+    <TemplateConfigFiles Include="$(MSBuildThisFileDirectory)templates\**\.template.config\*.json">
       <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
       <DestinationFile>$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
     </TemplateConfigFiles>
@@ -63,7 +63,8 @@
   <!-- When building a package, this target will run to copy all the templates into the intermediate directory,
        replaces the package versions, and adds them to the package.-->
   <Target Name="AddTemplatesToPackageAsContent"
-          DependsOnTargets="ReplacePackageVersionOnTemplates">
+          AfterTargets="Build"
+          DependsOnTargets="ReplacePackageVersionOnTemplates;ReplacePackageVersionOnLocalizedTemplateFiles">
     <ItemGroup>
       <Content Include="@(TemplateFilesObj);@(TemplateProjectFilesObj)" />
     </ItemGroup>
@@ -104,6 +105,31 @@
                                                  .Replace('!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!', '$(OpenTelemetryInstrumentationAspNetCoreVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_HTTP_VERSION!!', '$(OpenTelemetryInstrumentationHttpVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!', '$(OpenTelemetryInstrumentationRuntimeVersion)') )"
+                      WriteOnlyWhenDifferent="True"
+                      Overwrite="true" />
+  </Target>
+
+  <Target Name="ReplacePackageVersionOnLocalizedTemplateFiles"
+          DependsOnTargets="CopyTemplatesToIntermediateOutputPath;LocalizeTemplatesAfterBuild">
+    <PropertyGroup>
+      <!-- Extract purely numeric portions before any '-' prerelease tag -->
+      <_VersionBase>$(PackageVersion.Split('-')[0])</_VersionBase>
+      <!-- Build major.minor version -->
+      <_VersionMajor>$(_VersionBase.Split('.')[0])</_VersionMajor>
+      <_VersionMinor>$(_VersionBase.Split('.')[1])</_VersionMinor>
+      <_VersionMajorMinor>$(_VersionMajor).$(_VersionMinor)</_VersionMajorMinor>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <TemplateLocalizedStringsFiles Include="$(MSBuildThisFileDirectory)templates\**\.template.config\localize\templatestrings.*.json" />
+      <TemplateLocalizedStringsFilesDest Include="@(TemplateLocalizedStringsFiles)"
+                                         DestinationFile="$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="%(TemplateLocalizedStringsFilesDest.DestinationFile)"
+                      Lines="$([System.IO.File]::ReadAllText('%(TemplateLocalizedStringsFilesDest.FullPath)')
+                                                 .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
+                                                 .Replace('!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!', '$(_VersionMajorMinor)') )"
                       WriteOnlyWhenDifferent="True"
                       Overwrite="true" />
   </Target>

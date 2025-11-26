@@ -5,6 +5,10 @@
   "disableHttpsSymbol": "NoHttps",
   "symbolInfo": [
     {
+      "id": "AspireVersion",
+      "isVisible": false
+    },
+    {
       "id": "LocalhostTld",
       "isVisible": true,
       "persistenceScope": "shared",

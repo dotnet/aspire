@@ -4,6 +4,9 @@
       "Framework": {
         "longName": "framework"
       },
+      "AspireVersion": {
+        "isHidden": true
+      },
       "skipRestore": {
         "longName": "no-restore",
         "shortName": ""
