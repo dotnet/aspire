@@ -105,6 +105,7 @@ public static class PostgresBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithImageRegistry(PostgresContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       // PostgreSQL 18+ enables data checksums by default. We disable them to maintain backward compatibility
                       // with existing volumes that don't have checksums enabled, preventing initialization failures when

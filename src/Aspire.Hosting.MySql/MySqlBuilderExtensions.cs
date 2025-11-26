@@ -78,6 +78,7 @@ public static class MySqlBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
                       .WithImageRegistry(MySqlContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordParameter;
@@ -231,6 +232,7 @@ public static class MySqlBuilderExtensions
                                                 .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
+                                                .WithIconName("WindowDatabase")
                                                 .ExcludeFromManifest();
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, async (e, ct) =>

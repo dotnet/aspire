@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="Description">
         <source>Manage MCP (Model Context Protocol) server.</source>
-        <target state="new">Manage MCP (Model Context Protocol) server.</target>
+        <target state="translated">MCP(모델 컨텍스트 프로토콜) 서버를 관리합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
-        <target state="new">Start the MCP (Model Context Protocol) server.</target>
+        <target state="translated">MCP(모델 컨텍스트 프로토콜) 서버를 시작합니다.</target>
         <note />
       </trans-unit>
     </body>

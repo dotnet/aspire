@@ -6,7 +6,6 @@
     <PackageTags>$(ComponentAzurePackageTags) postgresql postgres npgsql sql database data cloud</PackageTags>
     <Description>A client for Azure Database for PostgreSQL® that integrates with Aspire, including health checks, logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzurePostgreSQL_256x.png</PackageIconFullPath>
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>

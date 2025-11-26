@@ -7,7 +7,6 @@
     <PackageTags>aspire hosting docker docker-compose</PackageTags>
     <Description>Docker Compose publishing for Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +15,6 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Shared\ProcessUtil.cs" />
     <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)PublishingContextUtils.cs" LinkBase="Shared" />
-    <Compile Include="$(SharedDir)PortAllocator.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
   </ItemGroup>
 

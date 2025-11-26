@@ -296,7 +296,7 @@ public static class PythonAppResourceBuilderExtensions
                     c.Args.Add("--reload");
                 }
             })
-            .WithCertificateKeyPairConfiguration(ctx =>
+            .WithServerAuthenticationCertificateConfiguration(ctx =>
             {
                 ctx.Arguments.Add("--ssl-keyfile");
                 ctx.Arguments.Add(ctx.KeyPath);
@@ -318,16 +318,16 @@ public static class PythonAppResourceBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resourceBuilder.Resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    if (developerCertificateService.UseForServerAuthentication)
                     {
                         // If no certificate is configured, and the developer certificate service supports container trust,
                         // configure the resource to use the developer certificate for its key pair.
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
