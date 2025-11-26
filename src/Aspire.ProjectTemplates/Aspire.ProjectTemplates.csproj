@@ -66,10 +66,19 @@
           DependsOnTargets="CopyTemplatesToIntermediateOutputPath"
           Inputs="@(TemplateProjectFiles)"
           Outputs="@(TemplateProjectFilesObj)">
+    <PropertyGroup>
+      <!-- Extract purely numeric portions before any '-' prerelease tag -->
+      <_VersionBase>$([System.String]::Copy($(PackageVersion).Split('-')[0]))</_VersionBase>
+      <!-- Build major.minor version -->
+      <_VersionMajor>$([System.String]::Copy($(_VersionBase).Split('.')[0]))</_VersionMajor>
+      <_VersionMinor>$([System.String]::Copy($(_VersionBase).Split('.')[1]))</_VersionMinor>
+      <_VersionMajorMinor>$(_VersionMajor)$(_VersionMinor)</_VersionMajorMinor>
+    </PropertyGroup>
 
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
                                                  .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
+                                                 .Replace('!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!', '$(_VersionMajorMinor)')
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_OPENAPI_9_VERSION!!', '$(MicrosoftAspNetCoreOpenApiVersion)')
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_OPENAPI_10_VERSION!!', '$(MicrosoftAspNetCoreOpenApiPreviewVersion)')
                                                  .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
