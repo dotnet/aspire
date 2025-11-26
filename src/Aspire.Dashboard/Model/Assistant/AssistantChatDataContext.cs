@@ -121,13 +121,13 @@ public sealed class AssistantChatDataContext
 
         // Get all logs because we want the most recent logs and they're at the end of the results.
         // If support is added for ordering logs by timestamp then improve this.
-        var logs = TelemetryRepository.GetLogs(new GetLogsContext
+        var logs = await TelemetryRepository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
             Filters = []
-        });
+        }).ConfigureAwait(false);
 
         var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
 
@@ -162,14 +162,14 @@ public sealed class AssistantChatDataContext
             : _loc[nameof(AIAssistant.ToolNotificationTracesAll)];
         await InvokeToolCallbackAsync(nameof(GetTracesAsync), toolMessage, cancellationToken).ConfigureAwait(false);
 
-        var traces = TelemetryRepository.GetTraces(new GetTracesRequest
+        var traces = await TelemetryRepository.GetTracesAsync(new GetTracesRequest
         {
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
             Filters = [],
             FilterText = string.Empty
-        });
+        }).ConfigureAwait(false);
 
         var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers, _dashboardOptions.CurrentValue);
 
@@ -198,13 +198,13 @@ public sealed class AssistantChatDataContext
             Condition = FilterCondition.Contains
         };
 
-        var logs = TelemetryRepository.GetLogs(new GetLogsContext
+        var logs = await TelemetryRepository.GetLogsAsync(new GetLogsContext
         {
             ResourceKey = null,
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [traceIdFilter]
-        });
+        }).ConfigureAwait(false);
 
         await InvokeToolCallbackAsync(nameof(GetTraceStructuredLogsAsync), _loc.GetString(nameof(AIAssistant.ToolNotificationTraceStructuredLogs), OtlpHelpers.ToShortenedId(traceId)), cancellationToken).ConfigureAwait(false);
 

@@ -134,7 +134,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
-        var logs = ViewModel.GetLogs();
+        var logs = await ViewModel.GetLogsAsync().ConfigureAwait(false);
 
         if (logs.IsFull && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
@@ -157,7 +157,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         _totalItemsCount = logs.TotalItemCount;
         _totalItemsFooter?.UpdateDisplayedCount(_totalItemsCount);
 
-        _explainErrorsButton?.UpdateHasErrors(ViewModel.HasErrors());
+        _explainErrorsButton?.UpdateHasErrors(await ViewModel.HasErrorsAsync().ConfigureAwait(false));
         _aiContext?.ContextHasChanged();
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ResourceKey);
@@ -565,7 +565,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 TelemetryRepository,
                 ErrorRecorder,
                 _resources,
-                () =>
+                async () =>
                 {
                     // Update the context with all visible log entries with a GenAI system property.
                     var filters = ViewModel.GetFilters();
@@ -576,13 +576,13 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                         Value = string.Empty
                     });
 
-                    var logs = TelemetryRepository.GetLogs(new GetLogsContext
+                    var logs = await TelemetryRepository.GetLogsAsync(new GetLogsContext
                     {
                         ResourceKey = ViewModel.ResourceKey,
                         StartIndex = 0,
                         Count = int.MaxValue,
                         Filters = filters
-                    });
+                    }).ConfigureAwait(false);
 
                     return logs.Items
                         .DistinctBy(l => (l.SpanId, l.TraceId))
