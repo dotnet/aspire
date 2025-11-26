@@ -58,8 +58,6 @@ public static class JavaScriptHostingExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
 
-        // InstallationManager is registered globally in DistributedApplicationBuilder
-
         appDirectory = Path.GetFullPath(appDirectory, builder.AppHostDirectory);
         var resource = new NodeAppResource(name, "node", appDirectory);
 
