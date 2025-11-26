@@ -65,7 +65,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             imageName).ConfigureAwait(false);
     }
 
-    public virtual async Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default)
+    public virtual async Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(
             cancellationToken).ConfigureAwait(false);

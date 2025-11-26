@@ -14,11 +14,9 @@ public sealed class MockImageBuilder : IResourceContainerImageBuilder
 {
     public bool BuildImageCalled { get; private set; }
     public bool BuildImagesCalled { get; private set; }
-    public bool TagImageCalled { get; private set; }
     public bool PushImageCalled { get; private set; }
     public List<IResource> BuildImageResources { get; } = [];
     public List<ContainerBuildOptions?> BuildImageOptions { get; } = [];
-    public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
     public List<IResource> PushImageCalls { get; } = [];
 
     public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
@@ -37,14 +35,7 @@ public sealed class MockImageBuilder : IResourceContainerImageBuilder
         return Task.CompletedTask;
     }
 
-    public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
-    {
-        TagImageCalled = true;
-        TagImageCalls.Add((localImageName, targetImageName));
-        return Task.CompletedTask;
-    }
-
-    public Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default)
+    public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         PushImageCalled = true;
         PushImageCalls.Add(resource);
