@@ -13,13 +13,14 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class ContainerRegistryTests
+public class ContainerRegistryTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AzureContainerAppEnvironmentResourceImplementsContainerRegistry()
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         _ = builder.AddAzureContainerAppEnvironment("env");
 
         using var app = builder.Build();
@@ -45,6 +46,7 @@ public class ContainerRegistryTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddProject<TestProject>("api", launchProfileName: null)
@@ -81,6 +83,7 @@ public class ContainerRegistryTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
         builder.AddContainer("api", "myimage");
 

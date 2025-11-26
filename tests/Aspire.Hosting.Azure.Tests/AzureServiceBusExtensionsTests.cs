@@ -19,7 +19,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task ResourceNamesCanBeDifferentThanAzureNames()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBus = builder.AddAzureServiceBus("sb");
 
         serviceBus.AddServiceBusQueue("queue1", "queueName")
@@ -38,7 +38,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Theory]
@@ -46,7 +46,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [InlineData(false)]
     public async Task TopicNamesCanBeLongerThan24(bool useObsoleteMethods)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBus = builder.AddAzureServiceBus("sb");
 
         if (useObsoleteMethods)
@@ -63,7 +63,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
@@ -126,6 +126,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(output);
         hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureServiceBusClient("servicebusns");
 
@@ -153,7 +154,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [InlineData(9007)]
     public void AddAzureServiceBusWithEmulatorGetsExpectedPort(int? port = null)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
         {
@@ -173,7 +174,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [InlineData("1.0.7")]
     public void AddAzureServiceBusWithEmulatorGetsExpectedImageTag(string? imageTag)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBus = builder.AddAzureServiceBus("sb");
 
         serviceBus.RunAsEmulator(container =>
@@ -195,7 +196,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AzureServiceBusEmulatorResourceInitializesProvisioningModel()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         global::Azure.Provisioning.ServiceBus.ServiceBusQueue? queue = null;
         global::Azure.Provisioning.ServiceBus.ServiceBusTopic? topic = null;
@@ -307,7 +308,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJson()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator();
@@ -448,7 +449,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonOnlyChangedProperties()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator();
@@ -501,7 +502,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/12524")]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonWithCustomizations()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator(configure => configure
@@ -551,7 +552,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task AzureServiceBusEmulator_WithConfigurationFile()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var configJsonPath = Path.GetTempFileName();
 
@@ -603,7 +604,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [InlineData(false)]
     public void AddAzureServiceBusWithEmulator_SetsSqlLifetime(bool isPersistent)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
 
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
@@ -625,7 +626,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void RunAsEmulator_CalledTwice_Throws()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator();
 
         Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
@@ -634,7 +635,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AzureServiceBusHasCorrectConnectionStrings()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceBus = builder.AddAzureServiceBus("sb");
         var queue = serviceBus.AddServiceBusQueue("queue");
@@ -651,7 +652,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AzureServiceBusAppliesAzureFunctionsConfiguration()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceBus = builder.AddAzureServiceBus("sb");
         var queue = serviceBus.AddServiceBusQueue("queue");
@@ -686,13 +687,13 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__SubscriptionName", k),
             k => Assert.Equal("sub__fullyQualifiedNamespace", k));
     }
-    
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task AddAzureServiceBus(bool useObsoleteMethods)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBus = builder.AddAzureServiceBus("sb");
 
         if (useObsoleteMethods)
@@ -808,6 +809,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(output);
         hb.Configuration["ConnectionStrings:servicebusns"] = await serviceBus.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureServiceBusClient("servicebusns");
 
@@ -831,7 +833,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBus = builder.AddAzureServiceBus("servicebus")
                                .RunAsEmulator();
 
@@ -844,6 +846,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public void AddAsExistingResource_ShouldBeIdempotent_ForAzureServiceBusResource()
     {
         // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceBusResource = new AzureServiceBusResource("test-servicebus", _ => { });
         var infrastructure = new AzureResourceInfrastructure(serviceBusResource, "test-servicebus");
 
@@ -858,7 +861,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureServiceBusResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var existingName = builder.AddParameter("existing-sb-name");
         var existingResourceGroup = builder.AddParameter("existing-sb-rg");
 

@@ -8,12 +8,12 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class ExistingAzureResourceTests
+public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AddExistingAzureServiceBusInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -24,13 +24,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
     public async Task RequiresPublishAsExistingInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -41,13 +42,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
     public async Task AddExistingAzureServiceBusInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -58,13 +60,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
     public async Task SupportsExistingServiceBusWithResourceGroupInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -90,6 +93,7 @@ public class ExistingAzureResourceTests
     public async Task SupportsExistingServiceBusWithStaticArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var serviceBus = builder.AddAzureServiceBus("messaging")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName");
         serviceBus.AddServiceBusQueue("queue");
@@ -98,13 +102,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
     public async Task SupportsExistingStorageAccountWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -115,13 +120,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
     public async Task SupportsExistingStorageAccountWithResourceGroupAndStaticArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storageAccount = builder.AddAzureStorage("storage")
             .PublishAsExisting("existingResourcename", "existingResourceGroupName");
@@ -130,13 +136,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAppConfigurationWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -147,13 +154,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingEventHubsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -164,13 +172,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingKeyVaultWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -181,13 +190,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingLogAnalyticsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -198,13 +208,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingPostgresSqlWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -215,13 +226,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingPostgresSqlWithResourceGroupWithPasswordAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -236,13 +248,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureSearchWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -253,13 +266,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureSignalRWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -270,13 +284,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureWebPubSubWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -287,13 +302,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureSqlServerWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -304,13 +320,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureSqlServerInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var sqlServer = builder.AddAzureSqlServer("sqlServer")
@@ -320,7 +337,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -328,6 +345,7 @@ public class ExistingAzureResourceTests
     public async Task SupportsExistingAzureRedisWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -338,7 +356,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -346,6 +364,7 @@ public class ExistingAzureResourceTests
     public async Task SupportsExistingAzureRedisWithResouceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var redis = builder.AddAzureRedis("redis")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName")
@@ -355,13 +374,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureRedisEnterpriseWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -378,6 +398,7 @@ public class ExistingAzureResourceTests
     public async Task SupportsExistingAzureRedisEnterpriseWithResourceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var redis = builder.AddAzureRedisEnterprise("redis")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName")
@@ -393,6 +414,7 @@ public class ExistingAzureResourceTests
     public async Task SupportsExistingAzureApplicationInsightsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -403,13 +425,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureOpenAIWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -426,13 +449,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureCosmosDBWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -446,13 +470,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureCosmosDBWithResourceGroupAccessKey()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -467,13 +492,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureContainerRegistryInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var acr = builder.AddAzureContainerRegistry("acr")
@@ -483,13 +509,14 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
     public async Task SupportsExistingAzureContainerRegistryInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
@@ -500,6 +527,6 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 }

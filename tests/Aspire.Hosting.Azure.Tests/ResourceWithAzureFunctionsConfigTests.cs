@@ -6,13 +6,14 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class ResourceWithAzureFunctionsConfigTests
+public class ResourceWithAzureFunctionsConfigTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AzureStorageResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storageResource = builder.AddAzureStorage("storage").Resource;
 
         // Act & Assert
@@ -23,7 +24,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureBlobStorageResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storageResource = builder.AddAzureStorage("storage");
         var blobResource = storageResource.AddBlobs("blobs").Resource;
 
@@ -35,7 +37,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureQueueStorageResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storageResource = builder.AddAzureStorage("storage");
         var queueResource = storageResource.AddQueues("queues").Resource;
 
@@ -47,7 +50,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var cosmosResource = builder.AddAzureCosmosDB("cosmos").Resource;
 
         // Act & Assert
@@ -58,7 +62,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBDatabaseResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var cosmosResource = builder.AddAzureCosmosDB("cosmos");
         var dbResource = cosmosResource.AddCosmosDatabase("database").Resource;
 
@@ -70,7 +75,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBContainerResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var cosmosResource = builder.AddAzureCosmosDB("cosmos");
         var dbResource = cosmosResource.AddCosmosDatabase("database");
         var containerResource = dbResource.AddContainer("container", "/id").Resource;
@@ -83,7 +89,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureEventHubsResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var eventHubsResource = builder.AddAzureEventHubs("eventhubs").Resource;
 
         // Act & Assert
@@ -94,7 +101,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureServiceBusResource_ImplementsIResourceWithAzureFunctionsConfig()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var serviceBusResource = builder.AddAzureServiceBus("servicebus").Resource;
 
         // Act & Assert
@@ -105,7 +113,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureStorageEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator().Resource;
         var target = new Dictionary<string, object>();
 
@@ -143,7 +152,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureBlobStorage_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
         var blobResource = storage.AddBlobs("blobs").Resource;
         var target = new Dictionary<string, object>();
@@ -160,7 +170,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureTableStorage_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
         var tableResource = storage.AddTables("tables").Resource;
         var target = new Dictionary<string, object>();
@@ -177,7 +188,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureQueueStorage_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
         var queueResource = storage.AddQueues("queues").Resource;
         var target = new Dictionary<string, object>();
@@ -194,7 +206,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var cosmosResource = builder.AddAzureCosmosDB("cosmos").RunAsEmulator().Resource;
         var target = new Dictionary<string, object>();
 
@@ -294,7 +307,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBDatabaseEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var cosmosResource = builder.AddAzureCosmosDB("cosmos")
             .RunAsEmulator();
         var dbResource = cosmosResource.AddCosmosDatabase("database").Resource;
@@ -316,7 +330,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureCosmosDBContainerEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var cosmosResource = builder.AddAzureCosmosDB("cosmos")
             .RunAsEmulator();
         var containerResource = cosmosResource.AddCosmosDatabase("database").AddContainer("container", "/partitionKey").Resource;
@@ -338,7 +353,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureEventHubsEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var eventHubsResource = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().Resource;
         var target = new Dictionary<string, object>();
 
@@ -413,7 +429,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureServiceBusQueueEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var serviceBusResource = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
         var queueResource = serviceBusResource.AddServiceBusQueue("ordersqueue").Resource;
         var target = new Dictionary<string, object>();
@@ -452,7 +469,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureServiceBusTopicEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var serviceBusResource = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
         var topicResource = serviceBusResource.AddServiceBusTopic("notificationstopic").Resource;
         var target = new Dictionary<string, object>();
@@ -494,7 +512,8 @@ public class ResourceWithAzureFunctionsConfigTests
     public void AzureServiceBusSubscriptionEmulator_AppliesCorrectConfigurationFormat()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var serviceBusResource = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
         var topicResource = serviceBusResource.AddServiceBusTopic("notificationstopic");
         var subscriptionResource = topicResource.AddServiceBusSubscription("usersubscription").Resource;

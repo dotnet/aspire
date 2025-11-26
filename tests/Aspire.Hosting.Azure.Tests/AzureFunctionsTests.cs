@@ -12,12 +12,13 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureFunctionsTests
+public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AddAzureFunctionsProject_Works()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var funcApp = builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         var app = builder.Build();
@@ -42,7 +43,8 @@ public class AzureFunctionsTests
     [Fact]
     public async Task AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsProvided()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         // Assert that the EndpointAnnotation is configured correctly
@@ -63,7 +65,8 @@ public class AzureFunctionsTests
     [Fact]
     public async Task AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsNotProvided()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithoutPortArgument>("funcapp")
             // Explicit set endpoint values for assertions later
             .WithEndpoint("http", e =>
@@ -93,7 +96,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenMultiplePortArgumentsProvided()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithMultiplePorts>("funcapp");
 
         // Assert that the EndpointAnnotation is configured correctly
@@ -107,7 +111,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsMalformed()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp");
 
         // Assert that the EndpointAnnotation is configured correctly
@@ -121,7 +126,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsPartial()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp");
 
         // Assert that the EndpointAnnotation is configured correctly
@@ -135,7 +141,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_GeneratesUniqueDefaultHostStorageResourceName()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp");
 
         // Assert that the default storage resource is unique
@@ -148,7 +155,8 @@ public class AzureFunctionsTests
     [RequiresDocker]
     public async Task AddAzureFunctionsProject_RemoveDefaultHostStorageWhenUseHostStorageIsUsed()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
         var funcApp = builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp")
             .WithHostStorage(storage);
@@ -175,7 +183,8 @@ public class AzureFunctionsTests
     [RequiresDocker]
     public async Task AddAzureFunctionsProject_WorksWithMultipleProjects()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
         builder.AddAzureFunctionsProject<TestProject>("funcapp2");
 
@@ -205,7 +214,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WiresUpHttpsEndpointCorrectly_WhenUseHttpsArgumentIsProvided()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithHttps>("funcapp");
 
         // Assert that the EndpointAnnotation is configured correctly
@@ -242,7 +252,8 @@ public class AzureFunctionsTests
     [Fact]
     public async Task AddAzureFunctionsProject_WiresUpHttpsEndpointCorrectly_WhenOnlyUseHttpsArgumentIsProvided()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp")
             // Explicit set endpoint values for assertions later
             .WithEndpoint("https", e =>
@@ -544,7 +555,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_AddsDefaultLaunchProfileAnnotation_WhenConfigured()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Set the AppHost default launch profile configuration
         builder.Configuration["AppHost:DefaultLaunchProfileName"] = "TestProfile";
@@ -561,7 +573,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_AddsDefaultLaunchProfileAnnotation_FromDotnetLaunchProfile()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Set the DOTNET_LAUNCH_PROFILE configuration
         builder.Configuration["DOTNET_LAUNCH_PROFILE"] = "DotnetProfile";
@@ -578,7 +591,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_DoesNotAddLaunchProfileAnnotation_WhenNoConfigurationSet()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
@@ -591,7 +605,8 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_AppHostConfigurationOverridesDotnetLaunchProfile()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Set both configurations, AppHost should take precedence
         builder.Configuration["AppHost:DefaultLaunchProfileName"] = "AppHostProfile";
@@ -610,7 +625,8 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_WithProjectPath_Works()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create a temporary project file
         var projectPath = Path.Combine(tempDir.Path, "TestFunctions.csproj");
@@ -635,7 +651,8 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create a temporary project file
         var projectPath = Path.Combine(tempDir.Path, "MyFunctions.csproj");
@@ -657,7 +674,8 @@ public class AzureFunctionsTests
     public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create a temporary project file
         var projectPath = Path.Combine(tempDir.Path, "TestFunctions.csproj");
@@ -688,7 +706,8 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create temporary project files
         var projectPath1 = Path.Combine(tempDir.Path, "Functions1.csproj");
@@ -711,7 +730,8 @@ public class AzureFunctionsTests
     public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create a temporary project file
         var projectPath = Path.Combine(tempDir.Path, "Functions.csproj");
@@ -743,7 +763,8 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
     {
         using var tempDir = new TempDirectory();
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Create a temporary project file
         var projectPath = Path.Combine(tempDir.Path, "Functions.csproj");

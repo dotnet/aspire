@@ -20,7 +20,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [InlineData(9007)]
     public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
@@ -41,7 +41,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [InlineData("1.0.7")]
     public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
@@ -62,7 +62,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [InlineData(12)]
     public async Task AddAzureCosmosDBWithPartitionCountCanOverrideNumberOfPartitions(int partitionCount)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
@@ -76,7 +76,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public void AddAzureCosmosDBWithDataExplorer()
     {
 #pragma warning disable ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         cosmos.RunAsPreviewEmulator(e => e.WithDataExplorer());
@@ -94,7 +94,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AzureCosmosDBHasCorrectConnectionStrings_ForAccountEndpoint()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         var db1 = cosmos.AddCosmosDatabase("db1");
@@ -112,7 +112,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [InlineData(false)]
     public void AzureCosmosDBHasCorrectConnectionStrings(bool useAccessKeyAuth)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
         if (useAccessKeyAuth)
@@ -142,7 +142,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AzureCosmosDBAppliesAzureFunctionsConfiguration()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         var db1 = cosmos.AddCosmosDatabase("db1");
@@ -187,6 +187,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public async Task AddAzureCosmosDB(bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(output);
 
         if (useAcaInfrastructure)
         {
@@ -203,7 +204,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
 
         var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "cosmos-roles");
         var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
@@ -242,6 +242,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public async Task AddAzureCosmosDatabase_WorksWithAccessKeyAuth_ChildResources()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .WithAccessKeyAuthentication();
@@ -259,11 +260,11 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
-    
+
     [Fact]
     public async Task AddAzureCosmosDBEmulator()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
         {
@@ -284,7 +285,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
 
@@ -304,7 +305,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [InlineData("mykeyvault")]
     public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication(string? kvName)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos")
@@ -371,7 +372,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAzureCosmosDBViaRunMode_NoAccessKeyAuthentication()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos")
@@ -417,6 +418,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication(string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(output);
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos")
@@ -476,6 +478,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public async Task AddAzureCosmosDBViaPublishMode_NoAccessKeyAuthentication()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(output);
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos")
@@ -517,6 +520,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public async Task AddAzureCosmosDBViaPublishMode_WithDefaultAzureSku()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(output);
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .WithDefaultAzureSku();
 
@@ -527,7 +531,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var cosmos = builder.AddAzureCosmosDB("cosmos")
                            .RunAsEmulator();
 
@@ -539,7 +543,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void RunAsPreviewEmulatorAppliesEmulatorResourceAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 #pragma warning disable ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var cosmos = builder.AddAzureCosmosDB("cosmos")
                            .RunAsPreviewEmulator();
@@ -568,7 +572,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureCosmosDBResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var existingName = builder.AddParameter("existing-cosmosdb-name");
         var existingResourceGroup = builder.AddParameter("existing-cosmosdb-rg");
 
@@ -592,7 +596,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public void WithAccessKeyAuthentication_SetsSecretOwner(string? kvName)
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var cosmos = builder.AddAzureCosmosDB("cosmos-data");
 
@@ -609,7 +613,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         // Assert - Verify that the SecretOwner is set to the Cosmos resource
         Assert.NotNull(cosmos.Resource.ConnectionStringSecretOutput);
         Assert.Same(cosmos.Resource, cosmos.Resource.ConnectionStringSecretOutput.SecretOwner);
-        
+
         // Also verify that References includes both the KeyVault and the Cosmos resource
         var references = ((IValueWithReferences)cosmos.Resource.ConnectionStringSecretOutput).References.ToList();
         Assert.Contains(cosmos.Resource, references);

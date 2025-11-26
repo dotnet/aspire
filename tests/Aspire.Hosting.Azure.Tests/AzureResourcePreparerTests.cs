@@ -10,7 +10,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureResourcePreparerTests
+public class AzureResourcePreparerTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
     [InlineData(DistributedApplicationOperation.Publish)]
@@ -18,6 +18,7 @@ public class AzureResourcePreparerTests
     public async Task ThrowsExceptionsIfRoleAssignmentUnsupported(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storage = builder.AddAzureStorage("storage");
 
@@ -46,6 +47,7 @@ public class AzureResourcePreparerTests
     public async Task AppliesDefaultRoleAssignmentsInRunModeIfReferenced(bool addContainerAppsInfra, DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         if (addContainerAppsInfra)
         {
             builder.AddAzureContainerAppEnvironment("env");
@@ -90,6 +92,7 @@ public class AzureResourcePreparerTests
     public async Task AppliesRoleAssignmentsInRunMode(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
@@ -137,6 +140,7 @@ public class AzureResourcePreparerTests
     public async Task DoesNotApplyRoleAssignmentsInRunModeForEmulators()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddBicepTemplateString("foo", "");
@@ -159,6 +163,7 @@ public class AzureResourcePreparerTests
     public async Task FindsAzureReferencesFromArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
@@ -186,6 +191,7 @@ public class AzureResourcePreparerTests
     public async Task NullEnvironmentVariableIsIgnored()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
@@ -212,6 +218,7 @@ public class AzureResourcePreparerTests
     public async Task NullCommandLineArgIsIgnored()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
@@ -239,6 +246,7 @@ public class AzureResourcePreparerTests
     public async Task CommandLineArgsCallbackContextHasCorrectExecutionContextDuringPublish()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         DistributedApplicationExecutionContext? capturedExecutionContext = null;

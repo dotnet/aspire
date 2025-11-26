@@ -93,6 +93,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddAzureCosmosClient(db.Resource.Name);
         hb.AddCosmosDbContext<EFCoreCosmosDbContext>(db.Resource.Name, databaseName);
@@ -175,6 +176,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
             try
             {
                 var hb = Host.CreateApplicationBuilder();
+                hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
                 hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -223,6 +225,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
             try
             {
                 var hb = Host.CreateApplicationBuilder();
+                hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
                 hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -290,6 +293,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await rns.WaitForResourceHealthyAsync(cosmos.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{cosmos.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddAzureCosmosClient(cosmos.Resource.Name);
 

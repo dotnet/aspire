@@ -14,7 +14,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void InvalidWebPubSubHubNameThrows()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1");
         var ex = Assert.Throws<ArgumentException>(() => wps.AddHub("a_b_c"));
         Assert.StartsWith("Resource name 'a_b_c' is invalid.", ex.Message);
@@ -23,7 +23,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddWebPubSubHubNameWithSpecialChars()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         WebPubSubHub? realHub = null;
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
         {
@@ -42,7 +42,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAzureWebPubSubHubWorks()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1");
         wps.AddHub("abc");
 
@@ -62,13 +62,13 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
     public void AddAzureWebPubSub_HasCorrectConnectionExpressions()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1");
         var hub = wps.AddHub("abc");
         var otherHub = wps.AddHub("def", "hij");
@@ -82,7 +82,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddWebPubSubWithHubConfigure()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var hubName = "abc";
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
         {
@@ -107,13 +107,13 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
     public async Task AddAzureWebPubSubHubWithEventHandlerExpressionWorks()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true).WithHttpsEndpoint();
         var wps = builder.AddAzureWebPubSub("wps1");
         wps.AddHub("abc").AddEventHandler($"{serviceA.GetEndpoint("https")}/eventhandler/");
@@ -137,13 +137,13 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
     public async Task ConfigureConstructOverridesAddEventHandler()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true).WithHttpsEndpoint();
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
@@ -163,13 +163,13 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
     public async Task AddAzureWebPubSubHubSettings()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true).WithHttpsEndpoint();
         var url1 = "fake3.com";
@@ -217,13 +217,13 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal("wps1", wps.Resource.Name);
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Fact]
     public void AddHub_WithDifferentNameAndHubName_SetsPropertiesCorrectly()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1");
 
         var hub1 = wps.AddHub("hub1");
@@ -250,7 +250,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AddHub_CalledTwiceWithSameHubName_ReturnsSameResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1");
 
         // Call AddHub twice with the same hub name but different resource names
@@ -266,7 +266,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddDefaultAzureWebPubSub()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1");
 
         wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
@@ -324,7 +324,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAzureWebPubSubWithParameters()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var wps = builder.AddAzureWebPubSub("wps1")
         .WithParameter("sku", "Standard_S1")
         .WithParameter("capacity", 2);
@@ -368,7 +368,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureWebPubSubResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var existingName = builder.AddParameter("existing-webpubsub-name");
         var existingResourceGroup = builder.AddParameter("existing-webpubsub-rg");
 

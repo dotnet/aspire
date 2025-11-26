@@ -6,12 +6,13 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class ExistingAzureExtensionsResourceTests
+public class ExistingAzureExtensionsResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void RunAsExistingInPublishModeNoOps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var nameParameter = builder.AddParameter("name", "existingName");
         var resourceGroupParameter = builder.AddParameter("resourceGroup", "existingResourceGroup");
@@ -26,6 +27,7 @@ public class ExistingAzureExtensionsResourceTests
     public void RunAsExistingInRunModeWorks()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var nameParameter = builder.AddParameter("name", "existingName");
         var resourceGroupParameter = builder.AddParameter("resourceGroup", "existingResourceGroup");
@@ -44,6 +46,7 @@ public class ExistingAzureExtensionsResourceTests
     public void MultipleRunAsExistingInRunModeUsesLast()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var nameParameter = builder.AddParameter("name", "existingName");
         var resourceGroupParameter = builder.AddParameter("resourceGroup", "existingResourceGroup");
@@ -65,6 +68,7 @@ public class ExistingAzureExtensionsResourceTests
     public void PublishAsExistingInPublishModeWorks()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var nameParameter = builder.AddParameter("name", "existingName");
         var resourceGroupParameter = builder.AddParameter("resourceGroup", "existingResourceGroup");
@@ -83,6 +87,7 @@ public class ExistingAzureExtensionsResourceTests
     public void MultiplePublishAsExistingInRunModeUsesLast()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var nameParameter = builder.AddParameter("name", "existingName");
         var resourceGroupParameter = builder.AddParameter("resourceGroup", "existingResourceGroup");
@@ -124,6 +129,7 @@ public class ExistingAzureExtensionsResourceTests
     public void AsExistingInBothModesWorks(bool isPublishMode)
     {
         using var builder = TestDistributedApplicationBuilder.Create(isPublishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var nameParameter = builder.AddParameter("name", "existingName");
         var resourceGroupParameter = builder.AddParameter("resourceGroup", "existingResourceGroup");

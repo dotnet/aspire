@@ -18,7 +18,7 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
     [InlineData(true, true)]
     public async Task AddAzureOpenAI(bool overrideLocalAuthDefault, bool useObsoleteApis)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
 
         IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
         var openai = builder.AddAzureOpenAI("openai")
@@ -125,7 +125,7 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureOpenAIResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(output);
         var existingName = builder.AddParameter("existing-openai-name");
         var existingResourceGroup = builder.AddParameter("existing-openai-rg");
 

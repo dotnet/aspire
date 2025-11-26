@@ -18,7 +18,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
     [Fact]
     public async Task VerifyAzureSignalRConnectionString()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var signalR = builder.AddAzureSignalR("signalr").RunAsEmulator(e =>
         {

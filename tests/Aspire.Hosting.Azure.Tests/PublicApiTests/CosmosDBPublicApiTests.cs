@@ -7,14 +7,14 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
-public class CosmosDBPublicApiTests
+public class CosmosDBPublicApiTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void CtorAzureCosmosDBContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         var name = isNull ? null! : string.Empty;
         const string containerName = "db";
@@ -34,7 +34,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         var name = isNull ? null! : string.Empty;
         const string containerName = "db";
@@ -54,7 +54,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void CtorAzureCosmosDBContainerResourceShouldThrowWhenContainerNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         var containerName = isNull ? null! : string.Empty;
@@ -74,7 +74,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenContainerNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         var containerName = isNull ? null! : string.Empty;
@@ -94,7 +94,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void CtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         const string containerName = "db";
@@ -112,7 +112,7 @@ public class CosmosDBPublicApiTests
     [Fact]
     public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathsIsNull()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         const string containerName = "db";
@@ -128,7 +128,7 @@ public class CosmosDBPublicApiTests
     [Fact]
     public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathsIsEmpty()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         const string containerName = "db";
@@ -146,7 +146,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathsContainEmptyOrNull(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         const string containerName = "db";
@@ -192,7 +192,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void CtorAzureCosmosDBDatabaseResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var parent = builder.AddAzureCosmosDB("cosmos");
         var name = isNull ? null! : string.Empty;
         const string databaseName = "database";
@@ -210,7 +210,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void CtorAzureCosmosDBDatabaseResourceShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var parent = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         var databaseName = isNull ? null! : string.Empty;
@@ -292,7 +292,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void AddAzureCosmosDBShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureCosmosDB(name);
@@ -382,7 +382,7 @@ public class CosmosDBPublicApiTests
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use AddCosmosDatabase instead to add a Cosmos DB database.")]
     public void AddDatabaseShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         var databaseName = isNull ? null! : string.Empty;
 
@@ -411,7 +411,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void AddCosmosDatabaseShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         var name = isNull ? null! : string.Empty;
 
@@ -441,7 +441,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void AddContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .AddCosmosDatabase("cosmos-db");
         var name = isNull ? null! : string.Empty;
@@ -460,7 +460,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void AddContainerShouldThrowWhenPartitionKeyPathIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .AddCosmosDatabase("cosmos-db");
         const string name = "cosmos";
@@ -477,7 +477,7 @@ public class CosmosDBPublicApiTests
     [Fact]
     public void AddContainerShouldThrowWhenHierarchicalPartitionKeyIsNull()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos").AddCosmosDatabase("cosmos-db");
         const string name = "cosmos";
         IEnumerable<string>? partitionKeyPaths = null;
@@ -489,7 +489,7 @@ public class CosmosDBPublicApiTests
     [Fact]
     public void AddContainerShouldThrowWhenHierarchicalPartitionKeyIsEmpty()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos").AddCosmosDatabase("cosmos-db");
         const string name = "cosmos";
         string[] partitionKeyPaths = [];
@@ -503,7 +503,7 @@ public class CosmosDBPublicApiTests
     [InlineData(true)]
     public void AddContainerShouldThrowWhenHierarchicalPartitionKeyContainsEmptyOrNull(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var cosmos = builder.AddAzureCosmosDB("cosmos").AddCosmosDatabase("cosmos-db");
         const string name = "cosmos";
         string[] partitionKeyPaths = [isNull ? null! : string.Empty];
