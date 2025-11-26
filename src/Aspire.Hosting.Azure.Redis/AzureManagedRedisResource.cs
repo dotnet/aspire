@@ -14,15 +14,15 @@ using Azure.Provisioning.RedisEnterprise;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure Cache for Redis Enterprise resource.
+/// Represents an Azure Managed Redis resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
-public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the "connectionString" output reference from the bicep template for the Azure Redis Enterprise resource.
+    /// Gets the "connectionString" output reference from the bicep template for the Azure Managed Redis resource.
     ///
     /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
@@ -54,7 +54,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// <summary>
     /// Gets the inner Redis resource.
     /// 
-    /// This is set when RunAsContainer is called on the AzureRedisEnterpriseResource resource to create a local Redis container.
+    /// This is set when RunAsContainer is called on the AzureManagedRedisResource resource to create a local Redis container.
     /// </summary>
     internal RedisResource? InnerResource { get; private set; }
 
@@ -62,7 +62,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
-    /// Gets the connection string template for the manifest for the Azure Cache for Redis Enterprise resource.
+    /// Gets the connection string template for the manifest for the Azure Managed Redis resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ??
