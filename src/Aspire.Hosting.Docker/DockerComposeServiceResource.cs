@@ -37,14 +37,14 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         _composeEnvironmentResource = composeEnvironmentResource;
 
         // Add pipeline step annotation to display endpoints after deployment
-        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
+        Annotations.Add(new PipelineStepAnnotation(_ =>
         {
             var steps = new List<PipelineStep>();
 
             var printResourceSummary = new PipelineStep
             {
-                Name = $"print-{resource.Name}-summary",
-                Action = async ctx => await PrintEndpointsAsync(ctx, composeEnvironmentResource).ConfigureAwait(false),
+                Name = $"print-{_targetResource.Name}-summary",
+                Action = async ctx => await PrintEndpointsAsync(ctx, _composeEnvironmentResource).ConfigureAwait(false),
                 Tags = ["print-summary"],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]
             };
@@ -309,13 +309,6 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
     private async Task PrintEndpointsAsync(PipelineStepContext context, DockerComposeEnvironmentResource environment)
     {
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, environment);
-        var dockerComposeFilePath = Path.Combine(outputPath, "docker-compose.yaml");
-
-        if (!File.Exists(dockerComposeFilePath))
-        {
-            context.Logger.LogWarning("Docker Compose file not found at {Path}", dockerComposeFilePath);
-            return;
-        }
 
         try
         {
