@@ -365,7 +365,6 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
-        // InstallationManager is registered globally in DistributedApplicationBuilder
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
