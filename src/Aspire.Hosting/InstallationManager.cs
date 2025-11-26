@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-// Suppress experimental interaction API warnings locally.
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIRECOMMAND001
 
