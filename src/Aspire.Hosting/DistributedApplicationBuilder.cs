@@ -203,6 +203,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Normalize the AppHost path for consistent behavior across platforms and execution contexts
         AppHostPath = Path.GetFullPath(appHostPath);
 
+        // Get the actual AppHost file path (with .csproj or .cs extension)
+        var appHostFilePath = options.AppHostFilePath;
+
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
@@ -218,6 +221,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            ["AppHost:FilePath"] = appHostFilePath,
             ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });

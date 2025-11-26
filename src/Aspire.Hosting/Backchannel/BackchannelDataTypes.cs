@@ -265,3 +265,25 @@ internal sealed class DashboardMcpConnectionInfo
     /// </summary>
     public required string ApiToken { get; init; }
 }
+
+/// <summary>
+/// Represents information about the AppHost for the MCP server.
+/// </summary>
+internal sealed class AppHostInformation
+{
+    /// <summary>
+    /// Gets or sets the fully qualified path to the AppHost project.
+    /// </summary>
+    public required string AppHostPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the AppHost.
+    /// </summary>
+    public required int ProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the CLI that launched the AppHost, if applicable.
+    /// This value is only set when the AppHost is launched via the Aspire CLI.
+    /// </summary>
+    public int? CliProcessId { get; init; }
+}

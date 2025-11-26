@@ -11,6 +11,8 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
 
     public IReadOnlyDictionary<string, AppHostConnection> Connections => _connections;
 
+    public string? SelectedAppHostPath { get; set; }
+
     public void AddConnection(string hash, AppHostConnection connection)
     {
         _connections[hash] = connection;
