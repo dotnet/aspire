@@ -118,7 +118,7 @@ internal sealed class DcpHost
         }
         finally
         {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+            AspireEventSource.Instance.ContainerRuntimeHealthCheckStop();
         }
     }
 
