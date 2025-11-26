@@ -76,6 +76,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -182,6 +183,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             try
             {
                 var hb1 = Host.CreateApplicationBuilder();
+                hb1.Services.AddTestAndResourceLogging(testOutputHelper);
 
                 hb1.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -267,6 +269,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb2 = Host.CreateApplicationBuilder();
+                    hb2.Services.AddTestAndResourceLogging(testOutputHelper);
 
                     hb2.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -365,6 +368,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -418,6 +422,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -490,6 +495,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var hb = Host.CreateApplicationBuilder();
+                hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
                 hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -548,6 +554,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
         foreach (var db in dbs)
         {
