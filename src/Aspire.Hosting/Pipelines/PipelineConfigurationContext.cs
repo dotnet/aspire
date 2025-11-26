@@ -45,7 +45,7 @@ public class PipelineConfigurationContext
     /// </summary>
     /// <param name="tag">The tag to search for.</param>
     /// <returns>A collection of steps that have the specified tag.</returns>
-    public IEnumerable<PipelineStep> GetSteps(string tag)
+    public IEnumerable<PipelineStep> GetStepsByTag(string tag)
     {
         ArgumentNullException.ThrowIfNull(tag);
         return Steps.Where(s => s.Tags.Contains(tag));
