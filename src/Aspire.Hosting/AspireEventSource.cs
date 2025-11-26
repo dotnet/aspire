@@ -326,7 +326,7 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(38, Level = EventLevel.Error, Message = "Aspire executable resources created")]
+    [Event(38, Level = EventLevel.Informational, Message = "Aspire executable resources created")]
     public void CreateAspireExecutableResourcesStop(string executableName)
     {
         if (IsEnabled())
@@ -344,7 +344,7 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(40, Level = EventLevel.Error, Message = "DCP resource stopped")]
+    [Event(40, Level = EventLevel.Informational, Message = "DCP resource stopped")]
     public void StopResourceStop(string kind, string resourceName)
     {
         if (IsEnabled())
@@ -362,7 +362,7 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(42, Level = EventLevel.Error, Message = "DCP resource started")]
+    [Event(42, Level = EventLevel.Informational, Message = "DCP resource started")]
     public void StartResourceStop(string kind, string resourceName)
     {
         if (IsEnabled())
