@@ -58,7 +58,7 @@ public interface IContainerRuntime
     /// </summary>
     /// <param name="resource">The resource containing push configuration.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default);
+    Task PushImageAsync(IResource resource, CancellationToken cancellationToken);
 
     /// <summary>
     /// Logs in to a container registry.

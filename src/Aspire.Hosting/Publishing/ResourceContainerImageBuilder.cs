@@ -128,19 +128,11 @@ public interface IResourceContainerImageBuilder
     Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tags an existing container image with a new target name.
-    /// </summary>
-    /// <param name="localImageName">The name of the local image to tag.</param>
-    /// <param name="targetImageName">The target name for the image tag.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Pushes a container image to a registry.
     /// </summary>
     /// <param name="resource">The resource to push.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default);
+    Task PushImageAsync(IResource resource, CancellationToken cancellationToken);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -480,12 +472,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
-    {
-        await ContainerRuntime.TagImageAsync(localImageName, targetImageName, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task PushImageAsync(IResource resource, CancellationToken cancellationToken = default)
+    public async Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         await ContainerRuntime.PushImageAsync(resource, cancellationToken).ConfigureAwait(false);
     }

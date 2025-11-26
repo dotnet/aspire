@@ -1473,7 +1473,7 @@ public static class ResourceExtensions
 #pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     internal static async Task<ContainerImagePushOptions> ProcessImagePushOptionsCallbackAsync(
         this IResource resource,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var options = new ContainerImagePushOptions
         {
