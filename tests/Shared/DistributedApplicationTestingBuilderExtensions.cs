@@ -31,7 +31,7 @@ public static class DistributedApplicationTestingBuilderExtensions
         {
             builder.AddFilter("Aspire.Hosting", LogLevel.Trace);
             // Suppress all console logging during tests to reduce noise
-            builder.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
+            builder.AddFilter<ConsoleLoggerProvider>("*", LogLevel.None);
         });
         return services;
     }
