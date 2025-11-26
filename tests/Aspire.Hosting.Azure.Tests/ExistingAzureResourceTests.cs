@@ -8,12 +8,12 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class ExistingAzureResourceTests
+public class ExistingAzureResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AddExistingAzureServiceBusInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -24,7 +24,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -270,7 +270,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -304,7 +304,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -338,7 +338,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -355,7 +355,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -403,7 +403,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -426,7 +426,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -446,7 +446,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -467,7 +467,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -483,7 +483,7 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 
     [Fact]
@@ -500,6 +500,6 @@ public class ExistingAzureResourceTests
 
         await Verify(manifest.ToString(), "json")
             .AppendContentAsFile(bicep, "bicep");
-            
+
     }
 }

@@ -172,6 +172,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{blobsResourceName}"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.Configuration[$"ConnectionStrings:{blobContainerName}"] = await container.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.Configuration[$"ConnectionStrings:{queuesResourceName}"] = await queues.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
@@ -223,6 +224,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
         hb.Configuration["ConnectionStrings:BlobConnection"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureBlobServiceClient("BlobConnection");
 
@@ -262,6 +264,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await rns.WaitForResourceHealthyAsync(queue.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
         hb.Configuration["ConnectionStrings:QueueConnection"] = await queues.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureQueueServiceClient("QueueConnection");
 

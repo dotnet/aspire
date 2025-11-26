@@ -5,7 +5,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureAppServiceEnvironmentExtensionsTests
+public class AzureAppServiceEnvironmentExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddAsExistingResource_ShouldBeIdempotent_ForAzureAppServiceEnvironmentResource()
@@ -25,7 +25,7 @@ public class AzureAppServiceEnvironmentExtensionsTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureAppServiceEnvironmentResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-appenv-name");
         var existingResourceGroup = builder.AddParameter("existing-appenv-rg");
 

@@ -10,12 +10,13 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureContainerRegistryTests
+public class AzureContainerRegistryTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AddAzureContainerRegistry_AddsResourceAndImplementsIContainerRegistry()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         _ = builder.AddAzureContainerRegistry("acr");
 
@@ -37,6 +38,7 @@ public class AzureContainerRegistryTests
     public async Task WithRegistry_AttachesContainerRegistryReferenceAnnotation()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var registryBuilder = builder.AddAzureContainerRegistry("acr");
         _ = builder.AddAzureContainerAppEnvironment("env")
@@ -55,7 +57,7 @@ public class AzureContainerRegistryTests
     [Fact]
     public async Task AddAzureContainerRegistry_GeneratesCorrectManifestAndBicep()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var acr = builder.AddAzureContainerRegistry("acr");
 
@@ -69,6 +71,7 @@ public class AzureContainerRegistryTests
     public async Task WithRoleAssignments_GeneratesCorrectRoleAssignmentBicep()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         // Add container app environment since it's required for role assignments
         builder.AddAzureContainerAppEnvironment("env");
@@ -88,7 +91,7 @@ public class AzureContainerRegistryTests
 
         await Verify(rolesManifest.ToString(), "json")
               .AppendContentAsFile(rolesBicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -109,7 +112,7 @@ public class AzureContainerRegistryTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureContainerRegistryResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-acr-name");
         var existingResourceGroup = builder.AddParameter("existing-acr-rg");
 

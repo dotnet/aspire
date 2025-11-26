@@ -76,6 +76,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
         if (referenceHub)
         {
@@ -128,6 +129,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await app.ResourceNotifications.WaitForResourceHealthyAsync(eventHubns.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.Services.AddTestAndResourceLogging(testOutputHelper);
 
         if (useSettings)
         {
@@ -154,7 +156,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -173,7 +175,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -192,7 +194,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -211,7 +213,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -233,7 +235,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [InlineData(9007)]
     public void AzureEventHubsWithEmulatorGetsExpectedPort(int? port = null)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator(configureContainer: builder =>
         {
             builder.WithHostPort(port);
@@ -256,7 +258,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [InlineData("1.0.7")]
     public void AzureEventHubsWithEmulatorGetsExpectedImageTag(string? imageTag)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eventhubs");
 
         eventHubs.RunAsEmulator(container =>
@@ -278,7 +280,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task CanSetHubAndConsumerGroupName()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eh");
 
         eventHubs.AddHub("hub-resource", "hub-name")
@@ -296,13 +298,13 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(ehRolesManifest.ToString(), "json")
               .AppendContentAsFile(ehRolesBicep, "bicep");
-              
+
     }
 
     [Fact]
     public async Task AzureEventHubsEmulatorResourceInitializesProvisioningModel()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         global::Azure.Provisioning.EventHubs.EventHub? hub = null;
         global::Azure.Provisioning.EventHubs.EventHubsConsumerGroup? cg = null;
@@ -334,7 +336,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task AzureEventHubsEmulatorResourceGeneratesConfigJson()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var eventHubs = builder.AddAzureEventHubs("eh")
             .RunAsEmulator();
@@ -388,7 +390,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task AzureEventHubsEmulatorResourceGeneratesConfigJsonWithCustomizations()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var eventHubs = builder
             .AddAzureEventHubs("eh")
@@ -446,7 +448,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task AzureEventHubsEmulator_WithConfigurationFile()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var configJsonPath = Path.GetTempFileName();
 
@@ -506,7 +508,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public void AddAzureEventHubsWithEmulator_SetsStorageLifetime(bool isPersistent)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
 
         var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
@@ -528,7 +530,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void RunAsEmulator_CalledTwice_Throws()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator();
 
         Assert.Throws<InvalidOperationException>(() => eventHubs.RunAsEmulator());
@@ -537,7 +539,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AzureEventHubsHasCorrectConnectionStrings()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var eventHubs = builder.AddAzureEventHubs("eh");
         var eventHub = eventHubs.AddHub("hub1");
@@ -551,7 +553,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void AzureEventHubsAppliesAzureFunctionsConfiguration()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var eventHubs = builder.AddAzureEventHubs("eh");
         var eventHub = eventHubs.AddHub("hub1");
@@ -609,7 +611,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHubs = builder.AddAzureEventHubs("eventhubs")
                               .RunAsEmulator();
 
@@ -636,7 +638,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureEventHubsResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-eventhubs-name");
         var existingResourceGroup = builder.AddParameter("existing-eventhubs-rg");
 

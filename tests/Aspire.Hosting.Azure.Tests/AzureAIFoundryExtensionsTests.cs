@@ -134,7 +134,7 @@ public class AzureAIFoundryExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public void RunAsFoundryLocal_DeploymentConnectionString_UsesModelId()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         foundry.RunAsFoundryLocal();

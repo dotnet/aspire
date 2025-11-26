@@ -9,7 +9,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzurePostgresExtensionsTests
+public class AzurePostgresExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
     // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.PostgresSupport. The output doesn't match the pattern here because the role assignment isn't generated
@@ -19,6 +19,7 @@ public class AzurePostgresExtensionsTests
     public async Task AddAzurePostgresFlexibleServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
@@ -45,7 +46,7 @@ public class AzurePostgresExtensionsTests
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
               .AppendContentAsFile(postgresRolesBicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -97,7 +98,7 @@ public class AzurePostgresExtensionsTests
 
         await Verify(bicep, extension: "bicep")
                 .AppendContentAsFile(manifest.ToString(), "json");
-            
+
     }
 
     [Theory]
@@ -316,15 +317,15 @@ public class AzurePostgresExtensionsTests
         Assert.NotNull(postgres.Resource.UserName);
         Assert.NotNull(postgres.Resource.Password);
         Assert.NotNull(postgres.Resource.HostName);
-        
+
         // Validate the values can be resolved
         var hostValue = await postgres.Resource.HostName.GetValueAsync(CancellationToken.None);
         Assert.Equal("localhost:5432", hostValue);
-        
+
         var userValue = await postgres.Resource.UserName.GetValueAsync(CancellationToken.None);
         Assert.NotNull(userValue);
         Assert.NotEmpty(userValue);
-        
+
         var passwordValue = await postgres.Resource.Password.GetValueAsync(CancellationToken.None);
         Assert.NotNull(passwordValue);
         Assert.NotEmpty(passwordValue);
@@ -334,6 +335,7 @@ public class AzurePostgresExtensionsTests
     public void AddAzurePostgresFlexibleServerAADModeUserNameAndPasswordAreNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
         postgres.AddDatabase("db1");
@@ -402,6 +404,7 @@ public class AzurePostgresExtensionsTests
     public async Task AsAzurePostgresFlexibleServerViaPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.Configuration["Parameters:usr"] = "user";
         builder.Configuration["Parameters:pwd"] = "password";
@@ -604,7 +607,7 @@ public class AzurePostgresExtensionsTests
         // Assert - Verify that the SecretOwner is set to the Postgres resource
         Assert.NotNull(postgres.Resource.ConnectionStringSecretOutput);
         Assert.Same(postgres.Resource, postgres.Resource.ConnectionStringSecretOutput.SecretOwner);
-        
+
         // Also verify that References includes both the KeyVault and the Postgres resource
         var references = ((IValueWithReferences)postgres.Resource.ConnectionStringSecretOutput).References.ToList();
         Assert.Contains(postgres.Resource, references);

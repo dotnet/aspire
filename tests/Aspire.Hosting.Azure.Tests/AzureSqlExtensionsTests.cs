@@ -8,7 +8,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureSqlExtensionsTests
+public class AzureSqlExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
     // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.SqlSupport. The output doesn't match the pattern here because the role assignment isn't generated
@@ -18,13 +18,14 @@ public class AzureSqlExtensionsTests
     public async Task AddAzureSqlServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var sql = builder.AddAzureSqlServer("sql");
 
-        // database name same as the aspire resource name, free tier 
+        // database name same as the aspire resource name, free tier
         sql.AddDatabase("db1");
 
-        // set the database name, free tier 
+        // set the database name, free tier
         sql.AddDatabase("db2", "db2Name");
 
         // do not set any sku, use whatever is the default for Azure at that time
@@ -55,7 +56,7 @@ public class AzureSqlExtensionsTests
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString(), ignoreLineEndingDifferences: true);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
+
     }
 
     [Theory]
@@ -63,7 +64,7 @@ public class AzureSqlExtensionsTests
     [InlineData(false)]
     public async Task AddAzureSqlServerRunAsContainerProducesCorrectConnectionString(bool addDbBeforeRunAsContainer)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var sql = builder.AddAzureSqlServer("sql");
 
@@ -112,7 +113,7 @@ public class AzureSqlExtensionsTests
     [InlineData(false)]
     public async Task AddAzureSqlServerRunAsContainerProducesCorrectPasswordAndPort(bool addDbBeforeRunAsContainer)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var sql = builder.AddAzureSqlServer("sql");
         var pass = builder.AddParameter("pass", "p@ssw0rd1");
@@ -176,7 +177,7 @@ public class AzureSqlExtensionsTests
     [InlineData(false, false)]
     public void RunAsContainerAppliesAnnotationsCorrectly(bool annotationsBefore, bool addDatabaseBefore)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var sql = builder.AddAzureSqlServer("sql");
         IResourceBuilder<AzureSqlDatabaseResource>? db = null;
@@ -225,7 +226,7 @@ public class AzureSqlExtensionsTests
 
         Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
         Assert.Single(dbAnnotations);
-    }   
+    }
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {
@@ -234,11 +235,11 @@ public class AzureSqlExtensionsTests
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
     }
-    
+
     [Fact]
     public async Task AsAzureSqlDatabaseViaRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
 #pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
@@ -270,6 +271,7 @@ public class AzureSqlExtensionsTests
     public async Task AsAzureSqlDatabaseViaPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
 #pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
@@ -315,7 +317,7 @@ public class AzureSqlExtensionsTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureSqlServerResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-sql-name");
         var existingResourceGroup = builder.AddParameter("existing-sql-rg");
 
@@ -332,7 +334,7 @@ public class AzureSqlExtensionsTests
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
-    
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

@@ -7,7 +7,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureContainerAppEnvironmentExtensionsTests
+public class AzureContainerAppEnvironmentExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddAsExistingResource_ShouldBeIdempotent_ForAzureContainerAppEnvironmentResource()
@@ -27,7 +27,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureContainerAppEnvironmentResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-env-name");
         var existingResourceGroup = builder.AddParameter("existing-env-rg");
 
@@ -50,11 +50,11 @@ public class AzureContainerAppEnvironmentExtensionsTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        
+
         // Create parameters for existing Log Analytics Workspace in resource group "X"
         var lawName = builder.AddParameter("log-env-shared-name");
         var lawResourceGroup = builder.AddParameter("log-env-shared-rg"); // resource group "X"
-        
+
         // Create Log Analytics Workspace resource marked as existing in resource group "X"
         var logAnalyticsWorkspace = builder
             .AddAzureLogAnalyticsWorkspace("log-env-shared")

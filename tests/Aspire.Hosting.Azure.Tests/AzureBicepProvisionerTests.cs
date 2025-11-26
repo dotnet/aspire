@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureBicepProvisionerTests
+public class AzureBicepProvisionerTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
     [InlineData("1alpha")]
@@ -28,7 +28,7 @@ public class AzureBicepProvisionerTests
     {
         Assert.Throws<ArgumentException>(() =>
         {
-            using var builder = TestDistributedApplicationBuilder.Create();
+            using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
             builder.AddAzureInfrastructure("infrastructure", _ => { })
                    .WithParameter(bicepParameterName);
         });
@@ -43,7 +43,7 @@ public class AzureBicepProvisionerTests
     [InlineData("Alpha1_A")]
     public void WithParameterAllowsParameterNamesWhichAreValidBicepIdentifiers(string bicepParameterName)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.AddAzureInfrastructure("infrastructure", _ => { })
                 .WithParameter(bicepParameterName);
     }
@@ -53,7 +53,7 @@ public class AzureBicepProvisionerTests
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var cosmos = builder.AddAzureCosmosDB("cosmosdb");
         var db = cosmos.AddCosmosDatabase("db");
@@ -84,7 +84,7 @@ public class AzureBicepProvisionerTests
         // Test that BicepProvisioner can be instantiated with required dependencies
 
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
         var services = builder.Services.BuildServiceProvider();
 

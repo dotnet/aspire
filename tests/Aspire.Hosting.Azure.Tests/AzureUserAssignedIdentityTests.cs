@@ -13,13 +13,14 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureUserAssignedIdentityTests
+public class AzureUserAssignedIdentityTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AddAzureUserAssignedIdentity_GeneratesExpectedResourcesAndBicep()
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureUserAssignedIdentity("myidentity");
 
@@ -40,6 +41,7 @@ public class AzureUserAssignedIdentityTests
     public async Task AddAzureUserAssignedIdentity_PublishAsExisting_Works()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureUserAssignedIdentity("myidentity")
                .PublishAsExisting("existingidentity", "my-rg");
@@ -58,6 +60,7 @@ public class AzureUserAssignedIdentityTests
     public async Task AddAzureUserAssignedIdentity_WithRoleAssignments_Works()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         builder.AddAzureContainerAppEnvironment("cae");
 
@@ -99,6 +102,7 @@ public class AzureUserAssignedIdentityTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var env = builder.AddAzureContainerAppEnvironment("cae");
 
@@ -133,6 +137,7 @@ public class AzureUserAssignedIdentityTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var env = builder.AddAzureContainerAppEnvironment("cae");
 
@@ -188,6 +193,7 @@ public class AzureUserAssignedIdentityTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var env = builder.AddAzureAppServiceEnvironment("appservice");
 
@@ -243,6 +249,7 @@ public class AzureUserAssignedIdentityTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var storage = builder.AddAzureStorage("mystorage");
         var identity = builder.AddAzureUserAssignedIdentity("myidentity");
@@ -260,6 +267,7 @@ public class AzureUserAssignedIdentityTests
     {
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var env = builder.AddAzureContainerAppEnvironment("cae");
 
@@ -346,7 +354,7 @@ public class AzureUserAssignedIdentityTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureUserAssignedIdentityResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-identity-name");
         var existingResourceGroup = builder.AddParameter("existing-identity-rg");
 

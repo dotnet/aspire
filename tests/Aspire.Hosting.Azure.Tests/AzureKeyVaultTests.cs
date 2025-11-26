@@ -8,12 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureKeyVaultTests
+public class AzureKeyVaultTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task AddKeyVaultViaRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
@@ -28,6 +28,7 @@ public class AzureKeyVaultTests
     public async Task AddKeyVaultViaPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
@@ -48,7 +49,7 @@ public class AzureKeyVaultTests
     public async Task WithEnvironment_AddsKeyVaultSecretReference()
     {
         // Arrange: Create a test application builder.
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         // Add a key vault resource.
         var kv = builder.AddAzureKeyVault("myKeyVault");
@@ -82,6 +83,7 @@ public class AzureKeyVaultTests
     public async Task ConsumingAKeyVaultSecretInAnotherBicepModule()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var kv = builder.AddAzureKeyVault("myKeyVault");
 
@@ -118,6 +120,7 @@ public class AzureKeyVaultTests
     public async Task ConsumingSecretsFromExistingKeyVaultInAnotherBicepModule_WithParameters()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var existingName = builder.AddParameter("existingKvName");
         var existingRg = builder.AddParameter("existingRgName");
@@ -160,6 +163,7 @@ public class AzureKeyVaultTests
     public async Task ConsumingSecretsFromExistingKeyVaultInAnotherBicepModule_WithLiterals()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var kv = builder.AddAzureKeyVault("kv").PublishAsExisting("literalKvName", "literalRgName");
 
@@ -185,7 +189,7 @@ public class AzureKeyVaultTests
     [Fact]
     public void GetSecret_ReturnsSecretReference()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var kv = builder.AddAzureKeyVault("myKeyVault");
 
@@ -199,7 +203,7 @@ public class AzureKeyVaultTests
     [Fact]
     public void AddSecret_ReturnsSecretResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
@@ -219,6 +223,7 @@ public class AzureKeyVaultTests
     public async Task AddSecret_WithParameterResource_GeneratesCorrectBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var secret = builder.AddParameter("my-secret-param", secret: true);
         var kv = builder.AddAzureKeyVault("mykv");
@@ -234,6 +239,7 @@ public class AzureKeyVaultTests
     public async Task AddSecret_WithReferenceExpression_GeneratesCorrectBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var pwd = builder.AddParameter("password", secret: true);
         var connectionString = ReferenceExpression.Create($"Server=localhost;Database=mydb;pwd={pwd}");
         var kv = builder.AddAzureKeyVault("mykv");
@@ -249,6 +255,7 @@ public class AzureKeyVaultTests
     public void KvSecretResources_AreExcludedFromManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parameter = builder.AddParameter("my-secret-param", secret: true);
         var kv = builder.AddAzureKeyVault("mykv");
@@ -263,6 +270,7 @@ public class AzureKeyVaultTests
     public async Task AddSecret_WithMultipleSecrets_GeneratesCorrectBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var secretParam = builder.AddParameter("secret-param", secret: true);
         var apiKey = builder.AddParameter("api-key", secret: true);
@@ -284,7 +292,7 @@ public class AzureKeyVaultTests
     [InlineData("   ")]
     public void AddSecret_WithEmptySecretName_ThrowsArgumentException(string invalidSecretName)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
@@ -301,7 +309,7 @@ public class AzureKeyVaultTests
     [InlineData("secret@with@symbols")]
     public void AddSecret_WithInvalidSecretName_ThrowsArgumentException(string invalidName)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
@@ -317,7 +325,7 @@ public class AzureKeyVaultTests
     [InlineData("a")]
     public void AddSecret_WithValidSecretName_DoesNotThrow(string validSecretName)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
@@ -329,7 +337,7 @@ public class AzureKeyVaultTests
     [Fact]
     public void AddSecret_WithTooLongSecretName_ThrowsArgumentException()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
@@ -359,7 +367,7 @@ public class AzureKeyVaultTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureKeyVaultResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var existingName = builder.AddParameter("existing-kv-name");
         var existingResourceGroup = builder.AddParameter("existing-kv-rg");
 
@@ -380,7 +388,7 @@ public class AzureKeyVaultTests
     [Fact]
     public void EmulatorSupport_IsEmulatorFalseByDefault()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var keyVault = builder.AddAzureKeyVault("kv");
 
@@ -390,10 +398,10 @@ public class AzureKeyVaultTests
     [Fact]
     public void EmulatorSupport_IsEmulatorTrueWhenContainerPresent()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Simulate emulator by adding container annotation
         keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
         {
@@ -406,10 +414,10 @@ public class AzureKeyVaultTests
     [Fact]
     public async Task EmulatorSupport_ConnectionStringUsesEmulatorEndpointWhenIsEmulator()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Add container annotation to simulate emulator
         keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
         {
@@ -428,7 +436,7 @@ public class AzureKeyVaultTests
     [Fact]
     public void EmulatorSupport_ConnectionStringUsesBicepOutputWhenNotEmulator()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var keyVault = builder.AddAzureKeyVault("kv");
 
@@ -441,10 +449,10 @@ public class AzureKeyVaultTests
     [Fact]
     public async Task ConnectionStringRedirectAnnotation_RedirectsConnectionString()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Create a connection string resource to redirect to
         var redirectTarget = new ConnectionStringResource("redirect-target",
             ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
@@ -462,10 +470,10 @@ public class AzureKeyVaultTests
     [Fact]
     public async Task ConnectionStringRedirectAnnotation_TakesPrecedenceOverEmulator()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Create a connection string resource to redirect to
         var redirectTarget = new ConnectionStringResource("redirect-target",
             ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
