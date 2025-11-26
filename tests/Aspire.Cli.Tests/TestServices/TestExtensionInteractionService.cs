@@ -138,7 +138,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
 
     public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
