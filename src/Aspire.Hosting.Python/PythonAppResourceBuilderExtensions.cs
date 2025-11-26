@@ -1257,8 +1257,6 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // InstallationManager is registered globally in DistributedApplicationBuilder
-
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
