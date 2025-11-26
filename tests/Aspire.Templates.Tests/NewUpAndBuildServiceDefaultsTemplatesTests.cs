@@ -48,7 +48,7 @@ public class NewUpAndBuildServiceDefaultsTemplatesTests(ITestOutputHelper testOu
 
             Assert.True(error is null, $"Expected to throw an exception with message: {error}");
 
-            await project.BuildAsync(extraBuildArgs: ["-c Debug"], workingDirectory: project.ServiceDefaultsProjectPath);
+                await project.BuildAsync(extraBuildArgs: ["-c Debug"], workingDirectory: project.RootDir);
         }
         catch (ToolCommandException tce) when (error is not null)
         {
