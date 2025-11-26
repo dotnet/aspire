@@ -67,7 +67,7 @@
                     "Grpc",
                     "HttpProtobuf"
                   ],
-                  "description": "Gets or sets the the OTLP transport protocol."
+                  "description": "Gets or sets the OTLP transport protocol."
                 },
                 "TimeoutMilliseconds": {
                   "type": "integer",
@@ -122,7 +122,7 @@
                     "Grpc",
                     "HttpProtobuf"
                   ],
-                  "description": "Gets or sets the the OTLP transport protocol."
+                  "description": "Gets or sets the OTLP transport protocol."
                 },
                 "TimeoutMilliseconds": {
                   "type": "integer",
