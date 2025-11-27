@@ -77,7 +77,7 @@ internal static class ContainerNetworkState
     public const string ContainerNetworkStateNotFound = "NotFound";
 }
 
-internal sealed class ContainerNetwork : CustomResource<ContainerNetworkSpec, ContainerNetworkStatus>
+internal sealed class ContainerNetwork : CustomResource<ContainerNetworkSpec, ContainerNetworkStatus>, IKubernetesStaticMetadata
 {
     [JsonConstructor]
     public ContainerNetwork(ContainerNetworkSpec spec) : base(spec) { }
@@ -93,4 +93,6 @@ internal sealed class ContainerNetwork : CustomResource<ContainerNetworkSpec, Co
 
         return c;
     }
+
+    public static string ObjectKind => Dcp.ContainerNetworkKind;
 }
