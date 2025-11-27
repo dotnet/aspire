@@ -4,10 +4,15 @@
 using System.CommandLine;
 using System.Globalization;
 using System.Text;
+using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.ClaudeCode;
+using Aspire.Cli.Agents.OpenCode;
+using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -163,6 +168,22 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+
+        // Git repository operations.
+        builder.Services.AddSingleton<IGitRepository, GitRepository>();
+
+        // OpenCode CLI operations.
+        builder.Services.AddSingleton<IOpenCodeCliRunner, OpenCodeCliRunner>();
+
+        // Claude Code CLI operations.
+        builder.Services.AddSingleton<IClaudeCodeCliRunner, ClaudeCodeCliRunner>();
+
+        // Agent environment detection.
+        builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
+        builder.Services.AddSingleton<IAgentFingerprintService, AgentFingerprintService>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>());
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
