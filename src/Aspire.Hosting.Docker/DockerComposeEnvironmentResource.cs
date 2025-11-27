@@ -41,13 +41,15 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
+    internal Action<IDictionary<string, CapturedEnvironmentVariable>>? ConfigureEnvironment { get; set; }
+
     internal IResourceBuilder<DockerComposeAspireDashboardResource>? Dashboard { get; set; }
 
     /// <summary>
     /// Gets the collection of environment variables captured from the Docker Compose environment.
     /// These will be populated into a top-level .env file adjacent to the Docker Compose file.
     /// </summary>
-    internal Dictionary<string, (string? Description, string? DefaultValue, object? Source)> CapturedEnvironmentVariables { get; } = [];
+    internal Dictionary<string, CapturedEnvironmentVariable> CapturedEnvironmentVariables { get; } = [];
 
     internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
@@ -337,27 +339,35 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
         foreach (var entry in CapturedEnvironmentVariables)
         {
-            var (key, (description, defaultValue, source)) = entry;
+            var envVar = entry.Value;
+            var defaultValue = envVar.DefaultValue;
 
-            if (defaultValue is null && source is ParameterResource parameter)
+            if (defaultValue is null && envVar.Source is ParameterResource parameter)
             {
                 defaultValue = await parameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
             }
 
-            if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
+            if (envVar.Source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
             {
                 defaultValue = imageName;
             }
 
-            envFile.Add(key, defaultValue, description, onlyIfMissing: false);
+            envFile.Add(entry.Key, defaultValue, envVar.Description, onlyIfMissing: false);
         }
 
         envFile.Save(includeValues: true);
     }
 
-    internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)
+    internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null, IResource? resource = null)
     {
-        CapturedEnvironmentVariables[name] = (description, defaultValue, source);
+        CapturedEnvironmentVariables[name] = new CapturedEnvironmentVariable
+        {
+            Name = name,
+            Description = description,
+            DefaultValue = defaultValue,
+            Source = source,
+            Resource = resource
+        };
 
         return $"${{{name}}}";
     }
