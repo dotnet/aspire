@@ -157,9 +157,9 @@ internal sealed class DockerComposePublishingContext(
 
                 foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                 {
-                    var (key, (description, _, _)) = entry;
+                    var (key, (description, defaultValue, _)) = entry;
 
-                    envFile.Add(key, value: null, description, onlyIfMissing: true);
+                    envFile.Add(key, value: defaultValue, description, onlyIfMissing: true);
                 }
 
                 envFile.Save(includeValues: false);

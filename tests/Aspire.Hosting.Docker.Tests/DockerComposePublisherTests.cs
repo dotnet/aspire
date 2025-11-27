@@ -655,6 +655,92 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.DoesNotContain("OLD_STAGING_KEY", envFileContent);
     }
 
+    [Fact]
+    public async Task PublishAsync_BindMounts_ReplacedWithEnvironmentPlaceholders()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with bind mounts
+        builder.AddContainer("my-container", "my-image")
+            .WithBindMount("/host/path/data", "/container/data")
+            .WithBindMount("/another/host/path", "/container/config", isReadOnly: true);
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
+    [Fact]
+    public async Task PublishAsync_DockerSocket_NotReplacedWithPlaceholder()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with docker socket mount
+        builder.AddContainer("docker-proxy", "my-image")
+            .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        // Docker socket should be preserved as-is, not replaced with placeholder
+        Assert.Contains("/var/run/docker.sock", composeContent);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task PublishAsync_MixedBindMountsAndVolumes()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with both bind mounts and volumes
+        builder.AddContainer("my-service", "my-image")
+            .WithVolume("my-volume", "/container/volume-data")
+            .WithBindMount("/host/path/data", "/container/bind-data")
+            .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
