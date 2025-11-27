@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Network;
 
@@ -37,10 +36,10 @@ public class AzureNatGatewayResource(string name, Action<AzureResourceInfrastruc
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a NatGateway with the same identifier already exists
         var existingNatGw = resources.OfType<NatGateway>().SingleOrDefault(natgw => natgw.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingNatGw is not null)
         {
             return existingNatGw;

@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Network;
 
 namespace Aspire.Hosting;
@@ -20,13 +19,6 @@ public static class AzureVirtualNetworkExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the Azure Virtual Network resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureVirtualNetworkResource}"/>.</returns>
-    /// <remarks>
-    /// By default references to the Azure Virtual Network resource will be assigned the following roles:
-    /// 
-    /// - <see cref="NetworkBuiltInRole.NetworkContributor"/>
-    ///
-    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureVirtualNetworkResource}, NetworkBuiltInRole[])"/>.
-    /// </remarks>
     public static IResourceBuilder<AzureVirtualNetworkResource> AddAzureVirtualNetwork(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -41,13 +33,6 @@ public static class AzureVirtualNetworkExtensions
     /// <param name="name">The name of the Azure Virtual Network resource.</param>
     /// <param name="addressPrefix">The address prefix for the virtual network (e.g., "10.0.0.0/16"). If null, defaults to "10.0.0.0/16".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureVirtualNetworkResource}"/>.</returns>
-    /// <remarks>
-    /// By default references to the Azure Virtual Network resource will be assigned the following roles:
-    /// 
-    /// - <see cref="NetworkBuiltInRole.NetworkContributor"/>
-    ///
-    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureVirtualNetworkResource}, NetworkBuiltInRole[])"/>.
-    /// </remarks>
     public static IResourceBuilder<AzureVirtualNetworkResource> AddAzureVirtualNetwork(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -59,13 +44,11 @@ public static class AzureVirtualNetworkExtensions
         builder.AddAzureProvisioning();
 
         AzureVirtualNetworkResource resource = new(name, ConfigureVirtualNetwork);
-        return builder.AddResource(resource)
-            .WithDefaultRoleAssignments(NetworkBuiltInRole.GetBuiltInRoleName,
-                NetworkBuiltInRole.NetworkContributor);
+        return builder.AddResource(resource);
 
-        void ConfigureVirtualNetwork(AzureResourceInfrastructure infrastructure)
+        void ConfigureVirtualNetwork(AzureResourceInfrastructure infra)
         {
-            var vnet = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+            var vnet = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infra,
                 (identifier, name) =>
                 {
                     var resource = VirtualNetwork.FromExisting(identifier);
@@ -76,7 +59,7 @@ public static class AzureVirtualNetworkExtensions
                 {
                     var vnet = new VirtualNetwork(infrastructure.AspireResource.GetBicepIdentifier())
                     {
-                        AddressSpace = new AddressSpace()
+                        AddressSpace = new VirtualNetworkAddressSpace()
                         {
                             AddressPrefixes = { addressPrefix ?? "10.0.0.0/16" }
                         },
@@ -86,27 +69,27 @@ public static class AzureVirtualNetworkExtensions
                     return vnet;
                 });
 
-            var azureResource = (AzureVirtualNetworkResource)infrastructure.AspireResource;
+            var azureResource = (AzureVirtualNetworkResource)infra.AspireResource;
 
             // Add subnets
             if (azureResource.Subnets.Count > 0)
             {
                 foreach (var subnet in azureResource.Subnets)
                 {
-                    var cdkSubnet = subnet.ToProvisioningEntity();
+                    var cdkSubnet = subnet.ToProvisioningEntity(infra);
                     cdkSubnet.Parent = vnet;
-                    infrastructure.Add(cdkSubnet);
+                    infra.Add(cdkSubnet);
                 }
             }
 
             // Output the VNet ID for references
-            infrastructure.Add(new ProvisioningOutput("id", typeof(string))
+            infra.Add(new ProvisioningOutput("id", typeof(string))
             {
                 Value = vnet.Id
             });
 
-            // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = vnet.Name });
+            // We need to output name so it can be referenced by others.
+            infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = vnet.Name });
         }
     }
 
@@ -145,167 +128,158 @@ public static class AzureVirtualNetworkExtensions
 
         subnetName ??= name;
 
-        var subnet = new AzureSubnetResource(name, subnetName, builder.Resource)
-        {
-            AddressPrefix = addressPrefix
-        };
+        var subnet = new AzureSubnetResource(name, subnetName, addressPrefix, builder.Resource);
 
         builder.Resource.Subnets.Add(subnet);
-        return builder.ApplicationBuilder.AddResource(subnet);
+        return builder.ApplicationBuilder.AddResource(subnet)
+            .ExcludeFromManifest();
     }
 
-    /// <summary>
-    /// Adds an Azure Public IP Address resource to the application model.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the Azure Public IP Address resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzurePublicIpResource}"/>.</returns>
-    /// <remarks>
-    /// By default references to the Azure Public IP Address resource will be assigned the following roles:
-    /// 
-    /// - <see cref="NetworkBuiltInRole.NetworkContributor"/>
-    ///
-    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzurePublicIpResource}, NetworkBuiltInRole[])"/>.
-    /// </remarks>
-    public static IResourceBuilder<AzurePublicIpResource> AddAzurePublicIP(
-        this IDistributedApplicationBuilder builder,
-        [ResourceName] string name)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
+    ///// <summary>
+    ///// Adds an Azure Public IP Address resource to the application model.
+    ///// </summary>
+    ///// <param name="builder">The builder for the distributed application.</param>
+    ///// <param name="name">The name of the Azure Public IP Address resource.</param>
+    ///// <returns>A reference to the <see cref="IResourceBuilder{AzurePublicIpResource}"/>.</returns>
+    ///// <remarks>
+    ///// By default references to the Azure Public IP Address resource will be assigned the following roles:
+    ///// 
+    ///// - <see cref="NetworkBuiltInRole.NetworkContributor"/>
+    /////
+    ///// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzurePublicIpResource}, NetworkBuiltInRole[])"/>.
+    ///// </remarks>
+    //public static IResourceBuilder<AzurePublicIpResource> AddAzurePublicIP(
+    //    this IDistributedApplicationBuilder builder,
+    //    [ResourceName] string name)
+    //{
+    //    ArgumentNullException.ThrowIfNull(builder);
+    //    ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddAzureProvisioning();
+    //    builder.AddAzureProvisioning();
 
-        AzurePublicIpResource resource = new(name, ConfigurePublicIp);
-        return builder.AddResource(resource)
-            .WithDefaultRoleAssignments(NetworkBuiltInRole.GetBuiltInRoleName,
-                NetworkBuiltInRole.NetworkContributor);
+    //    AzurePublicIpResource resource = new(name, ConfigurePublicIp);
+    //    return builder.AddResource(resource)
+    //        .WithDefaultRoleAssignments(NetworkBuiltInRole.GetBuiltInRoleName,
+    //            NetworkBuiltInRole.NetworkContributor);
 
-        void ConfigurePublicIp(AzureResourceInfrastructure infrastructure)
-        {
-            var publicIp = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
-                (identifier, name) =>
-                {
-                    var resource = PublicIPAddress.FromExisting(identifier);
-                    resource.Name = name;
-                    return resource;
-                },
-                (infrastructure) =>
-                {
-                    var azureResource = (AzurePublicIpResource)infrastructure.AspireResource;
-                    var publicIp = new PublicIPAddress(infrastructure.AspireResource.GetBicepIdentifier())
-                    {
-                        PublicIPAllocationMethod = azureResource.AllocationMethod != null
-                            ? BicepValue<NetworkIPAllocationMethod>.DefineProperty(publicIp, nameof(PublicIPAddress.PublicIPAllocationMethod), ["properties", "publicIPAllocationMethod"], defaultValue: new BicepString(azureResource.AllocationMethod))
-                            : BicepValue<NetworkIPAllocationMethod>.DefineProperty(publicIp, nameof(PublicIPAddress.PublicIPAllocationMethod), ["properties", "publicIPAllocationMethod"], defaultValue: NetworkIPAllocationMethod.Static),
-                        Sku = azureResource.Sku != null
-                            ? new PublicIPAddressSku { Name = new BicepString(azureResource.Sku) }
-                            : new PublicIPAddressSku { Name = PublicIPAddressSkuName.Standard },
-                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-                    };
+    //    void ConfigurePublicIp(AzureResourceInfrastructure infra)
+    //    {
+    //        var publicIp = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infra,
+    //            (identifier, name) =>
+    //            {
+    //                var resource = PublicIPAddress.FromExisting(identifier);
+    //                resource.Name = name;
+    //                return resource;
+    //            },
+    //            (infra) =>
+    //            {
+    //                var azureResource = (AzurePublicIpResource)infra.AspireResource;
+    //                var publicIp = new PublicIPAddress(infra.AspireResource.GetBicepIdentifier())
+    //                {
+    //                    PublicIPAllocationMethod = azureResource.AllocationMethod != null
+    //                        ? BicepValue<NetworkIPAllocationMethod>.DefineProperty(publicIp, nameof(PublicIPAddress.PublicIPAllocationMethod), ["properties", "publicIPAllocationMethod"], defaultValue: new BicepString(azureResource.AllocationMethod))
+    //                        : BicepValue<NetworkIPAllocationMethod>.DefineProperty(publicIp, nameof(PublicIPAddress.PublicIPAllocationMethod), ["properties", "publicIPAllocationMethod"], defaultValue: NetworkIPAllocationMethod.Static),
+    //                    Sku = azureResource.Sku != null
+    //                        ? new PublicIPAddressSku { Name = new BicepString(azureResource.Sku) }
+    //                        : new PublicIPAddressSku { Name = PublicIPAddressSkuName.Standard },
+    //                    Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+    //                };
 
-                    if (azureResource.DnsName != null)
-                    {
-                        publicIp.DnsSettings = new PublicIPAddressDnsSettings
-                        {
-                            DomainNameLabel = azureResource.DnsName
-                        };
-                    }
+    //                if (azureResource.DnsName != null)
+    //                {
+    //                    publicIp.DnsSettings = new PublicIPAddressDnsSettings
+    //                    {
+    //                        DomainNameLabel = azureResource.DnsName
+    //                    };
+    //                }
 
-                    return publicIp;
-                });
+    //                return publicIp;
+    //            });
 
-            // Output the Public IP ID and IP Address for references
-            infrastructure.Add(new ProvisioningOutput("id", typeof(string))
-            {
-                Value = publicIp.Id
-            });
+    //        // Output the Public IP ID and IP Address for references
+    //        infra.Add(new ProvisioningOutput("id", typeof(string))
+    //        {
+    //            Value = publicIp.Id
+    //        });
 
-            infrastructure.Add(new ProvisioningOutput("ipAddress", typeof(string))
-            {
-                Value = publicIp.IPAddress
-            });
+    //        infra.Add(new ProvisioningOutput("ipAddress", typeof(string))
+    //        {
+    //            Value = publicIp.IPAddress
+    //        });
 
-            // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = publicIp.Name });
-        }
-    }
+    //        // We need to output name to externalize role assignments.
+    //        infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = publicIp.Name });
+    //    }
+    //}
 
-    /// <summary>
-    /// Adds an Azure NAT Gateway resource to the application model.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the Azure NAT Gateway resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureNatGatewayResource}"/>.</returns>
-    /// <remarks>
-    /// By default references to the Azure NAT Gateway resource will be assigned the following roles:
-    /// 
-    /// - <see cref="NetworkBuiltInRole.NetworkContributor"/>
-    ///
-    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureNatGatewayResource}, NetworkBuiltInRole[])"/>.
-    /// </remarks>
-    public static IResourceBuilder<AzureNatGatewayResource> AddAzureNatGateway(
-        this IDistributedApplicationBuilder builder,
-        [ResourceName] string name)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
+    ///// <summary>
+    ///// Adds an Azure NAT Gateway resource to the application model.
+    ///// </summary>
+    ///// <param name="builder">The builder for the distributed application.</param>
+    ///// <param name="name">The name of the Azure NAT Gateway resource.</param>
+    ///// <returns>A reference to the <see cref="IResourceBuilder{AzureNatGatewayResource}"/>.</returns>
+    //public static IResourceBuilder<AzureNatGatewayResource> AddAzureNatGateway(
+    //    this IDistributedApplicationBuilder builder,
+    //    [ResourceName] string name)
+    //{
+    //    ArgumentNullException.ThrowIfNull(builder);
+    //    ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddAzureProvisioning();
+    //    builder.AddAzureProvisioning();
 
-        AzureNatGatewayResource resource = new(name, ConfigureNatGateway);
-        return builder.AddResource(resource)
-            .WithDefaultRoleAssignments(NetworkBuiltInRole.GetBuiltInRoleName,
-                NetworkBuiltInRole.NetworkContributor);
+    //    AzureNatGatewayResource resource = new(name, ConfigureNatGateway);
+    //    return builder.AddResource(resource)
+    //        .WithDefaultRoleAssignments(NetworkBuiltInRole.GetBuiltInRoleName,
+    //            NetworkBuiltInRole.NetworkContributor);
 
-        void ConfigureNatGateway(AzureResourceInfrastructure infrastructure)
-        {
-            var natGateway = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
-                (identifier, name) =>
-                {
-                    var resource = NatGateway.FromExisting(identifier);
-                    resource.Name = name;
-                    return resource;
-                },
-                (infrastructure) =>
-                {
-                    var azureResource = (AzureNatGatewayResource)infrastructure.AspireResource;
-                    var natGw = new NatGateway(infrastructure.AspireResource.GetBicepIdentifier())
-                    {
-                        Sku = new NatGatewaySku { Name = NatGatewaySkuName.Standard },
-                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-                    };
+    //    void ConfigureNatGateway(AzureResourceInfrastructure infra)
+    //    {
+    //        var natGateway = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infra,
+    //            (identifier, name) =>
+    //            {
+    //                var resource = NatGateway.FromExisting(identifier);
+    //                resource.Name = name;
+    //                return resource;
+    //            },
+    //            (infra) =>
+    //            {
+    //                var azureResource = (AzureNatGatewayResource)infra.AspireResource;
+    //                var natGw = new NatGateway(infra.AspireResource.GetBicepIdentifier())
+    //                {
+    //                    Sku = new NatGatewaySku { Name = NatGatewaySkuName.Standard },
+    //                    Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+    //                };
 
-                    if (azureResource.IdleTimeoutInMinutes.HasValue)
-                    {
-                        natGw.IdleTimeoutInMinutes = azureResource.IdleTimeoutInMinutes.Value;
-                    }
+    //                if (azureResource.IdleTimeoutInMinutes.HasValue)
+    //                {
+    //                    natGw.IdleTimeoutInMinutes = azureResource.IdleTimeoutInMinutes.Value;
+    //                }
 
-                    // Add public IP addresses if configured
-                    if (azureResource.PublicIpAddresses.Count > 0)
-                    {
-                        foreach (var publicIp in azureResource.PublicIpAddresses)
-                        {
-                            natGw.PublicIPAddresses.Add(new WritableSubResource
-                            {
-                                Id = publicIp.Id
-                            });
-                        }
-                    }
+    //                // Add public IP addresses if configured
+    //                if (azureResource.PublicIpAddresses.Count > 0)
+    //                {
+    //                    foreach (var publicIp in azureResource.PublicIpAddresses)
+    //                    {
+    //                        natGw.PublicIPAddresses.Add(new WritableSubResource
+    //                        {
+    //                            Id = publicIp.Id
+    //                        });
+    //                    }
+    //                }
 
-                    return natGw;
-                });
+    //                return natGw;
+    //            });
 
-            // Output the NAT Gateway ID for references
-            infrastructure.Add(new ProvisioningOutput("id", typeof(string))
-            {
-                Value = natGateway.Id
-            });
+    //        // Output the NAT Gateway ID for references
+    //        infra.Add(new ProvisioningOutput("id", typeof(string))
+    //        {
+    //            Value = natGateway.Id
+    //        });
 
-            // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = natGateway.Name });
-        }
-    }
+    //        // We need to output name to externalize role assignments.
+    //        infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = natGateway.Name });
+    //    }
+    //}
 
     /// <summary>
     /// Associates a NAT Gateway with the subnet.
@@ -339,44 +313,5 @@ public static class AzureVirtualNetworkExtensions
 
         builder.Resource.PublicIpAddresses.Add(publicIp.Resource);
         return builder;
-    }
-
-    /// <summary>
-    /// Assigns the specified roles to the given resource, granting it the necessary permissions
-    /// on the target Azure Virtual Network resource.
-    /// </summary>
-    public static IResourceBuilder<T> WithRoleAssignments<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<AzureVirtualNetworkResource> target,
-        params NetworkBuiltInRole[] roles)
-        where T : IResource
-    {
-        return builder.WithRoleAssignments(target, NetworkBuiltInRole.GetBuiltInRoleName, roles);
-    }
-
-    /// <summary>
-    /// Assigns the specified roles to the given resource, granting it the necessary permissions
-    /// on the target Azure Public IP Address resource.
-    /// </summary>
-    public static IResourceBuilder<T> WithRoleAssignments<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<AzurePublicIpResource> target,
-        params NetworkBuiltInRole[] roles)
-        where T : IResource
-    {
-        return builder.WithRoleAssignments(target, NetworkBuiltInRole.GetBuiltInRoleName, roles);
-    }
-
-    /// <summary>
-    /// Assigns the specified roles to the given resource, granting it the necessary permissions
-    /// on the target Azure NAT Gateway resource.
-    /// </summary>
-    public static IResourceBuilder<T> WithRoleAssignments<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<AzureNatGatewayResource> target,
-        params NetworkBuiltInRole[] roles)
-        where T : IResource
-    {
-        return builder.WithRoleAssignments(target, NetworkBuiltInRole.GetBuiltInRoleName, roles);
     }
 }

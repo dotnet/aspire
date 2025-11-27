@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Network;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -50,15 +49,15 @@ public class AzurePublicIpResource(string name, Action<AzureResourceInfrastructu
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a PublicIPAddress with the same identifier already exists
         var existingIp = resources.OfType<PublicIPAddress>().SingleOrDefault(ip => ip.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingIp is not null)
         {
             return existingIp;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var publicIp = PublicIPAddress.FromExisting(bicepIdentifier);
 
