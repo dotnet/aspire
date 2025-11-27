@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Help;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -14,13 +15,25 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class McpCommand : BaseCommand
 {
-    public McpCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger)
+    public McpCommand(
+        IInteractionService interactionService,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext,
+        IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
+        ILoggerFactory loggerFactory,
+        ILogger<McpStartCommand> logger,
+        IAgentEnvironmentDetector agentEnvironmentDetector,
+        IAgentFingerprintService agentFingerprintService)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
         var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger);
         Subcommands.Add(startCommand);
+
+        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, agentFingerprintService);
+        Subcommands.Add(initCommand);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
