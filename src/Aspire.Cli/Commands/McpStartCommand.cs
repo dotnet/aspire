@@ -238,9 +238,12 @@ internal sealed class McpStartCommand : BaseCommand
                 $"Use the 'select_apphost' tool to specify which AppHost to use.\n\nRunning AppHosts:\n{pathsList}",
                 McpErrorCode.InternalError);
         }
+        else
+        {
+            _logger.LogDebug("No in-scope AppHosts found in scope: {WorkingDirectory}", _executionContext.WorkingDirectory);
+            throw new McpProtocolException(
 
-        // No in-scope connections, fall back to first available
-        _logger.LogDebug("No in-scope AppHost found, using first available connection");
-        return connections.FirstOrDefault();
+                $"No Aspire AppHosts are running in the scope of the MCP server's working directory: {_executionContext.WorkingDirectory}");
+        }
     }
 }
