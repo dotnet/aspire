@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Git;
 using Aspire.Cli.Tests.Utils;
 

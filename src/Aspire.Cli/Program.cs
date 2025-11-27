@@ -5,6 +5,8 @@ using System.CommandLine;
 using System.Globalization;
 using System.Text;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.OpenCode;
+using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -169,9 +171,13 @@ public class Program
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();
 
+        // OpenCode CLI operations.
+        builder.Services.AddSingleton<IOpenCodeCliRunner, OpenCodeCliRunner>();
+
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();

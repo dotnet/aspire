@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
 
-namespace Aspire.Cli.Agents;
+namespace Aspire.Cli.Agents.VsCode;
 
 /// <summary>
 /// Scans for VS Code environments and provides an applicator to configure the Aspire MCP server.
