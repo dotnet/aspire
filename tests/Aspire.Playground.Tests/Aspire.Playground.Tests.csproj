@@ -76,6 +76,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Provisioning" VersionOverride="1.4.0-beta.1" />
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />

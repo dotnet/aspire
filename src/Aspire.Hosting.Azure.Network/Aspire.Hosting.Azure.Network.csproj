@@ -6,15 +6,13 @@
     <PackageTags>aspire integration hosting azure network vnet virtual-network subnet nat-gateway public-ip cloud</PackageTags>
     <Description>Azure Virtual Network resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <NoWarn>$(NoWarn);AZPROVISION001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning" VersionOverride="1.4.0-beta.1" />
     <PackageReference Include="Azure.Provisioning.Network" />
   </ItemGroup>
 

@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Network;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -32,15 +31,15 @@ public class AzureVirtualNetworkResource(string name, Action<AzureResourceInfras
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a VirtualNetwork with the same identifier already exists
         var existingVNet = resources.OfType<VirtualNetwork>().SingleOrDefault(vnet => vnet.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingVNet is not null)
         {
             return existingVNet;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var vnet = VirtualNetwork.FromExisting(bicepIdentifier);
 

@@ -1,6 +1,18 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "vnet": {
+      "type": "azure.bicep.v0",
+      "path": "vnet.module.bicep"
+    },
+    "env": {
+      "type": "azure.bicep.v0",
+      "path": "env.module.bicep",
+      "params": {
+        "vnet_outputs_subnet1_subnetid": "{vnet.outputs.subnet1_SubnetId}",
+        "userPrincipalId": ""
+      }
+    },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep"
@@ -29,21 +41,25 @@
       "type": "value.v0",
       "connectionString": "Endpoint={storage.outputs.queueEndpoint};QueueName=my-queue"
     },
-    "storage2": {
-      "type": "azure.bicep.v0",
-      "path": "storage2.module.bicep"
-    },
-    "storage2-blobs": {
-      "type": "value.v0",
-      "connectionString": "{storage2.outputs.blobEndpoint}"
-    },
-    "foocontainer": {
-      "type": "value.v0",
-      "connectionString": "Endpoint={storage2.outputs.blobEndpoint};ContainerName=foo-container"
-    },
     "api": {
-      "type": "project.v0",
+      "type": "project.v1",
       "path": "../AzureStorageEndToEnd.ApiService/AzureStorageEndToEnd.ApiService.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "api-containerapp.module.bicep",
+        "params": {
+          "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "api_containerimage": "{api.containerImage}",
+          "api_identity_outputs_id": "{api-identity.outputs.id}",
+          "api_containerport": "{api.containerPort}",
+          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+          "storage_outputs_queueendpoint": "{storage.outputs.queueEndpoint}",
+          "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
+        }
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
@@ -72,22 +88,16 @@
         }
       }
     },
-    "storage-roles": {
+    "api-identity": {
       "type": "azure.bicep.v0",
-      "path": "storage-roles.module.bicep",
+      "path": "api-identity.module.bicep"
+    },
+    "api-roles-storage": {
+      "type": "azure.bicep.v0",
+      "path": "api-roles-storage.module.bicep",
       "params": {
         "storage_outputs_name": "{storage.outputs.name}",
-        "principalType": "",
-        "principalId": ""
-      }
-    },
-    "storage2-roles": {
-      "type": "azure.bicep.v0",
-      "path": "storage2-roles.module.bicep",
-      "params": {
-        "storage2_outputs_name": "{storage2.outputs.name}",
-        "principalType": "",
-        "principalId": ""
+        "principalId": "{api-identity.outputs.principalId}"
       }
     }
   }
