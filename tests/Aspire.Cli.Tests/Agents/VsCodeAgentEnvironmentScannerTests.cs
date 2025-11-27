@@ -24,7 +24,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         Assert.Single(context.Applicators);
         Assert.Contains("VS Code", context.Applicators[0].Description);
-        Assert.StartsWith("vscode:", context.Applicators[0].Fingerprint);
+        // Fingerprint is a hash, just verify it's not empty
+        Assert.False(string.IsNullOrWhiteSpace(context.Applicators[0].Fingerprint));
     }
 
     [Fact]
@@ -40,7 +41,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         await scanner.ScanAsync(context, CancellationToken.None);
 
         Assert.Single(context.Applicators);
-        Assert.Contains(vsCodeFolder.FullName, context.Applicators[0].Fingerprint);
+        // Fingerprint is a hash, just verify it's not empty
+        Assert.False(string.IsNullOrWhiteSpace(context.Applicators[0].Fingerprint));
     }
 
     [Fact]
@@ -180,15 +182,15 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodeFolder = workspace.CreateDirectory(".vscode");
         
-        // Create an existing mcp.json with an old aspire config
+        // Create an existing mcp.json with another server (not aspire, since aspire being present would skip offering the applicator)
         var existingConfig = new JsonObject
         {
             ["servers"] = new JsonObject
             {
-                ["aspire"] = new JsonObject
+                ["other-server"] = new JsonObject
                 {
                     ["type"] = "http",
-                    ["command"] = "old-aspire"
+                    ["command"] = "other"
                 }
             }
         };
@@ -200,6 +202,10 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
+        
+        // Should return an applicator since aspire is not configured yet
+        Assert.Single(context.Applicators);
+        
         await context.Applicators[0].ApplyAsync(CancellationToken.None);
 
         var content = await File.ReadAllTextAsync(mcpJsonPath);
@@ -209,6 +215,10 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         Assert.NotNull(aspireServer);
         Assert.Equal("stdio", aspireServer["type"]?.GetValue<string>());
         Assert.Equal("aspire", aspireServer["command"]?.GetValue<string>());
+        
+        // The other server should still exist
+        var otherServer = config?["servers"]?["other-server"]?.AsObject();
+        Assert.NotNull(otherServer);
     }
 
     /// <summary>
