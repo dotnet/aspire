@@ -89,7 +89,7 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
             if (mount.Type == ContainerMountType.BindMount && !IsDockerSocket(mount.Source))
             {
                 // Create environment variable name: {RESOURCE_NAME}_BINDMOUNT_{INDEX}
-                var envVarName = $"{serviceResource.Name.ToUpperInvariant().Replace('-', '_').Replace('.', '_')}_BINDMOUNT_{bindMountIndex}";
+                var envVarName = $"{serviceResource.Name.ToUpperInvariant().Replace("-", "_").Replace(".", "_")}_BINDMOUNT_{bindMountIndex}";
                 bindMountIndex++;
 
                 // Add the placeholder to captured environment variables so it gets written to the .env file

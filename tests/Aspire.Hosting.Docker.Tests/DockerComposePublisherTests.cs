@@ -741,6 +741,40 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             .AppendContentAsFile(File.ReadAllText(envPath), "env");
     }
 
+    [Fact]
+    public async Task PublishAsync_WindowsAbsoluteBindMountPath_ReplacedWithEnvironmentPlaceholders()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("This test only runs on Windows");
+            return;
+        }
+
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with Windows-specific absolute path bind mounts
+        builder.AddContainer("my-container", "my-image")
+            .WithBindMount(@"C:\Users\TestUser\Data", "/container/data")
+            .WithBindMount(@"D:\AppConfig", "/container/config", isReadOnly: true);
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
