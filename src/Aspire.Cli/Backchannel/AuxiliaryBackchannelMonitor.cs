@@ -63,7 +63,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             }
 
             // Scan for existing sockets on startup
-            await ScanExistingSocketsAsync(stoppingToken).ConfigureAwait(false);
+            await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
 
             // Use PhysicalFileProvider with polling for cross-platform compatibility
             // FileSystemWatcher doesn't work reliably on macOS, so we use PhysicalFileProvider
@@ -165,25 +165,6 @@ internal sealed class AuxiliaryBackchannelMonitor(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Error processing directory changes");
-        }
-    }
-
-    private async Task ScanExistingSocketsAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Scanning for existing auxiliary sockets in {Directory}", _backchannelsDirectory);
-
-        var socketFiles = Directory.GetFiles(_backchannelsDirectory, "aux.sock.*");
-        logger.LogInformation("Found {Count} existing socket(s)", socketFiles.Length);
-
-        foreach (var socketPath in socketFiles)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-
-            _knownSocketFiles.Add(socketPath);
-            await TryConnectToSocketAsync(socketPath, cancellationToken).ConfigureAwait(false);
         }
     }
 
