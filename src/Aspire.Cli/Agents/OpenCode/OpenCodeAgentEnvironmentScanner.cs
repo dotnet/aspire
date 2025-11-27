@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Git;
@@ -143,7 +145,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo configDirectory)
     {
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
-        var fingerprint = $"opencode:{configFilePath}";
+        var fingerprint = CreateFingerprint("opencode", configFilePath);
 
         return new AgentEnvironmentApplicator(
             OpenCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
@@ -195,5 +197,16 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         // Write the updated config using AOT-compatible serialization
         var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a deterministic fingerprint hash from an agent type and path.
+    /// </summary>
+    private static string CreateFingerprint(string agentType, string path)
+    {
+        var input = $"{agentType}:{path}";
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        // Use first 16 characters of the hex string (8 bytes) for a shorter but still unique fingerprint
+        return Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
     }
 }

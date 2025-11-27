@@ -35,6 +35,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
+    private readonly IAgentFingerprintService _agentFingerprintService;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -50,7 +51,8 @@ internal sealed class RunCommand : BaseCommand
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
-        IAgentEnvironmentDetector agentEnvironmentDetector)
+        IAgentEnvironmentDetector agentEnvironmentDetector,
+        IAgentFingerprintService agentFingerprintService)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -63,6 +65,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(agentEnvironmentDetector);
+        ArgumentNullException.ThrowIfNull(agentFingerprintService);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -76,6 +79,7 @@ internal sealed class RunCommand : BaseCommand
         _features = features;
         _hostEnvironment = hostEnvironment;
         _agentEnvironmentDetector = agentEnvironmentDetector;
+        _agentFingerprintService = agentFingerprintService;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -114,20 +118,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Detect and configure agent environments if available
-        var applicators = await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, cancellationToken);
-        if (applicators.Length > 0)
-        {
-            var selectedApplicators = await _interactionService.PromptForSelectionsAsync(
-                "Select agent environments to configure:",
-                applicators,
-                applicator => applicator.Description,
-                cancellationToken);
-
-            foreach (var applicator in selectedApplicators)
-            {
-                await applicator.ApplyAsync(cancellationToken);
-            }
-        }
+        await DetectAndConfigureAgentEnvironmentsAsync(cancellationToken);
 
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
@@ -504,6 +495,52 @@ internal sealed class RunCommand : BaseCommand
             }
 
             _resourceStates[resourceState.Resource] = resourceState;
+        }
+    }
+
+    private async Task DetectAndConfigureAgentEnvironmentsAsync(CancellationToken cancellationToken)
+    {
+        var allApplicators = await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+        var applicators = await _agentFingerprintService.FilterAcknowledgedAsync(allApplicators, cancellationToken);
+
+        if (applicators.Length > 0)
+        {
+            // Ask the user if they want to configure agent environments now
+            var promptMessage = string.Format(CultureInfo.CurrentCulture, RunCommandStrings.AgentConfigurationPrompt, applicators.Length);
+            var configureChoice = await _interactionService.PromptForSelectionAsync(
+                promptMessage,
+                [RunCommandStrings.AgentConfigurationYes, RunCommandStrings.AgentConfigurationNo, RunCommandStrings.AgentConfigurationMaybeLater],
+                choice => choice,
+                cancellationToken);
+
+            if (string.Equals(configureChoice, RunCommandStrings.AgentConfigurationNo, StringComparison.OrdinalIgnoreCase))
+            {
+                // User said "No" - record all as acknowledged so we don't ask again
+                await _agentFingerprintService.RecordAcknowledgedAsync(applicators, cancellationToken);
+                return;
+            }
+
+            if (string.Equals(configureChoice, RunCommandStrings.AgentConfigurationMaybeLater, StringComparison.OrdinalIgnoreCase))
+            {
+                // User said "Maybe later" - don't record, so we ask again next time
+                return;
+            }
+
+            // User said "Yes" - show the selection prompt
+            var selectedApplicators = await _interactionService.PromptForSelectionsAsync(
+                RunCommandStrings.AgentConfigurationSelectPrompt,
+                applicators,
+                applicator => applicator.Description,
+                cancellationToken);
+
+            // Record all presented applicators as acknowledged (not just selected ones)
+            // This prevents re-prompting for applicators the user chose not to configure
+            await _agentFingerprintService.RecordAcknowledgedAsync(applicators, cancellationToken);
+
+            foreach (var applicator in selectedApplicators)
+            {
+                await applicator.ApplyAsync(cancellationToken);
+            }
         }
     }
 }
