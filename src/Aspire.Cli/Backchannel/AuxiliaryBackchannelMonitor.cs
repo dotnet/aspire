@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Commands;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -78,27 +79,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 fileProvider.UseActivePolling = true;
             }
 
-            // Continuously watch for changes
-            while (!stoppingToken.IsCancellationRequested)
+            // Continuously watch for changes using IAsyncEnumerable
+            await foreach (var _ in WatchForChangesAsync(fileProvider, stoppingToken))
             {
-                // Watch for any changes in the directory
-                var changeToken = fileProvider.Watch("aux.sock.*");
-
-                // Wait for either a change or cancellation
-                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                using var registration = changeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
-                using var cancellationRegistration = stoppingToken.Register(() => tcs.TrySetCanceled());
-
-                try
-                {
-                    await tcs.Task.ConfigureAwait(false);
-                }
-                catch (TaskCanceledException)
-                {
-                    // Stopping was requested
-                    break;
-                }
-
                 // Process the changes by rescanning the directory
                 await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
             }
@@ -302,6 +285,30 @@ internal sealed class AuxiliaryBackchannelMonitor(
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+    }
+
+    private static async IAsyncEnumerable<bool> WatchForChangesAsync(IFileProvider fileProvider, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var changeToken = fileProvider.Watch("aux.sock.*");
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using var registration = changeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
+            using var cancellationRegistration = cancellationToken.Register(() => tcs.TrySetCanceled());
+
+            bool changed;
+            try
+            {
+                changed = await tcs.Task.ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                yield break;
+            }
+
+            yield return changed;
+        }
     }
 }
 
