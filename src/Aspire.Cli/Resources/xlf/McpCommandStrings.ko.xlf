@@ -52,11 +52,6 @@
         <target state="translated">MCP(모델 컨텍스트 프로토콜) 서버를 시작합니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="StartCommand_LogFileDescription">
-        <source>Path to a file where MCP server logs will be written for debugging.</source>
-        <target state="new">Path to a file where MCP server logs will be written for debugging.</target>
-        <note />
-      </trans-unit>
     </body>
   </file>
 </xliff>

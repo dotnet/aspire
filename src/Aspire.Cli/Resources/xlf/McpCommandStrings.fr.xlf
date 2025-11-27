@@ -52,11 +52,6 @@
         <target state="translated">Démarrez le serveur MCP (Model Context Protocol).</target>
         <note />
       </trans-unit>
-      <trans-unit id="StartCommand_LogFileDescription">
-        <source>Path to a file where MCP server logs will be written for debugging.</source>
-        <target state="new">Path to a file where MCP server logs will be written for debugging.</target>
-        <note />
-      </trans-unit>
     </body>
   </file>
 </xliff>

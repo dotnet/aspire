@@ -149,14 +149,5 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_ConfigurationComplete", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Path to a file where MCP server logs will be written for debugging..
-        /// </summary>
-        internal static string StartCommand_LogFileDescription {
-            get {
-                return ResourceManager.GetString("StartCommand_LogFileDescription", resourceCulture);
-            }
-        }
     }
 }
