@@ -178,6 +178,10 @@ public class Program
         // Claude Code CLI operations.
         builder.Services.AddSingleton<IClaudeCodeCliRunner, ClaudeCodeCliRunner>();
 
+        // VS Code CLI operations.
+        builder.Services.AddSingleton<IVsCodeCliRunner, VsCodeCliRunner>();
+        builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
+
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
         builder.Services.AddSingleton<IAgentFingerprintService, AgentFingerprintService>();
