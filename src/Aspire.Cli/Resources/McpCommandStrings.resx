@@ -90,4 +90,7 @@
   <data name="InitCommand_ConfigurationComplete" xml:space="preserve">
     <value>Agent environment configuration complete.</value>
   </data>
+  <data name="StartCommand_LogFileDescription" xml:space="preserve">
+    <value>Path to a file where MCP server logs will be written for debugging.</value>
+  </data>
 </root>

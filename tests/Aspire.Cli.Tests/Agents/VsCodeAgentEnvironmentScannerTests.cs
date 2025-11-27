@@ -134,6 +134,9 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, args.Count);
         Assert.Equal("mcp", args[0]?.GetValue<string>());
         Assert.Equal("start", args[1]?.GetValue<string>());
+
+        // Verify that "tools" is NOT included (not supported by VS Code MCP)
+        Assert.False(aspireServer.ContainsKey("tools"));
     }
 
     [Fact]

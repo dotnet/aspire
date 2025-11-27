@@ -78,4 +78,26 @@ public class McpCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(startCommand);
         Assert.Equal("start", startCommand.Name);
     }
+
+    [Fact]
+    public async Task McpStartCommandHasLogFileOption()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.EnabledFeatures = [KnownFeatures.McpCommandEnabled];
+        });
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<RootCommand>();
+        var mcpCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "mcp");
+
+        Assert.NotNull(mcpCommand);
+        var startCommand = mcpCommand.Subcommands.FirstOrDefault(c => c.Name == "start");
+        Assert.NotNull(startCommand);
+
+        // Verify that the --log-file option exists
+        var logFileOption = startCommand.Options.FirstOrDefault(o => o.Name == "--log-file");
+        Assert.NotNull(logFileOption);
+    }
 }

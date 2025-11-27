@@ -42,39 +42,85 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext)
         };
+
+        var logFileOption = new Option<FileInfo?>("--log-file")
+        {
+            Description = McpCommandStrings.StartCommand_LogFileDescription
+        };
+        Options.Add(logFileOption);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var options = new McpServerOptions
+        var logFile = parseResult.GetValue<FileInfo?>("--log-file");
+
+        // Set up file logging if requested
+        StreamWriter? logFileWriter = null;
+        ILogger effectiveLogger = _logger;
+
+        if (logFile is not null)
         {
-            ServerInfo = new Implementation
+            try
             {
-                Name = "aspire-mcp-server",
-                Version = VersionHelper.GetDefaultTemplateVersion()
-            },
-            Handlers = new McpServerHandlers()
+                // Ensure directory exists
+                logFile.Directory?.Create();
+
+                // Open log file for append
+                logFileWriter = new StreamWriter(logFile.FullName, append: true)
+                {
+                    AutoFlush = true
+                };
+
+                // Create a file logger wrapper that writes to both the normal logger and file
+                effectiveLogger = new FileLoggingWrapper(_logger, logFileWriter);
+
+                effectiveLogger.LogInformation("MCP server logging started. Log file: {LogFile}", logFile.FullName);
+            }
+            catch (Exception ex)
             {
-                ListToolsHandler = HandleListToolsAsync,
-                CallToolHandler = HandleCallToolAsync
-            },        
-        };
+                _logger.LogWarning(ex, "Failed to open log file {LogFile}. Continuing without file logging.", logFile.FullName);
+            }
+        }
 
-        await using var server = McpServer.Create(new StdioServerTransport("aspire-mcp-server"), options);
-        await server.RunAsync(cancellationToken);
+        try
+        {
+            var options = new McpServerOptions
+            {
+                ServerInfo = new Implementation
+                {
+                    Name = "aspire-mcp-server",
+                    Version = VersionHelper.GetDefaultTemplateVersion()
+                },
+                Handlers = new McpServerHandlers()
+                {
+                    ListToolsHandler = (request, ct) => HandleListToolsAsync(request, ct, effectiveLogger),
+                    CallToolHandler = (request, ct) => HandleCallToolAsync(request, ct, effectiveLogger)
+                },
+            };
 
-        return ExitCodeConstants.Success;
+            await using var server = McpServer.Create(new StdioServerTransport("aspire-mcp-server"), options);
+            await server.RunAsync(cancellationToken);
+
+            return ExitCodeConstants.Success;
+        }
+        finally
+        {
+            if (logFileWriter is not null)
+            {
+                await logFileWriter.DisposeAsync();
+            }
+        }
     }
 
-    private ValueTask<ListToolsResult> HandleListToolsAsync(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken)
+    private ValueTask<ListToolsResult> HandleListToolsAsync(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken, ILogger logger)
     {
         // Parameters required by delegate signature
         _ = request;
         _ = cancellationToken;
 
-        _logger.LogDebug("MCP ListTools request received");
+        logger.LogDebug("MCP ListTools request received");
 
         var tools = _tools.Values.Select(tool => new Tool
         {
@@ -83,7 +129,7 @@ internal sealed class McpStartCommand : BaseCommand
             InputSchema = tool.GetInputSchema()
         }).ToArray();
 
-        _logger.LogDebug("Returning {ToolCount} tools: {ToolNames}", tools.Length, string.Join(", ", tools.Select(t => t.Name)));
+        logger.LogDebug("Returning {ToolCount} tools: {ToolNames}", tools.Length, string.Join(", ", tools.Select(t => t.Name)));
 
         return ValueTask.FromResult(new ListToolsResult
         {
@@ -91,11 +137,11 @@ internal sealed class McpStartCommand : BaseCommand
         });
     }
 
-    private async ValueTask<CallToolResult> HandleCallToolAsync(RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken)
+    private async ValueTask<CallToolResult> HandleCallToolAsync(RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken, ILogger logger)
     {
         var toolName = request.Params?.Name ?? string.Empty;
 
-        _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
+        logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
 
         if (_tools.TryGetValue(toolName, out var tool))
         {
@@ -106,10 +152,10 @@ internal sealed class McpStartCommand : BaseCommand
             }
 
             // Get the appropriate connection using the new selection logic
-            var connection = GetSelectedConnection();
+            var connection = GetSelectedConnection(logger);
             if (connection == null)
             {
-                _logger.LogWarning("No Aspire AppHost is currently running");
+                logger.LogWarning("No Aspire AppHost is currently running");
                 throw new McpProtocolException(
                     "No Aspire AppHost is currently running. " +
                     "To use Aspire MCP tools, you must first start an Aspire application by running 'aspire run' in your AppHost project directory. " +
@@ -119,7 +165,7 @@ internal sealed class McpStartCommand : BaseCommand
 
             if (connection.McpInfo == null)
             {
-                _logger.LogWarning("Dashboard is not available in the running AppHost");
+                logger.LogWarning("Dashboard is not available in the running AppHost");
                 throw new McpProtocolException(
                     "The Aspire Dashboard is not available in the running AppHost. " +
                     "The dashboard must be enabled to use MCP tools. " +
@@ -127,7 +173,7 @@ internal sealed class McpStartCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Connecting to dashboard MCP server. " +
                 "Dashboard URL: {EndpointUrl}, " +
                 "AppHost Path: {AppHostPath}, " +
@@ -155,27 +201,27 @@ internal sealed class McpStartCommand : BaseCommand
             // Create MCP client to communicate with the dashboard
             await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
 
-            _logger.LogDebug("Calling tool {ToolName} on dashboard MCP server", toolName);
+            logger.LogDebug("Calling tool {ToolName} on dashboard MCP server", toolName);
 
             // Call the tool with the MCP client
             try
             {
-                _logger.LogDebug("Invoking CallToolAsync for tool {ToolName} with arguments: {Arguments}", toolName, request.Params?.Arguments);
+                logger.LogDebug("Invoking CallToolAsync for tool {ToolName} with arguments: {Arguments}", toolName, request.Params?.Arguments);
                 var result = await tool.CallToolAsync(mcpClient, request.Params?.Arguments, cancellationToken);
-                _logger.LogDebug("CallToolAsync for tool {ToolName} completed successfully", toolName);
+                logger.LogDebug("CallToolAsync for tool {ToolName} completed successfully", toolName);
 
-                _logger.LogDebug("Tool {ToolName} completed successfully", toolName);
+                logger.LogDebug("Tool {ToolName} completed successfully", toolName);
 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
+                logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
                 throw;
             }
         }
 
-        _logger.LogWarning("Unknown tool requested: {ToolName}", toolName);
+        logger.LogWarning("Unknown tool requested: {ToolName}", toolName);
         throw new McpProtocolException($"Unknown tool: '{toolName}'", McpErrorCode.MethodNotFound);
     }
 
@@ -187,7 +233,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostConnection? GetSelectedConnection()
+    private AppHostConnection? GetSelectedConnection(ILogger logger)
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 
@@ -206,11 +252,11 @@ internal sealed class McpStartCommand : BaseCommand
 
             if (selectedConnection != null)
             {
-                _logger.LogDebug("Using explicitly selected AppHost: {AppHostPath}", selectedPath);
+                logger.LogDebug("Using explicitly selected AppHost: {AppHostPath}", selectedPath);
                 return selectedConnection;
             }
 
-            _logger.LogWarning("Selected AppHost at '{SelectedPath}' is no longer running, falling back to selection logic", selectedPath);
+            logger.LogWarning("Selected AppHost at '{SelectedPath}' is no longer running, falling back to selection logic", selectedPath);
             // Clear the selection since the AppHost is no longer available
             _auxiliaryBackchannelMonitor.SelectedAppHostPath = null;
         }
@@ -220,7 +266,7 @@ internal sealed class McpStartCommand : BaseCommand
 
         if (inScopeConnections.Count == 1)
         {
-            _logger.LogDebug("Using single in-scope AppHost: {AppHostPath}", inScopeConnections[0].AppHostInfo?.AppHostPath ?? "N/A");
+            logger.LogDebug("Using single in-scope AppHost: {AppHostPath}", inScopeConnections[0].AppHostInfo?.AppHostPath ?? "N/A");
             return inScopeConnections[0];
         }
 
@@ -240,7 +286,41 @@ internal sealed class McpStartCommand : BaseCommand
         }
 
         // No in-scope connections, fall back to first available
-        _logger.LogDebug("No in-scope AppHost found, using first available connection");
+        logger.LogDebug("No in-scope AppHost found, using first available connection");
         return connections.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// A logger wrapper that writes log messages to both the original logger and a file.
+    /// </summary>
+    private sealed class FileLoggingWrapper(ILogger innerLogger, StreamWriter fileWriter) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            return innerLogger.BeginScope(state);
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return innerLogger.IsEnabled(logLevel) || logLevel >= LogLevel.Debug;
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            // Always log to inner logger
+            innerLogger.Log(logLevel, eventId, state, exception, formatter);
+
+            // Also write to file
+            var message = formatter(state, exception);
+            var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            var logLevelStr = logLevel.ToString().ToUpperInvariant();
+
+            fileWriter.WriteLine($"{timestamp} [{logLevelStr}] {message}");
+
+            if (exception is not null)
+            {
+                fileWriter.WriteLine($"{timestamp} [{logLevelStr}] Exception: {exception}");
+            }
+        }
     }
 }
