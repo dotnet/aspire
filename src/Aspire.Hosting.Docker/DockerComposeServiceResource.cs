@@ -312,7 +312,14 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
 
         try
         {
-            // Use docker compose ps to get the running containers and their port mappings
+            // Use docker compose ps to get the running containers and their port mappings.
+            // The command outputs one JSON object per line (NDJSON format), each representing a running container.
+            // Example output format:
+            // {"ID":"abc123","Name":"myapp-api-1","Command":"dotnet MyApp.dll","Project":"myapp","Service":"api","State":"running","Health":"","ExitCode":0,"Publishers":[{"URL":"","TargetPort":8080,"PublishedPort":5000,"Protocol":"tcp"}]}
+            // {"ID":"def456","Name":"myapp-web-1","Command":"dotnet MyWeb.dll","Project":"myapp","Service":"web","State":"running","Health":"","ExitCode":0,"Publishers":[{"URL":"","TargetPort":80,"PublishedPort":8080,"Protocol":"tcp"}]}
+            //
+            // We parse the "Service", "Publishers[].TargetPort", and "Publishers[].PublishedPort" fields
+            // to map container ports to externally accessible endpoints.
             var arguments = DockerComposeEnvironmentResource.GetDockerComposeArguments(context, environment);
             arguments += " ps --format json";
 
