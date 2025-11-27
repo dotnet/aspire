@@ -9,6 +9,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -164,6 +165,9 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+
+        // Git repository operations.
+        builder.Services.AddSingleton<IGitRepository, GitRepository>();
 
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();

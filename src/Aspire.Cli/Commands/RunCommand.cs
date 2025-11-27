@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -33,6 +34,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -47,7 +49,8 @@ internal sealed class RunCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment)
+        ICliHostEnvironment hostEnvironment,
+        IAgentEnvironmentDetector agentEnvironmentDetector)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -59,6 +62,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(agentEnvironmentDetector);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -71,6 +75,7 @@ internal sealed class RunCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _features = features;
         _hostEnvironment = hostEnvironment;
+        _agentEnvironmentDetector = agentEnvironmentDetector;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -106,6 +111,22 @@ internal sealed class RunCommand : BaseCommand
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
+        }
+
+        // Detect and configure agent environments if available
+        var applicators = await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+        if (applicators.Length > 0)
+        {
+            var selectedApplicators = await _interactionService.PromptForSelectionsAsync(
+                "Select agent environments to configure:",
+                applicators,
+                applicator => applicator.Description,
+                cancellationToken);
+
+            foreach (var applicator in selectedApplicators)
+            {
+                await applicator.ApplyAsync(cancellationToken);
+            }
         }
 
         var buildOutputCollector = new OutputCollector();

@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Agents;
@@ -13,51 +14,76 @@ namespace Aspire.Cli.Agents;
 internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string VsCodeFolderName = ".vscode";
-    private const string GitFolderName = ".git";
     private const string McpConfigFileName = "mcp.json";
     private const string VsCodeEnvironmentVariablePrefix = "VSCODE_";
+    private const string AspireServerName = "aspire";
+
+    private readonly IGitRepository _gitRepository;
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="VsCodeAgentEnvironmentScanner"/>.
+    /// </summary>
+    /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
+    public VsCodeAgentEnvironmentScanner(IGitRepository gitRepository)
+    {
+        ArgumentNullException.ThrowIfNull(gitRepository);
+        _gitRepository = gitRepository;
+    }
 
     /// <inheritdoc />
-    public Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
+    public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
-        var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory);
+        // Get the git root to use as a boundary for searching
+        var gitRoot = await _gitRepository.GetRootAsync(cancellationToken).ConfigureAwait(false);
+        var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory, gitRoot);
 
         if (vsCodeFolder is not null)
         {
+            // Check if the aspire server is already configured
+            if (HasAspireServerConfigured(vsCodeFolder))
+            {
+                // Already configured, no need to offer an applicator
+                return;
+            }
+
             // Found a .vscode folder - add an applicator to configure MCP
             context.AddApplicator(CreateApplicator(vsCodeFolder));
         }
         else if (HasVsCodeEnvironmentVariables())
         {
             // No .vscode folder found, but VS Code environment variables are present
-            // Create config in the current working directory
-            var targetVsCodeFolder = new DirectoryInfo(Path.Combine(context.WorkingDirectory.FullName, VsCodeFolderName));
+            // Use git root if available, otherwise fall back to current working directory
+            var targetDirectory = gitRoot ?? context.WorkingDirectory;
+            var targetVsCodeFolder = new DirectoryInfo(Path.Combine(targetDirectory.FullName, VsCodeFolderName));
             context.AddApplicator(CreateApplicator(targetVsCodeFolder));
         }
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Walks up the directory tree to find a .vscode folder.
-    /// Stops if a .git folder is found (indicating repo root).
+    /// Stops if we go above the git root (if provided).
+    /// Ignores the .vscode folder in the user's home directory (used for user settings, not workspace config).
     /// </summary>
-    private static DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory)
+    /// <param name="startDirectory">The directory to start searching from.</param>
+    /// <param name="gitRoot">The git repository root, or null if not in a git repository.</param>
+    private static DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory, DirectoryInfo? gitRoot)
     {
         var currentDirectory = startDirectory;
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         while (currentDirectory is not null)
         {
-            // Check for .vscode folder at current level
+            // Check for .vscode folder at current level, but ignore it if it's in the home directory
+            // (the home directory's .vscode folder is for user settings, not workspace config)
             var vsCodePath = Path.Combine(currentDirectory.FullName, VsCodeFolderName);
-            if (Directory.Exists(vsCodePath))
+            if (Directory.Exists(vsCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory, StringComparison.OrdinalIgnoreCase))
             {
                 return new DirectoryInfo(vsCodePath);
             }
 
-            // Check for .git folder - if found, we've reached repo root without finding .vscode
-            var gitPath = Path.Combine(currentDirectory.FullName, GitFolderName);
-            if (Directory.Exists(gitPath))
+            // Stop if we've reached the git root without finding .vscode
+            // (don't search above the repository boundary)
+            if (gitRoot is not null && string.Equals(currentDirectory.FullName, gitRoot.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
@@ -82,6 +108,44 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Checks if the .vscode folder contains an mcp.json file with an "aspire" server configured.
+    /// </summary>
+    /// <param name="vsCodeFolder">The .vscode folder to check.</param>
+    /// <returns>True if the aspire server is already configured, false otherwise.</returns>
+    private static bool HasAspireServerConfigured(DirectoryInfo vsCodeFolder)
+    {
+        var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
+
+        if (!File.Exists(mcpConfigPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var content = File.ReadAllText(mcpConfigPath);
+            var config = JsonNode.Parse(content)?.AsObject();
+
+            if (config is null)
+            {
+                return false;
+            }
+
+            if (config.TryGetPropertyValue("servers", out var serversNode) && serversNode is JsonObject servers)
+            {
+                return servers.ContainsKey(AspireServerName);
+            }
+
+            return false;
+        }
+        catch (JsonException)
+        {
+            // If the JSON is malformed, assume aspire is not configured
+            return false;
+        }
     }
 
     /// <summary>
