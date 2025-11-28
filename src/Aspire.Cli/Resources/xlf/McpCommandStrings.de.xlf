@@ -7,44 +7,24 @@
         <target state="translated">Verwalten Sie den MCP-Server (Model Context Protocol).</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_AgentConfigurationMaybeLater">
-        <source>Maybe later</source>
-        <target state="new">Maybe later</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_AgentConfigurationNo">
-        <source>No</source>
-        <target state="new">No</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_AgentConfigurationPrompt">
-        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="new">Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Select agent environments to configure:</source>
-        <target state="new">Select agent environments to configure:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_AgentConfigurationYes">
-        <source>Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">Wählen Sie die Agentumgebungen aus, die konfiguriert werden sollen:</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
         <source>Agent environment configuration complete.</source>
-        <target state="new">Agent environment configuration complete.</target>
+        <target state="translated">Die Konfiguration der Agentumgebung ist abgeschlossen.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments.</source>
-        <target state="new">Initialize MCP server configuration for detected agent environments.</target>
+        <target state="translated">Initialisieren Sie die MCP-Serverkonfiguration für erkannte agentische Umgebungen.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
         <source>No agent environments were detected.</source>
-        <target state="new">No agent environments were detected.</target>
+        <target state="translated">Es wurden keine Agentumgebungen gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">
