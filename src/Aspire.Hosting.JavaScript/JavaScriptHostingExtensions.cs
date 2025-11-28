@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Globalization;
 using System.Text.Json;
@@ -480,7 +481,8 @@ public static class JavaScriptHostingExtensions
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm")
             {
-                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
+                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") },
+                InstallHelpLink = "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm"
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
 
@@ -514,7 +516,10 @@ public static class JavaScriptHostingExtensions
         installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
 
         var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
-        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount)
+        {
+            InstallHelpLink = "https://yarnpkg.com/getting-started/install"
+        };
         var packageFilesSourcePattern = "package.json";
         if (hasYarnLock)
         {
@@ -588,7 +593,8 @@ public static class JavaScriptHostingExtensions
             {
                 PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
                 // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
-                CommandSeparator = null
+                CommandSeparator = null,
+                InstallHelpLink = "https://pnpm.io/installation"
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
@@ -676,6 +682,36 @@ public static class JavaScriptHostingExtensions
             var installerBuilder = resource.ApplicationBuilder.AddResource(installer)
                 .WithParentRelationship(resource.Resource)
                 .ExcludeFromManifest();
+
+            // Add validation for the installer command (node and package manager)
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Validate that Node is installed before running any package manager
+                var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+                await installationManager.EnsureInstalledAsync("node", helpLink: "https://nodejs.org/", cancellationToken: ct).ConfigureAwait(false);
+            });
+
+            // Add a second validation hook for the specific package manager, registered only once
+            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            {
+                // Get the parent resource to access the package manager annotation
+                var parentRelationship = installerResource.Annotations
+                    .OfType<ResourceRelationshipAnnotation>()
+                    .FirstOrDefault(r => r.Type == "Parent");
+
+                if (parentRelationship is null ||
+                    !parentRelationship.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
+                {
+                    throw new InvalidOperationException("JavaScriptPackageManagerAnnotation is required for package manager validation.");
+                }
+
+                // Validate the package manager is installed
+                var installationManager = e.Services.GetRequiredService<IInstallationManager>();
+                await installationManager.EnsureInstalledAsync(
+                    packageManager.ExecutableName,
+                    helpLink: packageManager.InstallHelpLink,
+                    cancellationToken: ct).ConfigureAwait(false);
+            });
 
             resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {

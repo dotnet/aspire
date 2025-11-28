@@ -135,4 +135,19 @@
   <data name="StopName" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="MissingCommandNotificationTitle" xml:space="preserve">
+    <value>Missing command</value>
+  </data>
+  <data name="MissingCommandWithHelpLink" xml:space="preserve">
+    <value>{0} See installation instructions for more details.</value>
+  </data>
+  <data name="MissingCommandNotFoundWithHelpLink" xml:space="preserve">
+    <value>Required command '{0}' was not found. See installation instructions for more details.</value>
+  </data>
+  <data name="MissingCommandNotFoundOnPath" xml:space="preserve">
+    <value>Required command '{0}' was not found on PATH or at a specified location.</value>
+  </data>
+  <data name="InstallationInstructions" xml:space="preserve">
+    <value>Installation instructions</value>
+  </data>
 </root>
