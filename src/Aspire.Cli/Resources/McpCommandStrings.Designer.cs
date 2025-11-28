@@ -88,33 +88,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?.
-        /// </summary>
-        internal static string InitCommand_AgentConfigurationPrompt {
-            get {
-                return ResourceManager.GetString("InitCommand_AgentConfigurationPrompt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Yes.
-        /// </summary>
-        internal static string InitCommand_AgentConfigurationYes {
-            get {
-                return ResourceManager.GetString("InitCommand_AgentConfigurationYes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No.
-        /// </summary>
-        internal static string InitCommand_AgentConfigurationNo {
-            get {
-                return ResourceManager.GetString("InitCommand_AgentConfigurationNo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Select agent environments to configure:.
         /// </summary>
         internal static string InitCommand_AgentConfigurationSelectPrompt {

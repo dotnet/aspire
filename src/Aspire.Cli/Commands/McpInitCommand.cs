@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Globalization;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -46,20 +45,7 @@ internal sealed class McpInitCommand : BaseCommand
             return ExitCodeConstants.Success;
         }
 
-        // Ask the user if they want to configure agent environments now
-        var promptMessage = string.Format(CultureInfo.CurrentCulture, McpCommandStrings.InitCommand_AgentConfigurationPrompt, applicators.Length);
-        var configureChoice = await _interactionService.PromptForSelectionAsync(
-            promptMessage,
-            [McpCommandStrings.InitCommand_AgentConfigurationYes, McpCommandStrings.InitCommand_AgentConfigurationNo],
-            choice => choice,
-            cancellationToken);
-
-        if (string.Equals(configureChoice, McpCommandStrings.InitCommand_AgentConfigurationNo, StringComparison.OrdinalIgnoreCase))
-        {
-            return ExitCodeConstants.Success;
-        }
-
-        // User said "Yes" - show the selection prompt
+        // Present the list of detected agent environments for the user to select
         var selectedApplicators = await _interactionService.PromptForSelectionsAsync(
             McpCommandStrings.InitCommand_AgentConfigurationSelectPrompt,
             applicators,
