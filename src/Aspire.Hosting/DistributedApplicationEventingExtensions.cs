@@ -12,6 +12,17 @@ namespace Aspire.Hosting;
 public static class DistributedApplicationEventingExtensions
 {
     /// <summary>
+    /// Subscribes a callback to the <see cref="FinalizeResourceAnnotationsEvent"/> event within the AppHost.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> OnFinalizeResourceAnnotations<T>(this IResourceBuilder<T> builder, Func<T, FinalizeResourceAnnotationsEvent, CancellationToken, Task> callback)
+        where T : IResource
+        => builder.OnEvent(callback);
+
+    /// <summary>
     /// Subscribes a callback to the <see cref="BeforeResourceStartedEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

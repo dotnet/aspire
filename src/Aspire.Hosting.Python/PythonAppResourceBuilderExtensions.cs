@@ -1363,22 +1363,53 @@ public static class PythonAppResourceBuilderExtensions
                 // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
             });
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            installerBuilder.OnFinalizeResourceAnnotations((_, _, ct) =>
             {
                 // Set the installer's working directory to match the resource's working directory
                 // and set the install command and args based on the resource's annotations
                 if (!builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var packageManager) ||
                     !builder.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installCommand))
                 {
-                    // No package manager configured - don't fail, just don't run the installer
-                    // This allows venv to be created without requiring a package manager
-                    return Task.CompletedTask;
+                    throw new InvalidOperationException("PythonPackageManagerAnnotation and PythonInstallCommandAnnotation are required when installing packages.");
                 }
 
                 installerBuilder
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(builder.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
+
+                if (builder.Resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var trustConfigAnnotations))
+                {
+                    // Use the same trust configuration as the parent resource
+                    foreach (var trustConfigAnnotation in trustConfigAnnotations)
+                    {
+                        installerBuilder.WithAnnotation(trustConfigAnnotation, ResourceAnnotationMutationBehavior.Append);
+                    }
+                }
+
+                installerBuilder.WithCertificateTrustConfiguration(ctx =>
+                {
+                    if (ctx.Scope != CertificateTrustScope.None)
+                    {
+                        ctx.EnvironmentVariables["UV_NATIVE_TLS"] = "true";
+                    }
+
+                    return Task.CompletedTask;
+                });
+
+                if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var trustAnnotation))
+                {
+                    if (installerBuilder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingTrustAnnotation))
+                    {
+                        // Merge existing trust with parent's trust configuration
+                        installerBuilder.WithAnnotation(CertificateAuthorityCollectionAnnotation.From(existingTrustAnnotation, trustAnnotation), ResourceAnnotationMutationBehavior.Replace);
+                    }
+                    else
+                    {
+                        // No existing trust, just copy from parent
+                        installerBuilder.WithAnnotation(CertificateAuthorityCollectionAnnotation.From(trustAnnotation), ResourceAnnotationMutationBehavior.Replace);
+                    }
+                }
 
                 return Task.CompletedTask;
             });

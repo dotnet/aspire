@@ -677,7 +677,7 @@ public static class JavaScriptHostingExtensions
                 .WithParentRelationship(resource.Resource)
                 .ExcludeFromManifest();
 
-            resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            resource.OnFinalizeResourceAnnotations((_, _, cancellationToken) =>
             {
                 // set the installer's working directory to match the resource's working directory
                 // and set the install command and args based on the resource's annotations
@@ -691,6 +691,29 @@ public static class JavaScriptHostingExtensions
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(resource.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
+
+                if (resource.Resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var trustConfigAnnotations))
+                {
+                    // Use the same trust configuration as the parent resource
+                    foreach (var trustConfigAnnotation in trustConfigAnnotations)
+                    {
+                        installerBuilder.WithAnnotation(trustConfigAnnotation, ResourceAnnotationMutationBehavior.Append);
+                    }
+                }
+
+                if (resource.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var trustAnnotation))
+                {
+                    if (installerBuilder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingTrustAnnotation))
+                    {
+                        // Merge existing trust with parent's trust configuration
+                        installerBuilder.WithAnnotation(CertificateAuthorityCollectionAnnotation.From(existingTrustAnnotation, trustAnnotation), ResourceAnnotationMutationBehavior.Replace);
+                    }
+                    else
+                    {
+                        // No existing trust, just copy from parent
+                        installerBuilder.WithAnnotation(CertificateAuthorityCollectionAnnotation.From(trustAnnotation), ResourceAnnotationMutationBehavior.Replace);
+                    }
+                }
 
                 return Task.CompletedTask;
             });
