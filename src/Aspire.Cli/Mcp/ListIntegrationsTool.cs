@@ -55,10 +55,15 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
             }
 
             // Group by package ID and take the latest version using semantic version comparison
-            var distinctPackages = allPackages
-                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Any, out _))
+            // Parse version once and include it in the result to avoid redundant parsing
+            var packagesWithParsedVersions = allPackages
+                .Select(p => (p.FriendlyName, p.PackageId, p.Version, p.Channel, ParsedVersion: SemVersion.TryParse(p.Version, SemVersionStyles.Any, out var v) ? v : null))
+                .Where(p => p.ParsedVersion is not null)
+                .ToList();
+
+            var distinctPackages = packagesWithParsedVersions
                 .GroupBy(p => p.PackageId)
-                .Select(g => g.OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Any), SemVersion.PrecedenceComparer).First())
+                .Select(g => g.OrderByDescending(p => p.ParsedVersion!, SemVersion.PrecedenceComparer).First())
                 .OrderBy(p => p.FriendlyName)
                 .ToList();
 
