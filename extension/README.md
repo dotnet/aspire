@@ -28,6 +28,7 @@ To run an Aspire application using the Aspire VS Code extension, you must be usi
 |---------|-------------|-------|
 | Debug C# projects | [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) or [C# for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) | The C# extension is required for debugging .NET projects. Apphosts will be built in VS Code if C# Dev Kit is available. |
 | Debug Python projects | [Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) | Required for debugging Python projects |
+| Debug Java projects | [Java Extension Pack](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack) | Required for debugging Java projects |
 
 To run and debug your Aspire application, add an entry to the workspace `launch.json`. You can change the apphost to run by setting the `program` field to an apphost project file based on the below example:
 
@@ -72,9 +73,12 @@ Please report [issues](https://github.com/dotnet/aspire/issues/new?template=10_b
 |----------|-----------------|
 | C# | project |
 | Python | python |
+| Java | java |
 
 The debuggers property stores common debug configuration properties for different types of Aspire services.
 C#-based services have common debugging properties under `project`. Python-based services have their common properties under `python`.
+Java-based services have their common properties under `java`. 
+
 There is also a special entry for the apphost (`apphost`). For example:
 
 ```json
@@ -96,6 +100,20 @@ There is also a special entry for the apphost (`apphost`). For example:
     }
 }
 ```
+
+Available configuration options for each debugger type can be found in the corresponding extension's documentation:
+
+- [C# debugger options](https://code.visualstudio.com/docs/csharp/debugging#_configuration-options)
+- [Python debugger options](https://code.visualstudio.com/docs/python/debugging#_set-configuration-options)
+- [Java debugger options](https://code.visualstudio.com/docs/java/java-debugging#_configuration-options)
+
+## Requirements
+
+- The [Aspire CLI](https://learn.microsoft.com/en-us/dotnet/aspire/cli/install) must be installed and available on the path.
+
+## Feedback and Issues
+
+Please report issues or feature requests on the Aspire [GitHub repository](https://github.com/dotnet/aspire/issues) using the label `area-extension`.
 
 ## License
 
