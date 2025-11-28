@@ -2,11 +2,48 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Cli.Packaging;
 using ModelContextProtocol.Protocol;
 using Semver;
 
 namespace Aspire.Cli.Mcp;
+
+/// <summary>
+/// Represents an Aspire hosting integration package.
+/// </summary>
+internal sealed class Integration
+{
+    /// <summary>
+    /// Gets or sets the friendly name of the integration (e.g., "Redis", "PostgreSQL").
+    /// </summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; set; }
+
+    /// <summary>
+    /// Gets or sets the NuGet package ID.
+    /// </summary>
+    [JsonPropertyName("packageId")]
+    public required string PackageId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the package version.
+    /// </summary>
+    [JsonPropertyName("version")]
+    public required string Version { get; set; }
+}
+
+/// <summary>
+/// Represents the response from the list_integrations tool.
+/// </summary>
+internal sealed class ListIntegrationsResponse
+{
+    /// <summary>
+    /// Gets or sets the list of available integrations.
+    /// </summary>
+    [JsonPropertyName("integrations")]
+    public required List<Integration> Integrations { get; set; }
+}
 
 /// <summary>
 /// MCP tool for listing available Aspire hosting integrations.
@@ -19,7 +56,13 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
 
     public override JsonElement GetInputSchema()
     {
-        return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
+        return JsonDocument.Parse("""
+            {
+              "type": "object",
+              "properties": {},
+              "description": "No input parameters required. Returns a list of available Aspire hosting integrations."
+            }
+            """).RootElement;
     }
 
     public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
@@ -46,14 +89,6 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
                 }
             }
 
-            if (allPackages.Count == 0)
-            {
-                return new CallToolResult
-                {
-                    Content = [new TextContentBlock { Text = "No Aspire hosting integrations found." }]
-                };
-            }
-
             // Group by package ID and take the latest version using semantic version comparison
             // Parse version once and include it in the result to avoid redundant parsing
             var packagesWithParsedVersions = allPackages
@@ -67,16 +102,23 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
                 .OrderBy(p => p.FriendlyName)
                 .ToList();
 
-            var resultText = $"Found {distinctPackages.Count} Aspire hosting integrations:\n\n";
-
-            foreach (var package in distinctPackages)
+            var integrations = distinctPackages.Select(p => new Integration
             {
-                resultText += $"- {package.FriendlyName} ({package.PackageId}) - v{package.Version}\n";
-            }
+                Name = p.FriendlyName,
+                PackageId = p.PackageId,
+                Version = p.Version
+            }).ToList();
+
+            var response = new ListIntegrationsResponse
+            {
+                Integrations = integrations
+            };
+
+            var jsonContent = JsonSerializer.Serialize(response, JsonSourceGenerationContext.Default.ListIntegrationsResponse);
 
             return new CallToolResult
             {
-                Content = [new TextContentBlock { Text = resultText }]
+                Content = [new TextContentBlock { Text = jsonContent }]
             };
         }
         catch (Exception ex)

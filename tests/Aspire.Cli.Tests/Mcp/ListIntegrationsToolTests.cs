@@ -36,10 +36,12 @@ public class ListIntegrationsToolTests
         Assert.Equal("object", typeElement.GetString());
         Assert.True(schema.TryGetProperty("properties", out var propsElement));
         Assert.Equal(JsonValueKind.Object, propsElement.ValueKind);
+        Assert.True(schema.TryGetProperty("description", out var descElement));
+        Assert.Contains("No input parameters required", descElement.GetString());
     }
 
     [Fact]
-    public async Task ListIntegrationsTool_CallToolAsync_ReturnsNoPackagesMessage_WhenNoPackagesFound()
+    public async Task ListIntegrationsTool_CallToolAsync_ReturnsEmptyJsonArray_WhenNoPackagesFound()
     {
         var mockPackagingService = new MockPackagingService();
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext());
@@ -51,11 +53,16 @@ public class ListIntegrationsToolTests
         Assert.Single(result.Content);
         var textContent = result.Content[0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
-        Assert.Contains("No Aspire hosting integrations found", textContent.Text);
+
+        // Verify it's valid JSON with empty integrations array
+        var json = JsonDocument.Parse(textContent.Text);
+        Assert.True(json.RootElement.TryGetProperty("integrations", out var integrations));
+        Assert.Equal(JsonValueKind.Array, integrations.ValueKind);
+        Assert.Equal(0, integrations.GetArrayLength());
     }
 
     [Fact]
-    public async Task ListIntegrationsTool_CallToolAsync_ReturnsPackageList_WhenPackagesFound()
+    public async Task ListIntegrationsTool_CallToolAsync_ReturnsJsonWithPackages_WhenPackagesFound()
     {
         var mockPackagingService = new MockPackagingService(new[]
         {
@@ -71,8 +78,24 @@ public class ListIntegrationsToolTests
         Assert.Single(result.Content);
         var textContent = result.Content[0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
-        Assert.Contains("Found 2 Aspire hosting integrations", textContent.Text);
-        Assert.Contains("Redis", textContent.Text);
-        Assert.Contains("PostgreSQL", textContent.Text);
+
+        // Verify it's valid JSON with proper structure
+        var json = JsonDocument.Parse(textContent.Text);
+        Assert.True(json.RootElement.TryGetProperty("integrations", out var integrations));
+        Assert.Equal(JsonValueKind.Array, integrations.ValueKind);
+        Assert.Equal(2, integrations.GetArrayLength());
+
+        // Verify the first integration has the expected properties
+        var firstIntegration = integrations[0];
+        Assert.True(firstIntegration.TryGetProperty("name", out _));
+        Assert.True(firstIntegration.TryGetProperty("packageId", out _));
+        Assert.True(firstIntegration.TryGetProperty("version", out _));
+
+        // Check that the packages are included (order may vary)
+        var packageIds = integrations.EnumerateArray()
+            .Select(e => e.GetProperty("packageId").GetString())
+            .ToList();
+        Assert.Contains("Aspire.Hosting.Redis", packageIds);
+        Assert.Contains("Aspire.Hosting.PostgreSQL", packageIds);
     }
 }
