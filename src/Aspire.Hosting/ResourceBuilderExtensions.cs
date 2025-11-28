@@ -3026,4 +3026,150 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
+
+    /// <summary>
+    /// Adds a callback to configure container image push options for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to configure push options.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="callback"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This method allows customization of how container images are named and tagged when pushed to a registry.
+    /// The callback receives a <see cref="ContainerImagePushOptionsCallbackContext"/> that provides access to the resource
+    /// and the <see cref="ContainerImagePushOptions"/> that can be modified.
+    /// Multiple callbacks can be registered on the same resource, and they will be invoked in the order they were added.
+    /// </remarks>
+    /// <example>
+    /// Configure a custom image name and tag for a container resource:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithImagePushOptions(context =>
+    ///     {
+    ///         context.Options.RemoteImageName = "myorg/myapp";
+    ///         context.Options.RemoteImageTag = "v1.0.0";
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithImagePushOptions<T>(
+        this IResourceBuilder<T> builder,
+        Action<ContainerImagePushOptionsCallbackContext> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerImagePushOptionsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds an asynchronous callback to configure container image push options for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The asynchronous callback to configure push options.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="callback"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This method allows customization of how container images are named and tagged when pushed to a registry using an asynchronous callback.
+    /// Use this overload when the callback needs to perform asynchronous operations such as retrieving configuration values from external sources.
+    /// The callback receives a <see cref="ContainerImagePushOptionsCallbackContext"/> that provides access to the resource
+    /// and the <see cref="ContainerImagePushOptions"/> that can be modified.
+    /// Multiple callbacks can be registered on the same resource, and they will be invoked in the order they were added.
+    /// </remarks>
+    /// <example>
+    /// Configure image options asynchronously by retrieving values from configuration:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithImagePushOptions(async context =>
+    ///     {
+    ///         var config = await GetConfigurationAsync();
+    ///         context.Options.RemoteImageName = config.ImageName;
+    ///         context.Options.RemoteImageTag = config.ImageTag;
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithImagePushOptions<T>(
+        this IResourceBuilder<T> builder,
+        Func<ContainerImagePushOptionsCallbackContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerImagePushOptionsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Sets the remote image name (without registry endpoint or tag) for container push operations.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="remoteImageName">The remote image name (e.g., "myapp" or "myorg/myapp").</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="remoteImageName"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This is a convenience method that registers a callback to set the <see cref="ContainerImagePushOptions.RemoteImageName"/> property.
+    /// The remote image name should not include the registry endpoint or tag. Those are managed separately.
+    /// This method can be combined with <see cref="WithRemoteImageTag{T}"/> to fully customize the image reference.
+    /// </remarks>
+    /// <example>
+    /// Set a custom remote image name for a container:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithRemoteImageName("myorg/myapp");
+    /// </code>
+    /// </example>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithRemoteImageName<T>(
+        this IResourceBuilder<T> builder,
+        string remoteImageName)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(remoteImageName);
+
+        return builder.WithImagePushOptions(context =>
+        {
+            context.Options.RemoteImageName = remoteImageName;
+        });
+    }
+
+    /// <summary>
+    /// Sets the remote image tag for container push operations.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="remoteImageTag">The remote image tag (e.g., "latest", "v1.0.0").</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="remoteImageTag"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This is a convenience method that registers a callback to set the <see cref="ContainerImagePushOptions.RemoteImageTag"/> property.
+    /// The tag can be any valid container image tag such as version numbers, environment names, or deployment identifiers.
+    /// This method can be combined with <see cref="WithRemoteImageName{T}"/> to fully customize the image reference.
+    /// </remarks>
+    /// <example>
+    /// Set a specific version tag for a container:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithRemoteImageTag("v1.0.0");
+    /// </code>
+    /// </example>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithRemoteImageTag<T>(
+        this IResourceBuilder<T> builder,
+        string remoteImageTag)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(remoteImageTag);
+
+        return builder.WithImagePushOptions(context =>
+        {
+            context.Options.RemoteImageTag = remoteImageTag;
+        });
+    }
 }

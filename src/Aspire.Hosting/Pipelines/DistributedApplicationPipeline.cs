@@ -116,16 +116,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                 context.Logger.LogInformation("Setting default deploy tag '{Tag}' for compute resource(s).", uniqueDeployTag);
 
-                // Resources that were built, will get this tag unless they have a custom DeploymentImageTagCallbackAnnotation
+                // Resources that were built, will get this tag unless they have a custom ContainerImagePushOptionsCallbackAnnotation
+#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 foreach (var resource in context.Model.GetBuildResources())
                 {
-                    if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
+                    if (resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>().Any())
                     {
                         continue;
                     }
 
-                    resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => uniqueDeployTag));
+                    resource.Annotations.Add(new ContainerImagePushOptionsCallbackAnnotation(context =>
+                    {
+                        context.Options.RemoteImageTag = uniqueDeployTag;
+                    }));
                 }
+#pragma warning restore ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             }
         });
 

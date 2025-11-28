@@ -36,29 +36,26 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// <inheritdoc/>
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        var deploymentTarget = Resource.GetDeploymentTargetAnnotation() ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a deployment target.");
-        var containerRegistry = deploymentTarget.ContainerRegistry ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry.");
-        var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        var pushOptions = await Resource.ProcessImagePushOptionsCallbackAsync(
+            cancellationToken).ConfigureAwait(false);
 
-        string tag;
-        if (Resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out var deploymentTag))
+        // Try to get the container registry from DeploymentTargetAnnotation first
+        IContainerRegistry registry;
+        var deploymentTarget = Resource.GetDeploymentTargetAnnotation();
+        if (deploymentTarget?.ContainerRegistry is not null)
         {
-            var context = new DeploymentImageTagCallbackAnnotationContext
-            {
-                Resource = Resource,
-                CancellationToken = cancellationToken,
-            };
-            tag = await deploymentTag.Callback(context).ConfigureAwait(false);
-        }
-        else if (Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var annotation))
-        {
-            tag = annotation.Tag ?? "latest";
+            registry = deploymentTarget.ContainerRegistry;
         }
         else
         {
-            tag = "latest";
+            // Fall back to ContainerRegistryReferenceAnnotation
+            var registryAnnotation = Resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault()
+                ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry reference.");
+            registry = registryAnnotation.Registry;
         }
-        
-        return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:{tag}";
+
+        return await pushOptions.GetFullRemoteImageNameAsync(
+            registry,
+            cancellationToken).ConfigureAwait(false);
     }
 }

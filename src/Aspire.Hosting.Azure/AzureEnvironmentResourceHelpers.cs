@@ -69,11 +69,6 @@ internal static class AzureEnvironmentResourceHelpers
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                          throw new InvalidOperationException("Failed to retrieve container registry information.");
 
-        if (!resource.TryGetContainerImageName(out var localImageName))
-        {
-            localImageName = resource.Name.ToLowerInvariant();
-        }
-
         IValueProvider cir = new ContainerImageReference(resource);
         var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -86,7 +81,7 @@ internal static class AzureEnvironmentResourceHelpers
                 {
                     throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
                 }
-                await TagAndPushImage(localImageName, targetTag, context.CancellationToken, containerImageBuilder).ConfigureAwait(false);
+                await containerImageBuilder.PushImageAsync(resource, context.CancellationToken).ConfigureAwait(false);
                 await pushTask.CompleteAsync($"Successfully pushed **{resource.Name}** to `{targetTag}`", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -95,11 +90,5 @@ internal static class AzureEnvironmentResourceHelpers
                 throw;
             }
         }
-    }
-
-    private static async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken, IResourceContainerImageBuilder containerImageBuilder)
-    {
-        await containerImageBuilder.TagImageAsync(localTag, targetTag, cancellationToken).ConfigureAwait(false);
-        await containerImageBuilder.PushImageAsync(targetTag, cancellationToken).ConfigureAwait(false);
     }
 }
