@@ -22,7 +22,7 @@ internal sealed class GetAspireDocsTool : CliMcpTool
 
     public override string Name => "get_aspire_docs";
 
-    public override string Description => "Get Aspire documentation content from aspire.dev/llms.txt. This provides a comprehensive overview of .NET Aspire documentation optimized for LLMs. This tool does not require a running AppHost.";
+    public override string Description => "Get Aspire documentation content from aspire.dev/llms.txt. This provides a comprehensive overview of Aspire documentation optimized for LLMs. This tool does not require a running AppHost.";
 
     public override JsonElement GetInputSchema()
     {
