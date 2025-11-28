@@ -250,8 +250,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         {
             ["type"] = "stdio",
             ["command"] = "aspire",
-            ["args"] = new JsonArray("mcp", "start"),
-            ["tools"] = new JsonArray("*")
+            ["args"] = new JsonArray("mcp", "start")
         };
 
         // Write the updated config with indentation using AOT-compatible serialization
