@@ -7,6 +7,7 @@ using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -24,12 +25,13 @@ internal sealed class McpCommand : BaseCommand
         ILoggerFactory loggerFactory,
         ILogger<McpStartCommand> logger,
         IAgentEnvironmentDetector agentEnvironmentDetector,
-        IAgentFingerprintService agentFingerprintService)
+        IAgentFingerprintService agentFingerprintService,
+        IPackagingService packagingService)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService);
         Subcommands.Add(startCommand);
 
         var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, agentFingerprintService);
