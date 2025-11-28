@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/dotnetcli.host",
+  "symbolInfo": {
+    "Framework": {
+      "longName": "framework"
+    },
+    "AspireVersion": {
+      "shortName": "",
+      "longName": "aspire-version"
+    },
+    "skipRestore": {
+      "longName": "no-restore",
+      "shortName": ""
+    }
+  },
+  "usageExamples": [
+    "--framework net10.0"
+  ]
+}
