@@ -37,7 +37,9 @@ public class ListIntegrationsToolTests
         Assert.True(schema.TryGetProperty("properties", out var propsElement));
         Assert.Equal(JsonValueKind.Object, propsElement.ValueKind);
         Assert.True(schema.TryGetProperty("description", out var descElement));
-        Assert.Contains("No input parameters required", descElement.GetString());
+        Assert.Contains("This tool takes no input parameters", descElement.GetString());
+        Assert.True(schema.TryGetProperty("additionalProperties", out var additionalPropsElement));
+        Assert.False(additionalPropsElement.GetBoolean());
     }
 
     [Fact]
