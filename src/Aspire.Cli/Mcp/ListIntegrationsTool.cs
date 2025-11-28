@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Cli.Packaging;
 using ModelContextProtocol.Protocol;
+using Semver;
 
 namespace Aspire.Cli.Mcp;
 
@@ -53,10 +54,11 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
                 };
             }
 
-            // Group by package ID and take the latest version
+            // Group by package ID and take the latest version using semantic version comparison
             var distinctPackages = allPackages
+                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Any, out _))
                 .GroupBy(p => p.PackageId)
-                .Select(g => g.OrderByDescending(p => p.Version).First())
+                .Select(g => g.OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Any), SemVersion.PrecedenceComparer).First())
                 .OrderBy(p => p.FriendlyName)
                 .ToList();
 

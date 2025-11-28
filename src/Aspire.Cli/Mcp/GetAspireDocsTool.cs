@@ -14,7 +14,11 @@ internal sealed class GetAspireDocsTool : CliMcpTool
     private const string AspireDocsUrl = "https://aspire.dev/llms.txt";
 
     // Use a static HttpClient to avoid port exhaustion and improve performance
-    private static readonly HttpClient s_httpClient = new();
+    // Configure with a reasonable timeout for fetching documentation
+    private static readonly HttpClient s_httpClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(30)
+    };
 
     public override string Name => "get_aspire_docs";
 
@@ -54,6 +58,15 @@ internal sealed class GetAspireDocsTool : CliMcpTool
             {
                 IsError = true,
                 Content = [new TextContentBlock { Text = "Request to fetch Aspire documentation was cancelled." }]
+            };
+        }
+        catch (TaskCanceledException)
+        {
+            // Timeout occurred
+            return new CallToolResult
+            {
+                IsError = true,
+                Content = [new TextContentBlock { Text = $"Request to fetch Aspire documentation timed out after {s_httpClient.Timeout.TotalSeconds} seconds." }]
             };
         }
         catch (Exception ex)
