@@ -50,8 +50,12 @@
     <MicrosoftExtensionsTimeProviderTestingVersion>10.0.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <MicrosoftExtensionsServiceDiscoveryVersion>10.0.0</MicrosoftExtensionsServiceDiscoveryVersion>
     <MicrosoftExtensionsServiceDiscoveryYarpVersion>10.0.0</MicrosoftExtensionsServiceDiscoveryYarpVersion>
-    <!-- Fuzzing tests -->
-    <SharpFuzzPackageVersion>2.1.1</SharpFuzzPackageVersion>
+    <!-- OpenTelemetry (OTel) -->
+    <OpenTelemetryInstrumentationAspNetCoreVersion>1.14.0</OpenTelemetryInstrumentationAspNetCoreVersion>
+    <OpenTelemetryInstrumentationHttpVersion>1.14.0</OpenTelemetryInstrumentationHttpVersion>
+    <OpenTelemetryInstrumentationExtensionsHostingVersion>1.14.0</OpenTelemetryInstrumentationExtensionsHostingVersion>
+    <OpenTelemetryInstrumentationRuntimeVersion>1.14.0</OpenTelemetryInstrumentationRuntimeVersion>
+    <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.14.0</OpenTelemetryExporterOpenTelemetryProtocolVersion>
     <!-- Aspire.Cli uses a preview version of StreamJsonRpc which is needed for native AOT support. -->
     <StreamJsonRpcPackageVersionForCli>2.23.32-alpha</StreamJsonRpcPackageVersionForCli>
   </PropertyGroup>
@@ -120,12 +124,6 @@
     <MicrosoftExtensionsHttpVersion>9.0.11</MicrosoftExtensionsHttpVersion>
     <SystemFormatsAsn1Version>9.0.11</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.11</SystemTextJsonVersion>
-    <!-- OpenTelemetry (OTel) -->
-    <OpenTelemetryInstrumentationAspNetCoreVersion>1.13.0</OpenTelemetryInstrumentationAspNetCoreVersion>
-    <OpenTelemetryInstrumentationHttpVersion>1.13.0</OpenTelemetryInstrumentationHttpVersion>
-    <OpenTelemetryInstrumentationExtensionsHostingVersion>1.13.1</OpenTelemetryInstrumentationExtensionsHostingVersion>
-    <OpenTelemetryInstrumentationRuntimeVersion>1.13.0</OpenTelemetryInstrumentationRuntimeVersion>
-    <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.13.1</OpenTelemetryExporterOpenTelemetryProtocolVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
   <PropertyGroup Label="LTS">
@@ -160,8 +158,5 @@
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
     <SystemFormatsAsn1LTSVersion>8.0.2</SystemFormatsAsn1LTSVersion>
     <SystemTextJsonLTSVersion>8.0.6</SystemTextJsonLTSVersion>
-    <!-- OpenTelemetry (OTel) -->
-    <OpenTelemetryNet8Version>1.9.0</OpenTelemetryNet8Version>
-    <OpenTelemetryInstrumentationGrpcNetClientNet8Version>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientNet8Version>
   </PropertyGroup>
 </Project>
