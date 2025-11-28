@@ -742,6 +742,45 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishAsync_ConfigureEnvironment_AllowsMutatingCapturedEnvVars()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false)
+            .ConfigureEnvironment(envVars =>
+            {
+                // Modify the default value of a bind mount env var
+                foreach (var envVar in envVars.Values)
+                {
+                    if (envVar.Source is ContainerMountAnnotation mount)
+                    {
+                        // Change the default path to a relative path
+                        envVar.DefaultValue = "./" + Path.GetFileName(mount.Source);
+                    }
+                }
+            });
+
+        // Add a container with bind mounts
+        builder.AddContainer("my-container", "my-image")
+            .WithBindMount("/host/path/data", "/container/data");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
+    [Fact]
     public async Task PublishAsync_WindowsAbsoluteBindMountPath_ReplacedWithEnvironmentPlaceholders()
     {
         if (!OperatingSystem.IsWindows())

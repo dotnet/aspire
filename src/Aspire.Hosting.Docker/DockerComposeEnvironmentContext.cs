@@ -93,11 +93,12 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
                 bindMountIndex++;
 
                 // Add the placeholder to captured environment variables so it gets written to the .env file
-                // Use the original source path as the default value
+                // Use the original source path as the default value and pass the ContainerMountAnnotation as the source
                 var placeholder = environment.AddEnvironmentVariable(
                     envVarName,
                     description: $"Bind mount source for {serviceResource.Name}:{mount.Target}",
-                    defaultValue: mount.Source);
+                    defaultValue: mount.Source,
+                    source: mount);
 
                 // Log warning about host-specific path
                 logger.BindMountHostSpecificPath(serviceResource.Name, mount.Source, envVarName);
