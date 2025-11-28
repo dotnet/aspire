@@ -3,6 +3,8 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Commands;
@@ -449,6 +451,8 @@ internal class DotNetTemplateFactory(
             // working directory, create one in the newly created project's output directory.
             await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
+            // Create .aspire/settings.json with appHostPath if an AppHost project is found
+            await CreateSettingsFileAsync(outputPath, cancellationToken);
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
@@ -573,6 +577,136 @@ internal class DotNetTemplateFactory(
         // In-place creation: preserve existing behavior
         // Prompt user before creating or updating NuGet.config
         await nugetConfigPrompter.PromptToCreateOrUpdateAsync(workingDir, channel, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates .aspire/settings.json file with appHostPath configuration if an AppHost project is found.
+    /// </summary>
+    private async Task CreateSettingsFileAsync(string outputPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var outputDir = new DirectoryInfo(outputPath);
+            if (!outputDir.Exists)
+            {
+                return;
+            }
+
+            // Search for AppHost projects in the output directory
+            var enumerationOptions = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                MaxRecursionDepth = 3 // Limit recursion to avoid deep traversal
+            };
+
+            FileInfo? appHostProject = null;
+
+            // First, try to find .csproj files that are AppHost projects
+            var projectFiles = outputDir.GetFiles("*.csproj", enumerationOptions);
+            foreach (var projectFile in projectFiles)
+            {
+                var information = await runner.GetAppHostInformationAsync(
+                    projectFile, 
+                    new DotNetCliRunnerInvocationOptions(), 
+                    cancellationToken);
+
+                if (information.ExitCode == 0 && information.IsAspireHost)
+                {
+                    appHostProject = projectFile;
+                    break;
+                }
+            }
+
+            // If no .csproj AppHost found, try to find single-file apphost.cs
+            if (appHostProject is null)
+            {
+                var appHostFiles = outputDir.GetFiles("apphost.cs", enumerationOptions);
+                foreach (var candidateFile in appHostFiles)
+                {
+                    if (await IsValidSingleFileAppHostAsync(candidateFile, cancellationToken))
+                    {
+                        appHostProject = candidateFile;
+                        break;
+                    }
+                }
+            }
+
+            // If an AppHost project was found, create the settings.json file
+            if (appHostProject is not null)
+            {
+                var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(outputPath);
+                var settingsFileDir = Path.GetDirectoryName(settingsFilePath);
+
+                // Calculate relative path from settings file to AppHost project
+                var relativePathToAppHost = Path.GetRelativePath(settingsFileDir!, appHostProject.FullName)
+                    .Replace(Path.DirectorySeparatorChar, '/');
+
+                // Create settings.json file with appHostPath
+                var settings = new JsonObject
+                {
+                    ["appHostPath"] = relativePathToAppHost
+                };
+
+                // Ensure directory exists
+                if (!Directory.Exists(settingsFileDir))
+                {
+                    Directory.CreateDirectory(settingsFileDir!);
+                }
+
+                // Write the settings file
+                var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
+                await File.WriteAllTextAsync(settingsFilePath, jsonContent, cancellationToken);
+
+                var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFilePath)
+                    .Replace(Path.DirectorySeparatorChar, '/');
+                interactionService.DisplayMessage("file_cabinet", 
+                    string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
+            }
+        }
+        catch (Exception)
+        {
+            // If settings file creation fails, don't fail the entire operation
+            // Just continue without creating the settings file
+        }
+    }
+
+    private static async Task<bool> IsValidSingleFileAppHostAsync(FileInfo candidateFile, CancellationToken cancellationToken)
+    {
+        // Check if file is named apphost.cs (case-insensitive)
+        if (!candidateFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Check if directory contains no *.csproj files
+        var siblingCsprojFiles = candidateFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);
+        if (siblingCsprojFiles.Any())
+        {
+            return false;
+        }
+
+        // Check for '#:sdk Aspire.AppHost.Sdk' directive
+        try
+        {
+            using var reader = candidateFile.OpenText();
+            string? line;
+            while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
+            {
+                var trimmedLine = line.TrimStart();
+                if (trimmedLine.StartsWith("#:sdk Aspire.AppHost.Sdk", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+            // If we can't read the file, it's not a valid candidate
+            return false;
+        }
+
+        return false;
     }
 }
 
