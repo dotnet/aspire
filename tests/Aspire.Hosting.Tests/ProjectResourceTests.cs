@@ -825,7 +825,7 @@ public class ProjectResourceTests
         using var app = builder.Build();
         var fakeContainerRuntime = (FakeContainerRuntime)app.Services.GetRequiredService<IContainerRuntime>();
 
-        fakeContainerRuntime.BuildImageAsyncCallback = async (contextPath, dockerfilePath, imageName, options, buildArgs, buildSecrets, stage, cancellationToken) =>
+        fakeContainerRuntime.BuildImageAsyncCallback = async (contextPath, dockerfilePath, options, buildArgs, buildSecrets, stage, cancellationToken) =>
         {
             // Verify that the Dockerfile contains the expected COPY command
             var dockerFileContent = File.ReadAllText(dockerfilePath);
@@ -851,7 +851,7 @@ public class ProjectResourceTests
 
         Assert.True(fakeContainerRuntime.WasBuildImageCalled);
         var buildCall = Assert.Single(fakeContainerRuntime.BuildImageCalls);
-        Assert.Equal("projectname", buildCall.imageName);
+        Assert.Equal("projectname", buildCall.options?.ImageName);
         Assert.Empty(buildCall.contextPath);
         Assert.NotEmpty(buildCall.dockerfilePath);
 

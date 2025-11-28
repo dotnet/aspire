@@ -447,6 +447,79 @@ public static class ResourceExtensions
         await ProcessGatheredEnvironmentVariableValuesAsync(resource, executionContext, config, processValue, logger, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Processes all container build options callback annotations on a resource by invoking them in order.
+    /// </summary>
+    /// <param name="resource">The resource to process container build options for.</param>
+    /// <param name="serviceProvider">The service provider for dependency injection.</param>
+    /// <param name="logger">The logger used to log any information or errors during processing.</param>
+    /// <param name="executionContext">The optional execution context.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A context object containing the accumulated container build options from all callbacks.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static async ValueTask<ContainerBuildOptionsCallbackContext> ProcessContainerBuildOptionsCallbackAsync(
+        this IResource resource,
+        IServiceProvider serviceProvider,
+        ILogger logger,
+        DistributedApplicationExecutionContext? executionContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = new ContainerBuildOptionsCallbackContext(
+            resource,
+            serviceProvider,
+            logger,
+            cancellationToken,
+            executionContext);
+
+        if (resource.TryGetAnnotationsOfType<ContainerBuildOptionsCallbackAnnotation>(out var annotations))
+        {
+            foreach (var annotation in annotations)
+            {
+                await annotation.Callback(context).ConfigureAwait(false);
+            }
+        }
+
+        return context;
+    }
+
+    /// <summary>
+    /// Configures container build options for a compute resource using a callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithContainerBuildOptions<T>(
+        this IResourceBuilder<T> builder,
+        Action<ContainerBuildOptionsCallbackContext> callback)
+        where T : IResource, IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Append);
+    }
+
+    /// <summary>
+    /// Configures container build options for a compute resource using an async callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">An async callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithContainerBuildOptions<T>(
+        this IResourceBuilder<T> builder,
+        Func<ContainerBuildOptionsCallbackContext, Task> callback)
+        where T : IResource, IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Append);
+    }
+
     internal static NetworkIdentifier GetDefaultResourceNetwork(this IResource resource)
     {
         return resource.IsContainer() ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
