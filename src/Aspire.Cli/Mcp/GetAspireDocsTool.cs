@@ -26,7 +26,14 @@ internal sealed class GetAspireDocsTool : CliMcpTool
 
     public override JsonElement GetInputSchema()
     {
-        return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
+        return JsonDocument.Parse("""
+            {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false,
+              "description": "This tool takes no input parameters. It fetches and returns Aspire documentation content from aspire.dev/llms.txt."
+            }
+            """).RootElement;
     }
 
     public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
