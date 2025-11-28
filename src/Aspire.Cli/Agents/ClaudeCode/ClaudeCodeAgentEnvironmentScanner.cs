@@ -71,6 +71,13 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
             if (claudeCodeVersion is not null)
             {
+                // Check if the aspire server is already configured in .mcp.json
+                if (HasAspireServerConfigured(context.WorkingDirectory))
+                {
+                    // Already configured, no need to offer an applicator
+                    return;
+                }
+
                 // Claude Code is installed - offer to create config at working directory
                 context.AddApplicator(CreateApplicator(context.WorkingDirectory));
             }
