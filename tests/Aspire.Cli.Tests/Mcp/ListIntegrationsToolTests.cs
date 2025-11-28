@@ -55,7 +55,7 @@ public class ListIntegrationsToolTests
         Assert.NotNull(textContent);
 
         // Verify it's valid JSON with empty integrations array
-        var json = JsonDocument.Parse(textContent.Text);
+        using var json = JsonDocument.Parse(textContent.Text);
         Assert.True(json.RootElement.TryGetProperty("integrations", out var integrations));
         Assert.Equal(JsonValueKind.Array, integrations.ValueKind);
         Assert.Equal(0, integrations.GetArrayLength());
@@ -80,7 +80,7 @@ public class ListIntegrationsToolTests
         Assert.NotNull(textContent);
 
         // Verify it's valid JSON with proper structure
-        var json = JsonDocument.Parse(textContent.Text);
+        using var json = JsonDocument.Parse(textContent.Text);
         Assert.True(json.RootElement.TryGetProperty("integrations", out var integrations));
         Assert.Equal(JsonValueKind.Array, integrations.ValueKind);
         Assert.Equal(2, integrations.GetArrayLength());
