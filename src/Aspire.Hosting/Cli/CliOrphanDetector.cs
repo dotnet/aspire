@@ -44,6 +44,12 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
         }
     };
 
+    /// <summary>
+    /// Test hook that is called before waiting for the next timer tick.
+    /// This allows tests to synchronize without relying on timing delays.
+    /// </summary>
+    internal Func<Task>? OnBeforeTimerWaitAsync { get; set; }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -84,6 +90,12 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
                 {
                     lifetime.StopApplication();
                     return;
+                }
+
+                // Test hook: allow tests to synchronize before the timer wait
+                if (OnBeforeTimerWaitAsync is not null)
+                {
+                    await OnBeforeTimerWaitAsync().ConfigureAwait(false);
                 }
             } while (await periodic.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
