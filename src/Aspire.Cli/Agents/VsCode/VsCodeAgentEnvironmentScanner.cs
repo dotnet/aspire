@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Git;
@@ -203,12 +201,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo vsCodeFolder)
     {
-        var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
-        var fingerprint = CreateFingerprint("vscode", mcpConfigPath);
-
         return new AgentEnvironmentApplicator(
             VsCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            fingerprint,
             async cancellationToken => await ApplyMcpConfigurationAsync(vsCodeFolder, cancellationToken));
     }
 
@@ -256,16 +250,5 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         // Write the updated config with indentation using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(mcpConfigPath, jsonContent, cancellationToken);
-    }
-
-    /// <summary>
-    /// Creates a deterministic fingerprint hash from an agent type and path.
-    /// </summary>
-    private static string CreateFingerprint(string agentType, string path)
-    {
-        var input = $"{agentType}:{path}";
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        // Use first 16 characters of the hex string (8 bytes) for a shorter but still unique fingerprint
-        return Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
     }
 }

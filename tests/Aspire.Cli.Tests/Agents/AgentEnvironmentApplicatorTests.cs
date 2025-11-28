@@ -13,7 +13,6 @@ public class AgentEnvironmentApplicatorTests
         var callbackInvoked = false;
         var applicator = new AgentEnvironmentApplicator(
             "Test Environment",
-            "test-fingerprint",
             _ =>
             {
                 callbackInvoked = true;
@@ -32,7 +31,6 @@ public class AgentEnvironmentApplicatorTests
         CancellationToken receivedToken = default;
         var applicator = new AgentEnvironmentApplicator(
             "Test Environment",
-            "test-fingerprint",
             ct =>
             {
                 receivedToken = ct;
@@ -49,10 +47,8 @@ public class AgentEnvironmentApplicatorTests
     {
         var applicator = new AgentEnvironmentApplicator(
             "My Description",
-            "my-fingerprint",
             _ => Task.CompletedTask);
 
         Assert.Equal("My Description", applicator.Description);
-        Assert.Equal("my-fingerprint", applicator.Fingerprint);
     }
 }
