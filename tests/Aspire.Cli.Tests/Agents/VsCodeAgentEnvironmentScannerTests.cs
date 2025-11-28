@@ -27,8 +27,6 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         Assert.Single(context.Applicators);
         Assert.Contains("VS Code", context.Applicators[0].Description);
-        // Fingerprint is a hash, just verify it's not empty
-        Assert.False(string.IsNullOrWhiteSpace(context.Applicators[0].Fingerprint));
     }
 
     [Fact]
@@ -46,8 +44,6 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         await scanner.ScanAsync(context, CancellationToken.None);
 
         Assert.Single(context.Applicators);
-        // Fingerprint is a hash, just verify it's not empty
-        Assert.False(string.IsNullOrWhiteSpace(context.Applicators[0].Fingerprint));
     }
 
     [Fact]

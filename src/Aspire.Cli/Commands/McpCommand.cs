@@ -25,7 +25,6 @@ internal sealed class McpCommand : BaseCommand
         ILoggerFactory loggerFactory,
         ILogger<McpStartCommand> logger,
         IAgentEnvironmentDetector agentEnvironmentDetector,
-        IAgentFingerprintService agentFingerprintService,
         IPackagingService packagingService)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -34,7 +33,7 @@ internal sealed class McpCommand : BaseCommand
         var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService);
         Subcommands.Add(startCommand);
 
-        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, agentFingerprintService);
+        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector);
         Subcommands.Add(initCommand);
     }
 

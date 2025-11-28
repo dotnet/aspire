@@ -40,7 +40,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             ApplicatorToAdd = new AgentEnvironmentApplicator(
                 "Test Environment",
-                "test-fingerprint",
                 _ => Task.CompletedTask)
         };
         var detector = new AgentEnvironmentDetector([scanner]);
@@ -49,7 +48,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
 
         Assert.Single(applicators);
         Assert.Equal("Test Environment", applicators[0].Description);
-        Assert.Equal("test-fingerprint", applicators[0].Fingerprint);
     }
 
     [Fact]
@@ -60,14 +58,12 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             ApplicatorToAdd = new AgentEnvironmentApplicator(
                 "Environment 1",
-                "fingerprint-1",
                 _ => Task.CompletedTask)
         };
         var scanner2 = new TestAgentEnvironmentScanner
         {
             ApplicatorToAdd = new AgentEnvironmentApplicator(
                 "Environment 2",
-                "fingerprint-2",
                 _ => Task.CompletedTask)
         };
         var detector = new AgentEnvironmentDetector([scanner1, scanner2]);

@@ -42,6 +42,7 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_traces"] = new ListTracesTool(),
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
+            ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext),
             ["get_aspire_docs"] = new GetAspireDocsTool()
         };
@@ -103,7 +104,7 @@ internal sealed class McpStartCommand : BaseCommand
         if (_tools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
-            if (toolName is "select_apphost" or "list_integrations" or "get_aspire_docs")
+            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_aspire_docs")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }

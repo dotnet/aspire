@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Git;
@@ -73,6 +71,13 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
             if (claudeCodeVersion is not null)
             {
+                // Check if the aspire server is already configured in .mcp.json
+                if (HasAspireServerConfigured(context.WorkingDirectory))
+                {
+                    // Already configured, no need to offer an applicator
+                    return;
+                }
+
                 // Claude Code is installed - offer to create config at working directory
                 context.AddApplicator(CreateApplicator(context.WorkingDirectory));
             }
@@ -157,12 +162,8 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     /// </summary>
     private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo repoRoot)
     {
-        var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
-        var fingerprint = CreateFingerprint("claudecode", configFilePath);
-
         return new AgentEnvironmentApplicator(
             ClaudeCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            fingerprint,
             async cancellationToken => await ApplyMcpConfigurationAsync(repoRoot, cancellationToken));
     }
 
@@ -203,16 +204,5 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
-    }
-
-    /// <summary>
-    /// Creates a deterministic fingerprint hash from an agent type and path.
-    /// </summary>
-    private static string CreateFingerprint(string agentType, string path)
-    {
-        var input = $"{agentType}:{path}";
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        // Use first 16 characters of the hex string (8 bytes) for a shorter but still unique fingerprint
-        return Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
     }
 }

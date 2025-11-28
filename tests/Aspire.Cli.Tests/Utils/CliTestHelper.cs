@@ -99,7 +99,6 @@ internal static class CliTestHelper
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
-        services.AddSingleton(options.AgentFingerprintServiceFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -358,12 +357,6 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IAgentEnvironmentDetector> AgentEnvironmentDetectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         return new AgentEnvironmentDetector([]);
-    };
-
-    public Func<IServiceProvider, IAgentFingerprintService> AgentFingerprintServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
-    {
-        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        return new AgentFingerprintService(configurationService);
     };
 }
 

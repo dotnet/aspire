@@ -14,7 +14,7 @@ Aspire gives you a unified toolchain: launch and debug your entire app locally w
 
 ## Useful links
 
-- [Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/)
+- [Aspire overview and documentation](https://aspire.dev/docs/)
 - [Aspire samples repository](https://github.com/dotnet/aspire-samples)
 - [Dogfooding pull requests](docs/dogfooding-pull-requests.md) - Test changes from specific pull requests locally
 
