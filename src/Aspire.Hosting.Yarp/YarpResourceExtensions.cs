@@ -304,7 +304,8 @@ public static class YarpResourceExtensions
     }
 
     /// <summary>
-    /// Sets the ASPNETCORE_URLS environment variable based on the configured endpoints.
+    /// Sets the ASPNETCORE_URLS environment variable based on the configured HTTP and HTTPS endpoints.
+    /// This method should only be called after both HTTP and HTTPS endpoints have been configured.
     /// </summary>
     private static void SetAspNetCoreUrls(this IResourceBuilder<YarpResource> builder)
     {
@@ -312,6 +313,8 @@ public static class YarpResourceExtensions
         {
             var resource = builder.Resource;
 
+            // The http endpoint is always configured by AddYarp, and the https endpoint is configured
+            // by WithHttpsCertificate before this method is called, so both should exist.
             var httpEndpoint = resource.GetEndpoint("http");
             var httpsEndpoint = resource.GetEndpoint("https");
 
