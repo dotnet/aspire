@@ -781,6 +781,54 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishAsync_ConfigureEnvironment_CanRemoveGeneratedPlaceholder()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        // Create a parameter for the cert directory
+        var certDir = builder.AddParameter("certDir", secret: false);
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false)
+            .ConfigureEnvironment(envVars =>
+            {
+                // Find and remove the auto-generated bind mount placeholder for yarp
+                var keysToRemove = envVars.Where(kv => 
+                    kv.Value.Resource?.Name == "yarp" && 
+                    kv.Value.Source is ContainerMountAnnotation).Select(kv => kv.Key).ToList();
+
+                foreach (var key in keysToRemove)
+                {
+                    envVars.Remove(key);
+                }
+            });
+
+        // Add a container (yarp) with a bind mount
+        var yarp = builder.AddContainer("yarp", "my-image")
+            .WithBindMount("./certs", "/app/certs", isReadOnly: true);
+
+        // Override the volume source with a parameter placeholder
+        yarp.PublishAsDockerComposeService((svc, infra) =>
+        {
+            infra.Volumes[0].Source = certDir.AsEnvironmentPlaceholder(svc);
+        });
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
+    [Fact]
     public async Task PublishAsync_WindowsAbsoluteBindMountPath_ReplacedWithEnvironmentPlaceholders()
     {
         if (!OperatingSystem.IsWindows())

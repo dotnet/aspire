@@ -98,7 +98,8 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
                     envVarName,
                     description: $"Bind mount source for {serviceResource.Name}:{mount.Target}",
                     defaultValue: mount.Source,
-                    source: mount);
+                    source: mount,
+                    resource: serviceResource.TargetResource);
 
                 // Log warning about host-specific path
                 logger.BindMountHostSpecificPath(serviceResource.Name, mount.Source, envVarName);

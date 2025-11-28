@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Docker;
 
 /// <summary>
@@ -16,13 +18,15 @@ public sealed class CapturedEnvironmentVariable
     /// <param name="description">An optional description for the environment variable.</param>
     /// <param name="defaultValue">The default value for the environment variable.</param>
     /// <param name="source">The source object that originated this environment variable.</param>
-    public CapturedEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)
+    /// <param name="resource">The resource that this environment variable is associated with, if any.</param>
+    public CapturedEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null, IResource? resource = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         Name = name;
         Description = description;
         DefaultValue = defaultValue;
         Source = source;
+        Resource = resource;
     }
 
     /// <summary>
@@ -42,8 +46,15 @@ public sealed class CapturedEnvironmentVariable
 
     /// <summary>
     /// Gets or sets the source object that originated this environment variable.
-    /// This could be a <see cref="Aspire.Hosting.ApplicationModel.ParameterResource"/>,
-    /// <see cref="Aspire.Hosting.ApplicationModel.ContainerMountAnnotation"/>, or other source types.
+    /// This could be a <see cref="ParameterResource"/>,
+    /// <see cref="ContainerMountAnnotation"/>, or other source types.
     /// </summary>
     public object? Source { get; set; }
+
+    /// <summary>
+    /// Gets or sets the resource that this environment variable is associated with.
+    /// This is useful when the source is an annotation on a resource, allowing you to 
+    /// identify which resource this environment variable is related to.
+    /// </summary>
+    public IResource? Resource { get; set; }
 }
