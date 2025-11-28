@@ -78,9 +78,6 @@
   <data name="InitCommand_AgentConfigurationNo" xml:space="preserve">
     <value>No</value>
   </data>
-  <data name="InitCommand_AgentConfigurationMaybeLater" xml:space="preserve">
-    <value>Maybe later</value>
-  </data>
   <data name="InitCommand_AgentConfigurationSelectPrompt" xml:space="preserve">
     <value>Select agent environments to configure:</value>
   </data>

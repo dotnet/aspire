@@ -115,15 +115,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Maybe later.
-        /// </summary>
-        internal static string InitCommand_AgentConfigurationMaybeLater {
-            get {
-                return ResourceManager.GetString("InitCommand_AgentConfigurationMaybeLater", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Select agent environments to configure:.
         /// </summary>
         internal static string InitCommand_AgentConfigurationSelectPrompt {

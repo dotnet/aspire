@@ -7,11 +7,6 @@
         <target state="translated">管理 MCP (模型上下文协议)服务器。</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_AgentConfigurationMaybeLater">
-        <source>Maybe later</source>
-        <target state="new">Maybe later</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationNo">
         <source>No</source>
         <target state="new">No</target>
