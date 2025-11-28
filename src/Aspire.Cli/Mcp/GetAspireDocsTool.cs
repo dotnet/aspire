@@ -1,0 +1,66 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json;
+using ModelContextProtocol.Protocol;
+
+namespace Aspire.Cli.Mcp;
+
+/// <summary>
+/// MCP tool for fetching Aspire documentation from aspire.dev/llms.txt.
+/// </summary>
+internal sealed class GetAspireDocsTool : CliMcpTool
+{
+    private const string AspireDocsUrl = "https://aspire.dev/llms.txt";
+
+    public override string Name => "get_aspire_docs";
+
+    public override string Description => "Get Aspire documentation content from aspire.dev/llms.txt. This provides a comprehensive overview of .NET Aspire documentation optimized for LLMs. This tool does not require a running AppHost.";
+
+    public override JsonElement GetInputSchema()
+    {
+        return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
+    }
+
+    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    {
+        // This tool does not use the MCP client as it operates locally
+        _ = mcpClient;
+        _ = arguments;
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            var content = await httpClient.GetStringAsync(AspireDocsUrl, cancellationToken);
+
+            return new CallToolResult
+            {
+                Content = [new TextContentBlock { Text = content }]
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            return new CallToolResult
+            {
+                IsError = true,
+                Content = [new TextContentBlock { Text = $"Failed to fetch Aspire documentation from {AspireDocsUrl}: {ex.Message}" }]
+            };
+        }
+        catch (TaskCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        {
+            return new CallToolResult
+            {
+                IsError = true,
+                Content = [new TextContentBlock { Text = "Request to fetch Aspire documentation was cancelled." }]
+            };
+        }
+        catch (Exception ex)
+        {
+            return new CallToolResult
+            {
+                IsError = true,
+                Content = [new TextContentBlock { Text = $"An unexpected error occurred while fetching Aspire documentation: {ex.Message}" }]
+            };
+        }
+    }
+}
