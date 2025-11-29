@@ -23,8 +23,8 @@
     "type": "project"
   },
   "precedence": "9000",
-  "identity": "Aspire.PyStarter.CSharp",
-  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "identity": "Aspire.PyStarter.CSharp.!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!",
+  "thirdPartyNotices": "https://aka.ms/aspire/third-party-notices",
   "groupIdentity": "Aspire.PyStarter",
   "guids": [
     "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
@@ -32,7 +32,7 @@
   ],
   "sources": [
     {
-      "source": "./13.0",
+      "source": "./",
       "target": "./"
     }
   ],
@@ -42,7 +42,7 @@
       "datatype": "bool",
       "defaultValue": "false",
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
-      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
+      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/aspire/containers for more details."
     },
     "appHostHttpPort": {
       "type": "parameter",

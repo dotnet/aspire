@@ -4,10 +4,6 @@
       "Framework": {
         "longName": "framework"
       },
-      "AspireVersion": {
-        "shortName": "",
-        "longName": "aspire-version"
-      },
       "appHostHttpPort": {
         "isHidden": true
       },
