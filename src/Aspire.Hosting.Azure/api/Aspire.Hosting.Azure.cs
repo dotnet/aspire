@@ -92,6 +92,9 @@ namespace Aspire.Hosting
 
     public static partial class AzureResourceExtensions
     {
+        public static ApplicationModel.IResourceBuilder<T> ClearDefaultRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder)
+            where T : ApplicationModel.IAzureResource { throw null; }
+
         public static string GetBicepIdentifier(this ApplicationModel.IAzureResource resource) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> PublishAsConnectionString<T>(this ApplicationModel.IResourceBuilder<T> builder)
@@ -153,6 +156,8 @@ namespace Aspire.Hosting.Azure
 
         public System.Threading.Tasks.TaskCompletionSource? ProvisioningTaskCompletionSource { get { throw null; } set { } }
 
+        public System.Collections.Generic.HashSet<object> References { get { throw null; } }
+
         public AzureBicepResourceScope? Scope { get { throw null; } set { } }
 
         public System.Collections.Generic.Dictionary<string, string?> SecretOutputs { get { throw null; } }
@@ -198,6 +203,7 @@ namespace Aspire.Hosting.Azure
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public sealed partial class AzureEnvironmentResource : ApplicationModel.Resource
     {
+        public const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
         public AzureEnvironmentResource(string name, ApplicationModel.ParameterResource location, ApplicationModel.ParameterResource resourceGroupName, ApplicationModel.ParameterResource principalId) : base(default!) { }
 
         public ApplicationModel.ParameterResource Location { get { throw null; } set { } }
@@ -255,7 +261,7 @@ namespace Aspire.Hosting.Azure
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class AzurePublishingContext
     {
-        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger, Publishing.IPublishingActivityReporter activityReporter) { }
+        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, Pipelines.IReportingStep reportingStep) { }
 
         public global::Azure.Provisioning.Infrastructure MainInfrastructure { get { throw null; } }
 
@@ -390,12 +396,10 @@ namespace Aspire.Hosting.Azure
         BicepOutputReference PrincipalName { get; }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IAzureComputeEnvironmentResource : ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
     {
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IAzureContainerRegistry : ApplicationModel.IContainerRegistry
     {
         ApplicationModel.ReferenceExpression ManagedIdentityId { get; }
@@ -419,6 +423,8 @@ namespace Aspire.Hosting.Azure
         IAzureKeyVaultResource Resource { get; }
 
         string SecretName { get; }
+
+        ApplicationModel.IResource? SecretOwner { get; set; }
     }
 
     public partial interface IResourceWithAzureFunctionsConfig : ApplicationModel.IResource

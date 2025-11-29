@@ -27,9 +27,15 @@ namespace Aspire.Hosting
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public ApplicationModel.EndpointReferenceExpression Host { get { throw null; } }
+
         public ApplicationModel.EndpointReference InternalEndpoint { get { throw null; } }
 
+        public ApplicationModel.EndpointReferenceExpression Port { get { throw null; } }
+
         public ApplicationModel.EndpointReference PrimaryEndpoint { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public sealed partial class KafkaUIContainerResource : ApplicationModel.ContainerResource
