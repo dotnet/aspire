@@ -73,13 +73,15 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Running website check", false);
                     var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     var websiteName = $"{targetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+                    ctx.ReportingStep.Log(LogLevel.Information, $"for {websiteName}", false);
                     if (websiteName.Length > 60)
                     {
                         websiteName = websiteName.Substring(0, 60);
                     }
-                    var exists = await WebSiteExists(websiteName, ctx).ConfigureAwait(false);
+                    var exists = await WebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
                     ctx.ReportingStep.Log(LogLevel.Information, $"website exists : {exists}", false);
 
                     if (!exists)
@@ -189,7 +191,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <param name="context"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private static async Task<bool> WebSiteExists(string websiteName, PipelineStepContext context)
+    private static async Task<bool> WebSiteExistsAsync(string websiteName, PipelineStepContext context)
     {
         // Get required services
         var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
