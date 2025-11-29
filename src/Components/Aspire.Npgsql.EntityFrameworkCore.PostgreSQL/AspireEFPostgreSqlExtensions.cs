@@ -73,8 +73,8 @@ public static partial class AspireEFPostgreSqlExtensions
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
-        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
