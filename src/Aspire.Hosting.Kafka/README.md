@@ -23,6 +23,19 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(kafka);
 ```
 
+To have a schema registry associated with the Kafka resource, use the following code:
+
+```csharp
+var kafka = builder.AddKafka("messaging");
+
+var schemaRegistry =
+    kafka.WithKafkaSchemaRegistry("schema-registry", registry => registry.WithHostPort(7000));
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(kafka)
+                       .WithReference(schemaRegistry);
+```
+
 ## Connection Properties
 
 When you reference a Kafka resource using `WithReference`, the following connection properties are made available to the consuming project:
