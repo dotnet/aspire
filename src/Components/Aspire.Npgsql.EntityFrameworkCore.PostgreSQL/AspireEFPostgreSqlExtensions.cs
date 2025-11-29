@@ -48,6 +48,34 @@ public static partial class AspireEFPostgreSqlExtensions
         Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
+        AddNpgsqlDbContext<TContext>(builder, connectionName, configureSettings, (_, builder) => configureDbContextOptions?.Invoke(builder));
+    }
+
+    /// <summary>
+    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
+    /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
+    /// </summary>
+    /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <remarks>
+    /// <para>
+    /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
+    /// </para>
+    /// <para>
+    /// The <see cref="DbContext.OnConfiguring" /> method can then be overridden to configure <see cref="DbContext" /> options.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
+    public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
@@ -70,7 +98,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
         ConfigureInstrumentation<TContext>(builder, settings);
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+        void ConfigureDbContext(IServiceProvider provider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // delay validating the ConnectionString until the DbContext is requested. This ensures an exception doesn't happen until a Logger is established.
             ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
@@ -95,7 +123,7 @@ public static partial class AspireEFPostgreSqlExtensions
                     builder.CommandTimeout(settings.CommandTimeout.Value);
                 }
             });
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            configureDbContextOptions?.Invoke(provider, dbContextOptionsBuilder);
         }
     }
 
