@@ -44,4 +44,29 @@ public static class AzureAppServiceComputeResourceExtensions
 
         return builder.WithAnnotation(new AzureAppServiceWebsiteCustomizationAnnotation(configure));
     }
+
+    /// <summary>
+    /// Configures the resource to be published as an Azure App Service website slot during deployment.
+    /// </summary>
+    /// <remarks>This method only applies the configuration when the application is running in publish mode.
+    /// In other modes, the builder is returned unchanged.</remarks>
+    /// <typeparam name="T">The type of compute resource being configured.</typeparam>
+    /// <param name="builder">The resource builder used to configure the compute resource. Cannot be null.</param>
+    /// <param name="configure">A delegate that configures the Azure resource infrastructure and the website slot. Cannot be null.</param>
+    /// <returns>The original resource builder with the Azure App Service website slot publishing configuration applied.</returns>
+    public static IResourceBuilder<T> PublishAsAzureAppServiceWebsiteSlot<T>(this IResourceBuilder<T> builder, Action<AzureResourceInfrastructure, WebSiteSlot> configure)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        builder.ApplicationBuilder.AddAzureAppServiceInfrastructureCore();
+
+        return builder.WithAnnotation(new AzureAppServiceWebsiteSlotCustomizationAnnotation(configure));
+    }
 }
