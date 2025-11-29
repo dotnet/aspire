@@ -65,6 +65,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
+    private readonly IDirectoryService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -95,6 +96,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
+
+    /// <inheritdoc />
+    public IDirectoryService DirectoryService => _directoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -297,7 +301,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
-        
+
+        // Create and register the directory service with AppHost-specific subdirectory
+        _directoryService = new DirectoryService(_innerBuilder.Configuration, appHostName, appHostPathSha);
+        _innerBuilder.Services.AddSingleton<IDirectoryService>(_directoryService);
+
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
@@ -456,8 +464,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
-            // We need a unique path per application instance
-            _innerBuilder.Services.AddSingleton(new Locations());
+            // Locations now uses IDirectoryService for DCP session storage
+            _innerBuilder.Services.AddSingleton<Locations>();
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);

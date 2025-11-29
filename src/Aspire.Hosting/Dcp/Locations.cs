@@ -5,17 +5,28 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed class Locations
 {
-    private string? _basePath;
+    private readonly IDirectoryService _directoryService;
+    private string? _dcpSessionDir;
 
-    public string DcpSessionDir => GetOrCreateBasePath();
+    public Locations(IDirectoryService directoryService)
+    {
+        _directoryService = directoryService;
+    }
+
+    public string DcpSessionDir => GetOrCreateDcpSessionDir();
 
     public string DcpKubeconfigPath => Path.Combine(DcpSessionDir, "kubeconfig");
 
     public string DcpLogSocket => Path.Combine(DcpSessionDir, "output.sock");
 
-    private string GetOrCreateBasePath()
+    private string GetOrCreateDcpSessionDir()
     {
-        _basePath ??= Directory.CreateTempSubdirectory("aspire.").FullName;
-        return _basePath;
+        if (_dcpSessionDir == null)
+        {
+            // Use the temp directory service to create a DCP-specific subdirectory
+            _dcpSessionDir = _directoryService.TempDirectory.CreateSubdirectory("dcp");
+        }
+
+        return _dcpSessionDir;
     }
 }

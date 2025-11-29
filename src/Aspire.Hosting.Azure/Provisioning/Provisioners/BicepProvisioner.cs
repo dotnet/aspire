@@ -23,6 +23,7 @@ internal sealed class BicepProvisioner(
     ISecretClientProvider secretClientProvider,
     IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext executionContext,
+    IDirectoryService directoryService,
     ILogger<BicepProvisioner> logger) : IBicepProvisioner
 {
     /// <inheritdoc />
@@ -135,7 +136,9 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        var template = resource.GetBicepTemplateFile();
+        // Get the azure temp directory from the directory service
+        var azureTempDir = directoryService.TempDirectory.GetSubdirectoryPath("azure");
+        var template = resource.GetBicepTemplateFile(directory: azureTempDir);
         var path = template.Path;
 
         // GetBicepTemplateFile may have added new well-known parameters, so we need

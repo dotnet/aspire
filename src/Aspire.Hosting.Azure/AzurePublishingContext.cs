@@ -9,6 +9,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
@@ -34,6 +35,9 @@ public sealed class AzurePublishingContext(
     private IReportingStep ReportingStep => reportingStep;
 
     private IServiceProvider ServiceProvider => serviceProvider;
+
+    // Resolve IDirectoryService from the service provider to avoid breaking change
+    private IDirectoryService DirectoryService => serviceProvider.GetRequiredService<IDirectoryService>();
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -143,9 +147,12 @@ public sealed class AzurePublishingContext(
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
+        // Get the azure temp directory from the directory service
+        var azureTempDir = DirectoryService.TempDirectory.GetSubdirectoryPath("azure");
+
         foreach (var resource in bicepResourcesToPublish)
         {
-            var file = resource.GetBicepTemplateFile();
+            var file = resource.GetBicepTemplateFile(directory: azureTempDir);
 
             var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
@@ -336,7 +343,8 @@ public sealed class AzurePublishingContext(
 
                 var modulePath = Path.Combine(moduleDirectory.FullName, $"{resource.Name}.bicep");
 
-                var file = br.GetBicepTemplateFile();
+                // Use the same azure temp directory
+                var file = br.GetBicepTemplateFile(directory: azureTempDir);
 
                 File.Copy(file.Path, modulePath, true);
 
