@@ -51,11 +51,14 @@ internal static class SdkInstallHelper
                 interactionService.DisplayError(sdkErrorMessage);
             }
 
+            // Check if non-interactive SDK install is enabled (for CI scenarios)
+            var nonInteractiveSdkInstall = features.IsFeatureEnabled(KnownFeatures.NonInteractiveSdkInstall, defaultValue: false);
+
             // Only offer to install if:
             // 1. The feature is enabled (default: false)
-            // 2. We support interactive input OR forceInstall is true (for testing)
+            // 2. We support interactive input OR forceInstall is true (for testing) OR nonInteractiveSdkInstall is true (for CI)
             if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, defaultValue: false) &&
-                (hostEnvironment?.SupportsInteractiveInput == true || forceInstall))
+                (hostEnvironment?.SupportsInteractiveInput == true || forceInstall || nonInteractiveSdkInstall))
             {
                 bool shouldInstall;
                 
@@ -65,6 +68,15 @@ internal static class SdkInstallHelper
                     shouldInstall = true;
                     interactionService.DisplayMessage("information", 
                         "alwaysInstallSdk is enabled - forcing SDK installation for testing purposes.");
+                }
+                else if (nonInteractiveSdkInstall)
+                {
+                    // When nonInteractiveSdkInstall is true (e.g., CI mode), install without prompting
+                    shouldInstall = true;
+                    interactionService.DisplayMessage("information", 
+                        string.Format(CultureInfo.InvariantCulture,
+                            "Installing .NET SDK {0} automatically (non-interactive mode).",
+                            minimumRequiredVersion));
                 }
                 else
                 {
