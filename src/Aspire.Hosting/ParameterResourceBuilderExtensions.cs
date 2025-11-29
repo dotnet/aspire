@@ -139,7 +139,7 @@ public static class ParameterResourceBuilderExtensions
         // If it needs persistence, wrap it in a UserSecretsParameterDefault
         if (persist && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
         {
-            value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, value);
+            value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.AppHostEnvironment.ProjectName, name, value);
         }
 
         return builder.AddParameter(
@@ -348,7 +348,7 @@ public static class ParameterResourceBuilderExtensions
 
         if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
         {
-            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
+            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.AppHostEnvironment.ProjectName, name, parameterResource.Default);
         }
 
         return parameterResource;
