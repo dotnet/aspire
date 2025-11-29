@@ -103,6 +103,8 @@ public class SdkInstallHelperTests
             .SetFeature(KnownFeatures.NonInteractiveSdkInstall, false);
 
         // Create a non-interactive host environment (like CI)
+        // Setting CI=true triggers CI detection which sets SupportsInteractiveInput to false
+        // The nonInteractive parameter is for the --non-interactive flag, not CI detection
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
