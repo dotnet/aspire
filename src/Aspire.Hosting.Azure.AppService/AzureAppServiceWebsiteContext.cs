@@ -701,7 +701,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (environmentContext.Environment.EnableDashboard)
         {
             webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter);
-            webSiteSlotRa = AddDashboardPermissionAndSettings(webSiteSlot, acrClientIdParameter);
+            webSiteSlotRa = AddDashboardPermissionAndSettings(webSiteSlot, acrClientIdParameter, true);
         }
 
         infra.Add(webSite);
@@ -756,7 +756,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter)
+    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter, bool isSlot = false)
     {
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
         var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
@@ -776,7 +776,10 @@ internal sealed class AzureAppServiceWebsiteContext(
                     "de139f84-1756-47ae-9be6-808fbbe84772");
         var websiteRaName = BicepFunction.CreateGuid(webSite.Id, contributorId, websiteRaId);
 
-        return new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra"))
+        string raResourceName = isSlot
+            ? Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_slot_ra")
+            : Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra");
+        return new RoleAssignment(raResourceName)
         {
             Name = websiteRaName,
             Scope = new IdentifierExpression(webSite.BicepIdentifier),
