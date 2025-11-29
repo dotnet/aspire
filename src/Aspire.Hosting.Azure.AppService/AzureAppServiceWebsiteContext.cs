@@ -262,11 +262,13 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (deploymentSlotValue is not null && buildWebAppAndSlot && annotations != null && !annotations.First().MainWebSiteExists)
         {
-            BuildWebSiteAndSlot(infra, deploymentSlotValue);
+            BuildWebSiteCore(infra, deploymentSlotValue);
+           
             return;
         }
 
-        BuildWebSiteCore(infra, deploymentSlotValue);
+        //Testing if bicep is right
+        BuildWebSiteAndSlot(infra, deploymentSlotValue!);
     }
 
     private void BuildWebSiteCore(
