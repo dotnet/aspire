@@ -23,5 +23,18 @@ internal sealed class DirectoryService : IDirectoryService
         {
             return Directory.CreateTempSubdirectory(prefix ?? "aspire").FullName;
         }
+
+        /// <inheritdoc/>
+        public string GetTempFileName(string? extension = null)
+        {
+            var tempFile = Path.GetTempFileName();
+            if (extension is not null)
+            {
+                var newPath = Path.ChangeExtension(tempFile, extension);
+                File.Move(tempFile, newPath);
+                return newPath;
+            }
+            return tempFile;
+        }
     }
 }

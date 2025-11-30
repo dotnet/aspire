@@ -44,4 +44,20 @@ public interface ITempDirectoryService
     /// </para>
     /// </remarks>
     string CreateTempSubdirectory(string? prefix = null);
+
+    /// <summary>
+    /// Creates a new temporary file and returns the full path to the file.
+    /// </summary>
+    /// <param name="extension">Optional file extension including the dot (e.g., ".txt", ".json"). If null, no extension is added.</param>
+    /// <returns>The full path to the created temporary file.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method creates a new temporary file using <see cref="Path.GetTempFileName"/>
+    /// and optionally renames it with the specified extension.
+    /// </para>
+    /// <para>
+    /// Use this instead of calling <see cref="Path.GetTempFileName"/> directly.
+    /// </para>
+    /// </remarks>
+    string GetTempFileName(string? extension = null);
 }

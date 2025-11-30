@@ -6,6 +6,7 @@ namespace Aspire.Hosting.Tests.Utils;
 public class DirectoryServiceTests : IDisposable
 {
     private readonly List<string> _createdDirectories = new();
+    private readonly List<string> _createdFiles = new();
 
     [Fact]
     public void DirectoryService_CreateTempSubdirectory_CreatesDirectory()
@@ -86,6 +87,83 @@ public class DirectoryServiceTests : IDisposable
         Assert.StartsWith(systemTempPath, subdir);
     }
 
+    [Fact]
+    public void DirectoryService_GetTempFileName_CreatesFile()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+
+        // Act
+        var tempFile = directoryService.TempDirectory.GetTempFileName();
+        _createdFiles.Add(tempFile);
+
+        // Assert
+        Assert.True(File.Exists(tempFile));
+    }
+
+    [Fact]
+    public void DirectoryService_GetTempFileName_WithNullExtension_CreatesTmpFile()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+
+        // Act
+        var tempFile = directoryService.TempDirectory.GetTempFileName(null);
+        _createdFiles.Add(tempFile);
+
+        // Assert
+        Assert.True(File.Exists(tempFile));
+        Assert.Equal(".tmp", Path.GetExtension(tempFile));
+    }
+
+    [Fact]
+    public void DirectoryService_GetTempFileName_WithExtension_CreatesFileWithExtension()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+
+        // Act
+        var tempFile = directoryService.TempDirectory.GetTempFileName(".json");
+        _createdFiles.Add(tempFile);
+
+        // Assert
+        Assert.True(File.Exists(tempFile));
+        Assert.Equal(".json", Path.GetExtension(tempFile));
+    }
+
+    [Fact]
+    public void DirectoryService_GetTempFileName_CreatesUniqueFiles()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+
+        // Act
+        var tempFile1 = directoryService.TempDirectory.GetTempFileName();
+        var tempFile2 = directoryService.TempDirectory.GetTempFileName();
+        _createdFiles.Add(tempFile1);
+        _createdFiles.Add(tempFile2);
+
+        // Assert
+        Assert.NotEqual(tempFile1, tempFile2);
+        Assert.True(File.Exists(tempFile1));
+        Assert.True(File.Exists(tempFile2));
+    }
+
+    [Fact]
+    public void DirectoryService_GetTempFileName_UsesSystemTempPath()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+        var systemTempPath = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        // Act
+        var tempFile = directoryService.TempDirectory.GetTempFileName();
+        _createdFiles.Add(tempFile);
+
+        // Assert - the created file should be under the system temp path
+        Assert.StartsWith(systemTempPath, tempFile);
+    }
+
     public void Dispose()
     {
         // Clean up created directories
@@ -96,6 +174,22 @@ public class DirectoryServiceTests : IDisposable
                 if (Directory.Exists(dir))
                 {
                     Directory.Delete(dir, recursive: true);
+                }
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+        }
+
+        // Clean up created files
+        foreach (var file in _createdFiles)
+        {
+            try
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
                 }
             }
             catch

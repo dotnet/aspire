@@ -13,13 +13,14 @@ This document catalogs all usages of temporary file and directory APIs in the As
 
 ## New IDirectoryService API
 
-The `IDirectoryService` provides an abstraction over `Directory.CreateTempSubdirectory()` for testability and consistency.
+The `IDirectoryService` provides an abstraction over temp file/directory APIs for testability and consistency.
 
 ### API Methods
 
 | Method | Description |
 |--------|-------------|
 | `CreateTempSubdirectory(prefix?)` | Creates a unique temporary subdirectory using the system temp folder. Wraps `Directory.CreateTempSubdirectory()`. |
+| `GetTempFileName(extension?)` | Creates a new temporary file and returns the path. Optionally changes the extension. Wraps `Path.GetTempFileName()`. |
 
 ### Current Usages of IDirectoryService
 
