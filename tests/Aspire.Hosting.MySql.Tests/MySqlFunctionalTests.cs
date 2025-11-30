@@ -824,7 +824,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-        hb.AddTestLogging(testOutputHelper);        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.AddTestLogging(testOutputHelper);
+        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddMySqlDataSource(newDb.Resource.Name);
 
         using var host = hb.Build();
