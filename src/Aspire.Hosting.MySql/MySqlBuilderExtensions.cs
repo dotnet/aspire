@@ -260,7 +260,8 @@ public static class MySqlBuilderExtensions
             }
             else
             {
-                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, ct).ConfigureAwait(false);
+                var directoryService = e.Services.GetRequiredService<IDirectoryService>();
+                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, directoryService, ct).ConfigureAwait(false);
 
                 try
                 {
@@ -281,7 +282,12 @@ public static class MySqlBuilderExtensions
                 {
                     try
                     {
-                        File.Delete(tempConfigFile);
+                        // Delete the temp directory containing the config file
+                        var tempDir = Path.GetDirectoryName(tempConfigFile);
+                        if (tempDir != null)
+                        {
+                            Directory.Delete(tempDir, recursive: true);
+                        }
                     }
                     catch
                     {
@@ -374,10 +380,11 @@ public static class MySqlBuilderExtensions
         return builder.WithContainerFiles(initPath, importFullPath);
     }
 
-    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
+    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, IDirectoryService directoryService, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
+        var tempDir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-phpmyadmin-config");
+        var filePath = Path.Combine(tempDir, "config.user.inc.php");
 
         using var writer = new StreamWriter(filePath);
 

@@ -7,9 +7,9 @@ This document catalogs all usages of temporary file and directory APIs in the As
 | API | Count in `src/` | Count in `tests/` | Migration Status |
 |-----|-----------------|-------------------|------------------|
 | `Path.GetTempPath()` | 2 | 30+ | CLI only (not migrated) |
-| `Path.GetTempFileName()` | 3 | 0 | Not migrated |
-| `Directory.CreateTempSubdirectory()` | 3 | 0 | Partial |
-| `IDirectoryService.TempDirectory.CreateTempSubdirectory()` | 8 | 1 | ✅ New API |
+| `Path.GetTempFileName()` | 0 | 0 | ✅ Migrated |
+| `Directory.CreateTempSubdirectory()` | 3 | 0 | Partial (2 in Azure, 1 in UserSecrets) |
+| `IDirectoryService.TempDirectory.CreateTempSubdirectory()` | 10 | 1 | ✅ New API |
 
 ## New IDirectoryService API
 
@@ -29,21 +29,30 @@ The `IDirectoryService` provides an abstraction over `Directory.CreateTempSubdir
 | `ProjectResource.cs:139` | `"aspire-dockerfile"` | Project Dockerfile generation |
 | `PipelineOutputService.cs:31` | `"aspire-pipelines"` | Pipeline output storage |
 | `ContainerResourceBuilderExtensions.cs:667` | `"aspire-dockerfile-{name}"` | Container Dockerfile generation |
-| `DashboardEventHandlers.cs:230,272` | `"aspire-dashboard-config"` | Dashboard runtime config |
+| `DashboardEventHandlers.cs:230,273` | `"aspire-dashboard-config"` | Dashboard runtime config |
 | `MauiAndroidEnvironmentAnnotation.cs:77` | `"aspire-maui-android-env"` | Android environment targets |
 | `MauiiOSEnvironmentAnnotation.cs:77` | `"aspire-maui-ios-env"` | iOS environment targets |
 | `AzurePublishingContext.cs:151` | `"aspire-azure"` | Azure bicep module generation |
 | `BicepProvisioner.cs:140` | `"aspire-azure"` | Azure provisioning bicep files |
+| `AspireStore.cs:48` | `"aspire-store"` | Store content hashing temp files |
+| `MySqlBuilderExtensions.cs:385` | `"aspire-phpmyadmin-config"` | PhpMyAdmin configuration |
+
+## Migrated from Path.GetTempFileName()
+
+These usages were migrated from `Path.GetTempFileName()` to use `IDirectoryService`:
+
+| Location | Old API | New Approach |
+|----------|---------|--------------|
+| `AspireStore.cs` | `Path.GetTempFileName()` | `CreateTempSubdirectory("aspire-store")` + file |
+| `MySqlBuilderExtensions.cs` | `Path.GetTempFileName()` | `CreateTempSubdirectory("aspire-phpmyadmin-config")` + file |
+
+These usages were migrated to use `Directory.CreateTempSubdirectory()` directly (singleton without DI access):
+
+| Location | Old API | New Approach |
+|----------|---------|--------------|
+| `UserSecretsManagerFactory.cs` | `Path.GetTempFileName()` | `Directory.CreateTempSubdirectory("aspire-secrets")` + file |
 
 ## Legacy APIs Not Yet Migrated
-
-### `Path.GetTempFileName()` - Creates empty temp file
-
-| Location | Purpose | Migration Notes |
-|----------|---------|-----------------|
-| `AspireStore.cs:46` | Temp file for store downloads | Could use `CreateTempSubdirectory` + file |
-| `UserSecretsManagerFactory.cs:184` | Temp file for secrets | Could use `CreateTempSubdirectory` + file |
-| `MySqlBuilderExtensions.cs:380` | Temp file for MySQL init script | Could use `CreateTempSubdirectory` + file |
 
 ### `Directory.CreateTempSubdirectory()` - Creates temp subdirectory
 
@@ -79,14 +88,14 @@ new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
 
 ### High Priority (directly affects AppHost temp management)
 
-1. `AzureProvisioningResource.cs:83` - Uses `Directory.CreateTempSubdirectory("aspire")`
-2. `AzureBicepResource.cs:162` - Uses `Directory.CreateTempSubdirectory("aspire")`
+1. ✅ `AspireStore.cs:46` - Migrated to `IDirectoryService`
+2. ✅ `MySqlBuilderExtensions.cs:380` - Migrated to `IDirectoryService`
+3. `AzureProvisioningResource.cs:83` - Uses `Directory.CreateTempSubdirectory("aspire")`
+4. `AzureBicepResource.cs:162` - Uses `Directory.CreateTempSubdirectory("aspire")`
 
-### Medium Priority (internal utilities)
+### Medium Priority (singleton without DI)
 
-3. `AspireStore.cs:46` - Uses `Path.GetTempFileName()`
-4. `UserSecretsManagerFactory.cs:184` - Uses `Path.GetTempFileName()`
-5. `MySqlBuilderExtensions.cs:380` - Uses `Path.GetTempFileName()`
+5. ✅ `UserSecretsManagerFactory.cs:184` - Migrated to `Directory.CreateTempSubdirectory`
 
 ### Low Priority (CLI - separate context)
 

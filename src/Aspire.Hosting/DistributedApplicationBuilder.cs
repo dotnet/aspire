@@ -343,7 +343,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
             }
 
-            return new AspireStore(Path.Combine(aspireDir, ".aspire"));
+            var directoryService = sp.GetRequiredService<IDirectoryService>();
+            return new AspireStore(Path.Combine(aspireDir, ".aspire"), directoryService);
         });
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDeveloperCertificateService, DeveloperCertificateService>();
