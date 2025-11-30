@@ -72,13 +72,13 @@ public interface ITempDirectoryService
     string GetFilePath(string? extension = null);
 
     /// <summary>
-    /// Gets the path to a subdirectory within the Aspire temp directory without creating it.
+    /// Creates a subdirectory within the Aspire temp directory and returns its path.
     /// </summary>
     /// <param name="subdirectory">The subdirectory path relative to the base temp directory.</param>
-    /// <returns>The full path to the subdirectory.</returns>
+    /// <returns>The full path to the created subdirectory.</returns>
     /// <remarks>
-    /// The directory is not created by this method.
-    /// Use this when you want to check for existence or manage the directory lifecycle manually.
+    /// The directory is created if it doesn't exist.
+    /// This method is thread-safe.
     /// </remarks>
-    string GetSubdirectoryPath(string subdirectory);
+    string CreateSubdirectoryPath(string subdirectory);
 }

@@ -99,19 +99,19 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_GetSubdirectoryPath_ReturnsCorrectPath()
+    public void DirectoryService_CreateSubdirectoryPath_CreatesAndReturnsCorrectPath()
     {
         // Arrange
         var directoryService = new DirectoryService(null, "TestAppHost", "5566778899AABBCC5566778899AABBCC5566778899AABBCC5566778899AABBCC");
         _createdDirectories.Add(directoryService.TempDirectory.BasePath);
 
         // Act
-        var subdirPath = directoryService.TempDirectory.GetSubdirectoryPath("azure");
+        var subdirPath = directoryService.TempDirectory.CreateSubdirectoryPath("azure");
 
         // Assert
         Assert.Equal(Path.Combine(directoryService.TempDirectory.BasePath, "azure"), subdirPath);
-        // Note: GetSubdirectoryPath does NOT create the directory
-        Assert.False(Directory.Exists(subdirPath));
+        // CreateSubdirectoryPath creates the directory
+        Assert.True(Directory.Exists(subdirPath));
     }
 
     [Fact]

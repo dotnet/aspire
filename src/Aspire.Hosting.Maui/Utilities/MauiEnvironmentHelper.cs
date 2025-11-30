@@ -69,9 +69,6 @@ internal static class MauiEnvironmentHelper
             return null;
         }
 
-        // Create the directory if it doesn't exist
-        Directory.CreateDirectory(androidEnvDirectory);
-
         // Prune old targets files
         PruneOldTargets(androidEnvDirectory, logger);
 
@@ -252,9 +249,6 @@ internal static class MauiEnvironmentHelper
         {
             return null;
         }
-
-        // Create the directory if it doesn't exist
-        Directory.CreateDirectory(iosEnvDirectory);
 
         // Prune old targets files
         PruneOldTargetsiOS(iosEnvDirectory, logger);

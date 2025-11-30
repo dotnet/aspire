@@ -89,10 +89,12 @@ internal sealed class DirectoryService : IDirectoryService
         }
 
         /// <inheritdoc/>
-        public string GetSubdirectoryPath(string subdirectory)
+        public string CreateSubdirectoryPath(string subdirectory)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(subdirectory);
-            return Path.Combine(_basePath, subdirectory);
+            var path = Path.Combine(_basePath, subdirectory);
+            EnsureDirectoryExists(path);
+            return path;
         }
 
         private static string ResolveTempRoot(IConfiguration? configuration)
