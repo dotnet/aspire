@@ -46,9 +46,8 @@ internal sealed class AspireStore : IAspireStore
         // Strip any folder information from the filename.
         filenameTemplate = Path.GetFileName(filenameTemplate);
 
-        // Create a temporary directory and file to write the content to.
-        var tempDir = _directoryService.TempDirectory.CreateTempSubdirectory("aspire-store");
-        var tempFileName = Path.Combine(tempDir, "content.tmp");
+        // Create a temporary file to write the content to.
+        var tempFileName = _directoryService.TempDirectory.GetTempFileName(".tmp");
 
         // Fast, non-cryptographic hash.
         var hash = new XxHash3();
@@ -71,7 +70,7 @@ internal sealed class AspireStore : IAspireStore
 
         try
         {
-            Directory.Delete(tempDir, recursive: true);
+            File.Delete(tempFileName);
         }
         catch
         {

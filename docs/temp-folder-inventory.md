@@ -7,9 +7,10 @@ This document catalogs all usages of temporary file and directory APIs in the As
 | API | Count in `src/` | Count in `tests/` | Migration Status |
 |-----|-----------------|-------------------|------------------|
 | `Path.GetTempPath()` | 2 | 30+ | CLI only (not migrated) |
-| `Path.GetTempFileName()` | 0 | 0 | ✅ Migrated |
-| `Directory.CreateTempSubdirectory()` | 3 | 0 | Partial (2 in Azure, 1 in UserSecrets) |
-| `IDirectoryService.TempDirectory.CreateTempSubdirectory()` | 10 | 1 | ✅ New API |
+| `Path.GetTempFileName()` | 1 | 6 | ✅ Migrated (1 singleton uses direct call) |
+| `Directory.CreateTempSubdirectory()` | 2 | 0 | Partial (2 in Azure) |
+| `IDirectoryService.TempDirectory.CreateTempSubdirectory()` | 8 | 1 | ✅ New API |
+| `IDirectoryService.TempDirectory.GetTempFileName()` | 2 | 5 | ✅ New API |
 
 ## New IDirectoryService API
 
@@ -22,7 +23,7 @@ The `IDirectoryService` provides an abstraction over temp file/directory APIs fo
 | `CreateTempSubdirectory(prefix?)` | Creates a unique temporary subdirectory using the system temp folder. Wraps `Directory.CreateTempSubdirectory()`. |
 | `GetTempFileName(extension?)` | Creates a new temporary file and returns the path. Optionally changes the extension. Wraps `Path.GetTempFileName()`. |
 
-### Current Usages of IDirectoryService
+### Current Usages of IDirectoryService.TempDirectory.CreateTempSubdirectory
 
 | Location | Prefix | Purpose |
 |----------|--------|---------|
@@ -35,25 +36,21 @@ The `IDirectoryService` provides an abstraction over temp file/directory APIs fo
 | `MauiiOSEnvironmentAnnotation.cs:77` | `"aspire-maui-ios-env"` | iOS environment targets |
 | `AzurePublishingContext.cs:151` | `"aspire-azure"` | Azure bicep module generation |
 | `BicepProvisioner.cs:140` | `"aspire-azure"` | Azure provisioning bicep files |
-| `AspireStore.cs:48` | `"aspire-store"` | Store content hashing temp files |
-| `MySqlBuilderExtensions.cs:385` | `"aspire-phpmyadmin-config"` | PhpMyAdmin configuration |
 
-## Migrated from Path.GetTempFileName()
+### Current Usages of IDirectoryService.TempDirectory.GetTempFileName
 
-These usages were migrated from `Path.GetTempFileName()` to use `IDirectoryService`:
-
-| Location | Old API | New Approach |
-|----------|---------|--------------|
-| `AspireStore.cs` | `Path.GetTempFileName()` | `CreateTempSubdirectory("aspire-store")` + file |
-| `MySqlBuilderExtensions.cs` | `Path.GetTempFileName()` | `CreateTempSubdirectory("aspire-phpmyadmin-config")` + file |
-
-These usages were migrated to use `Directory.CreateTempSubdirectory()` directly (singleton without DI access):
-
-| Location | Old API | New Approach |
-|----------|---------|--------------|
-| `UserSecretsManagerFactory.cs` | `Path.GetTempFileName()` | `Directory.CreateTempSubdirectory("aspire-secrets")` + file |
+| Location | Extension | Purpose |
+|----------|-----------|---------|
+| `AspireStore.cs:50` | `".tmp"` | Store content hashing temp file |
+| `MySqlBuilderExtensions.cs:386` | `".php"` | PhpMyAdmin configuration file |
 
 ## Legacy APIs Not Yet Migrated
+
+### `Path.GetTempFileName()` - Creates temp file (singleton without DI)
+
+| Location | Purpose | Migration Notes |
+|----------|---------|-----------------|
+| `UserSecretsManagerFactory.cs:184` | Atomic file write on Unix | Singleton pattern without DI access |
 
 ### `Directory.CreateTempSubdirectory()` - Creates temp subdirectory
 

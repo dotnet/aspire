@@ -181,8 +181,7 @@ internal sealed class UserSecretsManagerFactory
             // Create a temp file with the correct Unix file mode before moving it to the expected path.
             if (!OperatingSystem.IsWindows())
             {
-                var tempDir = Directory.CreateTempSubdirectory("aspire-secrets");
-                var tempFilename = Path.Combine(tempDir.FullName, "secrets.json");
+                var tempFilename = Path.GetTempFileName();
                 try
                 {
                     File.WriteAllText(tempFilename, json, Encoding.UTF8);
@@ -190,7 +189,7 @@ internal sealed class UserSecretsManagerFactory
                 }
                 finally
                 {
-                    try { tempDir.Delete(recursive: true); } catch { }
+                    try { File.Delete(tempFilename); } catch { }
                 }
             }
             else
