@@ -36,5 +36,14 @@ internal sealed class DirectoryService : IDirectoryService
             }
             return tempFile;
         }
+
+        /// <inheritdoc/>
+        public string CreateTempFile(string prefix, string fileName)
+        {
+            var tempDir = CreateTempSubdirectory(prefix);
+            var filePath = Path.Combine(tempDir, fileName);
+            File.Create(filePath).Dispose();
+            return filePath;
+        }
     }
 }

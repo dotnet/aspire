@@ -21,7 +21,8 @@ The `IDirectoryService` provides an abstraction over temp file/directory APIs fo
 | Method | Description |
 |--------|-------------|
 | `CreateTempSubdirectory(prefix?)` | Creates a unique temporary subdirectory using the system temp folder. Wraps `Directory.CreateTempSubdirectory()`. |
-| `GetTempFileName(extension?)` | Creates a new temporary file and returns the path. Optionally changes the extension. Wraps `Path.GetTempFileName()`. |
+| `GetTempFileName(extension?)` | Creates a new temporary file with a random name and optional extension. Wraps `Path.GetTempFileName()`. |
+| `CreateTempFile(prefix, fileName)` | Creates a new temporary file with a specific name in a unique temp subdirectory. Useful when the filename matters (e.g., for scripts that check their own filename). |
 
 ### Current Usages of IDirectoryService.TempDirectory.CreateTempSubdirectory
 

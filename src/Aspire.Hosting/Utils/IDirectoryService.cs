@@ -48,7 +48,7 @@ public interface ITempDirectoryService
     /// <summary>
     /// Creates a new temporary file and returns the full path to the file.
     /// </summary>
-    /// <param name="extension">Optional file extension including the dot (e.g., ".txt", ".json"). If null, no extension is added.</param>
+    /// <param name="extension">Optional file extension including the dot (e.g., ".txt", ".json"). If null, uses the default .tmp extension.</param>
     /// <returns>The full path to the created temporary file.</returns>
     /// <remarks>
     /// <para>
@@ -60,4 +60,18 @@ public interface ITempDirectoryService
     /// </para>
     /// </remarks>
     string GetTempFileName(string? extension = null);
+
+    /// <summary>
+    /// Creates a new temporary file with the specified name in a temporary directory and returns the full path.
+    /// </summary>
+    /// <param name="prefix">Prefix for the temporary directory name.</param>
+    /// <param name="fileName">The name for the temporary file (e.g., "config.json", "script.php").</param>
+    /// <returns>The full path to the created temporary file.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method creates a temporary subdirectory with the given prefix and places a file with the specified name inside it.
+    /// This is useful when the filename matters (e.g., for scripts that check their own filename).
+    /// </para>
+    /// </remarks>
+    string CreateTempFile(string prefix, string fileName);
 }

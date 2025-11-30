@@ -164,6 +164,41 @@ public class DirectoryServiceTests : IDisposable
         Assert.StartsWith(systemTempPath, tempFile);
     }
 
+    [Fact]
+    public void DirectoryService_CreateTempFile_WithName_CreatesFileWithName()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+
+        // Act
+        var tempFile = directoryService.TempDirectory.CreateTempFile("aspire-test", "config.php");
+        _createdDirectories.Add(Path.GetDirectoryName(tempFile)!); // Clean up the parent directory
+
+        // Assert
+        Assert.True(File.Exists(tempFile));
+        Assert.Equal("config.php", Path.GetFileName(tempFile));
+    }
+
+    [Fact]
+    public void DirectoryService_CreateTempFile_WithName_CreatesUniqueDirectories()
+    {
+        // Arrange
+        var directoryService = new DirectoryService();
+
+        // Act
+        var tempFile1 = directoryService.TempDirectory.CreateTempFile("aspire-test", "script.php");
+        var tempFile2 = directoryService.TempDirectory.CreateTempFile("aspire-test", "script.php");
+        _createdDirectories.Add(Path.GetDirectoryName(tempFile1)!);
+        _createdDirectories.Add(Path.GetDirectoryName(tempFile2)!);
+
+        // Assert - files have the same name but are in different directories
+        Assert.NotEqual(tempFile1, tempFile2);
+        Assert.Equal("script.php", Path.GetFileName(tempFile1));
+        Assert.Equal("script.php", Path.GetFileName(tempFile2));
+        Assert.True(File.Exists(tempFile1));
+        Assert.True(File.Exists(tempFile2));
+    }
+
     public void Dispose()
     {
         // Clean up created directories
