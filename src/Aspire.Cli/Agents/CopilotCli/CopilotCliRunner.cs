@@ -5,7 +5,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Semver;
 
-namespace Aspire.Cli.Agents.VsCode;
+namespace Aspire.Cli.Agents.CopilotCli;
 
 /// <summary>
 /// Runs GitHub Copilot CLI commands.
@@ -20,7 +20,7 @@ internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopi
 
         try
         {
-            var startInfo = new ProcessStartInfo("github-copilot-cli", "--version")
+            var startInfo = new ProcessStartInfo("copilot", "--version")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
