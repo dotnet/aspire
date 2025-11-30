@@ -622,7 +622,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         return Task.CompletedTask;
     }
 
-    private static Task AddPackageToDirectoryPackagesProps(string packageId, string version, FileInfo directoryPackagesPropsFile)
+    private Task AddPackageToDirectoryPackagesProps(string packageId, string version, FileInfo directoryPackagesPropsFile)
     {
         var doc = new XmlDocument { PreserveWhitespace = true };
         doc.Load(directoryPackagesPropsFile.FullName);
@@ -635,6 +635,8 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             var project = doc.SelectSingleNode("/Project");
             if (project is null)
             {
+                logger.LogWarning("Could not find <Project> element in {DirectoryPackagesPropsFile}. Package '{PackageId}' will not be added.", 
+                    directoryPackagesPropsFile.FullName, packageId);
                 return Task.CompletedTask;
             }
 
