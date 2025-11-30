@@ -12,6 +12,7 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestDotNetCliRunner : IDotNetCliRunner
 {
     public Func<FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddPackageAsyncCallback { get; set; }
+    public Func<FileInfo, string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? RemovePackageAsyncCallback { get; set; }
     public Func<FileInfo, FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddProjectToSolutionAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? BuildAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? CheckHttpCertificateAsyncCallback { get; set; }
@@ -31,6 +32,13 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
         return AddPackageAsyncCallback != null
             ? Task.FromResult(AddPackageAsyncCallback(projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken))
             : throw new NotImplementedException();
+    }
+
+    public Task<int> RemovePackageAsync(FileInfo projectFilePath, string packageName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return RemovePackageAsyncCallback != null
+            ? Task.FromResult(RemovePackageAsyncCallback(projectFilePath, packageName, options, cancellationToken))
+            : Task.FromResult(0); // If not overridden, just return success.
     }
 
     public Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)

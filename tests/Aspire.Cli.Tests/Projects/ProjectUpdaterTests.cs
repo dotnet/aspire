@@ -1476,7 +1476,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Should not throw ProjectUpdaterException; should produce update steps including AppHost SDK
@@ -1578,7 +1578,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Should discover package reference (version may be absent) and not crash
@@ -1657,7 +1657,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
 
         // Should throw ProjectUpdaterException due to invalid XML
         await Assert.ThrowsAsync<ProjectUpdaterException>(() =>
@@ -1739,7 +1739,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Normal path unaffected - no updates needed since version is already current
@@ -1818,7 +1818,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.True(updateResult.UpdatedApplied);
@@ -1901,7 +1901,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.True(updateResult.UpdatedApplied);
@@ -1989,7 +1989,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var channels = await packagingService.GetChannelsAsync();
         var selectedChannel = channels.Single(c => c.Name == "default");
 
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, new PackageMigration(Microsoft.Extensions.Logging.Abstractions.NullLogger<PackageMigration>.Instance));
 
         // This should not throw and should handle the * version gracefully
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);

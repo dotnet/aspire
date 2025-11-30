@@ -23,7 +23,7 @@ internal interface IProjectUpdater
     Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default);
 }
 
-internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
+internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser, IPackageMigration packageMigration) : IProjectUpdater
 {
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
@@ -258,6 +258,13 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
+        // Set the target hosting version in the context for package migration decisions
+        if (latestSdkPackage is not null && SemVersion.TryParse(latestSdkPackage.Version, SemVersionStyles.Strict, out var targetVersion))
+        {
+            context.TargetHostingVersion = targetVersion;
+            logger.LogDebug("Target hosting version set to: {TargetVersion}", targetVersion);
+        }
+
         // Treat unparseable versions (including range expressions) like wildcards - always update them
         // Only skip if the version is a valid semantic version that matches the latest
         if (!string.IsNullOrEmpty(sdkVersion) && IsValidSemanticVersion(sdkVersion) && sdkVersion == latestSdkPackage?.Version)
@@ -461,6 +468,22 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
+        // Check if this package needs migration to a different package
+        if (context.TargetHostingVersion is not null)
+        {
+            var migrationTarget = packageMigration.GetMigration(context.TargetHostingVersion, packageId);
+            if (migrationTarget is not null)
+            {
+                logger.LogInformation("Migration detected: '{FromPackage}' -> '{ToPackage}' for target version '{TargetVersion}'",
+                    packageId, migrationTarget, context.TargetHostingVersion);
+
+                // Add steps to remove old package and add new package
+                await AddMigrationStepsForTraditionalManagementAsync(
+                    packageId, packageVersion, migrationTarget, projectFile, context, cancellationToken);
+                return;
+            }
+        }
+
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
         // Treat unparseable versions (including range expressions) like wildcards - always update them
@@ -481,6 +504,32 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         context.UpdateSteps.Enqueue(updateStep);
     }
 
+    private async Task AddMigrationStepsForTraditionalManagementAsync(
+        string fromPackageId, string fromVersion, string toPackageId,
+        FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        // Get the latest version of the target package
+        var latestTargetPackage = await GetLatestVersionOfPackageAsync(context, toPackageId, cancellationToken);
+
+        // Step 1: Remove the old package
+        var removeStep = new PackageMigrationRemoveStep(
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RemovePackageFormat, fromPackageId),
+            () => RemovePackageFromProject(projectFile, fromPackageId, cancellationToken),
+            fromPackageId,
+            fromVersion,
+            projectFile);
+        context.UpdateSteps.Enqueue(removeStep);
+
+        // Step 2: Add the new package
+        var addStep = new PackageMigrationAddStep(
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddPackageFormat, toPackageId, latestTargetPackage!.Version),
+            () => UpdatePackageReferenceInProject(projectFile, latestTargetPackage, cancellationToken),
+            toPackageId,
+            latestTargetPackage!.Version,
+            projectFile);
+        context.UpdateSteps.Enqueue(addStep);
+    }
+
     private async Task AnalyzePackageForCentralPackageManagementAsync(string packageId, FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
     {
         var currentVersion = await GetPackageVersionFromDirectoryPackagesPropsAsync(packageId, directoryPackagesPropsFile, projectFile, cancellationToken);
@@ -489,6 +538,22 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         {
             logger.LogInformation("Package '{PackageId}' not found in Directory.Packages.props, skipping.", packageId);
             return;
+        }
+
+        // Check if this package needs migration to a different package
+        if (context.TargetHostingVersion is not null)
+        {
+            var migrationTarget = packageMigration.GetMigration(context.TargetHostingVersion, packageId);
+            if (migrationTarget is not null)
+            {
+                logger.LogInformation("Migration detected: '{FromPackage}' -> '{ToPackage}' for target version '{TargetVersion}'",
+                    packageId, migrationTarget, context.TargetHostingVersion);
+
+                // Add steps to remove old package and add new package
+                await AddMigrationStepsForCentralPackageManagementAsync(
+                    packageId, currentVersion, migrationTarget, projectFile, directoryPackagesPropsFile, context, cancellationToken);
+                return;
+            }
         }
 
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
@@ -509,6 +574,82 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             latestPackage!.Version,
             projectFile);
         context.UpdateSteps.Enqueue(updateStep);
+    }
+
+    private async Task AddMigrationStepsForCentralPackageManagementAsync(
+        string fromPackageId, string fromVersion, string toPackageId,
+        FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        // Get the latest version of the target package
+        var latestTargetPackage = await GetLatestVersionOfPackageAsync(context, toPackageId, cancellationToken);
+
+        // Step 1: Remove the old package from Directory.Packages.props
+        var removeStep = new PackageMigrationRemoveStep(
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RemovePackageFormat, fromPackageId),
+            () => RemovePackageFromDirectoryPackagesProps(fromPackageId, directoryPackagesPropsFile),
+            fromPackageId,
+            fromVersion,
+            projectFile);
+        context.UpdateSteps.Enqueue(removeStep);
+
+        // Step 2: Add the new package to Directory.Packages.props
+        var addStep = new PackageMigrationAddStep(
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddPackageFormat, toPackageId, latestTargetPackage!.Version),
+            () => AddPackageToDirectoryPackagesProps(toPackageId, latestTargetPackage!.Version, directoryPackagesPropsFile),
+            toPackageId,
+            latestTargetPackage!.Version,
+            projectFile);
+        context.UpdateSteps.Enqueue(addStep);
+    }
+
+    private async Task<int> RemovePackageFromProject(FileInfo projectFile, string packageId, CancellationToken cancellationToken)
+    {
+        return await runner.RemovePackageAsync(projectFile, packageId, new(), cancellationToken);
+    }
+
+    private static Task RemovePackageFromDirectoryPackagesProps(string packageId, FileInfo directoryPackagesPropsFile)
+    {
+        var doc = new XmlDocument { PreserveWhitespace = true };
+        doc.Load(directoryPackagesPropsFile.FullName);
+
+        var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+        if (packageVersionNode?.ParentNode is not null)
+        {
+            packageVersionNode.ParentNode.RemoveChild(packageVersionNode);
+            doc.Save(directoryPackagesPropsFile.FullName);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static Task AddPackageToDirectoryPackagesProps(string packageId, string version, FileInfo directoryPackagesPropsFile)
+    {
+        var doc = new XmlDocument { PreserveWhitespace = true };
+        doc.Load(directoryPackagesPropsFile.FullName);
+
+        // Find the ItemGroup that contains PackageVersion elements
+        var itemGroup = doc.SelectSingleNode("/Project/ItemGroup[PackageVersion]");
+        if (itemGroup is null)
+        {
+            // Create a new ItemGroup if one doesn't exist
+            var project = doc.SelectSingleNode("/Project");
+            if (project is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            itemGroup = doc.CreateElement("ItemGroup");
+            project.AppendChild(itemGroup);
+        }
+
+        // Create the new PackageVersion element
+        var packageVersionElement = doc.CreateElement("PackageVersion");
+        packageVersionElement.SetAttribute("Include", packageId);
+        packageVersionElement.SetAttribute("Version", version);
+        itemGroup.AppendChild(packageVersionElement);
+
+        doc.Save(directoryPackagesPropsFile.FullName);
+        return Task.CompletedTask;
     }
 
     private async Task<string?> GetPackageVersionFromDirectoryPackagesPropsAsync(string packageId, FileInfo directoryPackagesPropsFile, FileInfo projectFile, CancellationToken cancellationToken)
@@ -884,6 +1025,11 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
     public HashSet<string> VisitedProjects { get; } = new();
     public bool FallbackParsing { get; set; }
+    /// <summary>
+    /// The target Aspire Hosting SDK version being updated to.
+    /// This is set during SDK analysis and used for package migration decisions.
+    /// </summary>
+    public SemVersion? TargetHostingVersion { get; set; }
 }
 
 internal abstract record UpdateStep(string Description, Func<Task> Callback)
@@ -908,6 +1054,38 @@ internal record PackageUpdateStep(
     public override string GetFormattedDisplayText()
     {
         return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
+    }
+}
+
+/// <summary>
+/// Represents a migration step to remove an old package during package migration.
+/// </summary>
+internal record PackageMigrationRemoveStep(
+    string Description,
+    Func<Task> Callback,
+    string PackageId,
+    string Version,
+    FileInfo ProjectFile) : UpdateStep(Description, Callback)
+{
+    public override string GetFormattedDisplayText()
+    {
+        return $"[bold red]Remove[/] [bold yellow]{PackageId}[/] [bold green]{Version.EscapeMarkup()}[/]";
+    }
+}
+
+/// <summary>
+/// Represents a migration step to add a new package during package migration.
+/// </summary>
+internal record PackageMigrationAddStep(
+    string Description,
+    Func<Task> Callback,
+    string PackageId,
+    string Version,
+    FileInfo ProjectFile) : UpdateStep(Description, Callback)
+{
+    public override string GetFormattedDisplayText()
+    {
+        return $"[bold green]Add[/] [bold yellow]{PackageId}[/] [bold green]{Version.EscapeMarkup()}[/]";
     }
 }
 

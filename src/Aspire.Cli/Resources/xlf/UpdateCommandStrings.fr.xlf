@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../UpdateCommandStrings.resx">
     <body>
+      <trans-unit id="AddPackageFormat">
+        <source>Add package {0} version {1}</source>
+        <target state="new">Add package {0} version {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AddedFeedFormat">
         <source>Added: {0}</source>
         <target state="translated">Ajouté : {0}</target>
@@ -165,6 +170,11 @@
       <trans-unit id="QualityOptionDescriptionWithStaging">
         <source>Quality level to update to (stable, staging, daily)</source>
         <target state="translated">Niveau de qualité vers lequel effectuer une mise à jour (stable, gestion intermédiaire, quotidien)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovePackageFormat">
+        <source>Remove package {0}</source>
+        <target state="new">Remove package {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
