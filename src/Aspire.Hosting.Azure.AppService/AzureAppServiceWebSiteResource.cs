@@ -69,7 +69,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var websiteExistsCheckStep = new PipelineStep
             {
-                Name = $"check-{targetResource.Name}-website-exists",
+                Name = $"update-{targetResource.Name}-if-website-doesnotexist",
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
@@ -87,16 +87,23 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     if (!exists)
                     {
                         targetResource.Annotations.Add(new AzureAppServiceWebsiteAndSlotCreationAnnotation());
-                        var context = AzureAppServiceEnvironmentContext.GetAppServiceContext(targetResource);
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Got context", false);
-
-                       var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-                        var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
+                        if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
                         {
-                            ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
-                        };
-                        deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
-                        ctx.ReportingStep.Log(LogLevel.Information, $"update target", false);
+                            var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Got context", false);
+
+                            var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+                            var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
+                            {
+                                ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
+                            };
+                            deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
+                            ctx.ReportingStep.Log(LogLevel.Information, $"update target", false);
+                        }
+                        else
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Information, $"No EnvironmentContext annotation on the environment resource", false);
+                        }
                     }
                 },
                 Tags = ["check-website-exists"],

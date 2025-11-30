@@ -142,7 +142,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (value is EndpointReference ep)
         {
-            var context = AzureAppServiceEnvironmentContext.GetAppServiceContext(ep.Resource);
+            var context = environmentContext.GetAppServiceContext(ep.Resource);
             return isSlot ?
                 (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url), secretType) :
                 (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
@@ -181,7 +181,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (value is EndpointReferenceExpression epExpr)
         {
-            var context = AzureAppServiceEnvironmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
+            var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
             var mapping = isSlot ? context._slotEndpointMapping[epExpr.Endpoint.EndpointName] : context._endpointMapping[epExpr.Endpoint.EndpointName];
             var val = GetEndpointValue(mapping, epExpr.Property);
             return (val, secretType);

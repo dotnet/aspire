@@ -44,3 +44,15 @@ public sealed class AzureAppServiceWebsiteAndSlotCreationAnnotation(bool mainWeb
     /// </summary>
     public bool MainWebSiteExists { get; } = mainWebSiteExists;
 }
+
+/// <summary>
+/// 
+/// </summary>
+internal sealed class AzureAppServiceEnvironmentContextAnnotation (AzureAppServiceEnvironmentContext context)
+    : IResourceAnnotation
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    public AzureAppServiceEnvironmentContext EnvironmentContext { get; } = context;
+}

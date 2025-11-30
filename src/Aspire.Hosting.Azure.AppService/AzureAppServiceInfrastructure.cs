@@ -38,6 +38,8 @@ internal sealed class AzureAppServiceInfrastructure(
                 appServiceEnvironment,
                 @event.Services);
 
+            appServiceEnvironment.Annotations.Add(new AzureAppServiceEnvironmentContextAnnotation(appServiceEnvironmentContext));
+
             foreach (var resource in @event.Model.GetComputeResources())
             {
                 // Support project resources and containers with Dockerfile

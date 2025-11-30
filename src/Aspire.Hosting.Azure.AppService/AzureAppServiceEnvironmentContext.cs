@@ -21,11 +21,11 @@ internal sealed class AzureAppServiceEnvironmentContext(
 
     public IServiceProvider ServiceProvider => serviceProvider;
 
-    internal static readonly Dictionary<IResource, AzureAppServiceWebsiteContext> s_appServices = new(new ResourceNameComparer());
+    internal readonly Dictionary<IResource, AzureAppServiceWebsiteContext> _appServices = new(new ResourceNameComparer());
 
-    public static AzureAppServiceWebsiteContext GetAppServiceContext(IResource resource)
+    public AzureAppServiceWebsiteContext GetAppServiceContext(IResource resource)
     {
-        if (!s_appServices.TryGetValue(resource, out var context))
+        if (!_appServices.TryGetValue(resource, out var context))
         {
             throw new InvalidOperationException($"App Service context not found for resource {resource.Name}.");
         }
@@ -35,9 +35,9 @@ internal sealed class AzureAppServiceEnvironmentContext(
 
     public async Task<AzureBicepResource> CreateAppServiceAsync(IResource resource, AzureProvisioningOptions provisioningOptions, CancellationToken cancellationToken)
     {
-        if (!s_appServices.TryGetValue(resource, out var context))
+        if (!_appServices.TryGetValue(resource, out var context))
         {
-            s_appServices[resource] = context = new AzureAppServiceWebsiteContext(resource, this);
+            _appServices[resource] = context = new AzureAppServiceWebsiteContext(resource, this);
             await context.ProcessAsync(cancellationToken).ConfigureAwait(false);
         }
 
