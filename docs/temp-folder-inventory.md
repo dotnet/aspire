@@ -29,14 +29,19 @@ The `IDirectoryService` provides an abstraction over temp file/directory APIs fo
 | Location | Prefix | Purpose |
 |----------|--------|---------|
 | `Locations.cs:27` | `"aspire-dcp"` | DCP session storage |
-| `ProjectResource.cs:139` | `"aspire-dockerfile"` | Project Dockerfile generation |
 | `PipelineOutputService.cs:31` | `"aspire-pipelines"` | Pipeline output storage |
-| `ContainerResourceBuilderExtensions.cs:667` | `"aspire-dockerfile-{name}"` | Container Dockerfile generation |
-| `DashboardEventHandlers.cs:230,273` | `"aspire-dashboard-config"` | Dashboard runtime config |
 | `MauiAndroidEnvironmentAnnotation.cs:77` | `"aspire-maui-android-env"` | Android environment targets |
 | `MauiiOSEnvironmentAnnotation.cs:77` | `"aspire-maui-ios-env"` | iOS environment targets |
 | `AzurePublishingContext.cs:151` | `"aspire-azure"` | Azure bicep module generation |
 | `BicepProvisioner.cs:140` | `"aspire-azure"` | Azure provisioning bicep files |
+
+### Current Usages of IDirectoryService.TempDirectory.CreateTempFile
+
+| Location | Prefix | FileName | Purpose |
+|----------|--------|----------|---------|
+| `ProjectResource.cs:139` | `"aspire-dockerfile"` | `"Dockerfile"` | Project Dockerfile generation |
+| `ContainerResourceBuilderExtensions.cs:667` | `"aspire-dockerfile-{name}"` | `"Dockerfile"` | Container Dockerfile generation |
+| `DashboardEventHandlers.cs:230,272` | `"aspire-dashboard-config"` | `"runtimeconfig.json"` | Dashboard runtime config |
 
 ### Current Usages of IDirectoryService.TempDirectory.GetTempFileName
 

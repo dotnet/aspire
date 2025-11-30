@@ -227,8 +227,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 }
             };
 
-            var customConfigDir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dashboard-config");
-            var customConfigPath = Path.Combine(customConfigDir, "runtimeconfig.json");
+            var customConfigPath = directoryService.TempDirectory.CreateTempFile("aspire-dashboard-config", "runtimeconfig.json");
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
 
             _customRuntimeConfigPath = customConfigPath;
@@ -270,8 +269,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Create a temporary file for the custom runtime config
-        var tempDir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dashboard-config");
-        var tempPath = Path.Combine(tempDir, "runtimeconfig.json");
+        var tempPath = directoryService.TempDirectory.CreateTempFile("aspire-dashboard-config", "runtimeconfig.json");
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         _customRuntimeConfigPath = tempPath;
