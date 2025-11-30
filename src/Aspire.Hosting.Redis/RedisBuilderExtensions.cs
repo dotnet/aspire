@@ -292,6 +292,85 @@ public static class RedisBuilderExtensions
     }
 
     /// <summary>
+    /// Configures a container resource for an MCP server connected to the <see cref="RedisResource"/> this method is used on.
+    /// The MCP endpoint is registered on the Redis resource so Aspire MCP can proxy its tools.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for the MCP container resource.</param>
+    /// <param name="containerName">Override the container name used for the MCP server.</param>
+    /// <param name="apiKey">Optional API key used to secure the MCP server; if specified it is injected into the container and advertised for proxy authentication.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<RedisResource> WithRedisMcp(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisMcpResource>>? configureContainer = null, string? containerName = null, string? apiKey = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        containerName ??= $"{builder.Resource.Name}-mcp";
+
+        const int mcpPort = 4000;
+
+        var resource = new RedisMcpResource(containerName);
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+            .WithImage(RedisContainerImageTags.RedisMcpImage, RedisContainerImageTags.RedisMcpTag)
+            .WithImageRegistry(RedisContainerImageTags.RedisMcpRegistry)
+            .WithHttpEndpoint(targetPort: mcpPort, name: "mcp")
+            .WithReference(builder)
+            // Override entrypoint to run the SSE server on 0.0.0.0 (the default mcp/redis image binds to 127.0.0.1)
+            .WithEntrypoint("uv")
+            .WithArgs("run", "python", "-c", $"""
+from src.common.server import mcp
+import anyio
+mcp.settings.host = '0.0.0.0'
+mcp.settings.port = {mcpPort}
+anyio.run(mcp.run_sse_async)
+""")
+            .WithEnvironment("REDIS_URL", builder.Resource.ConnectionStringExpression)
+            .WithEnvironment(context =>
+            {
+                // Provide explicit host/port/user credentials expected by the MCP image.
+                context.EnvironmentVariables["REDIS_HOST"] = builder.Resource.PrimaryEndpoint.Property(EndpointProperty.Host);
+                context.EnvironmentVariables["REDIS_PORT"] = builder.Resource.PrimaryEndpoint.Property(EndpointProperty.TargetPort);
+                context.EnvironmentVariables["REDIS_USERNAME"] = "default";
+                context.EnvironmentVariables["REDIS_SSL"] = builder.Resource.TlsEnabled ? "true" : "false";
+
+                if (builder.Resource.PasswordParameter is { } password)
+                {
+                    context.EnvironmentVariables["REDIS_PWD"] = password;
+                }
+            });
+
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            resourceBuilder.WithEnvironment("MCP_API_KEY", apiKey);
+        }
+
+        // Automatically set up the parent relationship so the MCP container
+        // appears as a child of the Redis resource in the dashboard.
+        resourceBuilder.WithParentRelationship(builder.Resource);
+
+        configureContainer?.Invoke(resourceBuilder);
+
+        // Add the MCP endpoint annotation to the MCP container (not the Redis resource)
+        // so that when the container's state is updated and its endpoint is allocated,
+        // the mcpEndpoints property will be included in the resource state.
+        // The FastMCP SSE server expects the /sse path, so we use a static URI that appends it.
+        resourceBuilder.ApplicationBuilder.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(resource, async (@event, ct) =>
+        {
+            var mcpEndpoint = resource.GetEndpoint("mcp");
+            if (mcpEndpoint.IsAllocated)
+            {
+                // Construct the SSE endpoint URL by appending /sse to the base URL
+                var sseUri = new Uri(new Uri(mcpEndpoint.Url), "sse");
+                resourceBuilder.WithMcpEndpoint(new McpEndpointDefinition(sseUri, "http", apiKey, "redis"));
+
+                var notificationService = @event.Services.GetRequiredService<ResourceNotificationService>();
+                await notificationService.PublishUpdateAsync(resource, s => s).ConfigureAwait(false);
+            }
+        });
+
+        return builder;
+    }
+
+    /// <summary>
     /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
     /// </summary>
     /// <remarks>

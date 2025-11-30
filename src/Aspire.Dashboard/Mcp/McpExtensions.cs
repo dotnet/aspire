@@ -13,6 +13,8 @@ public static class McpExtensions
 {
     public static IMcpServerBuilder AddAspireMcpTools(this IServiceCollection services, DashboardOptions dashboardOptions)
     {
+        services.AddSingleton<ResourceMcpProxyService>();
+
         var builder = services.AddMcpServer(options =>
         {
             // SVG isn't a required icon format for MCP. Use PNGs to ensure the icon is visible in all tools that support icons.
@@ -65,17 +67,45 @@ public static class McpExtensions
                 //
                 // We want to track when users list tools as it's an indicator of whether Aspire MCP is configured (client tools refresh tools via it).
                 // It's called even if no Aspire tools end up being used.
-                return await RecordCallToolNameAsync<ListToolsRequestParams, ListToolsResult>(next, request, "list_tools", cancellationToken).ConfigureAwait(false);
+                var result = await RecordCallToolNameAsync<ListToolsRequestParams, ListToolsResult>(next, request, "list_tools", cancellationToken).ConfigureAwait(false);
+
+                var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
+                if (proxyService is not null)
+                {
+                    var proxiedTools = await proxyService.GetToolsAsync(cancellationToken).ConfigureAwait(false);
+                    if (proxiedTools.Count > 0)
+                    {
+                        var tools = result.Tools?.ToList() ?? new List<Tool>();
+                        tools.AddRange(proxiedTools);
+                        result.Tools = tools;
+                    }
+                }
+
+                return result;
             })
             .AddCallToolFilter((next) => async (RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken) =>
             {
+                var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
+                if (proxyService is not null && request.Params?.Name is { Length: > 0 } toolName)
+                {
+                    var proxiedResult = await proxyService.TryHandleCallAsync(toolName, request.Params.Arguments, cancellationToken).ConfigureAwait(false);
+                    if (proxiedResult is not null)
+                    {
+                        return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(
+                            (_, _) => ValueTask.FromResult(proxiedResult),
+                            request,
+                            toolName,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
                 return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(next, request, request.Params?.Name, cancellationToken).ConfigureAwait(false);
             });
 
         return builder;
     }
 
-    private static async Task<TResult> RecordCallToolNameAsync<TParams, TResult>(McpRequestHandler<TParams, TResult> next, RequestContext<TParams> request, string? toolCallName, CancellationToken cancellationToken)
+    private static async ValueTask<TResult> RecordCallToolNameAsync<TParams, TResult>(McpRequestHandler<TParams, TResult> next, RequestContext<TParams> request, string? toolCallName, CancellationToken cancellationToken)
     {
         // Record the tool name to telemetry.
         OperationContextProperty? operationId = null;

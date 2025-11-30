@@ -614,6 +614,65 @@ public class ResourceNotificationService : IDisposable
                 };
             }
 
+            if (resource.TryGetAnnotationsOfType<McpEndpointAnnotation>(out var mcpAnnotations))
+            {
+                _logger.LogInformation("Resource {ResourceName} has {Count} MCP endpoint annotations.", resource.Name, mcpAnnotations.Count());
+
+                var resolvedEndpoints = new List<McpEndpointDefinition>();
+
+                foreach (var annotation in mcpAnnotations)
+                {
+                    Uri? uri = null;
+                    try
+                    {
+                        if (annotation.EndpointReference is not null)
+                        {
+                            _logger.LogDebug("Resource {ResourceName} has MCP endpoint reference to {EndpointResource}/{EndpointName}, IsAllocated: {IsAllocated}",
+                                resource.Name,
+                                annotation.EndpointReference.Resource.Name,
+                                annotation.EndpointReference.EndpointName,
+                                annotation.EndpointReference.IsAllocated);
+
+                            if (annotation.EndpointReference.IsAllocated)
+                            {
+                                uri = new Uri(annotation.EndpointReference.Url);
+                                _logger.LogDebug("Resource {ResourceName} MCP endpoint resolved to {Uri}", resource.Name, uri);
+                            }
+                        }
+                        else if (annotation.StaticUri is not null)
+                        {
+                            uri = annotation.StaticUri;
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore resolution failures, we'll try again on the next update.
+                    }
+
+                    if (uri is null)
+                    {
+                        continue;
+                    }
+
+                    resolvedEndpoints.Add(new McpEndpointDefinition(uri, annotation.Transport, annotation.AuthToken, annotation.Namespace));
+                }
+
+                if (resolvedEndpoints.Count > 0)
+                {
+                    newState = newState with
+                    {
+                        Properties = newState.Properties.SetResourceProperty(KnownProperties.Resource.McpEndpoints, McpEndpointAnnotation.Serialize(resolvedEndpoints), IsSensitive: true)
+                    };
+                }
+                else if (newState.Properties.Any(p => string.Equals(p.Name, KnownProperties.Resource.McpEndpoints, StringComparisons.ResourcePropertyName)))
+                {
+                    newState = newState with
+                    {
+                        Properties = newState.Properties.SetResourceProperty(KnownProperties.Resource.McpEndpoints, string.Empty, IsSensitive: true)
+                    };
+                }
+            }
+
             notificationState.LastSnapshot = newState;
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));

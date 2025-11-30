@@ -52,6 +52,29 @@ The PostgreSQL database resource inherits all properties from its parent `Postgr
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
+## MCP (Model Context Protocol) Support
+
+The PostgreSQL hosting integration provides support for adding an MCP sidecar container that enables AI agents to interact with PostgreSQL databases. This is enabled by calling `WithPostgresMcp()` on the PostgreSQL server resource.
+
+```csharp
+var pg = builder.AddPostgres("pg");
+pg.WithPostgresMcp();
+```
+
+The PostgreSQL MCP server (powered by [Postgres MCP Pro](https://github.com/crystaldba/postgres-mcp)) provides the following tools:
+
+| Tool | Description |
+|------|-------------|
+| `list_schemas` | Lists all database schemas available in the PostgreSQL instance |
+| `list_objects` | Lists database objects (tables, views, sequences, extensions) within a schema |
+| `get_object_details` | Provides information about a specific database object (columns, constraints, indexes) |
+| `execute_sql` | Executes SQL statements on the database |
+| `explain_query` | Gets the execution plan for a SQL query, including support for hypothetical indexes |
+| `get_top_queries` | Reports the slowest SQL queries based on execution time |
+| `analyze_workload_indexes` | Analyzes database workload and recommends optimal indexes |
+| `analyze_query_indexes` | Analyzes specific SQL queries and recommends indexes |
+| `analyze_db_health` | Performs comprehensive health checks (buffer cache, connections, indexes, vacuum health) |
+
 ## Additional documentation
 
 https://learn.microsoft.com/dotnet/aspire/database/postgresql-component

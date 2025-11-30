@@ -3026,4 +3026,38 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
+
+    /// <summary>
+    /// Registers an MCP endpoint for the resource so Aspire MCP can proxy its tools.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpoint">The MCP endpoint definition.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithMcpEndpoint<T>(this IResourceBuilder<T> builder, McpEndpointDefinition endpoint) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        return builder.WithAnnotation(new McpEndpointAnnotation(endpoint));
+    }
+
+    /// <summary>
+    /// Registers an MCP endpoint for the resource using an <see cref="EndpointReference"/> that is resolved at runtime.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpointReference">Endpoint reference pointing to the MCP server.</param>
+    /// <param name="transport">Transport used by the MCP server (e.g. http, websocket, stdio).</param>
+    /// <param name="authToken">Optional bearer token used to authenticate against the MCP server.</param>
+    /// <param name="namespace">Optional namespace to group tools from this endpoint.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithMcpEndpoint<T>(this IResourceBuilder<T> builder, EndpointReference endpointReference, string transport, string? authToken = null, string? @namespace = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpointReference);
+        ArgumentNullException.ThrowIfNull(transport);
+
+        return builder.WithAnnotation(new McpEndpointAnnotation(transport, endpointReference, authToken, @namespace));
+    }
 }
