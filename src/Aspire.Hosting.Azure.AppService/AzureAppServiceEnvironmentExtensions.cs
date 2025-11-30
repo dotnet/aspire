@@ -282,6 +282,36 @@ public static partial class AzureAppServiceEnvironmentExtensions
     }
 
     /// <summary>
+    /// Configures the slot to which the Azure App Services should be deployed.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="deploymentSlot">The deployment slot for the App Service Environment.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDeploymentSlot(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> deploymentSlot)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(deploymentSlot);
+
+        builder.Resource.DeploymentSlotParameter = deploymentSlot.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the slot to which the Azure App Services should be deployed.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="deploymentSlot"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDeploymentSlot(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string deploymentSlot)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentSlot);
+
+        builder.Resource.DeploymentSlot = deploymentSlot;
+        return builder;
+    }
+
+    /// <summary>
     /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
