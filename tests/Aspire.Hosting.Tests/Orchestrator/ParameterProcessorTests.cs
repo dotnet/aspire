@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -887,10 +888,9 @@ public class ParameterProcessorTests
 
         await handleTask;
 
-        // Verify the value was saved correctly
-        Assert.True(capturingStateManager.State.TryGetPropertyValue("ConnectionStrings:mydb", out var sectionNode));
-        var sectionData = sectionNode!.AsObject();
-        Assert.Equal("Server=localhost;Database=mydb", sectionData[""]?.GetValue<string>());
+        // Verify the value was saved correctly in the flattened state
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("ConnectionStrings:mydb", out var valueNode));
+        Assert.Equal("Server=localhost;Database=mydb", valueNode?.GetValue<string>());
 
         // Verify the entire state structure as JSON (mimics what gets saved to disk)
         await VerifyJson(capturingStateManager.State.ToJsonString());
@@ -927,10 +927,9 @@ public class ParameterProcessorTests
 
         await handleTask;
 
-        // Verify the value was saved correctly
-        Assert.True(capturingStateManager.State.TryGetPropertyValue("Parameters:myparam", out var sectionNode));
-        var sectionData = sectionNode!.AsObject();
-        Assert.Equal("myvalue", sectionData[""]?.GetValue<string>());
+        // Verify the value was saved correctly in the flattened state
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("Parameters:myparam", out var valueNode));
+        Assert.Equal("myvalue", valueNode?.GetValue<string>());
 
         // Verify the entire state structure as JSON (mimics what gets saved to disk)
         await VerifyJson(capturingStateManager.State.ToJsonString());
@@ -970,10 +969,9 @@ public class ParameterProcessorTests
 
         await handleTask;
 
-        // Verify the value was saved correctly
-        Assert.True(capturingStateManager.State.TryGetPropertyValue("MyCustomSection:MyCustomKey", out var sectionNode));
-        var sectionData = sectionNode!.AsObject();
-        Assert.Equal("customvalue", sectionData[""]?.GetValue<string>());
+        // Verify the value was saved correctly in the flattened state
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("MyCustomSection:MyCustomKey", out var valueNode));
+        Assert.Equal("customvalue", valueNode?.GetValue<string>());
 
         // Verify the entire state structure as JSON (mimics what gets saved to disk)
         await VerifyJson(capturingStateManager.State.ToJsonString());
@@ -981,15 +979,19 @@ public class ParameterProcessorTests
 
     private sealed class CapturingMockDeploymentStateManager : IDeploymentStateManager
     {
-        // Stores the entire state as a single JsonObject, mimicking FileDeploymentStateManager
-        // Structure: { "SectionName": { "key": "value" }, ... }
-        public JsonObject State { get; } = new();
+        // Stores the entire state in an unflattened structure in memory, then flattens for verification
+        // to mimic FileDeploymentStateManager behavior
+        private readonly JsonObject _unflattenedState = [];
+        private JsonObject? _flattenedState;
+
+        // Provides the flattened state for verification, matching what FileDeploymentStateManager saves to disk
+        public JsonObject State => _flattenedState ?? [];
         public string? StateFilePath => null;
 
         public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
         {
             // Return existing section data if it exists, otherwise return empty
-            var sectionData = State.TryGetPropertyValue(sectionName, out var sectionNode) && sectionNode is JsonObject obj
+            var sectionData = _unflattenedState.TryGetPropertyValue(sectionName, out var sectionNode) && sectionNode is JsonObject obj
                 ? obj.DeepClone().AsObject()
                 : null;
 
@@ -1001,8 +1003,12 @@ public class ParameterProcessorTests
             // Increment version to allow multiple saves with the same instance (mimics FileDeploymentStateManager)
             section.Version++;
 
-            // Store the section data in the state object, just like FileDeploymentStateManager
-            State[section.SectionName] = section.Data.DeepClone().AsObject();
+            // Store the section data in the unflattened state object
+            _unflattenedState[section.SectionName] = section.Data.DeepClone().AsObject();
+
+            // Flatten the state to mimic what FileDeploymentStateManager saves to disk
+            _flattenedState = JsonFlattener.FlattenJsonObject(_unflattenedState);
+
             return Task.CompletedTask;
         }
     }

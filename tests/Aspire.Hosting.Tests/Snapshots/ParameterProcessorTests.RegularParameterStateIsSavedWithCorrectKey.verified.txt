@@ -1,5 +1,3 @@
 ﻿{
-  Parameters:myparam: {
-    : myvalue
-  }
+  Parameters:myparam: myvalue
 }
