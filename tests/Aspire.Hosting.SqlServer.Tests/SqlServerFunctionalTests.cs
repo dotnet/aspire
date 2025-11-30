@@ -182,6 +182,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             try
             {
                 var hb1 = Host.CreateApplicationBuilder();
+                hb1.AddTestLogging(testOutputHelper);
 
                 hb1.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -267,6 +268,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb2 = Host.CreateApplicationBuilder();
+                    hb2.AddTestLogging(testOutputHelper);
 
                     hb2.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
