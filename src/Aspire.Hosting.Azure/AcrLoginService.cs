@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIREPIPELINES002
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Microsoft.Extensions.Logging;
@@ -19,6 +22,8 @@ internal sealed class AcrLoginService : IAcrLoginService
 {
     private const string AcrUsername = "00000000-0000-0000-0000-000000000000";
     private const string AcrScope = "https://containerregistry.azure.net/.default";
+    // Safety margin to account for clock skew and network latency (5 minutes)
+    private static readonly TimeSpan s_tokenExpirationSafetyMargin = TimeSpan.FromMinutes(5);
 
     private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -27,6 +32,8 @@ internal sealed class AcrLoginService : IAcrLoginService
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IContainerRuntime _containerRuntime;
+    private readonly IDeploymentStateManager _deploymentStateManager;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<AcrLoginService> _logger;
 
     private sealed class AcrRefreshTokenResponse
@@ -38,16 +45,43 @@ internal sealed class AcrLoginService : IAcrLoginService
         public int? ExpiresIn { get; set; }
     }
 
+    private sealed class CachedToken
+    {
+        [JsonPropertyName("refresh_token")]
+        public string? RefreshToken { get; set; }
+
+        [JsonPropertyName("expires_at_utc")]
+        public DateTime ExpiresAtUtc { get; set; }
+
+        public JsonNode ToJsonNode()
+        {
+            return new JsonObject
+            {
+                ["refresh_token"] = RefreshToken,
+                ["expires_at_utc"] = ExpiresAtUtc
+            };
+        }
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AcrLoginService"/> class.
     /// </summary>
     /// <param name="httpClientFactory">The HTTP client factory for making OAuth2 exchange requests.</param>
     /// <param name="containerRuntime">The container runtime for performing registry login.</param>
+    /// <param name="deploymentStateManager">The deployment state manager for caching tokens.</param>
+    /// <param name="timeProvider">The time provider for determining token expiration.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public AcrLoginService(IHttpClientFactory httpClientFactory, IContainerRuntime containerRuntime, ILogger<AcrLoginService> logger)
+    public AcrLoginService(
+        IHttpClientFactory httpClientFactory,
+        IContainerRuntime containerRuntime,
+        IDeploymentStateManager deploymentStateManager,
+        TimeProvider timeProvider,
+        ILogger<AcrLoginService> logger)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _containerRuntime = containerRuntime ?? throw new ArgumentNullException(nameof(containerRuntime));
+        _deploymentStateManager = deploymentStateManager ?? throw new ArgumentNullException(nameof(deploymentStateManager));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -62,6 +96,65 @@ internal sealed class AcrLoginService : IAcrLoginService
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(credential);
 
+        // Acquire the section once for this registry
+        var sectionName = GetSectionName(registryEndpoint);
+        DeploymentStateSection? section = null;
+
+        try
+        {
+            section = await _deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
+
+            // Check if we have a valid cached token for this tenant
+            if (section.Data.TryGetPropertyValue(tenantId, out var tokenNode))
+            {
+                var cachedToken = JsonSerializer.Deserialize<CachedToken>(tokenNode!.ToJsonString(), s_jsonOptions);
+
+                if (cachedToken != null &&
+                    !string.IsNullOrEmpty(cachedToken.RefreshToken) &&
+                    cachedToken.ExpiresAtUtc > _timeProvider.GetUtcNow().Add(s_tokenExpirationSafetyMargin))
+                {
+                    _logger.LogDebug("Using cached ACR refresh token for registry: {RegistryEndpoint}, tenant: {TenantId}", 
+                        registryEndpoint, tenantId);
+
+                    try
+                    {
+                        // Login to the registry using the cached token
+                        await _containerRuntime.LoginToRegistryAsync(registryEndpoint, AcrUsername, cachedToken.RefreshToken!, cancellationToken).ConfigureAwait(false);
+                        return;
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
+                                                           ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        // Cached token was rejected (401/403), discard it and retry with fresh token
+                        _logger.LogWarning("Cached token for registry: {RegistryEndpoint}, tenant: {TenantId} was rejected with {StatusCode}, will retry with fresh token",
+                            registryEndpoint, tenantId, ex.StatusCode);
+                        // Fall through to acquire fresh token
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("401") || ex.Message.Contains("403") || 
+                                                                ex.Message.Contains("Unauthorized") || ex.Message.Contains("Forbidden"))
+                    {
+                        // Some container runtimes may throw InvalidOperationException with 401/403 in message
+                        _logger.LogWarning(ex, "Cached token for registry: {RegistryEndpoint}, tenant: {TenantId} was rejected, will retry with fresh token",
+                            registryEndpoint, tenantId);
+                        // Fall through to acquire fresh token
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug("Cached token for registry: {RegistryEndpoint}, tenant: {TenantId} is expired or invalid, expiration: {ExpiresAt}",
+                        registryEndpoint, tenantId, cachedToken?.ExpiresAtUtc);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to retrieve cached token for registry: {RegistryEndpoint}, tenant: {TenantId}, will perform fresh login", 
+                registryEndpoint, tenantId);
+        }
+
+        _logger.LogDebug("No valid cached token found, performing fresh login for registry: {RegistryEndpoint}, tenant: {TenantId}", 
+            registryEndpoint, tenantId);
+
         // Step 1: Acquire AAD access token for ACR audience
         var tokenRequestContext = new TokenRequestContext([AcrScope]);
         var aadToken = await credential.GetTokenAsync(tokenRequestContext, cancellationToken).ConfigureAwait(false);
@@ -70,16 +163,61 @@ internal sealed class AcrLoginService : IAcrLoginService
             registryEndpoint, aadToken.Token.Length);
 
         // Step 2: Exchange AAD token for ACR refresh token
-        var refreshToken = await ExchangeAadTokenForAcrRefreshTokenAsync(
+        var (refreshToken, expiresIn) = await ExchangeAadTokenForAcrRefreshTokenAsync(
             registryEndpoint, tenantId, aadToken.Token, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogDebug("ACR refresh token acquired, length: {TokenLength}", refreshToken.Length);
+        // Calculate expiration time immediately after getting the token to minimize time drift
+        var expiresAtUtc = expiresIn.HasValue ? _timeProvider.GetUtcNow().AddSeconds(expiresIn.Value).UtcDateTime : (DateTime?)null;
 
-        // Step 3: Login to the registry using container runtime
+        _logger.LogDebug("ACR refresh token acquired, length: {TokenLength}, expires in: {ExpiresIn} seconds",
+            refreshToken.Length, expiresIn?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "not provided");
+
+        // Step 3: Cache the token in the section we already acquired (only if we got a fresh token and expiration is provided)
+        if (expiresAtUtc.HasValue)
+        {
+            try
+            {
+                // If we failed to acquire the section earlier, try again
+                section ??= await _deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
+
+                var newCachedToken = new CachedToken
+                {
+                    RefreshToken = refreshToken,
+                    ExpiresAtUtc = expiresAtUtc.Value
+                };
+
+                section.Data[tenantId] = newCachedToken.ToJsonNode();
+
+                await _deploymentStateManager.SaveSectionAsync(section, cancellationToken).ConfigureAwait(false);
+
+                _logger.LogDebug("Cached ACR token for registry: {RegistryEndpoint}, tenant: {TenantId}, expires at: {ExpiresAt}", 
+                    registryEndpoint, tenantId, newCachedToken.ExpiresAtUtc);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail if caching fails - the login already succeeded
+                _logger.LogWarning(ex, "Failed to cache token for registry: {RegistryEndpoint}, tenant: {TenantId}, token caching will be skipped", 
+                    registryEndpoint, tenantId);
+            }
+        }
+        else
+        {
+            _logger.LogDebug("ACR token for registry: {RegistryEndpoint}, tenant: {TenantId} not cached because no expiration was provided",
+                registryEndpoint, tenantId);
+        }
+
+        // Step 4: Login to the registry using container runtime
         await _containerRuntime.LoginToRegistryAsync(registryEndpoint, AcrUsername, refreshToken, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string> ExchangeAadTokenForAcrRefreshTokenAsync(
+    private static string GetSectionName(string registryEndpoint)
+    {
+        // Use the registry endpoint as the section name
+        // Replace dots with underscores to ensure valid section names
+        return $"AcrTokens:{registryEndpoint.Replace('.', '_')}";
+    }
+
+    private async Task<(string refreshToken, int? expiresIn)> ExchangeAadTokenForAcrRefreshTokenAsync(
         string registryEndpoint,
         string tenantId,
         string aadAccessToken,
@@ -128,6 +266,7 @@ internal sealed class AcrLoginService : IAcrLoginService
             throw new InvalidOperationException($"Response missing refresh_token.");
         }
 
-        return tokenResponse.RefreshToken;
+        // Return the expiresIn as-is (could be null if not provided by ACR)
+        return (tokenResponse.RefreshToken, tokenResponse.ExpiresIn);
     }
 }
