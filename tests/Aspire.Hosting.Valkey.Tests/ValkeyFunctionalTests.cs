@@ -30,6 +30,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -92,6 +93,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     // BGSAVE is only available in admin mode, enable it for this instance
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -144,6 +146,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {

@@ -70,6 +70,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{garnet.Resource.Name}"] = await garnet.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -149,6 +150,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{garnet1.Resource.Name}"] = $"{await garnet1.Resource.ConnectionStringExpression.GetValueAsync(default)}";
 
@@ -200,6 +202,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{garnet2.Resource.Name}"] = $"{await garnet2.Resource.ConnectionStringExpression.GetValueAsync(default)}";
 

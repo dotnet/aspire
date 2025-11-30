@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 
 namespace Aspire.Hosting.RabbitMQ.Tests;
@@ -67,6 +66,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{rabbitMQ.Resource.Name}"] = await rabbitMQ.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddRabbitMQClient(rabbitMQ.Resource.Name);
 
@@ -130,8 +130,8 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration[$"ConnectionStrings:{rabbitMQ1.Resource.Name}"] = await rabbitMQ1.Resource.ConnectionStringExpression.GetValueAsync(default);
-                    hb.Services.AddXunitLogging(testOutputHelper);
                     hb.AddRabbitMQClient(rabbitMQ1.Resource.Name);
 
                     using (var host = hb.Build())
@@ -187,8 +187,8 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration[$"ConnectionStrings:{rabbitMQ2.Resource.Name}"] = await rabbitMQ2.Resource.ConnectionStringExpression.GetValueAsync(default);
-                    hb.Services.AddXunitLogging(testOutputHelper);
                     hb.AddRabbitMQClient(rabbitMQ2.Resource.Name);
 
                     using (var host = hb.Build())
