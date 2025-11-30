@@ -32,7 +32,7 @@ internal sealed class DirectoryService : IDirectoryService
     private sealed class TempDirectoryService : ITempDirectoryService
     {
         private const string ConfigurationKeyName = "Aspire:TempDirectory";
-        private const string DefaultSubdirectory = ".aspire/temp";
+        private static readonly string s_defaultSubdirectory = Path.Combine(".aspire", "temp");
 
         private readonly string _basePath;
         private readonly object _lock = new();
@@ -125,7 +125,7 @@ internal sealed class DirectoryService : IDirectoryService
 
             // Default to ~/.aspire/temp
             var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            return Path.Combine(userProfile, DefaultSubdirectory);
+            return Path.Combine(userProfile, s_defaultSubdirectory);
         }
 
         private static string SanitizeDirectoryName(string name)

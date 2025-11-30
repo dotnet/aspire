@@ -80,8 +80,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
 
         EnsureParametersAlign(infrastructure);
 
-        // Use the provided directory, TempDirectory property if set, or create a temp subdirectory
-        var generationPath = directory ?? TempDirectory ?? Directory.CreateTempSubdirectory("aspire").FullName;
+        var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
 
         var plan = infrastructure.Build(ProvisioningBuildOptions);
@@ -90,11 +89,8 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         var compiledBicep = compilation.First();
         File.WriteAllText(moduleSourcePath, compiledBicep.Value);
 
-        var moduleDestinationPath = Path.Combine(generationPath, $"{Name}.module.bicep");
-        if (moduleSourcePath != moduleDestinationPath)
-        {
-            File.Copy(moduleSourcePath, moduleDestinationPath, true);
-        }
+        var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
+        File.Copy(moduleSourcePath, moduleDestinationPath, true);
 
         return new BicepTemplateFile(moduleDestinationPath, directory is null);
     }
