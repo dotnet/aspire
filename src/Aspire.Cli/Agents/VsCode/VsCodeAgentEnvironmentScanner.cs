@@ -10,7 +10,6 @@ namespace Aspire.Cli.Agents.VsCode;
 
 /// <summary>
 /// Scans for VS Code environments and provides an applicator to configure the Aspire MCP server.
-/// Also covers Copilot CLI since VS Code and Copilot share a configuration file.
 /// </summary>
 internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
@@ -21,22 +20,18 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
     private readonly IGitRepository _gitRepository;
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
-    private readonly ICopilotCliRunner _copilotCliRunner;
 
     /// <summary>
     /// Initializes a new instance of <see cref="VsCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
     /// <param name="vsCodeCliRunner">The VS Code CLI runner for checking if VS Code is installed.</param>
-    /// <param name="copilotCliRunner">The Copilot CLI runner for checking if Copilot CLI is installed.</param>
-    public VsCodeAgentEnvironmentScanner(IGitRepository gitRepository, IVsCodeCliRunner vsCodeCliRunner, ICopilotCliRunner copilotCliRunner)
+    public VsCodeAgentEnvironmentScanner(IGitRepository gitRepository, IVsCodeCliRunner vsCodeCliRunner)
     {
         ArgumentNullException.ThrowIfNull(gitRepository);
         ArgumentNullException.ThrowIfNull(vsCodeCliRunner);
-        ArgumentNullException.ThrowIfNull(copilotCliRunner);
         _gitRepository = gitRepository;
         _vsCodeCliRunner = vsCodeCliRunner;
-        _copilotCliRunner = copilotCliRunner;
     }
 
     /// <inheritdoc />
@@ -58,9 +53,9 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             // Found a .vscode folder - add an applicator to configure MCP
             context.AddApplicator(CreateApplicator(vsCodeFolder));
         }
-        else if (await IsVsCodeOrCopilotAvailableAsync(cancellationToken).ConfigureAwait(false))
+        else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
-            // No .vscode folder found, but VS Code or Copilot CLI is available
+            // No .vscode folder found, but VS Code is available
             // Use git root if available, otherwise fall back to current working directory
             var targetDirectory = gitRoot ?? context.WorkingDirectory;
             var targetVsCodeFolder = new DirectoryInfo(Path.Combine(targetDirectory.FullName, VsCodeFolderName));
@@ -69,13 +64,13 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     }
 
     /// <summary>
-    /// Checks if VS Code or Copilot CLI is available on the machine.
+    /// Checks if VS Code is available on the machine.
     /// First checks for VS Code environment variables (low cost),
     /// then falls back to checking for the CLI executables.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>True if VS Code or Copilot CLI is available, false otherwise.</returns>
-    private async Task<bool> IsVsCodeOrCopilotAvailableAsync(CancellationToken cancellationToken)
+    /// <returns>True if VS Code is available, false otherwise.</returns>
+    private async Task<bool> IsVsCodeAvailableAsync(CancellationToken cancellationToken)
     {
         // First check environment variables (low cost)
         if (HasVsCodeEnvironmentVariables())
@@ -93,13 +88,6 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         // Try VS Code Insiders
         var vsCodeInsidersVersion = await _vsCodeCliRunner.GetVersionAsync(new VsCodeRunOptions { UseInsiders = true }, cancellationToken).ConfigureAwait(false);
         if (vsCodeInsidersVersion is not null)
-        {
-            return true;
-        }
-
-        // Try Copilot CLI (shares configuration file with VS Code)
-        var copilotVersion = await _copilotCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
-        if (copilotVersion is not null)
         {
             return true;
         }
