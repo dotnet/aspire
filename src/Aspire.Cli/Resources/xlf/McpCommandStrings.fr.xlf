@@ -9,22 +9,22 @@
       </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Select agent environments to configure:</source>
-        <target state="new">Select agent environments to configure:</target>
+        <target state="translated">Sélectionnez les environnements d’agent à configurer :</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
         <source>Agent environment configuration complete.</source>
-        <target state="new">Agent environment configuration complete.</target>
+        <target state="translated">Configuration de l’environnement d’agent terminée.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments.</source>
-        <target state="new">Initialize MCP server configuration for detected agent environments.</target>
+        <target state="translated">Initialisez la configuration du serveur MCP pour les environnements d’agent détectés.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
         <source>No agent environments were detected.</source>
-        <target state="new">No agent environments were detected.</target>
+        <target state="translated">Aucun environnement d’agent n’a été détecté.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">
