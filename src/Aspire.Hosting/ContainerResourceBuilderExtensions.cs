@@ -662,8 +662,10 @@ public static class ContainerResourceBuilderExtensions
         var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory)
                                            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-        // Create a unique temporary Dockerfile path for this resource
-        var tempDockerfilePath = Path.Combine(Path.GetTempPath(), $"Dockerfile.{builder.Resource.Name}.{Guid.NewGuid():N}");
+        // Create a unique temporary Dockerfile path for this resource using the directory service
+        var directoryService = builder.ApplicationBuilder.DirectoryService;
+        var tempDir = directoryService.TempDirectory.CreateTempSubdirectory($"aspire-dockerfile-{builder.Resource.Name}");
+        var tempDockerfilePath = Path.Combine(tempDir, "Dockerfile");
 
         var imageName = ImageNameGenerator.GenerateImageName(builder);
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);

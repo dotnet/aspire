@@ -11,15 +11,18 @@ internal sealed class AspireStore : IAspireStore
     internal const string AspireStorePathKeyName = "Aspire:Store:Path";
 
     private readonly string _basePath;
+    private readonly IDirectoryService _directoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AspireStore"/> class with the specified base path.
     /// </summary>
     /// <param name="basePath">The base path for the store.</param>
+    /// <param name="directoryService">The directory service for creating temp directories.</param>
     /// <returns>A new instance of <see cref="AspireStore"/>.</returns>
-    public AspireStore(string basePath)
+    public AspireStore(string basePath, IDirectoryService directoryService)
     {
         ArgumentNullException.ThrowIfNull(basePath);
+        ArgumentNullException.ThrowIfNull(directoryService);
 
         if (!Path.IsPathRooted(basePath))
         {
@@ -27,6 +30,7 @@ internal sealed class AspireStore : IAspireStore
         }
 
         _basePath = basePath;
+        _directoryService = directoryService;
         EnsureDirectory();
     }
 
@@ -42,8 +46,9 @@ internal sealed class AspireStore : IAspireStore
         // Strip any folder information from the filename.
         filenameTemplate = Path.GetFileName(filenameTemplate);
 
-        // Create a temporary file to write the content to.
-        var tempFileName = Path.GetTempFileName();
+        // Create a temporary directory and file to write the content to.
+        var tempDir = _directoryService.TempDirectory.CreateTempSubdirectory("aspire-store");
+        var tempFileName = Path.Combine(tempDir, "content.tmp");
 
         // Fast, non-cryptographic hash.
         var hash = new XxHash3();
@@ -66,7 +71,7 @@ internal sealed class AspireStore : IAspireStore
 
         try
         {
-            File.Delete(tempFileName);
+            Directory.Delete(tempDir, recursive: true);
         }
         catch
         {

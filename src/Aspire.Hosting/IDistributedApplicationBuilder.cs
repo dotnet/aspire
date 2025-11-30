@@ -137,6 +137,27 @@ public interface IDistributedApplicationBuilder
     public IDistributedApplicationPipeline Pipeline { get; }
 
     /// <summary>
+    /// Gets the service for managing Aspire directories.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="DirectoryService"/> provides a centralized way to manage directories
+    /// used by Aspire, including temporary files, cache, and other storage needs.
+    /// </para>
+    /// <para>
+    /// Resources and infrastructure code should use this service instead of static methods like
+    /// <see cref="Path.GetTempPath"/> or <see cref="Directory.CreateTempSubdirectory(string?)"/> to ensure
+    /// consistent directory management across the application.
+    /// </para>
+    /// <para>
+    /// Directory locations can be overridden using environment variables or configuration settings.
+    /// For example, the temp directory location can be overridden using the ASPIRE_TEMP_FOLDER
+    /// environment variable or the Aspire:TempDirectory configuration setting.
+    /// </para>
+    /// </remarks>
+    public IDirectoryService DirectoryService => throw new NotImplementedException();
+
+    /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.
     /// </summary>
     /// <typeparam name="T">The type of resource to add.</typeparam>

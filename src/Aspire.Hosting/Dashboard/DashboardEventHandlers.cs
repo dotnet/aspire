@@ -37,7 +37,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
-                                             CodespacesUrlRewriter codespaceUrlRewriter
+                                             CodespacesUrlRewriter codespaceUrlRewriter,
+                                             IDirectoryService directoryService
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
@@ -226,7 +227,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 }
             };
 
-            var customConfigPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+            var customConfigDir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dashboard-config");
+            var customConfigPath = Path.Combine(customConfigDir, "runtimeconfig.json");
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
 
             _customRuntimeConfigPath = customConfigPath;
@@ -268,7 +270,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Create a temporary file for the custom runtime config
-        var tempPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        var tempDir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dashboard-config");
+        var tempPath = Path.Combine(tempDir, "runtimeconfig.json");
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         _customRuntimeConfigPath = tempPath;
