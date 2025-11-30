@@ -113,6 +113,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -235,6 +236,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -297,6 +299,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -392,6 +395,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -478,6 +482,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -607,6 +612,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -648,6 +654,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -717,6 +724,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var hb = Host.CreateApplicationBuilder();
+                hb.AddTestLogging(testOutputHelper);
 
                 hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -774,6 +782,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         foreach (var db in dbs)
         {

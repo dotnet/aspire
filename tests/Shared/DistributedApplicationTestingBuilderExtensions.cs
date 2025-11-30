@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Xunit;
@@ -14,6 +15,19 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 public static class DistributedApplicationTestingBuilderExtensions
 {
+    /// <summary>
+    /// Adds xunit logging and suppresses console logging for a host application builder used in tests.
+    /// This redirects logs to the xunit test output and prevents console clutter during test runs.
+    /// Works with both Host.CreateApplicationBuilder() and WebApplication.CreateBuilder() since
+    /// WebApplicationBuilder implements IHostApplicationBuilder.
+    /// </summary>
+    public static IHostApplicationBuilder AddTestLogging(this IHostApplicationBuilder builder, ITestOutputHelper testOutputHelper)
+    {
+        builder.Logging.AddXunit(testOutputHelper);
+        builder.Logging.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
+        return builder;
+    }
+
     // Returns the unique prefix used for volumes from unnamed volumes this builder
     public static string GetVolumePrefix(this IDistributedApplicationTestingBuilder builder) =>
         $"{VolumeNameGenerator.Sanitize(builder.Environment.ApplicationName).ToLowerInvariant()}-{builder.Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";

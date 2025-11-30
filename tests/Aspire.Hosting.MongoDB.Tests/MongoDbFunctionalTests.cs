@@ -81,7 +81,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddMongoDBClient(db.Resource.Name);
@@ -145,7 +145,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddMongoDBClient(db1.Resource.Name);
@@ -189,7 +189,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddMongoDBClient(db2.Resource.Name);
@@ -301,7 +301,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
 
             hb.AddMongoDBClient(db.Resource.Name);
@@ -392,7 +392,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
 
             hb.AddMongoDBClient(db.Resource.Name);

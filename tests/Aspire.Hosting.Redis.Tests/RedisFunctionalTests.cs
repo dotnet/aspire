@@ -106,7 +106,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [$"ConnectionStrings:{redis.Resource.Name}"] = await redis.Resource.GetConnectionStringAsync()
@@ -211,7 +211,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -248,7 +248,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
@@ -294,7 +294,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -330,7 +330,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
@@ -378,7 +378,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -409,7 +409,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
