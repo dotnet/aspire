@@ -137,7 +137,7 @@ internal sealed class BicepProvisioner(
         }).ConfigureAwait(false);
 
         // Create a unique azure temp directory for this provisioning operation
-        var azureTempDir = directoryService.TempDirectory.CreateSubdirectory("azure");
+        var azureTempDir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-azure");
         var template = resource.GetBicepTemplateFile(directory: azureTempDir);
         var path = template.Path;
 

@@ -302,8 +302,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
 
-        // Create and register the directory service with AppHost-specific subdirectory
-        _directoryService = new DirectoryService(_innerBuilder.Configuration, appHostName, appHostPathSha);
+        // Create and register the directory service
+        _directoryService = new DirectoryService();
         _innerBuilder.Services.AddSingleton<IDirectoryService>(_directoryService);
 
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));

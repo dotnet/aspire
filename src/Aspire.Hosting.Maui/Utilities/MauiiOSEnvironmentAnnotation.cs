@@ -74,7 +74,7 @@ internal sealed class MauiiOSEnvironmentSubscriber(
         try
         {
             // Get the iOS environment directory from the directory service
-            var iosEnvDirectory = directoryService.TempDirectory.CreateSubdirectoryPath("maui/ios-env");
+            var iosEnvDirectory = directoryService.TempDirectory.CreateTempSubdirectory("aspire-maui-ios-env");
 
             // Add a CommandLineArgsCallback that will generate the targets file
             // This runs AFTER all environment callbacks have been processed

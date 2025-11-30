@@ -148,7 +148,7 @@ public sealed class AzurePublishingContext(
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
         // Create a unique azure temp directory for this publishing context
-        var azureTempDir = DirectoryService.TempDirectory.CreateSubdirectory("azure");
+        var azureTempDir = DirectoryService.TempDirectory.CreateTempSubdirectory("aspire-azure");
 
         foreach (var resource in bicepResourcesToPublish)
         {

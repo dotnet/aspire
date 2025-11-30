@@ -18,7 +18,7 @@ public sealed class DcpHostNotificationTests
 {
     private static Locations CreateTestLocations()
     {
-        var directoryService = new DirectoryService(null, "TestAppHost", "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF");
+        var directoryService = new DirectoryService();
         return new Locations(directoryService);
     }
 

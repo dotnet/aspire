@@ -24,7 +24,7 @@ internal sealed class Locations
         if (_dcpSessionDir == null)
         {
             // Use the temp directory service to create a DCP-specific subdirectory
-            _dcpSessionDir = _directoryService.TempDirectory.CreateSubdirectory("dcp");
+            _dcpSessionDir = _directoryService.TempDirectory.CreateTempSubdirectory("aspire-dcp");
         }
 
         return _dcpSessionDir;
