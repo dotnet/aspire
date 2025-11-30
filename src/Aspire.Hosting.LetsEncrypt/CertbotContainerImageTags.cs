@@ -11,6 +11,6 @@ internal static class CertbotContainerImageTags
     /// <remarks>certbot/certbot</remarks>
     public const string Image = "certbot/certbot";
 
-    /// <remarks>latest</remarks>
-    public const string Tag = "latest";
+    /// <remarks>v5.1.0</remarks>
+    public const string Tag = "v5.1.0";
 }
