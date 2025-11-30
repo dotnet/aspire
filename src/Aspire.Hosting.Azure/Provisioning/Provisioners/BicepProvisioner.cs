@@ -136,8 +136,8 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        // Get the azure temp directory from the directory service
-        var azureTempDir = directoryService.TempDirectory.CreateSubdirectoryPath("azure");
+        // Create a unique azure temp directory for this provisioning operation
+        var azureTempDir = directoryService.TempDirectory.CreateSubdirectory("azure");
         var template = resource.GetBicepTemplateFile(directory: azureTempDir);
         var path = template.Path;
 
