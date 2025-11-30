@@ -5,8 +5,14 @@ secrets:
   SpeciaL_ApP:
     param3: ""
 config:
+  Special_resource_with_hyphens:
+    ORIGINAL_ENV: "value"
   SpeciaL_ApP:
     OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
     ConnectionStrings__api_cs2: "host.local:80"
+    SPECIAL_RESOURCE_WITH_HYPHENS_HTTP: "http://special-resource-with-hyphens-service:80"
+    services__Special_resource_with_hyphens__http__0: "http://special-resource-with-hyphens-service:80"
+    SPECIAL_RESOURCE_WITH_HYPHENS_HTTPS: "https://special-resource-with-hyphens-service:443"
+    services__Special_resource_with_hyphens__https__0: "https://special-resource-with-hyphens-service:443"
