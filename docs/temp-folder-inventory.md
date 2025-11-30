@@ -10,7 +10,8 @@ This document catalogs all usages of temporary file and directory APIs in the As
 | `Path.GetTempFileName()` | 1 | 6 | ✅ Migrated (1 singleton uses direct call) |
 | `Directory.CreateTempSubdirectory()` | 2 | 0 | Partial (2 in Azure) |
 | `IDirectoryService.TempDirectory.CreateTempSubdirectory()` | 8 | 1 | ✅ New API |
-| `IDirectoryService.TempDirectory.GetTempFileName()` | 2 | 5 | ✅ New API |
+| `IDirectoryService.TempDirectory.GetTempFileName()` | 0 | 5 | ✅ New API (available, not used in src/) |
+| `IDirectoryService.TempDirectory.CreateTempFile()` | 6 | 1 | ✅ New API |
 
 ## New IDirectoryService API
 
@@ -42,13 +43,12 @@ The `IDirectoryService` provides an abstraction over temp file/directory APIs fo
 | `ProjectResource.cs:139` | `"aspire-dockerfile"` | `"Dockerfile"` | Project Dockerfile generation |
 | `ContainerResourceBuilderExtensions.cs:667` | `"aspire-dockerfile-{name}"` | `"Dockerfile"` | Container Dockerfile generation |
 | `DashboardEventHandlers.cs:230,272` | `"aspire-dashboard-config"` | `"runtimeconfig.json"` | Dashboard runtime config |
+| `AspireStore.cs:50` | `"aspire-store"` | `"content.tmp"` | Store content hashing temp file |
+| `MySqlBuilderExtensions.cs:386` | `"aspire-phpmyadmin"` | `"config.user.inc.php"` | PhpMyAdmin configuration file |
 
-### Current Usages of IDirectoryService.TempDirectory.GetTempFileName
+### IDirectoryService.TempDirectory.GetTempFileName
 
-| Location | Extension | Purpose |
-|----------|-----------|---------|
-| `AspireStore.cs:50` | `".tmp"` | Store content hashing temp file |
-| `MySqlBuilderExtensions.cs:386` | `".php"` | PhpMyAdmin configuration file |
+The `GetTempFileName(extension?)` method is available for cases where a random temp filename is acceptable. Currently no production usages in `src/` - all have been migrated to `CreateTempFile()` for better readability of temp file purposes.
 
 ## Legacy APIs Not Yet Migrated
 
