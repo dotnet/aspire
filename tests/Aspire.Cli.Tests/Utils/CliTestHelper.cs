@@ -89,6 +89,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.CliUpdateNotifierFactory);
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
+        services.AddSingleton(options.PackageMigrationFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
@@ -338,6 +339,12 @@ internal sealed class CliServiceCollectionTestOptions
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         return new PackagingService(executionContext, nuGetPackageCache, features, configuration);
+    };
+
+    public Func<IServiceProvider, IPackageMigration> PackageMigrationFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<PackageMigration>>();
+        return new PackageMigration(logger);
     };
 
     public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) => new NullDiskCache();
