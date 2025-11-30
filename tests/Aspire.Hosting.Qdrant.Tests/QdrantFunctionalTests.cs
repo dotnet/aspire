@@ -38,7 +38,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [$"ConnectionStrings:{qdrant.Resource.Name}"] = await qdrant.Resource.ConnectionStringExpression.GetValueAsync(default)
@@ -123,7 +123,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         [$"ConnectionStrings:{qdrant1.Resource.Name}"] = await qdrant1.Resource.ConnectionStringExpression.GetValueAsync(default)
@@ -168,7 +168,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         [$"ConnectionStrings:{qdrant2.Resource.Name}"] = await qdrant2.Resource.ConnectionStringExpression.GetValueAsync(default)

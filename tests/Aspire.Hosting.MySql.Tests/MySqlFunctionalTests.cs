@@ -84,7 +84,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
@@ -160,7 +160,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
@@ -229,7 +229,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
@@ -332,7 +332,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
@@ -418,7 +418,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
             var hb = Host.CreateApplicationBuilder();
-
+            hb.AddTestLogging(testOutputHelper);
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
@@ -488,7 +488,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
@@ -647,7 +647,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddMySqlDataSource(newDb.Resource.Name);
@@ -722,7 +722,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var hb = Host.CreateApplicationBuilder();
-
+                hb.AddTestLogging(testOutputHelper);
                 hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                 hb.AddMySqlDataSource(newDb.Resource.Name);
@@ -779,7 +779,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         foreach (var db in dbs)
         {
             hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
@@ -824,7 +824,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.AddTestLogging(testOutputHelper);        hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddMySqlDataSource(newDb.Resource.Name);
 
         using var host = hb.Build();

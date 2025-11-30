@@ -76,7 +76,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddSqlServerDbContext<TestDbContext>(newDb.Resource.Name);
@@ -365,7 +365,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddSqlServerClient(newDb.Resource.Name);
@@ -418,7 +418,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddSqlServerClient(newDb.Resource.Name);
@@ -490,7 +490,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var hb = Host.CreateApplicationBuilder();
-
+                hb.AddTestLogging(testOutputHelper);
                 hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                 hb.AddSqlServerClient(newDb.Resource.Name);
@@ -548,7 +548,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         foreach (var db in dbs)
         {
             hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);

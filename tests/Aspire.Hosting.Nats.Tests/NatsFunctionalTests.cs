@@ -35,7 +35,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddNatsClient("nats", configureOptions: opts =>
@@ -80,7 +80,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = connectionString;
 
@@ -122,7 +122,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
-
+        hb.AddTestLogging(testOutputHelper);
         var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
         var modifiedConnectionString = user is null
             ? connectionString!.Replace(new Uri(connectionString).UserInfo, null)
@@ -185,7 +185,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration[$"ConnectionStrings:{nats1.Resource.Name}"] = await nats1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddNatsClient("nats", configureOptions: opts =>
@@ -233,7 +233,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
-
+                    hb.AddTestLogging(testOutputHelper);
                     hb.Configuration[$"ConnectionStrings:{nats2.Resource.Name}"] = await nats2.Resource.ConnectionStringExpression.GetValueAsync(default);
                     hb.AddNatsClient("nats", configureOptions: opts =>
                     {
