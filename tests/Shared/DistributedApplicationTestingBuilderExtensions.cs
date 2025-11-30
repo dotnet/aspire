@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Xunit;
@@ -48,6 +49,17 @@ public static class DistributedApplicationTestingBuilderExtensions
     public static IDistributedApplicationTestingBuilder WithResourceCleanUp(this IDistributedApplicationTestingBuilder builder, bool? resourceCleanup = null)
     {
         builder.Configuration["DcpPublisher:WaitForResourceCleanup"] = resourceCleanup.ToString();
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds xunit logging and suppresses console logging for a host application builder used in tests.
+    /// This redirects logs to the xunit test output and prevents console clutter during test runs.
+    /// </summary>
+    public static IHostApplicationBuilder AddTestLogging(this IHostApplicationBuilder builder, ITestOutputHelper testOutputHelper)
+    {
+        builder.Logging.AddXunit(testOutputHelper);
+        builder.Logging.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
         return builder;
     }
 }
