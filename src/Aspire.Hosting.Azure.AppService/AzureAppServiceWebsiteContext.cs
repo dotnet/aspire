@@ -22,7 +22,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     record struct EndpointMapping(string Scheme, BicepValue<string> Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
 
     private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
-    private readonly Dictionary<string, EndpointMapping> _endpointSlotMapping = [];
+    private readonly Dictionary<string, EndpointMapping> _slotEndpointMapping = [];
 
     // Resolved environment variables and command line args
     // These contain the values that need to be further transformed into
@@ -133,7 +133,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    private (object, SecretType) ProcessValue(object value, SecretType secretType = SecretType.None, object? parent = null)
+    private (object, SecretType) ProcessValue(object value, SecretType secretType = SecretType.None, object? parent = null, bool isSlot = false)
     {
         if (value is string s)
         {
@@ -143,7 +143,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReference ep)
         {
             var context = AzureAppServiceEnvironmentContext.GetAppServiceContext(ep.Resource);
-            return (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
+            return isSlot ?
+                (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url), secretType) :
+                (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
         }
 
         if (value is ParameterResource param)
@@ -154,12 +156,12 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (value is ConnectionStringReference cs)
         {
-            return ProcessValue(cs.Resource.ConnectionStringExpression, secretType, parent);
+            return ProcessValue(cs.Resource.ConnectionStringExpression, secretType, parent, isSlot);
         }
 
         if (value is IResourceWithConnectionString csrs)
         {
-            return ProcessValue(csrs.ConnectionStringExpression, secretType, parent);
+            return ProcessValue(csrs.ConnectionStringExpression, secretType, parent, isSlot);
         }
 
         if (value is BicepOutputReference output)
@@ -180,7 +182,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReferenceExpression epExpr)
         {
             var context = AzureAppServiceEnvironmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
-            var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
+            var mapping = isSlot ? context._slotEndpointMapping[epExpr.Endpoint.EndpointName] : context._endpointMapping[epExpr.Endpoint.EndpointName];
             var val = GetEndpointValue(mapping, epExpr.Property);
             return (val, secretType);
         }
@@ -189,7 +191,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
-                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent, isSlot);
 
                 if (expr.StringFormats[0] is string format)
                 {
@@ -205,7 +207,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             foreach (var vp in expr.ValueProviders)
             {
-                var (val, secret) = ProcessValue(vp, secretType, expr);
+                var (val, secret) = ProcessValue(vp, secretType, expr, isSlot);
                 if (secret != SecretType.None)
                 {
                     finalSecretType = SecretType.Normal;
@@ -262,13 +264,11 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (deploymentSlotValue is not null && buildWebAppAndSlot && annotations != null && !annotations.First().MainWebSiteExists)
         {
-            BuildWebSiteCore(infra, deploymentSlotValue);
-           
+            BuildWebSiteAndSlot(infra, deploymentSlotValue!);
             return;
         }
 
-        //Testing if bicep is right
-        BuildWebSiteAndSlot(infra, deploymentSlotValue!);
+        BuildWebSiteCore(infra, deploymentSlotValue);
     }
 
     private void BuildWebSiteCore(
@@ -373,7 +373,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         foreach (var kv in EnvironmentVariables)
         {
-            var (val, secretType) = ProcessValue(kv.Value);
+            var (val, secretType) = ProcessValue(kv.Value, isSlot: deploymentSlot != null);
             var value = ResolveValue(val);
 
             if (secretType == SecretType.KeyVault)
@@ -591,18 +591,21 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         foreach (var kv in EnvironmentVariables)
         {
-            var (val, secretType) = ProcessValue(kv.Value);
+            var (val, secretType) = ProcessValue(kv.Value, isSlot: false);
+            var (valForSlot, secretTypeForSlot) = ProcessValue(kv.Value, isSlot: true);
             var value = ResolveValue(val);
+            var valueForSlot = ResolveValue(valForSlot);
 
             if (secretType == SecretType.KeyVault)
             {
                 // https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
                 // @Microsoft.KeyVault({referenceString})
                 value = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={val})");
+                valueForSlot = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={valForSlot})");
             }
 
             webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
-            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
+            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = valueForSlot });
         }
 
         if (Args.Count > 0)
@@ -822,7 +825,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             BicepValue<string> hostValue;
 
             hostValue = GetSlotHostName(slotName);
-            _endpointSlotMapping[name] = mapping with { Host = hostValue };
+            _slotEndpointMapping[name] = mapping with { Host = hostValue };
         }
     }
 
