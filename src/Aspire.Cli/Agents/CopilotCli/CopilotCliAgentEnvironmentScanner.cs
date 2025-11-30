@@ -153,12 +153,14 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         // Add or update the "aspire" server configuration with DOTNET_ROOT environment variable passthrough
         servers[AspireServerName] = new JsonObject
         {
+            ["type"] = "local",
             ["command"] = "aspire",
             ["args"] = new JsonArray("mcp", "start"),
             ["env"] = new JsonObject
             {
                 ["DOTNET_ROOT"] = "${DOTNET_ROOT}"
-            }
+            },
+            ["tools"] = new JsonArray("*")
         };
 
         // Write the updated config using AOT-compatible serialization

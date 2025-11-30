@@ -72,6 +72,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var aspireServer = servers["aspire"]?.AsObject();
         Assert.NotNull(aspireServer);
+        Assert.Equal("local", aspireServer["type"]?.GetValue<string>());
         Assert.Equal("aspire", aspireServer["command"]?.GetValue<string>());
 
         var args = aspireServer["args"]?.AsArray();
@@ -85,6 +86,12 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         Assert.NotNull(env);
         Assert.True(env.ContainsKey("DOTNET_ROOT"));
         Assert.Equal("${DOTNET_ROOT}", env["DOTNET_ROOT"]?.GetValue<string>());
+
+        // Verify tools contains "*"
+        var tools = aspireServer["tools"]?.AsArray();
+        Assert.NotNull(tools);
+        Assert.Single(tools);
+        Assert.Equal("*", tools[0]?.GetValue<string>());
     }
 
     [Fact]
@@ -268,12 +275,14 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
             servers[AspireServerName] = new JsonObject
             {
+                ["type"] = "local",
                 ["command"] = "aspire",
                 ["args"] = new JsonArray("mcp", "start"),
                 ["env"] = new JsonObject
                 {
                     ["DOTNET_ROOT"] = "${DOTNET_ROOT}"
-                }
+                },
+                ["tools"] = new JsonArray("*")
             };
 
             var jsonContent = System.Text.Json.JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
