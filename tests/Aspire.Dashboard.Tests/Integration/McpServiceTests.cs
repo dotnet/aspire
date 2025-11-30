@@ -243,7 +243,7 @@ public class McpServiceTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/0")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/pull/13252")]
     public async Task CallService_McpTool_TelemetryRecorded()
     {
         // Arrange
