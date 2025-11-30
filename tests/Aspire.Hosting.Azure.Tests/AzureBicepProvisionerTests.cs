@@ -100,7 +100,7 @@ public class AzureBicepProvisionerTests
             secretClientProvider,
             services.GetRequiredService<IDeploymentStateManager>(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            services.GetRequiredService<IDirectoryService>(),
+            services.GetRequiredService<IFileSystemService>(),
             NullLogger<BicepProvisioner>.Instance);
 
         // Assert

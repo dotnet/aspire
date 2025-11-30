@@ -503,7 +503,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         return new DashboardEventHandlers(
             configuration,

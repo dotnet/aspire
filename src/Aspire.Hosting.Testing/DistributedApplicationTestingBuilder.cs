@@ -244,7 +244,7 @@ public static class DistributedApplicationTestingBuilder
 
             public IDistributedApplicationPipeline Pipeline => innerBuilder.Pipeline;
 
-            public IDirectoryService DirectoryService => innerBuilder.DirectoryService;
+            public IFileSystemService FileSystemService => innerBuilder.FileSystemService;
 
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
@@ -398,7 +398,7 @@ public static class DistributedApplicationTestingBuilder
 
         public IDistributedApplicationPipeline Pipeline => _innerBuilder.Pipeline;
 
-        public IDirectoryService DirectoryService => _innerBuilder.DirectoryService;
+        public IFileSystemService FileSystemService => _innerBuilder.FileSystemService;
 
         public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 
@@ -487,8 +487,8 @@ public interface IDistributedApplicationTestingBuilder : IDistributedApplication
     /// <inheritdoc cref="IDistributedApplicationBuilder.Pipeline" />
     new IDistributedApplicationPipeline Pipeline => ((IDistributedApplicationBuilder)this).Pipeline;
 
-    /// <inheritdoc cref="IDistributedApplicationBuilder.DirectoryService" />
-    new IDirectoryService DirectoryService => ((IDistributedApplicationBuilder)this).DirectoryService;
+    /// <inheritdoc cref="IDistributedApplicationBuilder.FileSystemService" />
+    new IFileSystemService FileSystemService => ((IDistributedApplicationBuilder)this).FileSystemService;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
     new IResourceCollection Resources => ((IDistributedApplicationBuilder)this).Resources;

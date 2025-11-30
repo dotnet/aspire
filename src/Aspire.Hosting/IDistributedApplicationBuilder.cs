@@ -141,7 +141,7 @@ public interface IDistributedApplicationBuilder
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The <see cref="DirectoryService"/> provides a centralized way to manage directories
+    /// The <see cref="FileSystemService"/> provides a centralized way to manage directories
     /// used by Aspire, including temporary files, cache, and other storage needs.
     /// </para>
     /// <para>
@@ -155,7 +155,7 @@ public interface IDistributedApplicationBuilder
     /// environment variable or the Aspire:TempDirectory configuration setting.
     /// </para>
     /// </remarks>
-    public IDirectoryService DirectoryService => throw new NotImplementedException();
+    public IFileSystemService FileSystemService => throw new NotImplementedException();
 
     /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.

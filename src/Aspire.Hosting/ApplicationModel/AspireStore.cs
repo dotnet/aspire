@@ -11,7 +11,7 @@ internal sealed class AspireStore : IAspireStore
     internal const string AspireStorePathKeyName = "Aspire:Store:Path";
 
     private readonly string _basePath;
-    private readonly IDirectoryService _directoryService;
+    private readonly IFileSystemService _directoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AspireStore"/> class with the specified base path.
@@ -19,7 +19,7 @@ internal sealed class AspireStore : IAspireStore
     /// <param name="basePath">The base path for the store.</param>
     /// <param name="directoryService">The directory service for creating temp directories.</param>
     /// <returns>A new instance of <see cref="AspireStore"/>.</returns>
-    public AspireStore(string basePath, IDirectoryService directoryService)
+    public AspireStore(string basePath, IFileSystemService directoryService)
     {
         ArgumentNullException.ThrowIfNull(basePath);
         ArgumentNullException.ThrowIfNull(directoryService);

@@ -5,10 +5,10 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed class Locations
 {
-    private readonly IDirectoryService _directoryService;
+    private readonly IFileSystemService _directoryService;
     private string? _dcpSessionDir;
 
-    public Locations(IDirectoryService directoryService)
+    public Locations(IFileSystemService directoryService)
     {
         _directoryService = directoryService;
     }

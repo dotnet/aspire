@@ -135,7 +135,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
         // Get the directory service to create temp Dockerfile
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-        var directoryService = ctx.Services.GetRequiredService<IDirectoryService>();
+        var directoryService = ctx.Services.GetRequiredService<IFileSystemService>();
         var tempDockerfilePath = directoryService.TempDirectory.CreateTempFile("aspire-dockerfile", "Dockerfile");
 
         var builtSuccessfully = false;

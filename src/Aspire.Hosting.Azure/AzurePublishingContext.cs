@@ -36,8 +36,8 @@ public sealed class AzurePublishingContext(
 
     private IServiceProvider ServiceProvider => serviceProvider;
 
-    // Resolve IDirectoryService from the service provider to avoid breaking change
-    private IDirectoryService DirectoryService => serviceProvider.GetRequiredService<IDirectoryService>();
+    // Resolve IFileSystemService from the service provider to avoid breaking change
+    private IFileSystemService FileSystemService => serviceProvider.GetRequiredService<IFileSystemService>();
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -148,7 +148,7 @@ public sealed class AzurePublishingContext(
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
         // Create a unique azure temp directory for this publishing context
-        var azureTempDir = DirectoryService.TempDirectory.CreateTempSubdirectory("aspire-azure");
+        var azureTempDir = FileSystemService.TempDirectory.CreateTempSubdirectory("aspire-azure");
 
         foreach (var resource in bicepResourcesToPublish)
         {

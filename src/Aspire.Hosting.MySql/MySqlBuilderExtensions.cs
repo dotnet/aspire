@@ -260,7 +260,7 @@ public static class MySqlBuilderExtensions
             }
             else
             {
-                var directoryService = e.Services.GetRequiredService<IDirectoryService>();
+                var directoryService = e.Services.GetRequiredService<IFileSystemService>();
                 var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, directoryService, ct).ConfigureAwait(false);
 
                 try
@@ -380,7 +380,7 @@ public static class MySqlBuilderExtensions
         return builder.WithContainerFiles(initPath, importFullPath);
     }
 
-    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, IDirectoryService directoryService, CancellationToken cancellationToken)
+    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, IFileSystemService directoryService, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = directoryService.TempDirectory.CreateTempFile("aspire-phpmyadmin", "config.user.inc.php");

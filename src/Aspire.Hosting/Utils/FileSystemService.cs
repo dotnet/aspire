@@ -4,19 +4,19 @@
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Default implementation of <see cref="IDirectoryService"/>.
+/// Default implementation of <see cref="IFileSystemService"/>.
 /// </summary>
-internal sealed class DirectoryService : IDirectoryService
+internal sealed class FileSystemService : IFileSystemService
 {
-    private readonly TempDirectoryService _tempDirectory = new();
+    private readonly TempFileSystemService _tempDirectory = new();
 
     /// <inheritdoc/>
-    public ITempDirectoryService TempDirectory => _tempDirectory;
+    public ITempFileSystemService TempDirectory => _tempDirectory;
 
     /// <summary>
-    /// Implementation of <see cref="ITempDirectoryService"/>.
+    /// Implementation of <see cref="ITempFileSystemService"/>.
     /// </summary>
-    private sealed class TempDirectoryService : ITempDirectoryService
+    private sealed class TempFileSystemService : ITempFileSystemService
     {
         /// <inheritdoc/>
         public string CreateTempSubdirectory(string? prefix = null)

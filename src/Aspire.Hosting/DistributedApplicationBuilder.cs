@@ -65,7 +65,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
-    private readonly IDirectoryService _directoryService;
+    private readonly IFileSystemService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -98,7 +98,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
 
     /// <inheritdoc />
-    public IDirectoryService DirectoryService => _directoryService;
+    public IFileSystemService FileSystemService => _directoryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -303,8 +303,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
 
         // Create and register the directory service
-        _directoryService = new DirectoryService();
-        _innerBuilder.Services.AddSingleton<IDirectoryService>(_directoryService);
+        _directoryService = new FileSystemService();
+        _innerBuilder.Services.AddSingleton<IFileSystemService>(_directoryService);
 
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
@@ -343,7 +343,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
             }
 
-            var directoryService = sp.GetRequiredService<IDirectoryService>();
+            var directoryService = sp.GetRequiredService<IFileSystemService>();
             return new AspireStore(Path.Combine(aspireDir, ".aspire"), directoryService);
         });
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -465,7 +465,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
-            // Locations now uses IDirectoryService for DCP session storage
+            // Locations now uses IFileSystemService for DCP session storage
             _innerBuilder.Services.AddSingleton<Locations>();
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 

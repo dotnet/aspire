@@ -3,16 +3,16 @@
 
 namespace Aspire.Hosting.Tests.Utils;
 
-public class DirectoryServiceTests : IDisposable
+public class FileSystemServiceTests : IDisposable
 {
     private readonly List<string> _createdDirectories = new();
     private readonly List<string> _createdFiles = new();
 
     [Fact]
-    public void DirectoryService_CreateTempSubdirectory_CreatesDirectory()
+    public void FileSystemService_CreateTempSubdirectory_CreatesDirectory()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire");
@@ -23,10 +23,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_CreateTempSubdirectory_CreatesUniqueDirectories()
+    public void FileSystemService_CreateTempSubdirectory_CreatesUniqueDirectories()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var subdir1 = directoryService.TempDirectory.CreateTempSubdirectory("aspire");
@@ -41,10 +41,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_CreateTempSubdirectory_WithPrefix_IncludesPrefix()
+    public void FileSystemService_CreateTempSubdirectory_WithPrefix_IncludesPrefix()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dcp");
@@ -57,10 +57,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_CreateTempSubdirectory_WithNullPrefix_UsesDefault()
+    public void FileSystemService_CreateTempSubdirectory_WithNullPrefix_UsesDefault()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory(null);
@@ -73,10 +73,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_CreateTempSubdirectory_UsesSystemTempPath()
+    public void FileSystemService_CreateTempSubdirectory_UsesSystemTempPath()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
         var systemTempPath = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         // Act
@@ -88,10 +88,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_GetTempFileName_CreatesFile()
+    public void FileSystemService_GetTempFileName_CreatesFile()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName();
@@ -102,10 +102,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_GetTempFileName_WithNullExtension_CreatesTmpFile()
+    public void FileSystemService_GetTempFileName_WithNullExtension_CreatesTmpFile()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName(null);
@@ -117,10 +117,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_GetTempFileName_WithExtension_CreatesFileWithExtension()
+    public void FileSystemService_GetTempFileName_WithExtension_CreatesFileWithExtension()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName(".json");
@@ -132,10 +132,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_GetTempFileName_CreatesUniqueFiles()
+    public void FileSystemService_GetTempFileName_CreatesUniqueFiles()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var tempFile1 = directoryService.TempDirectory.GetTempFileName();
@@ -150,10 +150,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_GetTempFileName_UsesSystemTempPath()
+    public void FileSystemService_GetTempFileName_UsesSystemTempPath()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
         var systemTempPath = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         // Act
@@ -165,10 +165,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_CreateTempFile_WithName_CreatesFileWithName()
+    public void FileSystemService_CreateTempFile_WithName_CreatesFileWithName()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var tempFile = directoryService.TempDirectory.CreateTempFile("aspire-test", "config.php");
@@ -180,10 +180,10 @@ public class DirectoryServiceTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryService_CreateTempFile_WithName_CreatesUniqueDirectories()
+    public void FileSystemService_CreateTempFile_WithName_CreatesUniqueDirectories()
     {
         // Arrange
-        var directoryService = new DirectoryService();
+        var directoryService = new FileSystemService();
 
         // Act
         var tempFile1 = directoryService.TempDirectory.CreateTempFile("aspire-test", "script.php");

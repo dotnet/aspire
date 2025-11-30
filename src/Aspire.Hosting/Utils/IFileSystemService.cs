@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// This service provides a centralized way to manage directories used by Aspire,
 /// including temporary files, cache, and other storage needs.
 /// </remarks>
-public interface IDirectoryService
+public interface IFileSystemService
 {
     /// <summary>
     /// Gets the temporary directory service for managing temporary files and directories.
@@ -21,13 +21,13 @@ public interface IDirectoryService
     /// to ensure consistent temp file management and enable testability.
     /// </para>
     /// </remarks>
-    ITempDirectoryService TempDirectory { get; }
+    ITempFileSystemService TempDirectory { get; }
 }
 
 /// <summary>
 /// Service for managing temporary directories and files within Aspire.
 /// </summary>
-public interface ITempDirectoryService
+public interface ITempFileSystemService
 {
     /// <summary>
     /// Creates and returns the path to a temporary subdirectory.
