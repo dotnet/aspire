@@ -31,4 +31,26 @@ public class CertbotResource(string name, ParameterResource domain, ParameterRes
     /// Gets the parameter that contains the email address for Let's Encrypt registration.
     /// </summary>
     public ParameterResource EmailParameter { get; } = email ?? throw new ArgumentNullException(nameof(email));
+
+    /// <summary>
+    /// Gets an expression representing the path to the SSL/TLS certificate (fullchain.pem) for the domain.
+    /// </summary>
+    /// <remarks>
+    /// The certificate path follows the Let's Encrypt convention: <c>/etc/letsencrypt/live/{domain}/fullchain.pem</c>.
+    /// This property returns a <see cref="ReferenceExpression"/> that resolves to the actual path at runtime
+    /// based on the domain parameter value.
+    /// </remarks>
+    public ReferenceExpression CertificatePath =>
+        ReferenceExpression.Create($"{CertificatesPath}/live/{DomainParameter}/fullchain.pem");
+
+    /// <summary>
+    /// Gets an expression representing the path to the private key (privkey.pem) for the domain.
+    /// </summary>
+    /// <remarks>
+    /// The private key path follows the Let's Encrypt convention: <c>/etc/letsencrypt/live/{domain}/privkey.pem</c>.
+    /// This property returns a <see cref="ReferenceExpression"/> that resolves to the actual path at runtime
+    /// based on the domain parameter value.
+    /// </remarks>
+    public ReferenceExpression PrivateKeyPath =>
+        ReferenceExpression.Create($"{CertificatesPath}/live/{DomainParameter}/privkey.pem");
 }

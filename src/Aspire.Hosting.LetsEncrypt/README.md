@@ -74,6 +74,16 @@ After Certbot obtains certificates, they are available at:
 - Certificate: `/etc/letsencrypt/live/{domain}/fullchain.pem`
 - Private Key: `/etc/letsencrypt/live/{domain}/privkey.pem`
 
+The `CertbotResource` exposes these paths as `ReferenceExpression` properties that can be used to configure other resources:
+
+```csharp
+var certbot = builder.AddCertbot("certbot", domain, email);
+
+// Access the certificate and private key paths
+var certificatePath = certbot.Resource.CertificatePath;   // /etc/letsencrypt/live/{domain}/fullchain.pem
+var privateKeyPath = certbot.Resource.PrivateKeyPath;     // /etc/letsencrypt/live/{domain}/privkey.pem
+```
+
 ## Connection Properties
 
 The Certbot resource does not expose connection properties through `WithReference`. This is because the Certbot resource is a certificate provisioning tool, not a service that other resources connect to.

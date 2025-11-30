@@ -230,4 +230,32 @@ public class AddCertbotTests
 
         Assert.Throws<ArgumentNullException>(() => builder.AddCertbot("certbot", domain, null!));
     }
+
+    [Fact]
+    public void CertificatePathExpressionContainsDomainParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("domain");
+        var email = builder.AddParameter("letsencrypt-email");
+        var certbot = builder.AddCertbot("certbot", domain, email);
+
+        var certificatePath = certbot.Resource.CertificatePath;
+
+        Assert.NotNull(certificatePath);
+        Assert.Equal("/etc/letsencrypt/live/{domain.value}/fullchain.pem", certificatePath.ValueExpression);
+    }
+
+    [Fact]
+    public void PrivateKeyPathExpressionContainsDomainParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("domain");
+        var email = builder.AddParameter("letsencrypt-email");
+        var certbot = builder.AddCertbot("certbot", domain, email);
+
+        var privateKeyPath = certbot.Resource.PrivateKeyPath;
+
+        Assert.NotNull(privateKeyPath);
+        Assert.Equal("/etc/letsencrypt/live/{domain.value}/privkey.pem", privateKeyPath.ValueExpression);
+    }
 }
