@@ -111,6 +111,8 @@ When running the Azure Storage emulator (Azurite), you can configure multiple st
 - Isolating test data for parallel test execution
 - Preventing data pollution between different components
 
+Azurite supports custom storage accounts and keys as documented in the [Azurite documentation](https://learn.microsoft.com/azure/storage/common/storage-use-azurite#custom-storage-accounts-and-keys).
+
 ### Configuring custom accounts
 
 ```csharp
