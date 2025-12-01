@@ -1333,7 +1333,9 @@ public static class PythonAppResourceBuilderExtensions
                     // Add WithExplicitStart to the existing installer when install is false
                     existingResource.WithExplicitStart();
                 }
-                // Wait relationship will be handled (or not) by SetupDependencies
+                // Note: Wait relationships are managed dynamically by SetupDependencies during BeforeStartEvent.
+                // No need to remove wait annotations here - SetupDependencies checks for ExplicitStartupAnnotation
+                // and skips creating wait relationships when install=false.
                 return;
             }
 
@@ -1345,6 +1347,7 @@ public static class PythonAppResourceBuilderExtensions
             if (!install)
             {
                 // Add WithExplicitStart when install is false
+                // Note: Wait relationships are managed by SetupDependencies, which checks for ExplicitStartupAnnotation
                 installerBuilder.WithExplicitStart();
             }
 

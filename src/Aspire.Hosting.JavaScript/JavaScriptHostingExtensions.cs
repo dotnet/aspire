@@ -693,6 +693,7 @@ public static class JavaScriptHostingExtensions
             else
             {
                 // Add WithExplicitStart when install is false
+                // Note: No need to remove wait annotations here since WaitForCompletion was never called
                 installerBuilder.WithExplicitStart();
             }
 
