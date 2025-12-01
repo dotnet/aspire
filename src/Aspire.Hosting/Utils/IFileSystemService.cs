@@ -85,91 +85,32 @@ public interface ITempFileSystemService
 /// Represents a temporary directory that will be deleted when disposed.
 /// </summary>
 [Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class TempDirectory : IDisposable
+public abstract class TempDirectory : IDisposable
 {
     /// <summary>
     /// Gets the full path to the temporary directory.
     /// </summary>
-    public string Path { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TempDirectory"/> class.
-    /// </summary>
-    /// <param name="path">The full path to the temporary directory.</param>
-    public TempDirectory(string path)
-    {
-        Path = path;
-    }
+    public abstract string Path { get; }
 
     /// <summary>
     /// Deletes the temporary directory and all its contents.
     /// </summary>
-    public void Dispose()
-    {
-        try
-        {
-            if (Directory.Exists(Path))
-            {
-                Directory.Delete(Path, recursive: true);
-            }
-        }
-        catch
-        {
-            // Ignore errors during cleanup
-        }
-    }
-
+    public abstract void Dispose();
 }
 
 /// <summary>
 /// Represents a temporary file that will be deleted when disposed.
 /// </summary>
 [Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class TempFile : IDisposable
+public abstract class TempFile : IDisposable
 {
-    private readonly bool _deleteParentDirectory;
-
     /// <summary>
     /// Gets the full path to the temporary file.
     /// </summary>
-    public string Path { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TempFile"/> class.
-    /// </summary>
-    /// <param name="path">The full path to the temporary file.</param>
-    /// <param name="deleteParentDirectory">Whether to delete the parent directory when disposed.</param>
-    public TempFile(string path, bool deleteParentDirectory = false)
-    {
-        Path = path;
-        _deleteParentDirectory = deleteParentDirectory;
-    }
+    public abstract string Path { get; }
 
     /// <summary>
     /// Deletes the temporary file and optionally its parent directory.
     /// </summary>
-    public void Dispose()
-    {
-        try
-        {
-            if (File.Exists(Path))
-            {
-                File.Delete(Path);
-            }
-
-            if (_deleteParentDirectory)
-            {
-                var parentDir = System.IO.Path.GetDirectoryName(Path);
-                if (parentDir is not null && Directory.Exists(parentDir))
-                {
-                    Directory.Delete(parentDir, recursive: true);
-                }
-            }
-        }
-        catch
-        {
-            // Ignore errors during cleanup
-        }
-    }
-
+    public abstract void Dispose();
 }

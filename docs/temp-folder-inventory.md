@@ -21,8 +21,8 @@ The `IFileSystemService` provides an abstraction over temp file/directory APIs f
 
 | Type | Implements | Description |
 |------|------------|-------------|
-| `TempDirectory` | `IDisposable` | Represents a temporary directory. Dispose to delete the directory and all contents. Use `.Path` property to get the path string. |
-| `TempFile` | `IDisposable` | Represents a temporary file. Dispose to delete the file (and optionally parent directory). Use `.Path` property to get the path string. |
+| `TempDirectory` | `IDisposable` | Abstract class representing a temporary directory. Dispose to delete the directory and all contents. Use `.Path` property to get the path string. Can be subclassed for testing. |
+| `TempFile` | `IDisposable` | Abstract class representing a temporary file. Dispose to delete the file (and optionally parent directory). Use `.Path` property to get the path string. Can be subclassed for testing. |
 
 ### API Methods
 
@@ -144,7 +144,8 @@ The CLI (`Aspire.Cli`) operates outside the AppHost context and doesn't have acc
 
 The current implementation is intentionally simple:
 
-- Returns `TempDirectory` and `TempFile` wrapper types that implement `IDisposable`
+- Returns `TempDirectory` and `TempFile` abstract wrapper types that implement `IDisposable`
+- Abstract classes enable testability - can be subclassed in tests for mocking
 - Use `.Path` property to get the path string
 - Dispose() cleans up the temp file/directory (optional - many usages persist for app lifetime)
 - Uses the system temp folder (no custom temp folder management yet)
