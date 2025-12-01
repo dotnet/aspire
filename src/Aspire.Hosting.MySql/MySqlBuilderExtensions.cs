@@ -282,12 +282,7 @@ public static class MySqlBuilderExtensions
                 {
                     try
                     {
-                        // Delete the temp directory containing the config file
-                        var tempDir = Path.GetDirectoryName(tempConfigFile);
-                        if (tempDir != null)
-                        {
-                            Directory.Delete(tempDir, recursive: true);
-                        }
+                        File.Delete(tempConfigFile);
                     }
                     catch
                     {
