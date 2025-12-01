@@ -7,13 +7,14 @@ using Azure.Provisioning.AppService;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an annotation for customizing an Azure Web App.
+/// Represents an annotation for customizing an Azure Web App slot.
 /// </summary>
-public sealed class AzureAppServiceWebsiteCustomizationAnnotation(Action<AzureResourceInfrastructure, WebSite> configure)
+/// <param name="configure"></param>
+public sealed class AzureAppServiceWebsiteSlotCustomizationAnnotation(Action<AzureResourceInfrastructure, WebSiteSlot> configure)
     : IResourceAnnotation
 {
     /// <summary>
     /// Gets the configuration action for customizing the Azure Web App.
     /// </summary>
-    public Action<AzureResourceInfrastructure, WebSite> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
+    public Action<AzureResourceInfrastructure, WebSiteSlot> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
 }

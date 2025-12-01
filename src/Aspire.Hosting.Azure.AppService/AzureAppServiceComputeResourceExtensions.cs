@@ -46,14 +46,22 @@ public static class AzureAppServiceComputeResourceExtensions
     }
 
     /// <summary>
-    /// Configures the resource to be published as an Azure App Service website slot during deployment.
+    /// Publishes the specified compute resource as an Azure App Service Slot.
     /// </summary>
-    /// <remarks>This method only applies the configuration when the application is running in publish mode.
-    /// In other modes, the builder is returned unchanged.</remarks>
-    /// <typeparam name="T">The type of compute resource being configured.</typeparam>
-    /// <param name="builder">The resource builder used to configure the compute resource. Cannot be null.</param>
-    /// <param name="configure">A delegate that configures the Azure resource infrastructure and the website slot. Cannot be null.</param>
-    /// <returns>The original resource builder with the Azure App Service website slot publishing configuration applied.</returns>
+    /// <typeparam name="T">The type of compute resource.</typeparam>
+    /// <param name="builder">The compute resource builder.</param>
+    /// <param name="configure">The configuration action for the App Service WebSite Slot resource.</param>
+    /// <returns>The updated compute resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// <code>
+    /// builder.AddProject&lt;Projects.Api&gt;("name").PublishAsAzureAppServiceWebsiteSlot((infrastructure, app) =>
+    /// {
+    ///     // Configure the App Service WebSite Slot resource here
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> PublishAsAzureAppServiceWebsiteSlot<T>(this IResourceBuilder<T> builder, Action<AzureResourceInfrastructure, WebSiteSlot> configure)
         where T : IComputeResource
     {

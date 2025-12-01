@@ -69,7 +69,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var websiteExistsCheckStep = new PipelineStep
             {
-                Name = $"update-{targetResource.Name}-if-website-doesnotexist",
+                Name = $"check-{targetResource.Name}-exists",
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
@@ -81,29 +81,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     {
                         websiteName = websiteName.Substring(0, 60);
                     }
-                    var exists = await WebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
+                    var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
                     ctx.ReportingStep.Log(LogLevel.Information, $"website exists : {exists}", false);
 
                     if (!exists)
                     {
-                        targetResource.Annotations.Add(new AzureAppServiceWebsiteAndSlotCreationAnnotation());
-                        if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
-                        {
-                            var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Got context", false);
-
-                            var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-                            var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
-                            {
-                                ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
-                            };
-                            deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
-                            ctx.ReportingStep.Log(LogLevel.Information, $"update target", false);
-                        }
-                        else
-                        {
-                            ctx.ReportingStep.Log(LogLevel.Information, $"No EnvironmentContext annotation on the environment resource", false);
-                        }
+                        targetResource.Annotations.Add(new AzureAppServiceWebsiteDoesNotExistAnnotation());
                     }
                 },
                 Tags = ["check-website-exists"],
@@ -111,6 +94,39 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             };
 
             steps.Add(websiteExistsCheckStep);
+
+            var updateResourceStep = new PipelineStep
+            {
+                Name = $"update-{targetResource.Name}",
+                Action = async ctx =>
+                {
+                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+
+                    if (targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteDoesNotExistAnnotation>(out var existsAnnotation) && !existsAnnotation.WebSiteExists)
+                    {
+                        targetResource.Annotations.Add(new AzureAppServiceWebsiteDoesNotExistAnnotation());
+                        if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                        {
+                            var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Fetched environment context", false);
+
+                            var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+                            var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
+                            {
+                                ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
+                            };
+                            deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource", false);
+                        }
+                        else
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation on the environment resource", false);
+                        }
+                    }
+                },
+                Tags = ["check-website-exists"],
+                DependsOnSteps = new List<string> { "create-provisioning-context" },
+            };
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
@@ -198,7 +214,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <param name="context"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private static async Task<bool> WebSiteExistsAsync(string websiteName, PipelineStepContext context)
+    private static async Task<bool> CheckWebSiteExistsAsync(string websiteName, PipelineStepContext context)
     {
         // Get required services
         var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
@@ -227,7 +243,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var armEndpoint = "https://management.azure.com";
         var apiVersion = "2025-03-01";
 
-        context.ReportingStep.Log(LogLevel.Information, $"Checking if site exists: {websiteName}", false);
+        context.ReportingStep.Log(LogLevel.Information, $"Check if website exists: {websiteName}", false);
         var url = $"{armEndpoint}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version={apiVersion}";
 
         // Get access token for ARM

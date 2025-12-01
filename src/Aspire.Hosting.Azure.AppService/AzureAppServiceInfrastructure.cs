@@ -38,6 +38,7 @@ internal sealed class AzureAppServiceInfrastructure(
                 appServiceEnvironment,
                 @event.Services);
 
+            // Annotate the environment with its context
             appServiceEnvironment.Annotations.Add(new AzureAppServiceEnvironmentContextAnnotation(appServiceEnvironmentContext));
 
             foreach (var resource in @event.Model.GetComputeResources())

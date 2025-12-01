@@ -21,7 +21,7 @@ internal sealed class AzureAppServiceEnvironmentContext(
 
     public IServiceProvider ServiceProvider => serviceProvider;
 
-    internal readonly Dictionary<IResource, AzureAppServiceWebsiteContext> _appServices = new(new ResourceNameComparer());
+    private readonly Dictionary<IResource, AzureAppServiceWebsiteContext> _appServices = new(new ResourceNameComparer());
 
     public AzureAppServiceWebsiteContext GetAppServiceContext(IResource resource)
     {

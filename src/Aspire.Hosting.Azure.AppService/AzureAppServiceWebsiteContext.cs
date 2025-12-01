@@ -246,7 +246,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
-        bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteAndSlotCreationAnnotation>(out var annotations);
+        bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteDoesNotExistAnnotation>(out var annotations);
 
         _infrastructure = infra;
 
@@ -262,7 +262,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             ResolveHostNameForSlot(deploymentSlotValue);
         }
 
-        if (deploymentSlotValue is not null && buildWebAppAndSlot && annotations != null && !annotations.First().MainWebSiteExists)
+        if (deploymentSlotValue is not null && buildWebAppAndSlot && annotations != null && !annotations.First().WebSiteExists)
         {
             BuildWebSiteAndSlot(infra, deploymentSlotValue!);
             return;
