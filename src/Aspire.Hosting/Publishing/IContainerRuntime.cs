@@ -30,13 +30,12 @@ public interface IContainerRuntime
     /// </summary>
     /// <param name="contextPath">The build context path.</param>
     /// <param name="dockerfilePath">The path to the Dockerfile.</param>
-    /// <param name="imageName">The name to assign to the built image.</param>
-    /// <param name="options">Optional build options.</param>
+    /// <param name="options">Build options including image name and tag.</param>
     /// <param name="buildArguments">Build arguments to pass to the build process.</param>
     /// <param name="buildSecrets">Build secrets to pass to the build process.</param>
     /// <param name="stage">The target build stage.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
+    Task BuildImageAsync(string contextPath, string dockerfilePath, ContainerImageBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
     
     /// <summary>
     /// Tags a container image with a new name.
