@@ -927,48 +927,13 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AzureStorageEmulatorAccount_CreateWithGeneratedKey()
-    {
-        var account = new AzureStorageEmulatorAccount("testaccount");
-
-        Assert.Equal("testaccount", account.Name);
-        Assert.NotNull(account.Key);
-        Assert.NotEmpty(account.Key);
-        // Verify it's a valid Base64 string
-        var decoded = Convert.FromBase64String(account.Key);
-        Assert.NotEmpty(decoded);
-    }
-
-    [Fact]
-    public void AzureStorageEmulatorAccount_CreateWithCustomKey()
-    {
-        var customKey = "dGVzdGtleQ=="; // "testkey" in Base64
-        var account = new AzureStorageEmulatorAccount("testaccount", customKey);
-
-        Assert.Equal("testaccount", account.Name);
-        Assert.Equal(customKey, account.Key);
-    }
-
-    [Fact]
-    public void AzureStorageEmulatorAccount_DefaultAccount()
-    {
-        var defaultAccount = AzureStorageEmulatorAccount.Default;
-
-        Assert.Equal(AzureStorageEmulatorAccount.DefaultAccountName, defaultAccount.Name);
-        Assert.Equal(AzureStorageEmulatorAccount.DefaultAccountKey, defaultAccount.Key);
-    }
-
-    [Fact]
     public void RunAsEmulator_WithAccounts_SetsAzuriteAccountsEnvironmentVariable()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var legacyAccount = new AzureStorageEmulatorAccount("legacy", "bGVnYWN5a2V5");
-        var newAccount = new AzureStorageEmulatorAccount("newdata", "bmV3ZGF0YWtleQ==");
-
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
-            e.WithAccounts(legacyAccount, newAccount);
+            e.WithAccounts("legacy", "newdata");
         });
 
         // Check the environment variable annotation exists
@@ -981,21 +946,18 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
-
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
             e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
-            e.WithAccounts(customAccount);
+            e.WithAccounts("testaccount");
         });
 
-        var blobs = storage.AddBlobs("blobs").WithAccount(customAccount);
+        var blobs = storage.AddBlobs("blobs").WithAccount("testaccount");
 
         var connectionString = await ((IResourceWithConnectionString)blobs.Resource).GetConnectionStringAsync();
 
         // Verify connection string contains custom account
         Assert.Contains("AccountName=testaccount", connectionString);
-        Assert.Contains("AccountKey=dGVzdGtleQ==", connectionString);
         Assert.Contains("/testaccount", connectionString);
     }
 
@@ -1004,21 +966,18 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
-
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
             e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
-            e.WithAccounts(customAccount);
+            e.WithAccounts("testaccount");
         });
 
-        var queues = storage.AddQueues("queues").WithAccount(customAccount);
+        var queues = storage.AddQueues("queues").WithAccount("testaccount");
 
         var connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
 
         // Verify connection string contains custom account
         Assert.Contains("AccountName=testaccount", connectionString);
-        Assert.Contains("AccountKey=dGVzdGtleQ==", connectionString);
         Assert.Contains("/testaccount", connectionString);
     }
 
@@ -1027,21 +986,18 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
-
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
             e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
-            e.WithAccounts(customAccount);
+            e.WithAccounts("testaccount");
         });
 
-        var tables = storage.AddTables("tables").WithAccount(customAccount);
+        var tables = storage.AddTables("tables").WithAccount("testaccount");
 
         var connectionString = await ((IResourceWithConnectionString)tables.Resource).GetConnectionStringAsync();
 
         // Verify connection string contains custom account
         Assert.Contains("AccountName=testaccount", connectionString);
-        Assert.Contains("AccountKey=dGVzdGtleQ==", connectionString);
         Assert.Contains("/testaccount", connectionString);
     }
 
@@ -1050,20 +1006,17 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var legacyAccount = new AzureStorageEmulatorAccount("legacy", "bGVnYWN5a2V5");
-        var newAccount = new AzureStorageEmulatorAccount("newdata", "bmV3ZGF0YWtleQ==");
-
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
             e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
             e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
             e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
-            e.WithAccounts(legacyAccount, newAccount);
+            e.WithAccounts("legacy", "newdata");
         });
 
         // Create resources with different accounts
-        var legacyBlobs = storage.AddBlobs("legacy-blobs").WithAccount(legacyAccount);
-        var newBlobs = storage.AddBlobs("new-blobs").WithAccount(newAccount);
+        var legacyBlobs = storage.AddBlobs("legacy-blobs").WithAccount("legacy");
+        var newBlobs = storage.AddBlobs("new-blobs").WithAccount("newdata");
         var defaultBlobs = storage.AddBlobs("default-blobs");
 
         var legacyConnectionString = await ((IResourceWithConnectionString)legacyBlobs.Resource).GetConnectionStringAsync();
@@ -1088,16 +1041,14 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
-
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
             e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
-            e.WithAccounts(customAccount);
+            e.WithAccounts("testaccount");
         });
 
         // Create blob service with custom account
-        var blobs = storage.AddBlobs("blobs").WithAccount(customAccount);
+        var blobs = storage.AddBlobs("blobs").WithAccount("testaccount");
 
         // Add container - should inherit account from parent
         var container = storage.AddBlobContainer("container", "my-container");

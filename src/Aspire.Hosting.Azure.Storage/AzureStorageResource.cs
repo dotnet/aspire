@@ -34,7 +34,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <summary>
     /// Gets the custom accounts configured for the Azure Storage emulator.
     /// </summary>
-    internal HashSet<AzureStorageEmulatorAccount> EmulatorAccounts { get; } = [];
+    internal Dictionary<string, AzureStorageEmulatorAccount> EmulatorAccounts { get; } = [];
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
@@ -62,6 +62,21 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public bool IsEmulator => this.IsContainer();
 
     /// <summary>
+    /// Gets an emulator account by name.
+    /// </summary>
+    /// <param name="accountName">The account name.</param>
+    /// <returns>The emulator account.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the account is not found.</exception>
+    internal AzureStorageEmulatorAccount GetEmulatorAccount(string accountName)
+    {
+        if (EmulatorAccounts.TryGetValue(accountName, out var account))
+        {
+            return account;
+        }
+        throw new InvalidOperationException($"Emulator account '{accountName}' was not configured. Use WithAccounts() to configure custom accounts.");
+    }
+
+    /// <summary>
     /// Gets the connection string for the Azure Storage emulator using the default account.
     /// </summary>
     /// <returns>A <see cref="ReferenceExpression"/> representing the connection string.</returns>
@@ -73,25 +88,25 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <param name="account">The emulator account to use.</param>
     /// <returns>A <see cref="ReferenceExpression"/> representing the connection string.</returns>
     internal ReferenceExpression GetEmulatorConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
-       ? AzureStorageEmulatorConnectionString.Create(account, blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
+       ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
        : throw new InvalidOperationException("The Azure Storage resource is not running in the local emulator.");
 
     internal ReferenceExpression GetTableConnectionString() => GetTableConnectionString(AzureStorageEmulatorAccount.Default);
 
     internal ReferenceExpression GetTableConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(account, tableEndpoint: EmulatorTableEndpoint)
+        ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, tableEndpoint: EmulatorTableEndpoint)
         : ReferenceExpression.Create($"{TableEndpoint}");
 
     internal ReferenceExpression GetQueueConnectionString() => GetQueueConnectionString(AzureStorageEmulatorAccount.Default);
 
     internal ReferenceExpression GetQueueConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(account, queueEndpoint: EmulatorQueueEndpoint)
+        ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, queueEndpoint: EmulatorQueueEndpoint)
         : ReferenceExpression.Create($"{QueueEndpoint}");
 
     internal ReferenceExpression GetBlobConnectionString() => GetBlobConnectionString(AzureStorageEmulatorAccount.Default);
 
     internal ReferenceExpression GetBlobConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(account, blobEndpoint: EmulatorBlobEndpoint)
+        ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, blobEndpoint: EmulatorBlobEndpoint)
         : ReferenceExpression.Create($"{BlobEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)

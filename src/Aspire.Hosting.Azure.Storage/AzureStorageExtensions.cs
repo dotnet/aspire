@@ -332,7 +332,7 @@ public static class AzureStorageExtensions
     /// Configures custom storage accounts for the Azure Storage emulator (Azurite).
     /// </summary>
     /// <param name="builder">Storage emulator resource builder.</param>
-    /// <param name="accounts">The custom storage accounts to configure.</param>
+    /// <param name="accountNames">The names of the custom storage accounts to configure. A key will be auto-generated for each account.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     /// <remarks>
     /// <para>
@@ -345,25 +345,22 @@ public static class AzureStorageExtensions
     /// </para>
     /// <example>
     /// <code>
-    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
-    /// var newAccount = new AzureStorageEmulatorAccount("newdata");
-    /// 
     /// var storage = builder.AddAzureStorage("storage")
-    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount, newAccount));
+    ///     .RunAsEmulator(c => c.WithAccounts("legacy", "newdata"));
     ///     
-    /// var legacyTables = storage.AddTables("legacy-tables").WithAccount(legacyAccount);
-    /// var newTables = storage.AddTables("new-tables").WithAccount(newAccount);
+    /// var legacyTables = storage.AddTables("legacy-tables").WithAccount("legacy");
+    /// var newTables = storage.AddTables("new-tables").WithAccount("newdata");
     /// </code>
     /// </example>
     /// </remarks>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithAccounts(
         this IResourceBuilder<AzureStorageEmulatorResource> builder,
-        params AzureStorageEmulatorAccount[] accounts)
+        params string[] accountNames)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(accounts);
+        ArgumentNullException.ThrowIfNull(accountNames);
 
-        if (accounts.Length == 0)
+        if (accountNames.Length == 0)
         {
             return builder;
         }
@@ -373,9 +370,10 @@ public static class AzureStorageExtensions
         var storageResource = emulatorResource.InnerResource;
 
         // Store the accounts in the storage resource for later use
-        foreach (var account in accounts)
+        foreach (var accountName in accountNames)
         {
-            storageResource.EmulatorAccounts.Add(account);
+            var account = new AzureStorageEmulatorAccount(accountName);
+            storageResource.EmulatorAccounts[accountName] = account;
         }
 
         // Build the AZURITE_ACCOUNTS environment variable value
@@ -386,11 +384,12 @@ public static class AzureStorageExtensions
             $"{AzureStorageEmulatorAccount.DefaultAccountName}:{AzureStorageEmulatorAccount.DefaultAccountKey}"
         };
 
-        foreach (var account in accounts)
+        foreach (var accountName in accountNames)
         {
-            if (account.Name != AzureStorageEmulatorAccount.DefaultAccountName)
+            if (accountName != AzureStorageEmulatorAccount.DefaultAccountName)
             {
-                accountEntries.Add($"{account.Name}:{account.Key}");
+                var account = storageResource.EmulatorAccounts[accountName];
+                accountEntries.Add($"{accountName}:{account.Key}");
             }
         }
 
@@ -725,7 +724,7 @@ public static class AzureStorageExtensions
     /// Configures the blob storage resource to use the specified emulator account.
     /// </summary>
     /// <param name="builder">The blob storage resource builder.</param>
-    /// <param name="account">The emulator account to use.</param>
+    /// <param name="accountName">The name of the emulator account to use.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
     /// <remarks>
     /// <para>
@@ -739,23 +738,21 @@ public static class AzureStorageExtensions
     /// </para>
     /// <example>
     /// <code>
-    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
-    /// 
     /// var storage = builder.AddAzureStorage("storage")
-    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount));
+    ///     .RunAsEmulator(c => c.WithAccounts("legacy"));
     ///     
-    /// var legacyBlobs = storage.AddBlobs("legacy-blobs").WithAccount(legacyAccount);
+    /// var legacyBlobs = storage.AddBlobs("legacy-blobs").WithAccount("legacy");
     /// </code>
     /// </example>
     /// </remarks>
     public static IResourceBuilder<AzureBlobStorageResource> WithAccount(
         this IResourceBuilder<AzureBlobStorageResource> builder,
-        AzureStorageEmulatorAccount account)
+        string accountName)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(account);
+        ArgumentException.ThrowIfNullOrEmpty(accountName);
 
-        builder.Resource.EmulatorAccount = account;
+        builder.Resource.EmulatorAccountName = accountName;
         return builder;
     }
 
@@ -763,7 +760,7 @@ public static class AzureStorageExtensions
     /// Configures the queue storage resource to use the specified emulator account.
     /// </summary>
     /// <param name="builder">The queue storage resource builder.</param>
-    /// <param name="account">The emulator account to use.</param>
+    /// <param name="accountName">The name of the emulator account to use.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
     /// <remarks>
     /// <para>
@@ -777,23 +774,21 @@ public static class AzureStorageExtensions
     /// </para>
     /// <example>
     /// <code>
-    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
-    /// 
     /// var storage = builder.AddAzureStorage("storage")
-    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount));
+    ///     .RunAsEmulator(c => c.WithAccounts("legacy"));
     ///     
-    /// var legacyQueues = storage.AddQueues("legacy-queues").WithAccount(legacyAccount);
+    /// var legacyQueues = storage.AddQueues("legacy-queues").WithAccount("legacy");
     /// </code>
     /// </example>
     /// </remarks>
     public static IResourceBuilder<AzureQueueStorageResource> WithAccount(
         this IResourceBuilder<AzureQueueStorageResource> builder,
-        AzureStorageEmulatorAccount account)
+        string accountName)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(account);
+        ArgumentException.ThrowIfNullOrEmpty(accountName);
 
-        builder.Resource.EmulatorAccount = account;
+        builder.Resource.EmulatorAccountName = accountName;
         return builder;
     }
 
@@ -801,7 +796,7 @@ public static class AzureStorageExtensions
     /// Configures the table storage resource to use the specified emulator account.
     /// </summary>
     /// <param name="builder">The table storage resource builder.</param>
-    /// <param name="account">The emulator account to use.</param>
+    /// <param name="accountName">The name of the emulator account to use.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
     /// <remarks>
     /// <para>
@@ -815,23 +810,21 @@ public static class AzureStorageExtensions
     /// </para>
     /// <example>
     /// <code>
-    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
-    /// 
     /// var storage = builder.AddAzureStorage("storage")
-    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount));
+    ///     .RunAsEmulator(c => c.WithAccounts("legacy"));
     ///     
-    /// var legacyTables = storage.AddTables("legacy-tables").WithAccount(legacyAccount);
+    /// var legacyTables = storage.AddTables("legacy-tables").WithAccount("legacy");
     /// </code>
     /// </example>
     /// </remarks>
     public static IResourceBuilder<AzureTableStorageResource> WithAccount(
         this IResourceBuilder<AzureTableStorageResource> builder,
-        AzureStorageEmulatorAccount account)
+        string accountName)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(account);
+        ArgumentException.ThrowIfNullOrEmpty(accountName);
 
-        builder.Resource.EmulatorAccount = account;
+        builder.Resource.EmulatorAccountName = accountName;
         return builder;
     }
 }

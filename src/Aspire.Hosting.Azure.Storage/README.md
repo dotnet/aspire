@@ -114,17 +114,13 @@ When running the Azure Storage emulator (Azurite), you can configure multiple st
 ### Configuring custom accounts
 
 ```csharp
-// Create custom accounts
-var legacyAccount = new AzureStorageEmulatorAccount("legacy");
-var newAccount = new AzureStorageEmulatorAccount("newdata");
-
 // Configure the storage to use the emulator with multiple accounts
 var storage = builder.AddAzureStorage("storage")
-    .RunAsEmulator(c => c.WithAccounts(legacyAccount, newAccount));
+    .RunAsEmulator(c => c.WithAccounts("legacy", "newdata"));
 
 // Create resources using different accounts
-var legacyTables = storage.AddTables("legacy-tables").WithAccount(legacyAccount);
-var newTables = storage.AddTables("new-tables").WithAccount(newAccount);
+var legacyTables = storage.AddTables("legacy-tables").WithAccount("legacy");
+var newTables = storage.AddTables("new-tables").WithAccount("newdata");
 var defaultBlobs = storage.AddBlobs("default-blobs"); // Uses default account
 ```
 
