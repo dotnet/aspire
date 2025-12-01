@@ -32,7 +32,7 @@ internal static class PathLookupHelper
         if (OperatingSystem.IsWindows())
         {
             // On Windows, we need to check for the command with all possible extensions.
-            foreach (var extension in Environment.GetEnvironmentVariable("PATHEXT")?.Split(';') ?? [])
+            foreach (var extension in Environment.GetEnvironmentVariable("PATHEXT")?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [])
             {
                 var fileName = command.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? command : command + extension;
 
@@ -49,7 +49,7 @@ internal static class PathLookupHelper
 
     private static string? FindFullPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
     {
-        foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator))
+        foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
             var fullPath = Path.Combine(directory, command);
 
