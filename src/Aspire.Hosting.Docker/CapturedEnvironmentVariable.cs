@@ -12,27 +12,9 @@ namespace Aspire.Hosting.Docker;
 public sealed class CapturedEnvironmentVariable
 {
     /// <summary>
-    /// Initializes a new instance of <see cref="CapturedEnvironmentVariable"/>.
-    /// </summary>
-    /// <param name="name">The name of the environment variable.</param>
-    /// <param name="description">An optional description for the environment variable.</param>
-    /// <param name="defaultValue">The default value for the environment variable.</param>
-    /// <param name="source">The source object that originated this environment variable.</param>
-    /// <param name="resource">The resource that this environment variable is associated with, if any.</param>
-    public CapturedEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null, IResource? resource = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        Name = name;
-        Description = description;
-        DefaultValue = defaultValue;
-        Source = source;
-        Resource = resource;
-    }
-
-    /// <summary>
     /// Gets the name of the environment variable.
     /// </summary>
-    public string Name { get; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets or sets the description for the environment variable.

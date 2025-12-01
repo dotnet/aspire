@@ -365,7 +365,14 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null, IResource? resource = null)
     {
-        CapturedEnvironmentVariables[name] = new CapturedEnvironmentVariable(name, description, defaultValue, source, resource);
+        CapturedEnvironmentVariables[name] = new CapturedEnvironmentVariable
+        {
+            Name = name,
+            Description = description,
+            DefaultValue = defaultValue,
+            Source = source,
+            Resource = resource
+        };
 
         return $"${{{name}}}";
     }
