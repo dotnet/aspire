@@ -1270,6 +1270,151 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         }
     }
 
+    [Fact]
+    public async Task DeployAsync_WithSavedParameters_ReloadsAllParameterTypesFromDeploymentState()
+    {
+        // This test verifies the end-to-end flow for all parameter types:
+        // 1. Regular parameters (Parameters:name)
+        // 2. Connection strings (ConnectionStrings:name)
+        // 3. Custom configuration key parameters (CustomSection:Key)
+        // All should be saved to deployment state and reloaded on next deployment
+
+        var appHostSha = Guid.NewGuid().ToString();
+
+        string? firstDeploymentState = null;
+        string? secondDeploymentState = null;
+        string? deploymentStatePath = null;
+
+        // ===== First deployment - prompt and save =====
+        using (var builder = TestDistributedApplicationBuilder.Create(
+            "AppHost:Operation=publish",
+            "Pipeline:OutputPath=./",
+            "Pipeline:Step=deploy",
+            $"AppHostSha={appHostSha}"))
+        {
+            var testInteractionService = new TestInteractionService();
+            ConfigureTestServicesWithFileDeploymentStateManager(
+                builder,
+                bicepProvisioner: new NoOpBicepProvisioner(),
+                environmentName: "Production");
+            builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+
+            // Add all three types of parameters
+            var regularParam = builder.AddParameter("api-key");
+            var connectionStringParam = builder.AddConnectionString("mydb");
+            var customKeyParam = builder.AddParameterFromConfiguration("custom-setting", "MyApp:Setting");
+
+            builder.AddAzureEnvironment();
+
+            using var app = builder.Build();
+
+            // Get the actual deployment state file path
+            var deploymentStateManager = app.Services.GetRequiredService<IDeploymentStateManager>();
+            deploymentStatePath = deploymentStateManager.StateFilePath;
+            Assert.NotNull(deploymentStatePath);
+            Assert.False(File.Exists(deploymentStatePath));
+
+            var runTask = Task.Run(app.Run);
+
+            // Wait for parameter prompting
+            var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+            Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+            // Verify all three parameters are prompted
+            Assert.Equal(3, parameterInputs.Inputs.Count);
+
+            // Provide values for all parameters
+            var apiKeyInput = parameterInputs.Inputs["api-key"];
+            var dbInput = parameterInputs.Inputs["mydb"];
+            var customInput = parameterInputs.Inputs["custom-setting"];
+
+            apiKeyInput.Value = "secret-key-12345";
+            dbInput.Value = "Server=localhost;Database=mydb";
+            customInput.Value = "custom-value-xyz";
+
+            parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+            await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+            // Verify parameter values were set correctly
+            Assert.Equal("secret-key-12345", await regularParam.Resource.GetValueAsync(default));
+            Assert.Equal("Server=localhost;Database=mydb", await connectionStringParam.Resource.GetValueAsync(default));
+            Assert.Equal("custom-value-xyz", await customKeyParam.Resource.GetValueAsync(default));
+
+            // Capture the state file contents after first deployment
+            Assert.True(File.Exists(deploymentStatePath));
+            firstDeploymentState = await File.ReadAllTextAsync(deploymentStatePath);
+
+            // Verify the state after first deployment to ensure parameters are saved with correct keys
+            await Verify(firstDeploymentState)
+                .UseMethodName($"{nameof(DeployAsync_WithSavedParameters_ReloadsAllParameterTypesFromDeploymentState)}_FirstDeployment");
+        }
+
+        // ===== Second deployment - should load from state without prompting =====
+        using (var builder = TestDistributedApplicationBuilder.Create(
+            "AppHost:Operation=publish",
+            "Pipeline:OutputPath=./",
+            "Pipeline:Step=deploy",
+            $"AppHostSha={appHostSha}"))
+        {
+            var testInteractionService = new TestInteractionService();
+            ConfigureTestServicesWithFileDeploymentStateManager(
+                builder,
+                bicepProvisioner: new NoOpBicepProvisioner(),
+                environmentName: "Production");
+            builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+
+            // Add the same parameters
+            var regularParam = builder.AddParameter("api-key");
+            var connectionStringParam = builder.AddConnectionString("mydb");
+            var customKeyParam = builder.AddParameterFromConfiguration("custom-setting", "MyApp:Setting");
+
+            builder.AddAzureEnvironment();
+
+            using var app = builder.Build();
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var runTask = Task.Run(() => app.RunAsync(cts.Token));
+
+            // Give the deployment time to complete
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            // CRITICAL: Verify NO prompting occurred because all values were loaded from state
+            // This is the key assertion - if the JsonFlattener was broken, keys would be saved as "Parameters:api-key:"
+            // and the configuration system wouldn't find them, causing prompts on the second deployment
+            if (testInteractionService.Interactions.Reader.Count > 0)
+            {
+                // Debug: See what's being prompted
+                var interaction = await testInteractionService.Interactions.Reader.ReadAsync();
+                var parameterNames = string.Join(", ", interaction.Inputs.Select(i => i.Label));
+                Assert.Fail($"Expected no prompting but got {interaction.Inputs.Count} parameter(s): {parameterNames}");
+            }
+            Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
+
+            // Verify all parameter values are accessible at runtime (loaded from state)
+            Assert.Equal("secret-key-12345", await regularParam.Resource.GetValueAsync(default));
+            Assert.Equal("Server=localhost;Database=mydb", await connectionStringParam.Resource.GetValueAsync(default));
+            Assert.Equal("custom-value-xyz", await customKeyParam.Resource.GetValueAsync(default));
+
+            // Capture the state file contents after second deployment
+            Assert.True(File.Exists(deploymentStatePath));
+            secondDeploymentState = await File.ReadAllTextAsync(deploymentStatePath);
+        }
+
+        // Verify both deployment states using snapshots
+        await Verify(new
+        {
+            FirstDeploymentState = firstDeploymentState,
+            SecondDeploymentState = secondDeploymentState
+        });
+
+        // Clean up
+        if (deploymentStatePath is not null && File.Exists(deploymentStatePath))
+        {
+            File.Delete(deploymentStatePath);
+        }
+    }
+
     private static void ConfigureTestServicesWithFileDeploymentStateManager(
         IDistributedApplicationTestingBuilder builder,
         IBicepProvisioner? bicepProvisioner = null,
