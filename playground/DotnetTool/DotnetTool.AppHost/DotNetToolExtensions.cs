@@ -1,3 +1,8 @@
+#pragma warning disable IDE0005 // Using directive is unnecessary (needed when file is linked to test project)
+using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
+#pragma warning restore IDE0005
+
 namespace DotnetTool.AppHost;
 
 /// <summary>

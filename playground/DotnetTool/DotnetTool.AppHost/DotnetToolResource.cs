@@ -1,3 +1,7 @@
+#pragma warning disable IDE0005 // Using directive is unnecessary (needed when file is linked to test project)
+using Aspire.Hosting.ApplicationModel;
+#pragma warning restore IDE0005
+
 namespace DotnetTool.AppHost;
 
 /// <summary>
@@ -11,7 +15,7 @@ public class DotnetToolResource : ExecutableResource
     /// <param name="name">The name of the resource.</param>
     /// <param name="packageId">The package id of the tool</param>
     public DotnetToolResource(string name, string packageId) 
-        : base(name, "dotnet", string.Empty)
+        : base(name, "dotnet", ".")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId, nameof(packageId));
         Annotations.Add(new DotNetToolAnnotation { PackageId = packageId });

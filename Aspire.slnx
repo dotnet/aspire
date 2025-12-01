@@ -417,6 +417,7 @@
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.DevTunnels.Tests/Aspire.Hosting.DevTunnels.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.DotnetTool.Tests/Aspire.Hosting.DotnetTool.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Docker.Tests/Aspire.Hosting.Docker.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.GitHub.Models.Tests/Aspire.Hosting.GitHub.Models.Tests.csproj" />
