@@ -378,7 +378,7 @@ public static class MySqlBuilderExtensions
     private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, IFileSystemService directoryService, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = directoryService.TempDirectory.CreateTempFile("aspire-phpmyadmin", "config.user.inc.php");
+        var filePath = directoryService.TempDirectory.CreateTempFile("aspire-phpmyadmin", "config.user.inc.php").Path;
 
         using var writer = new StreamWriter(filePath);
 

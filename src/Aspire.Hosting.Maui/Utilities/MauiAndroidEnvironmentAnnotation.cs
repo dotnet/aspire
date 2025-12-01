@@ -74,7 +74,7 @@ internal sealed class MauiAndroidEnvironmentSubscriber(
         try
         {
             // Get the Android environment directory from the directory service
-            var androidEnvDirectory = directoryService.TempDirectory.CreateTempSubdirectory("aspire-maui-android-env");
+            var androidEnvDirectory = directoryService.TempDirectory.CreateTempSubdirectory("aspire-maui-android-env").Path;
 
             // Add a CommandLineArgsCallback that will generate the targets file
             // This runs AFTER all environment callbacks have been processed

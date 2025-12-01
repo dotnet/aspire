@@ -21,8 +21,8 @@ The `IFileSystemService` provides an abstraction over temp file/directory APIs f
 
 | Type | Implements | Description |
 |------|------------|-------------|
-| `TempDirectory` | `IDisposable` | Represents a temporary directory. Dispose to delete the directory and all contents. Implicit conversion to `string` returns the path. |
-| `TempFile` | `IDisposable` | Represents a temporary file. Dispose to delete the file (and optionally parent directory). Implicit conversion to `string` returns the path. |
+| `TempDirectory` | `IDisposable` | Represents a temporary directory. Dispose to delete the directory and all contents. Use `.Path` property to get the path string. |
+| `TempFile` | `IDisposable` | Represents a temporary file. Dispose to delete the file (and optionally parent directory). Use `.Path` property to get the path string. |
 
 ### API Methods
 
@@ -35,8 +35,8 @@ The `IFileSystemService` provides an abstraction over temp file/directory APIs f
 ### Usage Patterns
 
 ```csharp
-// Pattern 1: Use implicit conversion to string (file persists until process ends)
-string tempDir = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-dcp");
+// Pattern 1: Use .Path property for file path (file persists until process ends)
+string tempDir = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-dcp").Path;
 
 // Pattern 2: Use using statement for automatic cleanup
 using var tempFile = fileSystemService.TempDirectory.CreateTempFile("aspire-test", "config.json");
@@ -47,7 +47,7 @@ File.WriteAllText(tempFile.Path, "{}");
 var tempDir = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-azure");
 try
 {
-    // Use temp directory...
+    // Use temp directory via tempDir.Path...
 }
 finally
 {
@@ -145,7 +145,7 @@ The CLI (`Aspire.Cli`) operates outside the AppHost context and doesn't have acc
 The current implementation is intentionally simple:
 
 - Returns `TempDirectory` and `TempFile` wrapper types that implement `IDisposable`
-- Implicit conversion to `string` allows seamless use where paths are expected
+- Use `.Path` property to get the path string
 - Dispose() cleans up the temp file/directory (optional - many usages persist for app lifetime)
 - Uses the system temp folder (no custom temp folder management yet)
 - Enables testability through the `IFileSystemService` abstraction

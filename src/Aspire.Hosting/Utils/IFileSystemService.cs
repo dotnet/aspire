@@ -119,11 +119,6 @@ public sealed class TempDirectory : IDisposable
         }
     }
 
-    /// <summary>
-    /// Implicitly converts a <see cref="TempDirectory"/> to its path string.
-    /// </summary>
-    /// <param name="tempDirectory">The temporary directory.</param>
-    public static implicit operator string(TempDirectory tempDirectory) => tempDirectory.Path;
 }
 
 /// <summary>
@@ -177,9 +172,4 @@ public sealed class TempFile : IDisposable
         }
     }
 
-    /// <summary>
-    /// Implicitly converts a <see cref="TempFile"/> to its path string.
-    /// </summary>
-    /// <param name="tempFile">The temporary file.</param>
-    public static implicit operator string(TempFile tempFile) => tempFile.Path;
 }

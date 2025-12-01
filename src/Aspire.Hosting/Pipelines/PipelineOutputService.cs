@@ -28,7 +28,7 @@ internal sealed class PipelineOutputService : IPipelineOutputService
         ArgumentNullException.ThrowIfNull(directoryService);
 
         _outputPath = options.Value.OutputPath is not null ? Path.GetFullPath(options.Value.OutputPath) : null;
-        _tempDirectory = directoryService.TempDirectory.CreateTempSubdirectory("aspire-pipelines");
+        _tempDirectory = directoryService.TempDirectory.CreateTempSubdirectory("aspire-pipelines").Path;
     }
 
     /// <inheritdoc/>

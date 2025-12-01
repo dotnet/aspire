@@ -47,7 +47,7 @@ internal sealed class AspireStore : IAspireStore
         filenameTemplate = Path.GetFileName(filenameTemplate);
 
         // Create a temporary file to write the content to.
-        var tempFileName = _directoryService.TempDirectory.CreateTempFile("aspire-store", "content.tmp");
+        var tempFileName = _directoryService.TempDirectory.CreateTempFile("aspire-store", "content.tmp").Path;
 
         // Fast, non-cryptographic hash.
         var hash = new XxHash3();
