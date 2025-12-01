@@ -34,16 +34,17 @@ public sealed class DurableTaskSchedulerResource(string name) : Resource(name), 
             return ReferenceExpression.Create($"Endpoint=http://{grpcEndpoint.Property(EndpointProperty.Host)}:{grpcEndpoint.Property(EndpointProperty.Port)};Authentication=None");
         }
 
-        static ReferenceExpression CreateReferenceExpression(object? value) => value is IResourceBuilder<ParameterResource> parameterResource
-            ? ReferenceExpression.Create($"{parameterResource}")
-            : ReferenceExpression.Create($"{value?.ToString() ?? String.Empty}");
-
         if (this.TryGetLastAnnotation<DurableTaskSchedulerConnectionStringAnnotation>(out var connectionStringAnnotation))
         {
-            return CreateReferenceExpression(connectionStringAnnotation.ConnectionString);
+            return connectionStringAnnotation.ConnectionString switch
+            {
+                ParameterResource parameterResource => ReferenceExpression.Create($"{parameterResource}"),
+                string value => ReferenceExpression.Create($"{value}"),
+                _ => throw new InvalidOperationException($"Unexpected connection string type: {connectionStringAnnotation.ConnectionString.GetType().Name}"),
+            };
         }
 
-        throw new NotImplementedException();
+        throw new InvalidOperationException("Unable to create the Durable Task Scheduler connection string.");
     }
 
     private ReferenceExpression CreateDashboardEndpoint()

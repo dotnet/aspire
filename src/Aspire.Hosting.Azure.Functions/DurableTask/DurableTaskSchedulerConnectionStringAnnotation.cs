@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure.DurableTask;
 /// Annotation that supplies the connection string for an existing Durable Task scheduler resource.
 /// </summary>
 /// <param name="connectionString">The connection string of the existing Durable Task scheduler.</param>
-public sealed class DurableTaskSchedulerConnectionStringAnnotation(object connectionString) : IResourceAnnotation
+internal sealed class DurableTaskSchedulerConnectionStringAnnotation(object connectionString) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the connection string of the existing Durable Task scheduler.

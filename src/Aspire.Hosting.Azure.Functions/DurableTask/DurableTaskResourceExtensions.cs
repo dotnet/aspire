@@ -54,7 +54,7 @@ public static class DurableTaskResourceExtensions
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
-            builder.WithAnnotation(new DurableTaskSchedulerConnectionStringAnnotation(connectionString));
+            builder.WithAnnotation(new DurableTaskSchedulerConnectionStringAnnotation(connectionString.Resource));
         }
 
         return builder;
@@ -103,11 +103,10 @@ public static class DurableTaskResourceExtensions
     /// </summary>
     /// <param name="builder">The scheduler resource builder.</param>
     /// <param name="name">The logical name of the task hub resource.</param>
-    /// <param name="taskHubName">The name of the Task Hub. If not provided, the logical name is used.</param>
     /// <returns>An <see cref="IResourceBuilder{TResource}"/> for the task hub resource.</returns>
-    public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name, string? taskHubName = null)
+    public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name)
     {
-        var hub = new DurableTaskHubResource(name, builder.Resource, taskHubName);
+        var hub = new DurableTaskHubResource(name, builder.Resource);
         var hubBuilder = builder.ApplicationBuilder.AddResource(hub);
 
         if (builder.Resource.IsEmulator)
@@ -128,5 +127,27 @@ public static class DurableTaskResourceExtensions
         }
 
         return hubBuilder;
+    }
+
+    /// <summary>
+    /// Sets the name of the Durable Task hub.
+    /// </summary>
+    /// <param name="builder">The task hub resource builder.</param>
+    /// <param name="taskHubName">The name of the Task Hub.</param>
+    /// <returns>The same <see cref="IResourceBuilder{DurableTaskHubResource}"/> instance for fluent chaining.</returns>
+    public static IResourceBuilder<DurableTaskHubResource> WithTaskHubName(this IResourceBuilder<DurableTaskHubResource> builder, string taskHubName)
+    {
+        return builder.WithAnnotation(new DurableTaskHubNameAnnotation(taskHubName));
+    }
+
+    /// <summary>
+    /// Sets the name of the Durable Task hub using a parameter resource.
+    /// </summary>
+    /// <param name="builder">The task hub resource builder.</param>
+    /// <param name="taskHubName">A parameter resource that resolves to the Task Hub name.</param>
+    /// <returns>The same <see cref="IResourceBuilder{DurableTaskHubResource}"/> instance for fluent chaining.</returns>
+    public static IResourceBuilder<DurableTaskHubResource> WithTaskHubName(this IResourceBuilder<DurableTaskHubResource> builder, IResourceBuilder<ParameterResource> taskHubName)
+    {
+        return builder.WithAnnotation(new DurableTaskHubNameAnnotation(taskHubName.Resource));
     }
 }

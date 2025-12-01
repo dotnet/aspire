@@ -12,8 +12,7 @@ namespace Aspire.Hosting.Azure.DurableTask;
 /// </summary>
 /// <param name="name">The logical name of the Task Hub (used as the TaskHub value).</param>
 /// <param name="scheduler">The durable task scheduler resource whose connection string is the base for this hub.</param>
-/// <param name="taskHubName">The name of the Task Hub. If not provided, the logical name is used.</param>
-public sealed class DurableTaskHubResource(string name, DurableTaskSchedulerResource scheduler, string? taskHubName = null)
+public sealed class DurableTaskHubResource(string name, DurableTaskSchedulerResource scheduler)
     : Resource(name), IResourceWithConnectionString, IResourceWithParent<DurableTaskSchedulerResource>
 {
     /// <summary>
@@ -29,5 +28,20 @@ public sealed class DurableTaskHubResource(string name, DurableTaskSchedulerReso
     /// <summary>
     /// Gets the name of the Task Hub. If not provided, the logical name of this resource is returned.
     /// </summary>
-    public string TaskHubName => taskHubName ?? Name;
+    public ReferenceExpression TaskHubName => GetTaskHubName();
+
+    private ReferenceExpression GetTaskHubName()
+    {
+        if (this.TryGetLastAnnotation<DurableTaskHubNameAnnotation>(out var taskHubNameAnnotation))
+        {
+            return taskHubNameAnnotation.HubName switch
+            {
+                ParameterResource parameter => ReferenceExpression.Create($"{parameter}"),
+                string hubName => ReferenceExpression.Create($"{hubName}"),
+                _ => throw new InvalidOperationException($"Unexpected Task Hub name type: {taskHubNameAnnotation.HubName.GetType().Name}")
+            };
+        }
+
+        return ReferenceExpression.Create($"{Name}");
+    }
 }
