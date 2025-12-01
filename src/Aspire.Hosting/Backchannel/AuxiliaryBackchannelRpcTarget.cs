@@ -126,4 +126,52 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             ApiToken = mcpApiKey
         };
     }
+
+    /// <summary>
+    /// Gets agent content for a specific resource in the AppHost.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The agent content text, or null if the resource doesn't have agent content configured.</returns>
+    public async Task<string?> GetResourceAgentContentAsync(string resourceName, CancellationToken cancellationToken = default)
+    {
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is null)
+        {
+            logger.LogWarning("Application model not found.");
+            return null;
+        }
+
+        // Find the resource by name
+        var resource = appModel.Resources.FirstOrDefault(r => 
+            string.Equals(r.Name, resourceName, StringComparisons.ResourceName));
+
+        if (resource is null)
+        {
+            logger.LogDebug("Resource '{ResourceName}' not found in application model.", resourceName);
+            return null;
+        }
+
+        // Check if the resource has an AgentContentAnnotation
+#pragma warning disable ASPIREAGENTCONTENT001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+        if (!resource.TryGetLastAnnotation<AgentContentAnnotation>(out var annotation))
+        {
+            logger.LogDebug("Resource '{ResourceName}' does not have agent content configured.", resourceName);
+            return null;
+        }
+
+        try
+        {
+            // Create the context and invoke the callback
+            var context = new AgentContentContext(resource, serviceProvider, cancellationToken);
+            await annotation.Callback(context).ConfigureAwait(false);
+            return context.GetContent();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting agent content for resource '{ResourceName}'.", resourceName);
+            return null;
+        }
+#pragma warning restore ASPIREAGENTCONTENT001
+    }
 }

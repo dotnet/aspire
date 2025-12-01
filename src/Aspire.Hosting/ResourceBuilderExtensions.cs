@@ -3182,4 +3182,33 @@ public static class ResourceBuilderExtensions
             context.Options.RemoteImageTag = remoteImageTag;
         });
     }
+
+    /// <summary>
+    /// Configures agent content for the resource. Agent content is text that can be retrieved by AI agents
+    /// to understand the resource and its configuration.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that generates agent content using the provided context.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// <code>
+    /// var postgres = builder.AddPostgres("pg")
+    ///     .WithAgentContent(async context =>
+    ///     {
+    ///         context.AppendLine("This is a PostgreSQL database used for user data.");
+    ///         context.AppendLine("Connection string format: Host=...;Database=...;Username=...;Password=...");
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREAGENTCONTENT001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithAgentContent<T>(this IResourceBuilder<T> builder, Func<AgentContentContext, Task> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+#pragma warning disable ASPIREAGENTCONTENT001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+        return builder.WithAnnotation(new AgentContentAnnotation(callback));
+#pragma warning restore ASPIREAGENTCONTENT001
+    }
 }
