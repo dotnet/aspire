@@ -31,12 +31,13 @@ internal class ResourceConfigurationGathererContext : IResourceConfigurationGath
     }
 
     /// <summary>
-    /// Resolve the actual IResourceConfiguration from the gatherer context.
+    /// Resolves the actual <see cref="IResourceConfiguration"/> from the gatherer context.
     /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains the resolved resource configuration.
+    /// </returns>
     internal async Task<IResourceConfiguration> ResolveAsync(CancellationToken cancellationToken = default)
-    {
         List<(string value, bool isSensitive)> resolvedArguments = new(Arguments.Count);
         Dictionary<string, string> resolvedEnvironmentVariables = new(EnvironmentVariables.Count);
         List<Exception> exceptions = new();
