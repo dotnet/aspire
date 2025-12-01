@@ -15,7 +15,7 @@ public class PathLookupHelperTests
         };
 
         // Act
-        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "/usr/bin:/usr/local/bin", ':', existingFiles.Contains);
+        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "/usr/bin:/usr/local/bin", ':', existingFiles.Contains, null);
 
         // Assert
         Assert.Equal(Path.Combine("/usr/bin", "mycommand"), result);
@@ -28,7 +28,7 @@ public class PathLookupHelperTests
         static bool AlwaysFalse(string _) => false;
 
         // Act
-        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "/usr/bin:/usr/local/bin", ':', AlwaysFalse);
+        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "/usr/bin:/usr/local/bin", ':', AlwaysFalse, null);
 
         // Assert
         Assert.Null(result);
@@ -41,7 +41,7 @@ public class PathLookupHelperTests
         static bool AlwaysFalse(string _) => false;
 
         // Act
-        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "", ':', AlwaysFalse);
+        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "", ':', AlwaysFalse, null);
 
         // Assert
         Assert.Null(result);
@@ -54,7 +54,7 @@ public class PathLookupHelperTests
         static bool AlwaysFalse(string _) => false;
 
         // Act
-        var result = PathLookupHelper.FindFullPathFromPath("mycommand", null, ':', AlwaysFalse);
+        var result = PathLookupHelper.FindFullPathFromPath("mycommand", null, ':', AlwaysFalse, null);
 
         // Assert
         Assert.Null(result);
@@ -71,7 +71,7 @@ public class PathLookupHelperTests
         };
 
         // Act
-        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "/first/path:/second/path", ':', existingFiles.Contains);
+        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "/first/path:/second/path", ':', existingFiles.Contains, null);
 
         // Assert
         Assert.Equal(Path.Combine("/first/path", "mycommand"), result);
@@ -80,16 +80,132 @@ public class PathLookupHelperTests
     [Fact]
     public void FindFullPathFromPath_UsesCorrectPathSeparator()
     {
-        // Arrange
+        // Arrange - use platform-agnostic paths for testing
+        var dir = Path.Combine("testdir", "bin");
+        var expectedPath = Path.Combine(dir, "mycommand");
         var existingFiles = new HashSet<string>
         {
-            Path.Combine("C:\\Windows\\System32", "mycommand")
+            expectedPath
         };
 
         // Act
-        var result = PathLookupHelper.FindFullPathFromPath("mycommand", "C:\\Windows\\System32;C:\\Program Files", ';', existingFiles.Contains);
+        var result = PathLookupHelper.FindFullPathFromPath("mycommand", $"{dir};otherdir", ';', existingFiles.Contains, null);
 
         // Assert
-        Assert.Equal(Path.Combine("C:\\Windows\\System32", "mycommand"), result);
+        Assert.Equal(expectedPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_FindsCommandWithExtension()
+    {
+        // Arrange - simulate Windows behavior where "code" is actually "code.CMD"
+        var dir = Path.Combine("testdir", "bin");
+        var expectedPath = Path.Combine(dir, "code.CMD");
+        var existingFiles = new HashSet<string>
+        {
+            expectedPath
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - searching for "code" should find "code.CMD"
+        var result = PathLookupHelper.FindFullPathFromPath("code", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Equal(expectedPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_FindsFirstMatchingExtension()
+    {
+        // Arrange - when multiple extensions match, returns the first one in PATHEXT order
+        var dir = Path.Combine("testdir", "bin");
+        var exePath = Path.Combine(dir, "code.EXE");
+        var cmdPath = Path.Combine(dir, "code.CMD");
+        var existingFiles = new HashSet<string>
+        {
+            exePath,
+            cmdPath
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - should find .EXE before .CMD because .EXE comes first in PATHEXT
+        var result = PathLookupHelper.FindFullPathFromPath("code", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Equal(exePath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_PrefersExactMatchOverExtension()
+    {
+        // Arrange - when the command exists without extension, it's preferred
+        var dir = Path.Combine("testdir", "bin");
+        var exactPath = Path.Combine(dir, "code");
+        var cmdPath = Path.Combine(dir, "code.CMD");
+        var existingFiles = new HashSet<string>
+        {
+            exactPath,
+            cmdPath
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - should find "code" exactly, not "code.CMD"
+        var result = PathLookupHelper.FindFullPathFromPath("code", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Equal(exactPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_DoesNotDuplicateExtension()
+    {
+        // Arrange - when command already has extension, don't duplicate it
+        var dir = Path.Combine("testdir", "bin");
+        var expectedPath = Path.Combine(dir, "code.CMD");
+        var existingFiles = new HashSet<string>
+        {
+            expectedPath
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - searching for "code.CMD" should find "code.CMD", not "code.CMD.CMD"
+        var result = PathLookupHelper.FindFullPathFromPath("code.CMD", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Equal(expectedPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithNullPathExtensions_DoesNotTryExtensions()
+    {
+        // Arrange - simulate non-Windows behavior where PATHEXT is not used
+        var dir = "/usr/bin";
+        var existingFiles = new HashSet<string>
+        {
+            Path.Combine(dir, "code.cmd")
+        };
+
+        // Act - with null pathExtensions, should NOT find "code.cmd" when searching for "code"
+        var result = PathLookupHelper.FindFullPathFromPath("code", dir, ':', existingFiles.Contains, null);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithEmptyPathExtensions_DoesNotTryExtensions()
+    {
+        // Arrange
+        var dir = "/usr/bin";
+        var existingFiles = new HashSet<string>
+        {
+            Path.Combine(dir, "code.cmd")
+        };
+
+        // Act - with empty pathExtensions array, should NOT find "code.cmd" when searching for "code"
+        var result = PathLookupHelper.FindFullPathFromPath("code", dir, ':', existingFiles.Contains, []);
+
+        // Assert
+        Assert.Null(result);
     }
 }
