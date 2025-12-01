@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace Aspire.Hosting.Azure;
@@ -60,7 +58,7 @@ public sealed class AzureStorageEmulatorAccount
     /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or empty.</exception>
     public AzureStorageEmulatorAccount(string name, string? key = null)
     {
-        ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
         Name = name;
         Key = key ?? GenerateAccountKey();
     }
@@ -86,10 +84,5 @@ public sealed class AzureStorageEmulatorAccount
         var keyBytes = new byte[64];
         RandomNumberGenerator.Fill(keyBytes);
         return Convert.ToBase64String(keyBytes);
-    }
-
-    private static void ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
     }
 }
