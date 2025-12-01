@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Semver;
 
@@ -19,9 +20,16 @@ internal sealed class VsCodeCliRunner(ILogger<VsCodeCliRunner> logger) : IVsCode
         var command = options.UseInsiders ? "code-insiders" : "code";
         logger.LogDebug("Checking for VS Code CLI installation using command: {Command}", command);
 
+        var executablePath = PathLookupHelper.FindFullPathFromPath(command);
+        if (executablePath is null)
+        {
+            logger.LogDebug("VS Code CLI ({Command}) is not installed or not found in PATH", command);
+            return null;
+        }
+
         try
         {
-            var startInfo = new ProcessStartInfo(command, "--version")
+            var startInfo = new ProcessStartInfo(executablePath, "--version")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
