@@ -120,13 +120,15 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         }
                         else
                         {
-                            ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation on the environment resource", false);
+                            ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
                         }
                     }
                 },
-                Tags = ["check-website-exists"],
+                Tags = ["update-website-provisionable-resource"],
                 DependsOnSteps = new List<string> { "create-provisioning-context" },
             };
+
+            steps.Add(updateResourceStep);
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
@@ -194,8 +196,11 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             // The app deployment should depend on the push step
             provisionSteps.DependsOn(pushSteps);
 
+            // Ensure website existence check and resource update steps run before provision
             var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
-            provisionSteps.DependsOn(checkWebsiteExistsSteps);
+            var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
+            updateWebsiteResourceSteps.DependsOn(checkWebsiteExistsSteps);
+            provisionSteps.DependsOn(updateWebsiteResourceSteps);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
