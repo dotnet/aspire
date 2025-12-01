@@ -1,4 +1,3 @@
-#!/usr/bin/env dotnet
 #:package Microsoft.Extensions.FileSystemGlobbing
 
 using System.Collections.Concurrent;
