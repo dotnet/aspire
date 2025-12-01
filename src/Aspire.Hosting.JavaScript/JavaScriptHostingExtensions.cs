@@ -271,6 +271,12 @@ public static class JavaScriptHostingExtensions
 
     private static void AddInstallCommand(this DockerfileStage builderStage, JavaScriptPackageManagerAnnotation packageManager, JavaScriptInstallCommandAnnotation installCommand)
     {
+        // pnpm is not included in the Node.js Docker image by default, so we need to enable it via corepack
+        if (packageManager.ExecutableName == "pnpm")
+        {
+            builderStage.Run("corepack enable pnpm");
+        }
+
         // Use BuildKit cache mount for package manager cache if available
         var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
         if (!string.IsNullOrEmpty(packageManager.CacheMount))
