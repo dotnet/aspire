@@ -38,6 +38,7 @@ internal class ResourceConfigurationGathererContext : IResourceConfigurationGath
     /// A task that represents the asynchronous operation. The task result contains the resolved resource configuration.
     /// </returns>
     internal async Task<IResourceConfiguration> ResolveAsync(CancellationToken cancellationToken = default)
+    {
         List<(string value, bool isSensitive)> resolvedArguments = new(Arguments.Count);
         Dictionary<string, string> resolvedEnvironmentVariables = new(EnvironmentVariables.Count);
         List<Exception> exceptions = new();
