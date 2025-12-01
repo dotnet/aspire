@@ -15,5 +15,5 @@ public class ViteAppResource(string name, string command, string workingDirector
     /// <summary>
     /// Gets or sets the path to the Vite configuration file.
     /// </summary>
-    public string? ViteConfigPath { get; set; }
+    internal string? ViteConfigPath { get; set; }
 }

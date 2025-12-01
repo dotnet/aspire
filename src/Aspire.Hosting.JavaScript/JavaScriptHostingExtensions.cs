@@ -26,8 +26,8 @@ public static class JavaScriptHostingExtensions
 {
     private const string DefaultNodeVersion = "22";
 
-    // See https://github.com/vitejs/vite/blob/4f8171eb3046bd70c83964689897dab4c6b58bc0/packages/vite/src/node/constants.ts#L97
     // This is the order of config files that Vite will look for by default
+    // See https://github.com/vitejs/vite/blob/main/packages/vite/src/node/constants.ts#L97
     private static readonly string[] s_defaultConfigFiles = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs", "vite.config.mts", "vite.config.cts"];
 
     // The token to replace with the relative path to the user's Vite config file
@@ -540,7 +540,7 @@ public static class JavaScriptHostingExtensions
                         _ => null,
                     };
 
-                    if (configTarget is null)
+                    if (string.IsNullOrEmpty(configTarget))
                     {
                         // Couldn't determine the config target, so don't modify anything
                         return;
@@ -556,12 +556,12 @@ public static class JavaScriptHostingExtensions
                     return;
                 }
 
-                if (configTarget is null)
+                if (string.IsNullOrEmpty(configTarget))
                 {
                     // The user didn't specify a specific vite config file, so we need to look for one of the default config files
                     foreach (var configFile in s_defaultConfigFiles)
                     {
-                        var candidatePath = Path.Join(appDirectory, configFile);
+                        var candidatePath = Path.GetFullPath(Path.Join(appDirectory, configFile));
                         if (File.Exists(candidatePath))
                         {
                             configTarget = candidatePath;
@@ -597,9 +597,13 @@ public static class JavaScriptHostingExtensions
                             ctx.EnvironmentVariables["TLS_CONFIG_PASSWORD"] = ctx.Password;
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // TODO: Log failure to write Aspire Vite config file
+                        var resourceLoggerService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                        var resourceLogger = resourceLoggerService.GetLogger(resource);
+
+                        resourceLogger.LogWarning(ex, "Failed to generate Aspire Vite HTTPS config wrapper for resource '{ResourceName}'. Falling back to existing Vite config without Aspire modifications. Automatic HTTPS configuration won't be available", resource.Name);
+
                         if (!string.IsNullOrEmpty(configTarget))
                         {
                             // Fallback to using the existing config target
@@ -612,7 +616,7 @@ public static class JavaScriptHostingExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, _) =>
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
@@ -633,6 +637,8 @@ public static class JavaScriptHostingExtensions
 
                 if (addHttps)
                 {
+                    // Vite only supports a single endpoint, so we have to modify the existing endpoint to use HTTPS instead of
+                    // adding a new one.
                     resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
                 }
 
@@ -644,11 +650,22 @@ public static class JavaScriptHostingExtensions
     }
 
     /// <summary>
-    /// Configures the Vite app to use the specified Vite configuration file.
+    /// Configures the Vite app to use the specified Vite configuration file instead of the default resolution behavior.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="configPath">The path to the Vite configuration file. Relative to the service root.</param>
+    /// <param name="configPath">The path to the Vite configuration file. Relative to the Vite service project root.</param>
     /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// Use this method to specify a specific Vite configuration file if you need to override the default Vite configuration resolution behavior.
+    /// </remarks>
+    /// <example>
+    /// Use a custom Vite configuration file:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var viteApp = builder.AddViteApp("frontend", "./frontend")
+    ///     .WithViteConfig("./vite.production.config.js");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<ViteAppResource> WithViteConfig(this IResourceBuilder<ViteAppResource> builder, string configPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
