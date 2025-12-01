@@ -113,7 +113,6 @@ internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigur
             context.ResourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", context.Resource.Name, Enum.GetName(metadata.Scope));
         }
 
-        return;
     }
 }
 
