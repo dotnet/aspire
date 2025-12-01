@@ -40,7 +40,8 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_structured_logs"] = new ListStructuredLogsTool(),
             ["list_traces"] = new ListTracesTool(),
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
-            ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext)
+            ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
+            ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext)
         };
     }
 
@@ -99,8 +100,8 @@ internal sealed class McpStartCommand : BaseCommand
 
         if (_tools.TryGetValue(toolName, out var tool))
         {
-            // Handle select_apphost tool specially - it doesn't need an MCP connection
-            if (toolName == "select_apphost")
+            // Handle select_apphost and list_apphosts tools specially - they don't need an MCP connection
+            if (toolName is "select_apphost" or "list_apphosts")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }
@@ -238,9 +239,12 @@ internal sealed class McpStartCommand : BaseCommand
                 $"Use the 'select_apphost' tool to specify which AppHost to use.\n\nRunning AppHosts:\n{pathsList}",
                 McpErrorCode.InternalError);
         }
+        else
+        {
+            _logger.LogDebug("No in-scope AppHosts found in scope: {WorkingDirectory}", _executionContext.WorkingDirectory);
+            throw new McpProtocolException(
 
-        // No in-scope connections, fall back to first available
-        _logger.LogDebug("No in-scope AppHost found, using first available connection");
-        return connections.FirstOrDefault();
+                $"No Aspire AppHosts are running in the scope of the MCP server's working directory: {_executionContext.WorkingDirectory}");
+        }
     }
 }
