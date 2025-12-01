@@ -4,50 +4,86 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
-if (args.Length < 3)
+if (args.Length == 0 || args.Contains("--help") || args.Contains("-h"))
 {
-    Console.Error.WriteLine("""
-        Usage: dotnet replace-text.cs <paths> <find1> <replace1> [<find2> <replace2> ...]
-
-        Arguments:
-          <paths>    One or more file/directory paths or glob patterns separated by semicolons (e.g., ./path/to/file.cs;./path/to/directory;./**/*.cs;./**/*.csproj)
-          <findN>    Text to find in matched files
-          <replaceN> Text to replace the found text with
-
-        Example:
-          dotnet replace-text.cs "./**/*.cs;./**/*.csproj" "!!VERSION!!" "7.0.5" "!!MAJOR_MINOR!!" "7.0"
-        """);
-    return 1;
+    PrintUsage();
+    return args.Length == 0 ? 1 : 0;
 }
 
-var paths = args[0].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-var replacementArgs = args.Skip(1).ToArray();
-
-if (replacementArgs.Length % 2 != 0)
-{
-    Console.Error.WriteLine("""
-        Error: Replacement arguments must be provided in pairs (find, replace).
-               Received {replacementArgs.Length} arguments after the paths.
-        """);
-    return 1;
-}
-
+// Parse arguments
+var paths = new List<string>();
 var replacements = new List<(string Find, string Replace)>();
-for (var i = 0; i < replacementArgs.Length; i += 2)
+var currentMode = (string?)null;
+var replacementBuffer = new List<string>();
+
+for (var i = 0; i < args.Length; i++)
 {
-    var find = replacementArgs[i];
-    var replace = replacementArgs[i + 1];
+    var arg = args[i];
+
+    if (arg == "--files")
+    {
+        currentMode = "files";
+        continue;
+    }
+    else if (arg == "--replacements")
+    {
+        currentMode = "replacements";
+        continue;
+    }
+
+    if (currentMode == "files")
+    {
+        paths.Add(arg);
+    }
+    else if (currentMode == "replacements")
+    {
+        replacementBuffer.Add(arg);
+    }
+    else
+    {
+        Console.Error.WriteLine($"Error: Unexpected argument '{arg}'. Use --files or --replacements to specify argument type.");
+        return 1;
+    }
+}
+
+// Validate paths
+if (paths.Count == 0)
+{
+    Console.Error.WriteLine("Error: No file paths provided. Use --files to specify paths.");
+    PrintUsage();
+    return 1;
+}
+
+// Validate and parse replacements
+if (replacementBuffer.Count == 0)
+{
+    Console.Error.WriteLine("Error: No replacements provided. Use --replacements to specify find/replace pairs.");
+    PrintUsage();
+    return 1;
+}
+
+if (replacementBuffer.Count % 2 != 0)
+{
+    Console.Error.WriteLine($"Error: Replacement arguments must be provided in pairs (find, replace).");
+    Console.Error.WriteLine($"       Received {replacementBuffer.Count} arguments after --replacements.");
+    return 1;
+}
+
+for (var i = 0; i < replacementBuffer.Count; i += 2)
+{
+    var find = replacementBuffer[i];
+    var replace = replacementBuffer[i + 1];
 
     if (string.IsNullOrEmpty(find))
     {
-        Console.Error.WriteLine($"Error: Find text at position {i + 2} cannot be empty.");
+        Console.Error.WriteLine($"Error: Find text at position {i + 1} in --replacements cannot be empty.");
         return 1;
     }
 
     replacements.Add((find, replace));
 }
 
-Console.WriteLine($"Paths: {paths.Length}");
+Console.WriteLine($"Paths: {paths.Count}");
 foreach (var path in paths)
 {
     Console.WriteLine($"  '{path}'");
@@ -157,4 +193,19 @@ if (errorCount > 0)
 }
 
 return 0;
+
+static void PrintUsage()
+{
+    Console.Error.WriteLine("""
+        Usage: dotnet replace-text.cs --files <path1> [path2] ... --replacements <find1> <replace1> [<find2> <replace2> ...]
+
+        Arguments:
+          --files         One or more file paths, directory paths, or glob patterns
+          --replacements  Pairs of find/replace text values
+
+        Examples:
+          dotnet replace-text.cs --files "./src/**/*.cs" "./src/**/*.csproj" --replacements "!!VERSION!!" "7.0.5" "!!MAJOR_MINOR!!" "7.0"
+          dotnet replace-text.cs --files ./path/to/file.cs --replacements "oldText" "newText"
+        """);
+}
 
