@@ -449,8 +449,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
 
-        // If playwright workspace is enabled, add its details to appsettings
-        if (environmentContext.Environment.AddAzurePlaywrightWorkspace)
+        // If playwright workspace is enabled for the environment and this app has enabled Playwright testing, add its details to appsettings
+        if (environmentContext.Environment.AddAzurePlaywrightWorkspace && 
+            resource.TryGetLastAnnotation<EnablePlaywrightTestingAnnotation>(out _))
         {
             var playwrightWorkspaceName = environmentContext.Environment.PlaywrightWorkspaceName.AsProvisioningParameter(Infra);
             var playwrightWorkspaceId = environmentContext.Environment.PlaywrightWorkspaceId.AsProvisioningParameter(Infra);
