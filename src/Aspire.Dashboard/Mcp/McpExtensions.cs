@@ -48,6 +48,14 @@ public static class McpExtensions
                 ## Tools
 
                 """;
+            // Configure server capabilities to support ListChanged event for dynamic tool discovery
+            options.Capabilities = new ServerCapabilities
+            {
+                Tools = new ToolsCapability
+                {
+                    ListChanged = true
+                }
+            };
         }).WithHttpTransport();
 
         // Always register telemetry tools

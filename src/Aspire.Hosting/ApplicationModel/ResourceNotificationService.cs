@@ -616,10 +616,11 @@ public class ResourceNotificationService : IDisposable
 
             if (resource.TryGetAnnotationsOfType<McpEndpointAnnotation>(out var mcpAnnotations))
             {
-                _logger.LogInformation("Resource {ResourceName} has {Count} MCP endpoint annotations.", resource.Name, mcpAnnotations.Count());
+                _logger.LogDebug("Resource {ResourceName} has {Count} MCP endpoint annotations.", resource.Name, mcpAnnotations.Count());
 
                 var resolvedEndpoints = new List<McpEndpointDefinition>();
 
+                // Resolve endpoints or static urls, each ultimately materialized as an McpEndpointDefinition
                 foreach (var annotation in mcpAnnotations)
                 {
                     Uri? uri = null;
