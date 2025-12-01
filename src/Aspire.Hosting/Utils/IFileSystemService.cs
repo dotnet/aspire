@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -10,6 +12,7 @@ namespace Aspire.Hosting;
 /// This service provides a centralized way to manage directories used by Aspire,
 /// including temporary files, cache, and other storage needs.
 /// </remarks>
+[Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IFileSystemService
 {
     /// <summary>
@@ -27,6 +30,7 @@ public interface IFileSystemService
 /// <summary>
 /// Service for managing temporary directories and files within Aspire.
 /// </summary>
+[Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface ITempFileSystemService
 {
     /// <summary>

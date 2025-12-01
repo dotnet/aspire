@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREFILESYSTEM001
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -155,6 +156,7 @@ public interface IDistributedApplicationBuilder
     /// environment variable or the Aspire:TempDirectory configuration setting.
     /// </para>
     /// </remarks>
+    [Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public IFileSystemService FileSystemService => throw new NotImplementedException();
 
     /// <summary>
