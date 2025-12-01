@@ -8,6 +8,8 @@ namespace Aspire.Hosting.Azure;
 internal static class AzureStorageEmulatorConnectionString
 {
     // Default emulator account credentials (these are well-known public values)
+    // Note: These are duplicated from AzureStorageEmulatorAccount because this file 
+    // is compiled directly by the test project which doesn't have access to the account class.
     private const string DefaultAccountName = "devstoreaccount1";
     private const string DefaultAccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
