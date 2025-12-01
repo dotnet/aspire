@@ -388,6 +388,7 @@ public class ResourceConfigurationGathererTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:password"] = "test-password";
         var cert = CreateTestCertificate();
         var password = builder.AddParameter("password", secret: true);
 
