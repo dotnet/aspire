@@ -13,12 +13,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class ResourceConfigurationGathererTests
+public class ResourceExecutionConfigurationGathererTests
 {
-    #region ResourceArgumentsConfigurationGatherer Tests
+    #region ArgumentsExecutionConfigurationGatherer Tests
 
     [Fact]
-    public async Task ResourceArgumentsConfigurationGatherer_WithCommandLineArgsCallback_GathersArguments()
+    public async Task ArgumentsExecutionConfigurationGatherer_WithCommandLineArgsCallback_GathersArguments()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -27,7 +27,7 @@ public class ResourceConfigurationGathererTests
             .Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceArgumentsConfigurationGatherer();
+        var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -39,7 +39,7 @@ public class ResourceConfigurationGathererTests
     }
 
     [Fact]
-    public async Task ResourceArgumentsConfigurationGatherer_WithMultipleCallbacks_GathersAllArguments()
+    public async Task ArgumentsExecutionConfigurationGatherer_WithMultipleCallbacks_GathersAllArguments()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -49,7 +49,7 @@ public class ResourceConfigurationGathererTests
             .Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceArgumentsConfigurationGatherer();
+        var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -61,14 +61,14 @@ public class ResourceConfigurationGathererTests
     }
 
     [Fact]
-    public async Task ResourceArgumentsConfigurationGatherer_NoArgsAnnotations_DoesNothing()
+    public async Task ArgumentsExecutionConfigurationGatherer_NoArgsAnnotations_DoesNothing()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddExecutable("test", "test.exe", ".").Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceArgumentsConfigurationGatherer();
+        var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -78,7 +78,7 @@ public class ResourceConfigurationGathererTests
     }
 
     [Fact]
-    public async Task ResourceArgumentsConfigurationGatherer_AsyncCallback_ExecutesCorrectly()
+    public async Task ArgumentsExecutionConfigurationGatherer_AsyncCallback_ExecutesCorrectly()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -91,7 +91,7 @@ public class ResourceConfigurationGathererTests
             .Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceArgumentsConfigurationGatherer();
+        var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -103,10 +103,10 @@ public class ResourceConfigurationGathererTests
 
     #endregion
 
-    #region ResourceEnvironmentVariablesConfigurationGatherer Tests
+    #region EnvironmentVariablesExecutionConfigurationGatherer Tests
 
     [Fact]
-    public async Task ResourceEnvironmentVariablesConfigurationGatherer_WithEnvironmentCallback_GathersEnvironmentVariables()
+    public async Task EnvironmentVariablesExecutionConfigurationGatherer_WithEnvironmentCallback_GathersEnvironmentVariables()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -116,7 +116,7 @@ public class ResourceConfigurationGathererTests
             .Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceEnvironmentVariablesConfigurationGatherer();
+        var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -128,7 +128,7 @@ public class ResourceConfigurationGathererTests
     }
 
     [Fact]
-    public async Task ResourceEnvironmentVariablesConfigurationGatherer_WithMultipleCallbacks_GathersAllVariables()
+    public async Task EnvironmentVariablesExecutionConfigurationGatherer_WithMultipleCallbacks_GathersAllVariables()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -138,7 +138,7 @@ public class ResourceConfigurationGathererTests
             .Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceEnvironmentVariablesConfigurationGatherer();
+        var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -150,14 +150,14 @@ public class ResourceConfigurationGathererTests
     }
 
     [Fact]
-    public async Task ResourceEnvironmentVariablesConfigurationGatherer_NoEnvironmentAnnotations_DoesNothing()
+    public async Task EnvironmentVariablesExecutionConfigurationGatherer_NoEnvironmentAnnotations_DoesNothing()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddContainer("test", "image").Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceEnvironmentVariablesConfigurationGatherer();
+        var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -167,7 +167,7 @@ public class ResourceConfigurationGathererTests
     }
 
     [Fact]
-    public async Task ResourceEnvironmentVariablesConfigurationGatherer_AsyncCallback_ExecutesCorrectly()
+    public async Task EnvironmentVariablesExecutionConfigurationGatherer_AsyncCallback_ExecutesCorrectly()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -180,7 +180,7 @@ public class ResourceConfigurationGathererTests
             .Resource;
 
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceEnvironmentVariablesConfigurationGatherer();
+        var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
         await gatherer.GatherAsync(context);
@@ -192,11 +192,11 @@ public class ResourceConfigurationGathererTests
 
     #endregion
 
-    #region ResourceCertificateTrustConfigurationGatherer Tests
+    #region CertificateTrustExecutionConfigurationGatherer Tests
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceCertificateTrustConfigurationGatherer_WithCertificateAuthorityCollection_SetsEnvironmentVariables()
+    public async Task CertificateTrustExecutionConfigurationGatherer_WithCertificateAuthorityCollection_SetsEnvironmentVariables()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -209,21 +209,21 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceCertificateTrustConfigurationGatherer(configContextFactory);
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
 
         // Assert
         Assert.Contains("SSL_CERT_DIR", context.EnvironmentVariables.Keys);
-        var metadata = context.Metadata.OfType<CertificateTrustConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<CertificateTrustExecutionConfigurationData>().Single();
         Assert.Equal(CertificateTrustScope.Append, metadata.Scope);
         Assert.NotEmpty(metadata.Certificates);
     }
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceCertificateTrustConfigurationGatherer_WithSystemScope_IncludesSystemCertificates()
+    public async Task CertificateTrustExecutionConfigurationGatherer_WithSystemScope_IncludesSystemCertificates()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -237,7 +237,7 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceCertificateTrustConfigurationGatherer(configContextFactory);
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
@@ -245,7 +245,7 @@ public class ResourceConfigurationGathererTests
         // Assert
         Assert.Contains("SSL_CERT_FILE", context.EnvironmentVariables.Keys);
         Assert.Contains("SSL_CERT_DIR", context.EnvironmentVariables.Keys);
-        var metadata = context.Metadata.OfType<CertificateTrustConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<CertificateTrustExecutionConfigurationData>().Single();
         Assert.Equal(CertificateTrustScope.System, metadata.Scope);
         // System scope should include system root certificates
         Assert.True(metadata.Certificates.Count > 1);
@@ -253,7 +253,7 @@ public class ResourceConfigurationGathererTests
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceCertificateTrustConfigurationGatherer_WithOverrideScope_SetsCorrectEnvironmentVariables()
+    public async Task CertificateTrustExecutionConfigurationGatherer_WithOverrideScope_SetsCorrectEnvironmentVariables()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -267,7 +267,7 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceCertificateTrustConfigurationGatherer(configContextFactory);
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
@@ -275,13 +275,13 @@ public class ResourceConfigurationGathererTests
         // Assert
         Assert.Contains("SSL_CERT_FILE", context.EnvironmentVariables.Keys);
         Assert.Contains("SSL_CERT_DIR", context.EnvironmentVariables.Keys);
-        var metadata = context.Metadata.OfType<CertificateTrustConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<CertificateTrustExecutionConfigurationData>().Single();
         Assert.Equal(CertificateTrustScope.Override, metadata.Scope);
     }
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceCertificateTrustConfigurationGatherer_WithNoneScope_DoesNotSetEnvironmentVariables()
+    public async Task CertificateTrustExecutionConfigurationGatherer_WithNoneScope_DoesNotSetEnvironmentVariables()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -295,7 +295,7 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceCertificateTrustConfigurationGatherer(configContextFactory);
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
@@ -303,12 +303,12 @@ public class ResourceConfigurationGathererTests
         // Assert
         Assert.DoesNotContain("SSL_CERT_FILE", context.EnvironmentVariables.Keys);
         Assert.DoesNotContain("SSL_CERT_DIR", context.EnvironmentVariables.Keys);
-        var metadata = context.Metadata.OfType<CertificateTrustConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<CertificateTrustExecutionConfigurationData>().Single();
         Assert.Equal(CertificateTrustScope.None, metadata.Scope);
     }
 
     [Fact]
-    public async Task ResourceCertificateTrustConfigurationGatherer_NoCertificateAnnotation_DoesNothing()
+    public async Task CertificateTrustExecutionConfigurationGatherer_NoCertificateAnnotation_DoesNothing()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -316,7 +316,7 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceCertificateTrustConfigurationGatherer(configContextFactory);
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
@@ -328,7 +328,7 @@ public class ResourceConfigurationGathererTests
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceCertificateTrustConfigurationGatherer_WithAppendScope_DoesNotSetSSL_CERT_FILE()
+    public async Task CertificateTrustExecutionConfigurationGatherer_WithAppendScope_DoesNotSetSSL_CERT_FILE()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -342,7 +342,7 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceCertificateTrustConfigurationGatherer(configContextFactory);
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
@@ -354,11 +354,11 @@ public class ResourceConfigurationGathererTests
 
     #endregion
 
-    #region ResourceServerAuthenticationCertificateConfigurationGatherer Tests
+    #region ServerAuthenticationCertificateExecutionConfigurationGatherer Tests
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceServerAuthenticationCertificateConfigurationGatherer_WithCertificate_ConfiguresMetadata()
+    public async Task ServerAuthenticationCertificateExecutionConfigurationGatherer_WithCertificate_ConfiguresMetadata()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -370,13 +370,13 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory);
+        var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
 
         // Assert
-        var metadata = context.Metadata.OfType<ServerAuthenticationCertificateConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<ServerAuthenticationCertificateExecutionConfigurationData>().Single();
         Assert.Equal(cert, metadata.Certificate);
         Assert.NotNull(metadata.KeyPathReference);
         Assert.NotNull(metadata.PfxPathReference);
@@ -384,7 +384,7 @@ public class ResourceConfigurationGathererTests
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceServerAuthenticationCertificateConfigurationGatherer_WithPassword_StoresPassword()
+    public async Task ServerAuthenticationCertificateExecutionConfigurationGatherer_WithPassword_StoresPassword()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -402,19 +402,19 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory);
+        var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
 
         // Assert
-        var metadata = context.Metadata.OfType<ServerAuthenticationCertificateConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<ServerAuthenticationCertificateExecutionConfigurationData>().Single();
         Assert.NotNull(metadata.Password);
     }
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceServerAuthenticationCertificateConfigurationGatherer_WithUseDeveloperCertificate_UsesDeveloperCert()
+    public async Task ServerAuthenticationCertificateExecutionConfigurationGatherer_WithUseDeveloperCertificate_UsesDeveloperCert()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -432,18 +432,18 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext, builder.Services.BuildServiceProvider());
-        var gatherer = new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory);
+        var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
 
         // Assert
-        var metadata = context.Metadata.OfType<ServerAuthenticationCertificateConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<ServerAuthenticationCertificateExecutionConfigurationData>().Single();
         Assert.Equal(devCert, metadata.Certificate);
     }
 
     [Fact]
-    public async Task ResourceServerAuthenticationCertificateConfigurationGatherer_NoCertificateAnnotation_DoesNothing()
+    public async Task ServerAuthenticationCertificateExecutionConfigurationGatherer_NoCertificateAnnotation_DoesNothing()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -451,18 +451,18 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory);
+        var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
 
         // Assert
-        Assert.Empty(context.Metadata.OfType<ServerAuthenticationCertificateConfigurationMetadata>());
+        Assert.Empty(context.AdditionalConfigurationData.OfType<ServerAuthenticationCertificateExecutionConfigurationData>());
     }
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceServerAuthenticationCertificateConfigurationGatherer_TracksReferenceUsage()
+    public async Task ServerAuthenticationCertificateExecutionConfigurationGatherer_TracksReferenceUsage()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -474,13 +474,13 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory);
+        var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
 
         // Assert
-        var metadata = context.Metadata.OfType<ServerAuthenticationCertificateConfigurationMetadata>().Single();
+        var metadata = context.AdditionalConfigurationData.OfType<ServerAuthenticationCertificateExecutionConfigurationData>().Single();
 
         // Initially, references should not be resolved
         Assert.False(metadata.IsKeyPathReferenced);
@@ -497,7 +497,7 @@ public class ResourceConfigurationGathererTests
 
     [Fact]
     [RequiresCertificateStoreAccess]
-    public async Task ResourceServerAuthenticationCertificateConfigurationGatherer_WithCallback_ExecutesCallback()
+    public async Task ServerAuthenticationCertificateExecutionConfigurationGatherer_WithCallback_ExecutesCallback()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -515,7 +515,7 @@ public class ResourceConfigurationGathererTests
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = CreateGathererContext(resource, builder.ExecutionContext);
-        var gatherer = new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory);
+        var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
         await gatherer.GatherAsync(context);
@@ -528,7 +528,7 @@ public class ResourceConfigurationGathererTests
 
     #region Helper Methods
 
-    private static ResourceConfigurationGathererContext CreateGathererContext(
+    private static ResourceExecutionConfigurationGathererContext CreateGathererContext(
         IResource resource,
         DistributedApplicationExecutionContext executionContext,
         IServiceProvider? serviceProvider = null)
@@ -540,7 +540,7 @@ public class ResourceConfigurationGathererTests
         };
         var execContext = new DistributedApplicationExecutionContext(options);
 
-        return new ResourceConfigurationGathererContext
+        return new ResourceExecutionConfigurationGathererContext
         {
             Resource = resource,
             ResourceLogger = NullLogger.Instance,
@@ -567,18 +567,18 @@ public class ResourceConfigurationGathererTests
         return request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
     }
 
-    private static Func<CertificateTrustScope, CertificateTrustConfigurationContext> CreateCertificateTrustConfigurationContextFactory()
+    private static Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> CreateCertificateTrustConfigurationContextFactory()
     {
-        return scope => new CertificateTrustConfigurationContext
+        return scope => new CertificateTrustExecutionConfigurationContext
         {
             CertificateBundlePath = ReferenceExpression.Create($"/etc/ssl/certs/ca-bundle.crt"),
             CertificateDirectoriesPath = ReferenceExpression.Create($"/etc/ssl/certs")
         };
     }
 
-    private static Func<X509Certificate2, ServerAuthenticationCertificateConfigurationContext> CreateServerAuthenticationCertificateConfigurationContextFactory()
+    private static Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> CreateServerAuthenticationCertificateConfigurationContextFactory()
     {
-        return cert => new ServerAuthenticationCertificateConfigurationContext
+        return cert => new ServerAuthenticationCertificateExecutionConfigurationContext
         {
             CertificatePath = ReferenceExpression.Create($"/etc/ssl/certs/server.crt"),
             KeyPath = ReferenceExpression.Create($"/etc/ssl/private/server.key"),
@@ -596,7 +596,7 @@ public class ResourceConfigurationGathererTests
         }
 
         public ImmutableList<X509Certificate2> Certificates =>
-            _certificate != null ? ImmutableList.Create(_certificate) : ImmutableList<X509Certificate2>.Empty;
+            _certificate != null ? [_certificate] : ImmutableList<X509Certificate2>.Empty;
 
         public bool SupportsContainerTrust => true;
 

@@ -7,13 +7,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Gathers resource configurations (arguments and environment variables) and optionally
 /// applies additional metadata to the resource.
 /// </summary>
-public interface IResourceConfigurationGatherer
+public interface IResourceExecutionConfigurationGatherer
 {
     /// <summary>
-    /// Gathers the relevant resource configuration.
+    /// Gathers the relevant resource execution configuration (arguments, environment variables, and optionally additional custom data)
     /// </summary>
     /// <param name="context">The initial resource configuration context.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    ValueTask GatherAsync(IResourceConfigurationGathererContext context, CancellationToken cancellationToken = default);
+    ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default);
 }

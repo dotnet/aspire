@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Resource configuration gatherer context.
 /// </summary>
-public interface IResourceConfigurationGathererContext
+public interface IResourceExecutionConfigurationGathererContext
 {
     /// <summary>
     /// The resource for which configuration is being gathered.
@@ -39,5 +39,5 @@ public interface IResourceConfigurationGathererContext
     /// Adds metadata associated with the resource configuration.
     /// </summary>
     /// <param name="metadata">The metadata to add.</param>
-    void AddMetadata(IResourceConfigurationMetadata metadata);
+    void AddAdditionalData(IResourceExecutionConfigurationData metadata);
 }

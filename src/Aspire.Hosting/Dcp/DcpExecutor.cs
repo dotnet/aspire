@@ -1598,7 +1598,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
-            var configuration = await ResourceConfigurationBuilder.Create(er.ModelResource)
+            var configuration = await ResourceExecutionConfigurationBuilder.Create(er.ModelResource)
                 .WithArguments()
                 .WithEnvironmentVariables()
                 .WithCertificateTrust(scope =>
@@ -1630,7 +1630,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ExecutablePemCertificates? pemCertificates = null;
-            if (configuration.TryGetMetadata<CertificateTrustConfigurationMetadata>(out var certificateTrustConfiguration)
+            if (configuration.TryGetAdditionalData<CertificateTrustExecutionConfigurationData>(out var certificateTrustConfiguration)
                 && certificateTrustConfiguration.Scope != CertificateTrustScope.None
                 && certificateTrustConfiguration.Certificates.Count > 0)
             {
@@ -1650,7 +1650,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             exe.Spec.PemCertificates = pemCertificates;
 
-            if (configuration.TryGetMetadata<ServerAuthenticationCertificateConfigurationMetadata>(out var serverAuthenticationCertificateConfiguration))
+            if (configuration.TryGetAdditionalData<ServerAuthenticationCertificateExecutionConfigurationData>(out var serverAuthenticationCertificateConfiguration))
             {
                 var thumbprint = serverAuthenticationCertificateConfiguration.Certificate.Thumbprint;
                 var publicCetificatePem = serverAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
@@ -1933,7 +1933,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
 
-            var configuration = await ResourceConfigurationBuilder.Create(cr.ModelResource)
+            var configuration = await ResourceExecutionConfigurationBuilder.Create(cr.ModelResource)
                 .WithArguments()
                 .WithEnvironmentVariables()
                 .WithCertificateTrust(scope =>
@@ -1962,7 +1962,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ContainerPemCertificates? pemCertificates = null;
-            if (configuration.TryGetMetadata<CertificateTrustConfigurationMetadata>(out var certificateTrustConfiguration)
+            if (configuration.TryGetAdditionalData<CertificateTrustExecutionConfigurationData>(out var certificateTrustConfiguration)
                 && certificateTrustConfiguration.Scope != CertificateTrustScope.None
                 && certificateTrustConfiguration.Certificates.Count > 0)
             {
@@ -1998,7 +1998,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 CertificateTrustBundlePath = $"{certificatesDestination}/cert.pem",
             };
 
-            if (configuration.TryGetMetadata<ServerAuthenticationCertificateConfigurationMetadata>(out var serverAuthenticationCertificateConfiguration))
+            if (configuration.TryGetAdditionalData<ServerAuthenticationCertificateExecutionConfigurationData>(out var serverAuthenticationCertificateConfiguration))
             {
                 var thumbprint = serverAuthenticationCertificateConfiguration.Certificate.Thumbprint;
                 buildCreateFilesContext.ServerAuthenticationCertificateContext = new ContainerFileSystemCallbackServerAuthenticationCertificateContext
@@ -2552,7 +2552,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
     /// <returns>A tuple containing the PEM-encoded key and PFX bytes, if appropriate for the configuration.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(ServerAuthenticationCertificateConfigurationMetadata configuration, CancellationToken cancellationToken)
+    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(ServerAuthenticationCertificateExecutionConfigurationData configuration, CancellationToken cancellationToken)
     {
         var certificate = configuration.Certificate;
         var lookup = certificate.Thumbprint;

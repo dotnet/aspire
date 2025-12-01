@@ -6,14 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Provides a builder for constructing an <see cref="IResourceConfiguration"/> for a specific resource in the distributed application model.
+/// Provides a builder for constructing an <see cref="IResourceExecutionConfiguration"/> for a specific resource in the distributed application model.
 /// This resolves command line arguments and environment variables and potentially additional metadata through registered gatherers.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Use <see cref="ResourceConfigurationBuilder"/> when you need to programmatically assemble configuration for a resource,
+/// Use <see cref="ResourceExecutionConfigurationBuilder"/> when you need to programmatically assemble configuration for a resource,
 /// typically by aggregating multiple configuration sources using the gatherer pattern. This builder collects configuration
-/// from registered <see cref="IResourceConfigurationGatherer"/> instances, which encapsulate logic for gathering resource-specific
+/// from registered <see cref="IResourceExecutionConfigurationGatherer"/> instances, which encapsulate logic for gathering resource-specific
 /// command line arguments, environment variables, and other metadata.
 /// </para>
 /// <para>
@@ -28,34 +28,44 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </remarks>
 /// <example>
 /// <code>
-/// var builder = ResourceConfigurationBuilder.Create(myResource);
-/// builder.WithArguments()
-///     .WithEnvironmentVariables();
-/// var configuration = await builder.BuildAsync(executionContext);
+/// var resolvedConfiguration = await ResourceExecutionConfigurationBuilder
+///     .Create(myResource);
+///     .WithArguments()
+///     .WithEnvironmentVariables()
+///     .BuildAsync(executionContext).ConfigureAwait(false);
 /// </code>
 /// </example>
-public class ResourceConfigurationBuilder : IResourceConfigurationBuilder
+public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigurationBuilder
 {
     private readonly IResource _resource;
-    private readonly List<IResourceConfigurationGatherer> _gatherers = new();
+    private readonly List<IResourceExecutionConfigurationGatherer> _gatherers = new();
 
-    private ResourceConfigurationBuilder(IResource resource)
+    private ResourceExecutionConfigurationBuilder(IResource resource)
     {
         _resource = resource;
     }
 
     /// <summary>
-    /// Creates a new instance of <see cref="IResourceConfigurationBuilder"/>.
+    /// Creates a new instance of <see cref="IResourceExecutionConfigurationBuilder"/>.
     /// </summary>
     /// <param name="resource">The resource to build the configuration for.</param>
-    /// <returns>A new <see cref="IResourceConfigurationBuilder"/>.</returns>
-    public static IResourceConfigurationBuilder Create(IResource resource)
+    /// <returns>A new <see cref="IResourceExecutionConfigurationBuilder"/>.</returns>
+    /// <example>
+    /// <code>
+    /// var resolvedConfiguration = await ResourceExecutionConfigurationBuilder
+    ///     .Create(myResource);
+    ///     .WithArguments()
+    ///     .WithEnvironmentVariables()
+    ///     .BuildAsync(executionContext).ConfigureAwait(false);
+    /// </code>
+    /// </example>
+    public static IResourceExecutionConfigurationBuilder Create(IResource resource)
     {
-        return new ResourceConfigurationBuilder(resource);
+        return new ResourceExecutionConfigurationBuilder(resource);
     }
 
     /// <inheritdoc />
-    public IResourceConfigurationBuilder AddConfigurationGatherer(IResourceConfigurationGatherer gatherer)
+    public IResourceExecutionConfigurationBuilder AddExecutionConfigurationGatherer(IResourceExecutionConfigurationGatherer gatherer)
     {
         _gatherers.Add(gatherer);
 
@@ -63,12 +73,12 @@ public class ResourceConfigurationBuilder : IResourceConfigurationBuilder
     }
 
     /// <inheritdoc />
-    public async Task<IResourceConfiguration> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
+    public async Task<IResourceExecutionConfiguration> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
         var resourceLoggerService = executionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var resourceLogger = resourceLoggerService.GetLogger(_resource);
 
-        var context = new ResourceConfigurationGathererContext
+        var context = new ResourceExecutionConfigurationGathererContext
         {
             Resource = _resource,
             ResourceLogger = resourceLogger,

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal class ResourceConfigurationGathererContext : IResourceConfigurationGathererContext
+internal class ResourceExecutionConfigurationGathererContext : IResourceExecutionConfigurationGathererContext
 {
     /// <inheritdoc/>
     public required IResource Resource { get; init; }
@@ -22,22 +22,25 @@ internal class ResourceConfigurationGathererContext : IResourceConfigurationGath
     /// <inheritdoc/>
     public Dictionary<string, object> EnvironmentVariables { get; } = new();
 
-    internal HashSet<IResourceConfigurationMetadata> Metadata { get; } = new();
+    /// <summary>
+    /// Additional configuration data collected during gathering.
+    /// </summary>
+    internal HashSet<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; } = new();
 
     /// <inheritdoc/>
-    public void AddMetadata(IResourceConfigurationMetadata metadata)
+    public void AddAdditionalData(IResourceExecutionConfigurationData metadata)
     {
-        Metadata.Add(metadata);
+        AdditionalConfigurationData.Add(metadata);
     }
 
     /// <summary>
-    /// Resolves the actual <see cref="IResourceConfiguration"/> from the gatherer context.
+    /// Resolves the actual <see cref="IResourceExecutionConfiguration"/> from the gatherer context.
     /// </summary>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains the resolved resource configuration.
     /// </returns>
-    internal async Task<IResourceConfiguration> ResolveAsync(CancellationToken cancellationToken = default)
+    internal async Task<IResourceExecutionConfiguration> ResolveAsync(CancellationToken cancellationToken = default)
     {
         List<(string value, bool isSensitive)> resolvedArguments = new(Arguments.Count);
         Dictionary<string, string> resolvedEnvironmentVariables = new(EnvironmentVariables.Count);
@@ -75,11 +78,11 @@ internal class ResourceConfigurationGathererContext : IResourceConfigurationGath
             }
         }
 
-        return new ResourceConfiguration
+        return new ResourceExecutionConfiguration
         {
             Arguments = resolvedArguments,
             EnvironmentVariables = resolvedEnvironmentVariables,
-            Metadata = Metadata,
+            AdditionalConfigurationData = AdditionalConfigurationData,
             Exception = exceptions.Count == 0 ? null : new AggregateException("One or more errors occurred while resolving resource configuration.", exceptions)
         };
     }

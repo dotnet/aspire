@@ -6,18 +6,18 @@ using System.Security.Cryptography.X509Certificates;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Provides extension methods for <see cref="IResourceConfigurationBuilder"/>.
+/// Provides extension methods for <see cref="IResourceExecutionConfigurationBuilder"/>.
 /// </summary>
-public static class ResourceConfigurationBuilderExtensions
+public static class ResourceExecutionConfigurationBuilderExtensions
 {
     /// <summary>
     /// Adds a command line arguments configuration gatherer to the builder.
     /// </summary>
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
-    public static IResourceConfigurationBuilder WithArguments(this IResourceConfigurationBuilder builder)
+    public static IResourceExecutionConfigurationBuilder WithArguments(this IResourceExecutionConfigurationBuilder builder)
     {
-        return builder.AddConfigurationGatherer(new ResourceArgumentsConfigurationGatherer());
+        return builder.AddExecutionConfigurationGatherer(new ArgumentsExecutionConfigurationGatherer());
     }
 
     /// <summary>
@@ -25,9 +25,9 @@ public static class ResourceConfigurationBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
-    public static IResourceConfigurationBuilder WithEnvironmentVariables(this IResourceConfigurationBuilder builder)
+    public static IResourceExecutionConfigurationBuilder WithEnvironmentVariables(this IResourceExecutionConfigurationBuilder builder)
     {
-        return builder.AddConfigurationGatherer(new ResourceEnvironmentVariablesConfigurationGatherer());
+        return builder.AddExecutionConfigurationGatherer(new EnvironmentVariablesExecutionConfigurationGatherer());
     }
 
     /// <summary>
@@ -36,9 +36,9 @@ public static class ResourceConfigurationBuilderExtensions
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <param name="configContextFactory">A factory function to create the configuration context.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
-    public static IResourceConfigurationBuilder WithCertificateTrust(this IResourceConfigurationBuilder builder, Func<CertificateTrustScope, CertificateTrustConfigurationContext> configContextFactory)
+    public static IResourceExecutionConfigurationBuilder WithCertificateTrust(this IResourceExecutionConfigurationBuilder builder, Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> configContextFactory)
     {
-        return builder.AddConfigurationGatherer(new ResourceCertificateTrustConfigurationGatherer(configContextFactory));
+        return builder.AddExecutionConfigurationGatherer(new CertificateTrustExecutionConfigurationGatherer(configContextFactory));
     }
 
     /// <summary>
@@ -47,8 +47,8 @@ public static class ResourceConfigurationBuilderExtensions
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <param name="configContextFactory">A factory function to create the configuration context.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
-    public static IResourceConfigurationBuilder WithServerAuthenticationCertificate(this IResourceConfigurationBuilder builder, Func<X509Certificate2, ServerAuthenticationCertificateConfigurationContext> configContextFactory)
+    public static IResourceExecutionConfigurationBuilder WithServerAuthenticationCertificate(this IResourceExecutionConfigurationBuilder builder, Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> configContextFactory)
     {
-        return builder.AddConfigurationGatherer(new ResourceServerAuthenticationCertificateConfigurationGatherer(configContextFactory));
+        return builder.AddExecutionConfigurationGatherer(new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory));
     }
 }

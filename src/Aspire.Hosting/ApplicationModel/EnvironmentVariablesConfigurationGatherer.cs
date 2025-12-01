@@ -6,10 +6,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Gathers environment variables for resources.
 /// </summary>
-internal class ResourceEnvironmentVariablesConfigurationGatherer : IResourceConfigurationGatherer
+internal class EnvironmentVariablesExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
 {
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceConfigurationGathererContext context, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default)
     {
         if (context.Resource.TryGetEnvironmentVariables(out var callbacks))
         {

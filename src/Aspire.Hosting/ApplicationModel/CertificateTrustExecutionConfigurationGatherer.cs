@@ -13,30 +13,30 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Gathers certificate trust configuration for resources that require it.
 /// </summary>
-internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigurationGatherer
+internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
 {
-    private readonly Func<CertificateTrustScope, CertificateTrustConfigurationContext> _configContextFactory;
+    private readonly Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> _configContextFactory;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ResourceCertificateTrustConfigurationGatherer"/>.
+    /// Initializes a new instance of <see cref="CertificateTrustExecutionConfigurationGatherer"/>.
     /// </summary>
     /// <param name="configContextFactory">A factory for configuring certificate trust configuration properties.</param>
-    public ResourceCertificateTrustConfigurationGatherer(Func<CertificateTrustScope, CertificateTrustConfigurationContext> configContextFactory)
+    public CertificateTrustExecutionConfigurationGatherer(Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> configContextFactory)
     {
         _configContextFactory = configContextFactory;
     }
 
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceConfigurationGathererContext context, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default)
     {
         var developerCertificateService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
         var trustDevCert = developerCertificateService.TrustCertificate;
 
         // Add additional certificate trust configuration metadata
-        var metadata = new CertificateTrustConfigurationMetadata();
-        context.AddMetadata(metadata);
+        var additionalData = new CertificateTrustExecutionConfigurationData();
+        context.AddAdditionalData(additionalData);
 
-        metadata.Scope = CertificateTrustScope.Append;
+        additionalData.Scope = CertificateTrustScope.Append;
         var certificates = new X509Certificate2Collection();
         if (context.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
         {
@@ -46,16 +46,16 @@ internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigur
             }
 
             trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
-            metadata.Scope = caAnnotation.Scope.GetValueOrDefault(metadata.Scope);
+            additionalData.Scope = caAnnotation.Scope.GetValueOrDefault(additionalData.Scope);
         }
 
-        if (metadata.Scope == CertificateTrustScope.None)
+        if (additionalData.Scope == CertificateTrustScope.None)
         {
             // No certificate trust configuration to apply
             return;
         }
 
-        if (metadata.Scope == CertificateTrustScope.System)
+        if (additionalData.Scope == CertificateTrustScope.System)
         {
             // Read the system root certificates and add them to the collection
             certificates.AddRootCertificates();
@@ -69,21 +69,21 @@ internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigur
             }
         }
 
-        metadata.Certificates.AddRange(certificates);
+        additionalData.Certificates.AddRange(certificates);
 
-        if (!metadata.Certificates.Any())
+        if (!additionalData.Certificates.Any())
         {
             // No certificates to configure
             context.ResourceLogger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", context.Resource.Name);
             return;
         }
 
-        var configurationContext = _configContextFactory(metadata.Scope);
+        var configurationContext = _configContextFactory(additionalData.Scope);
 
         // Apply default OpenSSL environment configuration for certificate trust
         context.EnvironmentVariables["SSL_CERT_DIR"] = configurationContext.CertificateDirectoriesPath;
 
-        if (metadata.Scope != CertificateTrustScope.Append)
+        if (additionalData.Scope != CertificateTrustScope.Append)
         {
             context.EnvironmentVariables["SSL_CERT_FILE"] = configurationContext.CertificateBundlePath;
         }
@@ -92,7 +92,7 @@ internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigur
         {
             ExecutionContext = context.ExecutionContext,
             Resource = context.Resource,
-            Scope = metadata.Scope,
+            Scope = additionalData.Scope,
             CertificateBundlePath = configurationContext.CertificateBundlePath,
             CertificateDirectoriesPath = configurationContext.CertificateDirectoriesPath,
             Arguments = context.Arguments,
@@ -108,9 +108,9 @@ internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigur
             }
         }
 
-        if (metadata.Scope == CertificateTrustScope.System)
+        if (additionalData.Scope == CertificateTrustScope.System)
         {
-            context.ResourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", context.Resource.Name, Enum.GetName(metadata.Scope));
+            context.ResourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", context.Resource.Name, Enum.GetName(additionalData.Scope));
         }
 
     }
@@ -119,7 +119,7 @@ internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigur
 /// <summary>
 /// Metadata about the resource certificate trust configuration.
 /// </summary>
-public class CertificateTrustConfigurationMetadata : IResourceConfigurationMetadata
+public class CertificateTrustExecutionConfigurationData : IResourceExecutionConfigurationData
 {
     /// <summary>
     /// The certificate trust scope for the resource.
@@ -135,7 +135,7 @@ public class CertificateTrustConfigurationMetadata : IResourceConfigurationMetad
 /// <summary>
 /// Context for configuring certificate trust configuration properties.
 /// </summary>
-public class CertificateTrustConfigurationContext
+public class CertificateTrustExecutionConfigurationContext
 {
     /// <summary>
     /// The path to the certificate bundle file in the resource context (e.g., container filesystem).

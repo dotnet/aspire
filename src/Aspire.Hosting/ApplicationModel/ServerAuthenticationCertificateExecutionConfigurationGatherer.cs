@@ -11,21 +11,21 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A gatherer that configures server authentication certificate configuration for a resource.
 /// </summary>
-internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IResourceConfigurationGatherer
+internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
 {
-    private readonly Func<X509Certificate2, ServerAuthenticationCertificateConfigurationContext> _configContextFactory;
+    private readonly Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> _configContextFactory;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ResourceServerAuthenticationCertificateConfigurationGatherer"/>.
+    /// Initializes a new instance of <see cref="ServerAuthenticationCertificateExecutionConfigurationGatherer"/>.
     /// </summary>
     /// <param name="configContextFactory">A factory for configuring server authentication certificate configuration properties.</param>
-    public ResourceServerAuthenticationCertificateConfigurationGatherer(Func<X509Certificate2, ServerAuthenticationCertificateConfigurationContext> configContextFactory)
+    public ServerAuthenticationCertificateExecutionConfigurationGatherer(Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> configContextFactory)
     {
         _configContextFactory = configContextFactory;
     }
 
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceConfigurationGathererContext context, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default)
     {
         var effectiveAnnotation = new ServerAuthenticationCertificateAnnotation();
         if (context.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
@@ -50,14 +50,14 @@ internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IR
 
         var configurationContext = _configContextFactory(certificate);
 
-        var metadata = new ServerAuthenticationCertificateConfigurationMetadata
+        var additionalData = new ServerAuthenticationCertificateExecutionConfigurationData
         {
             Certificate = certificate,
             KeyPathReference = configurationContext.KeyPath,
             PfxPathReference = configurationContext.PfxPath,
             Password = effectiveAnnotation.Password is not null ? await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false) : null,
         };
-        context.AddMetadata(metadata);
+        context.AddAdditionalData(additionalData);
 
         var callbackContext = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
         {
@@ -67,8 +67,8 @@ internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IR
             EnvironmentVariables = context.EnvironmentVariables,
             CertificatePath = configurationContext.CertificatePath,
             // Must use the metadata references to ensure proper tracking of usage
-            KeyPath = metadata.KeyPathReference,
-            PfxPath = metadata.PfxPathReference,
+            KeyPath = additionalData.KeyPathReference,
+            PfxPath = additionalData.PfxPathReference,
             Password = effectiveAnnotation.Password,
             CancellationToken = cancellationToken,
         };
@@ -84,7 +84,7 @@ internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IR
 /// <summary>
 /// Metadata for server authentication certificate configuration.
 /// </summary>
-public class ServerAuthenticationCertificateConfigurationMetadata : IResourceConfigurationMetadata
+public class ServerAuthenticationCertificateExecutionConfigurationData : IResourceExecutionConfigurationData
 {
     private ReferenceExpression? _keyPathReference;
     private TrackedReference? _trackedKeyPathReference;
@@ -169,7 +169,7 @@ public class ServerAuthenticationCertificateConfigurationMetadata : IResourceCon
 /// <summary>
 /// Configuration context for server authentication certificate configuration.
 /// </summary>
-public class ServerAuthenticationCertificateConfigurationContext
+public class ServerAuthenticationCertificateExecutionConfigurationContext
 {
     /// <summary>
     /// Expression that will resolve to the path of the server authentication certificate in PEM format.

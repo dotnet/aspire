@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Configuration (arguments and environment variables) to apply to a specific resource.
 /// </summary>
-public interface IResourceConfiguration
+public interface IResourceExecutionConfiguration
 {
     /// <summary>
     /// Gets the arguments to apply to the resource.
@@ -19,9 +19,9 @@ public interface IResourceConfiguration
     IReadOnlyDictionary<string, string> EnvironmentVariables { get; }
 
     /// <summary>
-    /// Gets the metadata associated with the resource configuration.
+    /// Gets additional configuration data associated with the resource configuration.
     /// </summary>
-    IReadOnlySet<IResourceConfigurationMetadata> Metadata { get; }
+    IReadOnlySet<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; }
 
     /// <summary>
     /// Gets the exception that occurred while gathering the resource configuration, if any.

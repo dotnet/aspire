@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents the configuration (arguments and environment variables) to apply to a specific resource.
 /// </summary>
-internal class ResourceConfiguration : IResourceConfiguration
+internal class ResourceExecutionConfiguration : IResourceExecutionConfiguration
 {
     /// <inheritdoc/>
     public required IReadOnlyList<(string Value, bool IsSensitive)> Arguments { get; init; }
@@ -15,7 +15,7 @@ internal class ResourceConfiguration : IResourceConfiguration
     public required IReadOnlyDictionary<string, string> EnvironmentVariables { get; init; }
 
     /// <inheritdoc/>
-    public required IReadOnlySet<IResourceConfigurationMetadata> Metadata { get; init; }
+    public required IReadOnlySet<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; init; }
 
     /// <inheritdoc/>
     public required Exception? Exception { get; init; }
