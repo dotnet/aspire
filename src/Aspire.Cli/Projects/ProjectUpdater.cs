@@ -448,7 +448,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static bool IsUpdatablePackage(string packageId)
     {
-        return packageId.StartsWith("Aspire.");
+        return packageId.StartsWith("Aspire.") || packageId.StartsWith("CommunityToolkit.Aspire.");
     }
 
     private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)
@@ -581,12 +581,18 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var latestTargetPackage = await GetLatestVersionOfPackageAsync(context, toPackageId, cancellationToken);
 
         // Create a single migration step that removes the old package and adds the new one
+        // For CPM, we need to update both Directory.Packages.props AND the project file's PackageReference
         var migrationStep = new PackageMigrationStep(
             string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MigratePackageFormat, fromPackageId, toPackageId),
             async () =>
             {
+                // Update Directory.Packages.props
                 await RemovePackageFromDirectoryPackagesProps(fromPackageId, directoryPackagesPropsFile);
                 await AddPackageToDirectoryPackagesProps(toPackageId, latestTargetPackage!.Version, directoryPackagesPropsFile);
+
+                // Update the project file's PackageReference
+                await RemovePackageFromProject(projectFile, fromPackageId, cancellationToken);
+                await AddPackageReferenceToProject(projectFile, toPackageId, cancellationToken);
             },
             fromPackageId,
             fromVersion,
@@ -599,6 +605,23 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     private async Task<int> RemovePackageFromProject(FileInfo projectFile, string packageId, CancellationToken cancellationToken)
     {
         return await runner.RemovePackageAsync(projectFile, packageId, new(), cancellationToken);
+    }
+
+    private async Task AddPackageReferenceToProject(FileInfo projectFile, string packageId, CancellationToken cancellationToken)
+    {
+        // For CPM projects, we add a PackageReference without a version (version comes from Directory.Packages.props)
+        var exitCode = await runner.AddPackageAsync(
+            projectFilePath: projectFile,
+            packageName: packageId,
+            packageVersion: null,
+            nugetSource: null,
+            options: new(),
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, packageId, projectFile.FullName));
+        }
     }
 
     private static Task RemovePackageFromDirectoryPackagesProps(string packageId, FileInfo directoryPackagesPropsFile)

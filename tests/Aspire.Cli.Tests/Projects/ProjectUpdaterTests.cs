@@ -152,7 +152,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string? PackageVersion, string? PackageSource)>();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
             config.DotNetCliRunnerFactory = (sp) =>
@@ -289,7 +289,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string? PackageVersion, string? PackageSource)>();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
             config.DotNetCliRunnerFactory = (sp) =>
@@ -448,7 +448,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string? PackageVersion, string? PackageSource)>();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
             config.DotNetCliRunnerFactory = (sp) =>
@@ -2302,7 +2302,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string? PackageVersion, string? PackageSource)>();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {

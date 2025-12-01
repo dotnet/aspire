@@ -69,7 +69,9 @@ internal sealed class PackageMigration : IPackageMigration
         [
             // Aspire.Hosting.NodeJs was renamed to Aspire.Hosting.JavaScript in 13.0.0
             (v => v.ComparePrecedenceTo(version13) >= 0, "Aspire.Hosting.NodeJs", "Aspire.Hosting.JavaScript"),
+            (v => v.ComparePrecedenceTo(version13) >= 0, "CommunityToolkit.Aspire.Hosting.NodeJs.Extensions", "CommunityToolkit.Aspire.Hosting.JavaScript.Extensions"),
             (v => v.ComparePrecedenceTo(version13) < 0, "Aspire.Hosting.JavaScript", "Aspire.Hosting.NodeJs"),
+            (v => v.ComparePrecedenceTo(version13) < 0, "CommunityToolkit.Aspire.Hosting.JavaScript.Extensions", "CommunityToolkit.Aspire.Hosting.NodeJs.Extensions")
         ];
     }
 

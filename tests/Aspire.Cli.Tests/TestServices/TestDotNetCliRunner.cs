@@ -11,7 +11,7 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestDotNetCliRunner : IDotNetCliRunner
 {
-    public Func<FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddPackageAsyncCallback { get; set; }
+    public Func<FileInfo, string, string?, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddPackageAsyncCallback { get; set; }
     public Func<FileInfo, string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? RemovePackageAsyncCallback { get; set; }
     public Func<FileInfo, FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddProjectToSolutionAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? BuildAsyncCallback { get; set; }
@@ -27,7 +27,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, IReadOnlyList<FileInfo> Projects)>? GetSolutionProjectsAsyncCallback { get; set; }
     public Func<FileInfo, FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddProjectReferenceAsyncCallback { get; set; }
 
-    public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string? packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return AddPackageAsyncCallback != null
             ? Task.FromResult(AddPackageAsyncCallback(projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken))

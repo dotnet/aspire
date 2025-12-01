@@ -411,7 +411,7 @@ public class DotNetTemplateFactoryTests
         public Task<int> BuildAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> AddPackageAsync(FileInfo projectFile, string packageName, string version, string? packageSourceUrl, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> AddPackageAsync(FileInfo projectFile, string packageName, string? version, string? packageSourceUrl, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<int> RemovePackageAsync(FileInfo projectFile, string packageName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
