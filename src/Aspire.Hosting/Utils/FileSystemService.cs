@@ -19,31 +19,32 @@ internal sealed class FileSystemService : IFileSystemService
     private sealed class TempFileSystemService : ITempFileSystemService
     {
         /// <inheritdoc/>
-        public string CreateTempSubdirectory(string? prefix = null)
+        public TempDirectory CreateTempSubdirectory(string? prefix = null)
         {
-            return Directory.CreateTempSubdirectory(prefix ?? "aspire").FullName;
+            var path = Directory.CreateTempSubdirectory(prefix ?? "aspire").FullName;
+            return new TempDirectory(path);
         }
 
         /// <inheritdoc/>
-        public string GetTempFileName(string? extension = null)
+        public TempFile GetTempFileName(string? extension = null)
         {
             var tempFile = Path.GetTempFileName();
             if (extension is not null)
             {
                 var newPath = Path.ChangeExtension(tempFile, extension);
                 File.Move(tempFile, newPath);
-                return newPath;
+                return new TempFile(newPath);
             }
-            return tempFile;
+            return new TempFile(tempFile);
         }
 
         /// <inheritdoc/>
-        public string CreateTempFile(string prefix, string fileName)
+        public TempFile CreateTempFile(string prefix, string fileName)
         {
-            var tempDir = CreateTempSubdirectory(prefix);
+            var tempDir = Directory.CreateTempSubdirectory(prefix).FullName;
             var filePath = Path.Combine(tempDir, fileName);
             File.Create(filePath).Dispose();
-            return filePath;
+            return new TempFile(filePath, deleteParentDirectory: true);
         }
     }
 }

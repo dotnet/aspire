@@ -15,15 +15,45 @@ This document catalogs all usages of temporary file and directory APIs in the As
 
 ## New IFileSystemService API
 
-The `IFileSystemService` provides an abstraction over temp file/directory APIs for testability and consistency.
+The `IFileSystemService` provides an abstraction over temp file/directory APIs for testability and consistency. All APIs are marked as `[Experimental("ASPIREFILESYSTEM001")]`.
+
+### Return Types
+
+| Type | Implements | Description |
+|------|------------|-------------|
+| `TempDirectory` | `IDisposable` | Represents a temporary directory. Dispose to delete the directory and all contents. Implicit conversion to `string` returns the path. |
+| `TempFile` | `IDisposable` | Represents a temporary file. Dispose to delete the file (and optionally parent directory). Implicit conversion to `string` returns the path. |
 
 ### API Methods
 
-| Method | Description |
-|--------|-------------|
-| `CreateTempSubdirectory(prefix?)` | Creates a unique temporary subdirectory using the system temp folder. Wraps `Directory.CreateTempSubdirectory()`. |
-| `GetTempFileName(extension?)` | Creates a new temporary file with a random name and optional extension. Wraps `Path.GetTempFileName()`. |
-| `CreateTempFile(prefix, fileName)` | Creates a new temporary file with a specific name in a unique temp subdirectory. Useful when the filename matters (e.g., for scripts that check their own filename). |
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `CreateTempSubdirectory(prefix?)` | `TempDirectory` | Creates a unique temporary subdirectory using the system temp folder. Dispose to delete. |
+| `GetTempFileName(extension?)` | `TempFile` | Creates a new temporary file with a random name and optional extension. Dispose to delete. |
+| `CreateTempFile(prefix, fileName)` | `TempFile` | Creates a new temporary file with a specific name in a unique temp subdirectory. Dispose to delete file and parent directory. |
+
+### Usage Patterns
+
+```csharp
+// Pattern 1: Use implicit conversion to string (file persists until process ends)
+string tempDir = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-dcp");
+
+// Pattern 2: Use using statement for automatic cleanup
+using var tempFile = fileSystemService.TempDirectory.CreateTempFile("aspire-test", "config.json");
+File.WriteAllText(tempFile.Path, "{}");
+// File is automatically deleted when tempFile goes out of scope
+
+// Pattern 3: Explicit dispose when done
+var tempDir = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-azure");
+try
+{
+    // Use temp directory...
+}
+finally
+{
+    tempDir.Dispose();
+}
+```
 
 ### Current Usages of IFileSystemService.TempDirectory.CreateTempSubdirectory
 
@@ -114,12 +144,15 @@ The CLI (`Aspire.Cli`) operates outside the AppHost context and doesn't have acc
 
 The current implementation is intentionally simple:
 
-- `CreateTempSubdirectory(prefix)` wraps `Directory.CreateTempSubdirectory()` directly
+- Returns `TempDirectory` and `TempFile` wrapper types that implement `IDisposable`
+- Implicit conversion to `string` allows seamless use where paths are expected
+- Dispose() cleans up the temp file/directory (optional - many usages persist for app lifetime)
 - Uses the system temp folder (no custom temp folder management yet)
 - Enables testability through the `IFileSystemService` abstraction
 - Establishes consistent prefix naming pattern (`aspire-*`)
+- All APIs marked `[Experimental("ASPIREFILESYSTEM001")]`
 
 Future enhancements could include:
 - Custom temp folder location via configuration
 - AppHost-specific temp directories for better isolation
-- Automatic cleanup of temp directories
+- Automatic cleanup of temp directories on app exit

@@ -16,10 +16,10 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire");
-        _createdDirectories.Add(subdir);
+        _createdDirectories.Add(subdir.Path);
 
         // Assert
-        Assert.True(Directory.Exists(subdir));
+        Assert.True(Directory.Exists(subdir.Path));
     }
 
     [Fact]
@@ -31,13 +31,13 @@ public class FileSystemServiceTests : IDisposable
         // Act
         var subdir1 = directoryService.TempDirectory.CreateTempSubdirectory("aspire");
         var subdir2 = directoryService.TempDirectory.CreateTempSubdirectory("aspire");
-        _createdDirectories.Add(subdir1);
-        _createdDirectories.Add(subdir2);
+        _createdDirectories.Add(subdir1.Path);
+        _createdDirectories.Add(subdir2.Path);
 
         // Assert
-        Assert.NotEqual(subdir1, subdir2);
-        Assert.True(Directory.Exists(subdir1));
-        Assert.True(Directory.Exists(subdir2));
+        Assert.NotEqual(subdir1.Path, subdir2.Path);
+        Assert.True(Directory.Exists(subdir1.Path));
+        Assert.True(Directory.Exists(subdir2.Path));
     }
 
     [Fact]
@@ -48,12 +48,12 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dcp");
-        _createdDirectories.Add(subdir);
+        _createdDirectories.Add(subdir.Path);
 
         // Assert
-        var subdirName = Path.GetFileName(subdir);
+        var subdirName = Path.GetFileName(subdir.Path);
         Assert.StartsWith("aspire-dcp", subdirName);
-        Assert.True(Directory.Exists(subdir));
+        Assert.True(Directory.Exists(subdir.Path));
     }
 
     [Fact]
@@ -64,12 +64,12 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory(null);
-        _createdDirectories.Add(subdir);
+        _createdDirectories.Add(subdir.Path);
 
         // Assert
-        var subdirName = Path.GetFileName(subdir);
+        var subdirName = Path.GetFileName(subdir.Path);
         Assert.StartsWith("aspire", subdirName);
-        Assert.True(Directory.Exists(subdir));
+        Assert.True(Directory.Exists(subdir.Path));
     }
 
     [Fact]
@@ -81,10 +81,42 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-test");
-        _createdDirectories.Add(subdir);
+        _createdDirectories.Add(subdir.Path);
 
         // Assert - the created directory should be under the system temp path
-        Assert.StartsWith(systemTempPath, subdir);
+        Assert.StartsWith(systemTempPath, subdir.Path);
+    }
+
+    [Fact]
+    public void FileSystemService_CreateTempSubdirectory_ImplicitConversion_Works()
+    {
+        // Arrange
+        var directoryService = new FileSystemService();
+
+        // Act
+        TempDirectory subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire");
+        string subdirPath = subdir; // Implicit conversion
+        _createdDirectories.Add(subdirPath);
+
+        // Assert
+        Assert.Equal(subdir.Path, subdirPath);
+        Assert.True(Directory.Exists(subdirPath));
+    }
+
+    [Fact]
+    public void FileSystemService_CreateTempSubdirectory_Dispose_DeletesDirectory()
+    {
+        // Arrange
+        var directoryService = new FileSystemService();
+        var subdir = directoryService.TempDirectory.CreateTempSubdirectory("aspire-dispose-test");
+        var path = subdir.Path;
+
+        // Act
+        Assert.True(Directory.Exists(path));
+        subdir.Dispose();
+
+        // Assert
+        Assert.False(Directory.Exists(path));
     }
 
     [Fact]
@@ -95,10 +127,10 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName();
-        _createdFiles.Add(tempFile);
+        _createdFiles.Add(tempFile.Path);
 
         // Assert
-        Assert.True(File.Exists(tempFile));
+        Assert.True(File.Exists(tempFile.Path));
     }
 
     [Fact]
@@ -109,11 +141,11 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName(null);
-        _createdFiles.Add(tempFile);
+        _createdFiles.Add(tempFile.Path);
 
         // Assert
-        Assert.True(File.Exists(tempFile));
-        Assert.Equal(".tmp", Path.GetExtension(tempFile));
+        Assert.True(File.Exists(tempFile.Path));
+        Assert.Equal(".tmp", Path.GetExtension(tempFile.Path));
     }
 
     [Fact]
@@ -124,11 +156,11 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName(".json");
-        _createdFiles.Add(tempFile);
+        _createdFiles.Add(tempFile.Path);
 
         // Assert
-        Assert.True(File.Exists(tempFile));
-        Assert.Equal(".json", Path.GetExtension(tempFile));
+        Assert.True(File.Exists(tempFile.Path));
+        Assert.Equal(".json", Path.GetExtension(tempFile.Path));
     }
 
     [Fact]
@@ -140,13 +172,13 @@ public class FileSystemServiceTests : IDisposable
         // Act
         var tempFile1 = directoryService.TempDirectory.GetTempFileName();
         var tempFile2 = directoryService.TempDirectory.GetTempFileName();
-        _createdFiles.Add(tempFile1);
-        _createdFiles.Add(tempFile2);
+        _createdFiles.Add(tempFile1.Path);
+        _createdFiles.Add(tempFile2.Path);
 
         // Assert
-        Assert.NotEqual(tempFile1, tempFile2);
-        Assert.True(File.Exists(tempFile1));
-        Assert.True(File.Exists(tempFile2));
+        Assert.NotEqual(tempFile1.Path, tempFile2.Path);
+        Assert.True(File.Exists(tempFile1.Path));
+        Assert.True(File.Exists(tempFile2.Path));
     }
 
     [Fact]
@@ -158,10 +190,42 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var tempFile = directoryService.TempDirectory.GetTempFileName();
-        _createdFiles.Add(tempFile);
+        _createdFiles.Add(tempFile.Path);
 
         // Assert - the created file should be under the system temp path
-        Assert.StartsWith(systemTempPath, tempFile);
+        Assert.StartsWith(systemTempPath, tempFile.Path);
+    }
+
+    [Fact]
+    public void FileSystemService_GetTempFileName_ImplicitConversion_Works()
+    {
+        // Arrange
+        var directoryService = new FileSystemService();
+
+        // Act
+        TempFile tempFile = directoryService.TempDirectory.GetTempFileName();
+        string tempFilePath = tempFile; // Implicit conversion
+        _createdFiles.Add(tempFilePath);
+
+        // Assert
+        Assert.Equal(tempFile.Path, tempFilePath);
+        Assert.True(File.Exists(tempFilePath));
+    }
+
+    [Fact]
+    public void FileSystemService_GetTempFileName_Dispose_DeletesFile()
+    {
+        // Arrange
+        var directoryService = new FileSystemService();
+        var tempFile = directoryService.TempDirectory.GetTempFileName();
+        var path = tempFile.Path;
+
+        // Act
+        Assert.True(File.Exists(path));
+        tempFile.Dispose();
+
+        // Assert
+        Assert.False(File.Exists(path));
     }
 
     [Fact]
@@ -172,11 +236,11 @@ public class FileSystemServiceTests : IDisposable
 
         // Act
         var tempFile = directoryService.TempDirectory.CreateTempFile("aspire-test", "config.php");
-        _createdDirectories.Add(Path.GetDirectoryName(tempFile)!); // Clean up the parent directory
+        _createdDirectories.Add(Path.GetDirectoryName(tempFile.Path)!); // Clean up the parent directory
 
         // Assert
-        Assert.True(File.Exists(tempFile));
-        Assert.Equal("config.php", Path.GetFileName(tempFile));
+        Assert.True(File.Exists(tempFile.Path));
+        Assert.Equal("config.php", Path.GetFileName(tempFile.Path));
     }
 
     [Fact]
@@ -188,15 +252,50 @@ public class FileSystemServiceTests : IDisposable
         // Act
         var tempFile1 = directoryService.TempDirectory.CreateTempFile("aspire-test", "script.php");
         var tempFile2 = directoryService.TempDirectory.CreateTempFile("aspire-test", "script.php");
-        _createdDirectories.Add(Path.GetDirectoryName(tempFile1)!);
-        _createdDirectories.Add(Path.GetDirectoryName(tempFile2)!);
+        _createdDirectories.Add(Path.GetDirectoryName(tempFile1.Path)!);
+        _createdDirectories.Add(Path.GetDirectoryName(tempFile2.Path)!);
 
         // Assert - files have the same name but are in different directories
-        Assert.NotEqual(tempFile1, tempFile2);
-        Assert.Equal("script.php", Path.GetFileName(tempFile1));
-        Assert.Equal("script.php", Path.GetFileName(tempFile2));
-        Assert.True(File.Exists(tempFile1));
-        Assert.True(File.Exists(tempFile2));
+        Assert.NotEqual(tempFile1.Path, tempFile2.Path);
+        Assert.Equal("script.php", Path.GetFileName(tempFile1.Path));
+        Assert.Equal("script.php", Path.GetFileName(tempFile2.Path));
+        Assert.True(File.Exists(tempFile1.Path));
+        Assert.True(File.Exists(tempFile2.Path));
+    }
+
+    [Fact]
+    public void FileSystemService_CreateTempFile_ImplicitConversion_Works()
+    {
+        // Arrange
+        var directoryService = new FileSystemService();
+
+        // Act
+        TempFile tempFile = directoryService.TempDirectory.CreateTempFile("aspire-test", "data.json");
+        string tempFilePath = tempFile; // Implicit conversion
+        _createdDirectories.Add(Path.GetDirectoryName(tempFilePath)!);
+
+        // Assert
+        Assert.Equal(tempFile.Path, tempFilePath);
+        Assert.True(File.Exists(tempFilePath));
+    }
+
+    [Fact]
+    public void FileSystemService_CreateTempFile_Dispose_DeletesFileAndParentDirectory()
+    {
+        // Arrange
+        var directoryService = new FileSystemService();
+        var tempFile = directoryService.TempDirectory.CreateTempFile("aspire-dispose-test", "test.txt");
+        var filePath = tempFile.Path;
+        var parentDir = Path.GetDirectoryName(filePath)!;
+
+        // Act
+        Assert.True(File.Exists(filePath));
+        Assert.True(Directory.Exists(parentDir));
+        tempFile.Dispose();
+
+        // Assert - both file and parent directory should be deleted
+        Assert.False(File.Exists(filePath));
+        Assert.False(Directory.Exists(parentDir));
     }
 
     public void Dispose()
