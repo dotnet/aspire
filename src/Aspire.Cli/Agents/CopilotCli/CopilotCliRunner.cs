@@ -18,9 +18,16 @@ internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopi
     {
         logger.LogDebug("Checking for GitHub Copilot CLI installation");
 
+        var executablePath = PathLookupHelper.FindFullPathFromPath("copilot");
+        if (executablePath is null)
+        {
+            logger.LogDebug("GitHub Copilot CLI is not installed or not found in PATH");
+            return null;
+        }
+
         try
         {
-            var startInfo = new ProcessStartInfo("copilot", "--version")
+            var startInfo = new ProcessStartInfo(executablePath, "--version")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

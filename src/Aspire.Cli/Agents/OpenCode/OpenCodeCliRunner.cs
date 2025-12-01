@@ -18,9 +18,16 @@ internal sealed class OpenCodeCliRunner(ILogger<OpenCodeCliRunner> logger) : IOp
     {
         logger.LogDebug("Checking for OpenCode CLI installation");
 
+        var executablePath = PathLookupHelper.FindFullPathFromPath("opencode");
+        if (executablePath is null)
+        {
+            logger.LogDebug("OpenCode CLI is not installed or not found in PATH");
+            return null;
+        }
+
         try
         {
-            var startInfo = new ProcessStartInfo("opencode", "--version")
+            var startInfo = new ProcessStartInfo(executablePath, "--version")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
