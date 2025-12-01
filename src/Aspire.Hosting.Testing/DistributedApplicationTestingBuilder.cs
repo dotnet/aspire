@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
