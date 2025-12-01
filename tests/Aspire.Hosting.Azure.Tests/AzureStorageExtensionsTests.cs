@@ -929,7 +929,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AzureStorageEmulatorAccount_CreateWithGeneratedKey()
     {
-        var account = AzureStorageEmulatorAccount.Create("testaccount");
+        var account = new AzureStorageEmulatorAccount("testaccount");
 
         Assert.Equal("testaccount", account.Name);
         Assert.NotNull(account.Key);
@@ -943,7 +943,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     public void AzureStorageEmulatorAccount_CreateWithCustomKey()
     {
         var customKey = "dGVzdGtleQ=="; // "testkey" in Base64
-        var account = AzureStorageEmulatorAccount.Create("testaccount", customKey);
+        var account = new AzureStorageEmulatorAccount("testaccount", customKey);
 
         Assert.Equal("testaccount", account.Name);
         Assert.Equal(customKey, account.Key);
@@ -963,8 +963,8 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var legacyAccount = AzureStorageEmulatorAccount.Create("legacy", "bGVnYWN5a2V5");
-        var newAccount = AzureStorageEmulatorAccount.Create("newdata", "bmV3ZGF0YWtleQ==");
+        var legacyAccount = new AzureStorageEmulatorAccount("legacy", "bGVnYWN5a2V5");
+        var newAccount = new AzureStorageEmulatorAccount("newdata", "bmV3ZGF0YWtleQ==");
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
@@ -981,7 +981,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = AzureStorageEmulatorAccount.Create("testaccount", "dGVzdGtleQ==");
+        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
@@ -1004,7 +1004,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = AzureStorageEmulatorAccount.Create("testaccount", "dGVzdGtleQ==");
+        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
@@ -1027,7 +1027,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = AzureStorageEmulatorAccount.Create("testaccount", "dGVzdGtleQ==");
+        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
@@ -1050,8 +1050,8 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var legacyAccount = AzureStorageEmulatorAccount.Create("legacy", "bGVnYWN5a2V5");
-        var newAccount = AzureStorageEmulatorAccount.Create("newdata", "bmV3ZGF0YWtleQ==");
+        var legacyAccount = new AzureStorageEmulatorAccount("legacy", "bGVnYWN5a2V5");
+        var newAccount = new AzureStorageEmulatorAccount("newdata", "bmV3ZGF0YWtleQ==");
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
@@ -1088,7 +1088,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customAccount = AzureStorageEmulatorAccount.Create("testaccount", "dGVzdGtleQ==");
+        var customAccount = new AzureStorageEmulatorAccount("testaccount", "dGVzdGtleQ==");
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {

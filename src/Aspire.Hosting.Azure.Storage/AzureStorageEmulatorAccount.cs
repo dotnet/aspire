@@ -63,21 +63,6 @@ public sealed class AzureStorageEmulatorAccount
         Key = key ?? GenerateAccountKey();
     }
 
-    /// <summary>
-    /// Creates a new <see cref="AzureStorageEmulatorAccount"/> with a generated key.
-    /// </summary>
-    /// <param name="name">The account name.</param>
-    /// <returns>A new <see cref="AzureStorageEmulatorAccount"/> instance.</returns>
-    public static AzureStorageEmulatorAccount Create(string name) => new(name);
-
-    /// <summary>
-    /// Creates a new <see cref="AzureStorageEmulatorAccount"/> with the specified key.
-    /// </summary>
-    /// <param name="name">The account name.</param>
-    /// <param name="key">The account key (Base64 encoded).</param>
-    /// <returns>A new <see cref="AzureStorageEmulatorAccount"/> instance.</returns>
-    public static AzureStorageEmulatorAccount Create(string name, string key) => new(name, key);
-
     private static string GenerateAccountKey()
     {
         // Generate a 64-byte key (512 bits) for Azure Storage account key
