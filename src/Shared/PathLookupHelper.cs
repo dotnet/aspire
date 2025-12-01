@@ -3,8 +3,6 @@
 
 using System.Diagnostics;
 
-namespace Aspire.Cli.Utils;
-
 /// <summary>
 /// Provides helper methods for looking up executables on the system PATH.
 /// </summary>
