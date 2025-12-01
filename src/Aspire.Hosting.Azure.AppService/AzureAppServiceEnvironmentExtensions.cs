@@ -143,6 +143,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = identity.ClientId
             });
 
+            if (resource.AddAzurePlaywrightWorkspace)
+            {
+                // Add Azure Playwright Testing Workspace resource
+                AzureAppServiceEnvironmentUtility.AddAzurePlaywrightWorkspaceResource(infra, resource, prefix);
+            }
+
             if (resource.EnableDashboard)
             {
                 // Add aspire dashboard website
@@ -289,6 +295,18 @@ public static partial class AzureAppServiceEnvironmentExtensions
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
     {
         builder.Resource.EnableAutomaticScaling = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Playwright Workspace should be created for the Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
+    /// <param name="enable">Whether to create Azure Playwright Workspace. Default is true.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzurePlaywrightWorkspace(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.AddAzurePlaywrightWorkspace = enable;
         return builder;
     }
 }

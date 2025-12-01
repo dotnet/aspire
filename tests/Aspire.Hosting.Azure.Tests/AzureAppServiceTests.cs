@@ -826,6 +826,48 @@ public class AzureAppServiceTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public async Task AddAppServiceEnvironmentWithPlaywrightTestingAddsEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env").WithAzurePlaywrightWorkspace();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceEnvironmentWithoutPlaywrightTestingAddsEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env").WithAzurePlaywrightWorkspace(false);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
