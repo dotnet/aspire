@@ -39,35 +39,32 @@ internal static class PathLookupHelper
         // If the command already has a known extension, just search for it directly.
         if (pathExtensions is not null && pathExtensions.Any(ext => command.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
         {
-            return FindFullPath(command, pathVariable, pathSeparator, fileExists);
+            return FindFullPath(command, pathVariable, pathSeparator, fileExists, pathExtensions: null);
         }
 
-        if (pathExtensions is not null && pathExtensions.Length > 0)
-        {
-            // On Windows, check for the command with PATHEXT extensions first.
-            // This is important because Windows cannot execute extension-less scripts directly.
-            // For example, "code" in VS Code's bin folder is a shell script that Windows can't run,
-            // but "code.cmd" is the proper executable wrapper.
-            foreach (var extension in pathExtensions)
-            {
-                var fullPath = FindFullPath(command + extension, pathVariable, pathSeparator, fileExists);
-                if (fullPath is not null)
-                {
-                    return fullPath;
-                }
-            }
-        }
-
-        // Fall back to exact match (for non-Windows or if no extension match found).
-        return FindFullPath(command, pathVariable, pathSeparator, fileExists);
+        return FindFullPath(command, pathVariable, pathSeparator, fileExists, pathExtensions);
     }
 
-    private static string? FindFullPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    private static string? FindFullPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists, string[]? pathExtensions)
     {
         foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            var fullPath = Path.Combine(directory, command);
+            // On Windows, search each directory completely with all PATHEXT extensions before moving to the next.
+            // This matches Windows command lookup behavior where directory order takes precedence.
+            if (pathExtensions is not null && pathExtensions.Length > 0)
+            {
+                foreach (var extension in pathExtensions)
+                {
+                    var fullPathWithExt = Path.Combine(directory, command + extension);
+                    if (fileExists(fullPathWithExt))
+                    {
+                        return fullPathWithExt;
+                    }
+                }
+            }
 
+            // Try exact match (for non-Windows, or as fallback on Windows if no extension match found in this directory).
+            var fullPath = Path.Combine(directory, command);
             if (fileExists(fullPath))
             {
                 return fullPath;
