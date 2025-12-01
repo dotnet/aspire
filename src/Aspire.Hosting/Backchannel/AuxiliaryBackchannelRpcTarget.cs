@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
@@ -128,12 +130,12 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     }
 
     /// <summary>
-    /// Gets agent content for a specific resource in the AppHost.
+    /// Gets documentation for a specific resource in the AppHost.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The agent content text, or null if the resource doesn't have agent content configured.</returns>
-    public async Task<string?> GetResourceAgentContentAsync(string resourceName, CancellationToken cancellationToken = default)
+    /// <returns>The documentation text for the resource, or null if the resource doesn't exist.</returns>
+    public async Task<string?> GetResourceDocsAsync(string resourceName, CancellationToken cancellationToken = default)
     {
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
         if (appModel is null)
@@ -154,24 +156,73 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         // Check if the resource has an AgentContentAnnotation
 #pragma warning disable ASPIREAGENTCONTENT001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
-        if (!resource.TryGetLastAnnotation<AgentContentAnnotation>(out var annotation))
+        if (resource.TryGetLastAnnotation<AgentContentAnnotation>(out var annotation))
         {
-            logger.LogDebug("Resource '{ResourceName}' does not have agent content configured.", resourceName);
-            return null;
-        }
-
-        try
-        {
-            // Create the context and invoke the callback
-            var context = new AgentContentContext(resource, serviceProvider, cancellationToken);
-            await annotation.Callback(context).ConfigureAwait(false);
-            return context.GetContent();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error getting agent content for resource '{ResourceName}'.", resourceName);
-            return null;
+            try
+            {
+                // Create the context and invoke the callback
+                var context = new AgentContentContext(resource, serviceProvider, cancellationToken);
+                await annotation.Callback(context).ConfigureAwait(false);
+                return context.GetContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting agent content for resource '{ResourceName}'.", resourceName);
+                // Fall through to generate generic documentation
+            }
         }
 #pragma warning restore ASPIREAGENTCONTENT001
+
+        // Generate generic documentation based on the resource type's assembly
+        return GenerateGenericResourceDocs(resource);
+    }
+
+    private static string GenerateGenericResourceDocs(IResource resource)
+    {
+        var resourceType = resource.GetType();
+        var assembly = resourceType.Assembly;
+        var assemblyName = assembly.GetName().Name;
+
+        // Get the version from AssemblyInformationalVersionAttribute (which contains the NuGet package version)
+        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        // Strip the commit hash suffix if present (e.g., "9.0.0+abc123" -> "9.0.0")
+        if (version is not null)
+        {
+            var plusIndex = version.IndexOf('+');
+            if (plusIndex > 0)
+            {
+                version = version[..plusIndex];
+            }
+        }
+
+        // Fall back to assembly version if informational version is not available
+        version ??= assembly.GetName().Version?.ToString();
+
+        var sb = new StringBuilder();
+        sb.Append("# ").AppendLine(resourceType.Name);
+        sb.AppendLine();
+        sb.Append("This is a `").Append(resourceType.Name).Append("` resource from the `").Append(assemblyName).AppendLine("` package.");
+        sb.AppendLine();
+        sb.AppendLine("## Documentation");
+        sb.AppendLine();
+        sb.AppendLine("For detailed documentation on how to configure and use this resource, including connection patterns, configuration options, and best practices, see the package README:");
+        sb.AppendLine();
+
+        if (assemblyName is not null && version is not null)
+        {
+            sb.Append("https://www.nuget.org/packages/").Append(assemblyName).Append('/').Append(version).AppendLine("#readme-body-tab");
+        }
+        else if (assemblyName is not null)
+        {
+            sb.Append("https://www.nuget.org/packages/").Append(assemblyName).AppendLine("#readme-body-tab");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("## Note");
+        sb.AppendLine();
+        sb.AppendLine("This resource does not have custom agent documentation configured. The resource author can add detailed guidance for AI agents by using the `WithAgentContent` API.");
+
+        return sb.ToString();
     }
 }

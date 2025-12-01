@@ -44,7 +44,7 @@ internal sealed class McpStartCommand : BaseCommand
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext),
-            ["get_resource_content"] = new GetResourceContentTool(auxiliaryBackchannelMonitor, executionContext)
+            ["get_resource_docs"] = new GetResourceDocsTool(auxiliaryBackchannelMonitor, executionContext)
         };
     }
 
@@ -104,7 +104,7 @@ internal sealed class McpStartCommand : BaseCommand
         if (_tools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
-            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_resource_content")
+            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_resource_docs")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }

@@ -8,13 +8,13 @@ using ModelContextProtocol.Protocol;
 namespace Aspire.Cli.Mcp;
 
 /// <summary>
-/// MCP tool for getting agent content from a resource in the AppHost.
+/// MCP tool for getting documentation and guidance for a specific resource in the AppHost.
 /// </summary>
-internal sealed class GetResourceContentTool(IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, CliExecutionContext executionContext) : CliMcpTool
+internal sealed class GetResourceDocsTool(IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, CliExecutionContext executionContext) : CliMcpTool
 {
-    public override string Name => "get_resource_content";
+    public override string Name => "get_resource_docs";
 
-    public override string Description => "Get agent content from a resource in the AppHost. Resources can expose content specifically for AI agents via the WithAgentContent API. This tool invokes the callback on the resource to retrieve contextual information.";
+    public override string Description => "IMPORTANT: Before writing ANY Aspire code that interacts with a specific resource (such as configuring, connecting to, or using a resource), you MUST call this tool first to get resource-specific documentation and guidance. This tool retrieves essential information about how to properly work with the resource, including connection patterns, configuration options, and best practices. Failing to consult this documentation may result in incorrect or suboptimal code.";
 
     public override JsonElement GetInputSchema()
     {
@@ -24,12 +24,12 @@ internal sealed class GetResourceContentTool(IAuxiliaryBackchannelMonitor auxili
               "properties": {
                 "resourceName": {
                   "type": "string",
-                  "description": "The name of the resource to get content from."
+                  "description": "The name of the resource to get documentation for."
                 }
               },
               "required": ["resourceName"],
               "additionalProperties": false,
-              "description": "Gets agent content from a specific resource. The resource must have been configured with WithAgentContent in the AppHost."
+              "description": "Gets documentation and guidance for a specific resource. MUST be called before writing any code that interacts with the resource."
             }
             """).RootElement;
     }
@@ -83,14 +83,15 @@ internal sealed class GetResourceContentTool(IAuxiliaryBackchannelMonitor auxili
                 };
             }
 
-            // Call the RPC method to get agent content from the resource
-            var content = await selectedConnection.GetResourceAgentContentAsync(resourceName, cancellationToken);
+            // Call the RPC method to get documentation for the resource
+            var content = await selectedConnection.GetResourceDocsAsync(resourceName, cancellationToken);
 
             if (content == null)
             {
                 return new CallToolResult
                 {
-                    Content = [new TextContentBlock { Text = $"Resource '{resourceName}' does not have any agent content configured." }]
+                    IsError = true,
+                    Content = [new TextContentBlock { Text = $"Resource '{resourceName}' was not found in the application model." }]
                 };
             }
 
@@ -104,7 +105,7 @@ internal sealed class GetResourceContentTool(IAuxiliaryBackchannelMonitor auxili
             return new CallToolResult
             {
                 IsError = true,
-                Content = [new TextContentBlock { Text = $"Failed to get resource content: {ex.Message}" }]
+                Content = [new TextContentBlock { Text = $"Failed to get resource documentation: {ex.Message}" }]
             };
         }
     }

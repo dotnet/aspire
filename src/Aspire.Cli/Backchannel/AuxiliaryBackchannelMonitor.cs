@@ -436,13 +436,13 @@ internal sealed class AppHostConnection
     public DateTimeOffset ConnectedAt { get; }
 
     /// <summary>
-    /// Gets agent content for a specific resource in the AppHost.
+    /// Gets documentation for a specific resource in the AppHost.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The agent content text, or null if the resource doesn't have agent content configured.</returns>
-    public async Task<string?> GetResourceAgentContentAsync(string resourceName, CancellationToken cancellationToken = default)
+    /// <returns>The documentation text for the resource, or null if the resource doesn't exist.</returns>
+    public async Task<string?> GetResourceDocsAsync(string resourceName, CancellationToken cancellationToken = default)
     {
-        return await Rpc.InvokeWithCancellationAsync<string?>("GetResourceAgentContentAsync", [resourceName], cancellationToken).ConfigureAwait(false);
+        return await Rpc.InvokeWithCancellationAsync<string?>("GetResourceDocsAsync", [resourceName], cancellationToken).ConfigureAwait(false);
     }
 }
