@@ -84,7 +84,6 @@ internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IR
             await callback.Callback(callbackContext).ConfigureAwait(false);
         }
 
-        return;
     }
 }
 
