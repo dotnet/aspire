@@ -17,4 +17,9 @@ internal interface IAuxiliaryBackchannelMonitor
     /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
     /// </summary>
     string? SelectedAppHostPath { get; set; }
+
+    /// <summary>
+    /// Event raised when the selected AppHost changes.
+    /// </summary>
+    event Action? SelectedAppHostChanged;
 }

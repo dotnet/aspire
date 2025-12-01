@@ -216,7 +216,7 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
         var registration = new ResourceRegistration(resource.Name);
         foreach (var remoteTool in remoteTools)
         {
-            var proxiedTool = CreateProxiedTool(resource, endpoint, remoteTool);
+            var proxiedTool = CreateProxiedTool(resource, remoteTool);
             if (proxiedTool is null)
             {
                 continue;
@@ -237,7 +237,7 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
         return registration;
     }
 
-    private static Tool? CreateProxiedTool(ResourceViewModel resource, McpEndpointExport endpoint, McpClientTool remoteTool)
+    private static Tool? CreateProxiedTool(ResourceViewModel resource, McpClientTool remoteTool)
     {
         var tool = remoteTool.ProtocolTool;
         if (string.IsNullOrWhiteSpace(tool.Name))
@@ -245,8 +245,10 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
             return null;
         }
 
-        var namespacePrefix = endpoint.Namespace ?? resource.Name;
-        var proxiedName = $"{resource.Name}/{namespacePrefix}/{tool.Name}";
+        // MCP tool names must match ^[a-zA-Z0-9_]+$ - replace invalid characters with underscores
+        var encodedResourceName = EncodeToolNameSegment(resource.Name);
+        var encodedToolName = EncodeToolNameSegment(tool.Name);
+        var proxiedName = $"{encodedResourceName}__{encodedToolName}";
 
         return new Tool
         {
@@ -261,6 +263,26 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
             Icons = tool.Icons,
             Meta = tool.Meta
         };
+    }
+
+    /// <summary>
+    /// Encodes a string to be a valid MCP tool name segment.
+    /// MCP tool names must match ^[a-zA-Z0-9_]+$ so we replace any invalid characters with underscores.
+    /// </summary>
+    private static string EncodeToolNameSegment(string segment)
+    {
+        if (string.IsNullOrEmpty(segment))
+        {
+            return segment;
+        }
+
+        var result = new char[segment.Length];
+        for (var i = 0; i < segment.Length; i++)
+        {
+            var c = segment[i];
+            result[i] = char.IsLetterOrDigit(c) || c == '_' ? c : '_';
+        }
+        return new string(result);
     }
 
     private async Task RemoveResourceAsync(string resourceName)

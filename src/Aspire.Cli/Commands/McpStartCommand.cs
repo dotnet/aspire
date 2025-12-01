@@ -26,10 +26,6 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    // Cached tools from the currently selected AppHost
-    private readonly object _cacheLock = new();
-    private string? _cachedAppHostPath;
-    private IList<Tool>? _cachedAppHostTools;
     private McpServer? _mcpServer;
     
     // Persistent MCP client for listening to tool list changes
@@ -79,7 +75,18 @@ internal sealed class McpStartCommand : BaseCommand
 
         await using var server = McpServer.Create(new StdioServerTransport("aspire-mcp-server"), options);
         _mcpServer = server;
-        await server.RunAsync(cancellationToken);
+
+        // Subscribe to AppHost selection changes to notify clients
+        _auxiliaryBackchannelMonitor.SelectedAppHostChanged += OnSelectedAppHostChanged;
+
+        try
+        {
+            await server.RunAsync(cancellationToken);
+        }
+        finally
+        {
+            _auxiliaryBackchannelMonitor.SelectedAppHostChanged -= OnSelectedAppHostChanged;
+        }
 
         // Dispose notification resources
         if (_toolListChangedHandler is not null)
@@ -92,6 +99,36 @@ internal sealed class McpStartCommand : BaseCommand
         }
 
         return ExitCodeConstants.Success;
+    }
+
+    /// <summary>
+    /// Called when the selected AppHost changes. Invalidates the cache and notifies clients.
+    /// </summary>
+    private void OnSelectedAppHostChanged()
+    {
+        _logger.LogDebug("Selected AppHost changed, notifying clients");
+
+        // Notify clients that the tool list has changed
+        if (_mcpServer is not null)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _mcpServer.SendMessageAsync(
+                        new JsonRpcNotification
+                        {
+                            Method = NotificationMethods.ToolListChangedNotification
+                        },
+                        CancellationToken.None);
+                    _logger.LogInformation("Sent tool list changed notification after AppHost selection change");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send tool list changed notification");
+                }
+            });
+        }
     }
 
     private async ValueTask<ListToolsResult> HandleListToolsAsync(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken)
@@ -134,27 +171,10 @@ internal sealed class McpStartCommand : BaseCommand
         var connection = TryGetSelectedConnection();
         if (connection is null || connection.McpInfo is null)
         {
-            // No AppHost available, clear cache
-            lock (_cacheLock)
-            {
-                _cachedAppHostPath = null;
-                _cachedAppHostTools = null;
-            }
             return null;
         }
 
         var currentAppHostPath = connection.AppHostInfo?.AppHostPath;
-
-        // Check if we have cached tools for this AppHost
-        lock (_cacheLock)
-        {
-            if (_cachedAppHostTools is not null &&
-                string.Equals(_cachedAppHostPath, currentAppHostPath, StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogDebug("Using cached tools for AppHost: {AppHostPath}", currentAppHostPath);
-                return _cachedAppHostTools;
-            }
-        }
 
         // Fetch tools from the AppHost's MCP server
         try
@@ -166,13 +186,6 @@ internal sealed class McpStartCommand : BaseCommand
 
             // Convert McpClientTool to Tool
             var tools = clientTools.Select(t => t.ProtocolTool).ToList();
-
-            // Update cache
-            lock (_cacheLock)
-            {
-                _cachedAppHostPath = currentAppHostPath;
-                _cachedAppHostTools = tools;
-            }
 
             // Subscribe to tool list changes from the AppHost
             await SubscribeToToolListChangesAsync(connection, cancellationToken);
@@ -220,12 +233,6 @@ internal sealed class McpStartCommand : BaseCommand
                 async (notification, ct) =>
                 {
                     _logger.LogDebug("Received tool list changed notification from AppHost");
-
-                    // Invalidate cache
-                    lock (_cacheLock)
-                    {
-                        _cachedAppHostTools = null;
-                    }
 
                     // Forward the notification to our clients
                     if (_mcpServer is not null)
@@ -279,7 +286,7 @@ internal sealed class McpStartCommand : BaseCommand
     {
         var toolName = request.Params?.Name ?? string.Empty;
 
-        _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
+        _logger.LogInformation("MCP CallTool request received for tool: {ToolName}", toolName);
 
         // Handle CLI-specific tools
         if (_cliTools.TryGetValue(toolName, out var cliTool))
@@ -310,11 +317,12 @@ internal sealed class McpStartCommand : BaseCommand
         }
 
         _logger.LogInformation(
-            "Connecting to dashboard MCP server. " +
+            "Sending tool command to dashboard MCP server: {ToolName} " +
             "Dashboard URL: {EndpointUrl}, " +
             "AppHost Path: {AppHostPath}, " +
             "AppHost PID: {AppHostPid}, " +
             "CLI PID: {CliPid}",
+            toolName,
             connection.McpInfo.EndpointUrl,
             connection.AppHostInfo?.AppHostPath ?? "N/A",
             connection.AppHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
@@ -344,7 +352,7 @@ internal sealed class McpStartCommand : BaseCommand
                 serializerOptions: McpJsonUtilities.DefaultOptions,
                 cancellationToken: cancellationToken);
 
-            _logger.LogDebug("Tool {ToolName} completed successfully", toolName);
+            _logger.LogInformation("Tool {ToolName} completed successfully", toolName);
 
             return result;
         }

@@ -35,7 +35,24 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
     /// </summary>
-    public string? SelectedAppHostPath { get; set; }
+    public string? SelectedAppHostPath
+    {
+        get => _selectedAppHostPath;
+        set
+        {
+            if (_selectedAppHostPath != value)
+            {
+                _selectedAppHostPath = value;
+                SelectedAppHostChanged?.Invoke();
+            }
+        }
+    }
+    private string? _selectedAppHostPath;
+
+    /// <summary>
+    /// Event raised when the selected AppHost changes.
+    /// </summary>
+    public event Action? SelectedAppHostChanged;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
