@@ -5,7 +5,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
@@ -338,8 +337,7 @@ public sealed class ParameterProcessor(
                                     try
                                     {
                                         var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey).ConfigureAwait(false);
-                                        slot.Data.Clear();
-                                        slot.Data[""] = JsonValue.Create(inputValue);
+                                        slot.SetValue(inputValue);
                                         await deploymentStateManager.SaveSectionAsync(slot).ConfigureAwait(false);
                                         stateModified = true;
                                     }
@@ -375,8 +373,7 @@ public sealed class ParameterProcessor(
                 if (!string.IsNullOrEmpty(value))
                 {
                     var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey, cancellationToken).ConfigureAwait(false);
-                    slot.Data.Clear();
-                    slot.Data[""] = JsonValue.Create(value);
+                    slot.SetValue(value);
                     await deploymentStateManager.SaveSectionAsync(slot, cancellationToken).ConfigureAwait(false);
                     savedCount++;
                 }
@@ -389,7 +386,7 @@ public sealed class ParameterProcessor(
 
         if (savedCount > 0)
         {
-            logger.LogInformation("Parameter values saved to deployment state.");
+            logger.LogInformation("{SavedCount} parameter values saved to deployment state.", savedCount);
         }
     }
 }
