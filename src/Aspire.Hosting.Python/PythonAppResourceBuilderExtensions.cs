@@ -366,7 +366,12 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
         // Register Python environment validation services (once per builder)
-        builder.Services.TryAddSingleton<PythonInstallationManager>();
+        if (!builder.Services.IsReadOnly)
+        {
+            builder.Services.TryAddSingleton<PythonInstallationManager>();
+            builder.Services.TryAddSingleton<UvInstallationManager>();
+            builder.Services.TryAddSingleton<PoetryInstallationManager>();
+        }
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -478,13 +483,20 @@ public static class PythonAppResourceBuilderExtensions
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
 
-                    // Check if using UV by looking at the package manager annotation
-                    var isUsingUv = context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
-                                    pkgMgr.ExecutableName == "uv";
+                    // Check which package manager is being used
+                    string? packageManagerName = null;
+                    if (context.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr))
+                    {
+                        packageManagerName = pkgMgr.ExecutableName;
+                    }
 
-                    if (isUsingUv)
+                    if (packageManagerName == "uv")
                     {
                         GenerateUvDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
+                    }
+                    else if (packageManagerName == "poetry")
+                    {
+                        GeneratePoetryDockerfile(context, resource, pythonVersion, entrypointType, entrypoint);
                     }
                     else
                     {
@@ -599,6 +611,111 @@ public static class PythonAppResourceBuilderExtensions
                 .RunWithMounts(
                     "uv sync --no-dev",
                     "type=cache,target=/root/.cache/uv");
+        }
+
+        var logger = context.Services.GetService<ILogger<PythonAppResource>>();
+        context.Builder.AddContainerFilesStages(context.Resource, logger);
+
+        var runtimeBuilder = context.Builder
+            .From(runtimeImage, "app")
+            .EmptyLine()
+            .AddContainerFiles(context.Resource, "/app", logger)
+            .Comment("------------------------------")
+            .Comment("🚀 Runtime stage")
+            .Comment("------------------------------")
+            .Comment("Create non-root user for security")
+            .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+            .EmptyLine()
+            .Comment("Copy the application and virtual environment from builder")
+            .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
+            .EmptyLine()
+            .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
+            .Env("PATH", "/app/.venv/bin:${PATH}")
+            .Env("VIRTUAL_ENV", "/app/.venv")
+            .Env("PYTHONDONTWRITEBYTECODE", "1")
+            .Env("PYTHONUNBUFFERED", "1")
+            .EmptyLine()
+            .Comment("Use the non-root user to run the application")
+            .User("appuser")
+            .EmptyLine()
+            .Comment("Set working directory")
+            .WorkDir("/app")
+            .EmptyLine()
+            .Comment("Run the application");
+
+        // Set the appropriate entrypoint and command based on entrypoint type
+        switch (entrypointType)
+        {
+            case EntrypointType.Script:
+                runtimeBuilder.Entrypoint(["python", entrypoint]);
+                break;
+            case EntrypointType.Module:
+                runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
+                break;
+            case EntrypointType.Executable:
+                runtimeBuilder.Entrypoint([entrypoint]);
+                break;
+        }
+    }
+
+    private static void GeneratePoetryDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
+        string pythonVersion, EntrypointType entrypointType, string entrypoint)
+    {
+        // Check if poetry.lock exists in the working directory
+        var poetryLockPath = Path.Combine(resource.WorkingDirectory, "poetry.lock");
+        var hasPoetryLock = File.Exists(poetryLockPath);
+
+        // Get custom base images from annotation, if present
+        context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
+        var buildImage = baseImageAnnotation?.BuildImage ?? $"python:{pythonVersion}-slim-bookworm";
+        var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
+
+        var builderStage = context.Builder
+            .From(buildImage, "builder")
+            .EmptyLine()
+            .Comment("Install Poetry")
+            .Run("pip install --no-cache-dir poetry")
+            .EmptyLine()
+            .Comment("Configure Poetry to create virtual environments in the project directory")
+            .Env("POETRY_VIRTUALENVS_IN_PROJECT", "true")
+            .Env("POETRY_NO_INTERACTION", "1")
+            .EmptyLine()
+            .WorkDir("/app")
+            .EmptyLine();
+
+        if (hasPoetryLock)
+        {
+            // If poetry.lock exists, use locked mode for reproducible builds
+            builderStage
+                .Comment("Install dependencies first for better layer caching")
+                .Comment("Copy only pyproject.toml and poetry.lock for dependency installation")
+                .Copy("pyproject.toml", "/app/")
+                .Copy("poetry.lock", "/app/")
+                .EmptyLine()
+                .Comment("Install dependencies (no dev dependencies)")
+                .Run("poetry install --no-interaction --no-root --only main")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source")
+                .Copy(".", "/app")
+                .EmptyLine()
+                .Comment("Install the project itself")
+                .Run("poetry install --no-interaction --only-root");
+        }
+        else
+        {
+            // If poetry.lock doesn't exist, copy pyproject.toml and generate lock file
+            builderStage
+                .Comment("Copy pyproject.toml to install dependencies")
+                .Copy("pyproject.toml", "/app/")
+                .EmptyLine()
+                .Comment("Install dependencies and generate lock file")
+                .Run("poetry install --no-interaction --no-root --only main")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source")
+                .Copy(".", "/app")
+                .EmptyLine()
+                .Comment("Install the project itself")
+                .Run("poetry install --no-interaction --only-root");
         }
 
         var logger = context.Services.GetService<ILogger<PythonAppResource>>();
@@ -1258,9 +1375,6 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Register UV validation service
-        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
-
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
@@ -1271,6 +1385,116 @@ public static class PythonAppResourceBuilderExtensions
         AddInstaller(builder, install);
 
         // UV handles venv creation, so remove any existing venv creator
+        RemoveVenvCreator(builder);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Python resource to use Poetry as the package manager.
+    /// </summary>
+    /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="install">When true (default), automatically runs poetry install before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="installArgs">Additional arguments appended to the poetry install command (after --no-interaction).</param>
+    /// <param name="env">Extra environment variables applied to the Poetry restore step. These can be used to configure Poetry behavior such as POETRY_VIRTUALENVS_IN_PROJECT or POETRY_VIRTUALENVS_PATH.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method creates a child resource that runs <c>poetry install --no-interaction</c> in the working directory of the Python application.
+    /// The Python application will wait for this resource to complete successfully before starting.
+    /// </para>
+    /// <para>
+    /// Poetry (https://python-poetry.org/) is a Python package and dependency manager that handles virtual environment creation.
+    /// Aspire does not set Poetry environment variables by default, allowing Poetry to use its own default configuration.
+    /// You can customize Poetry's behavior by passing environment variables via the <paramref name="env"/> parameter, such as
+    /// setting POETRY_VIRTUALENVS_IN_PROJECT=true to create the virtual environment in the project directory.
+    /// </para>
+    /// <para>
+    /// Calling this method will replace any previously configured package manager (such as pip or uv).
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a Python app with automatic Poetry package installation:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
+    ///     .WithPoetry()  // Automatically runs 'poetry install --no-interaction'
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Add a Python app with custom Poetry install arguments:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
+    ///     .WithPoetry(installArgs: ["--no-root", "--sync"])
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Configure Poetry's virtual environment location:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
+    ///     .WithPoetry(env: [("POETRY_VIRTUALENVS_IN_PROJECT", "true")])
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    public static IResourceBuilder<T> WithPoetry<T>(
+        this IResourceBuilder<T> builder,
+        bool install = true,
+        string[]? installArgs = null,
+        (string key, string value)[]? env = null)
+        where T : PythonAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Ensure virtual environment exists - create default .venv if not configured
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment is null)
+        {
+            // Create default virtual environment if none exists
+            builder.WithVirtualEnvironment(".venv");
+        }
+
+        // Build base install command: poetry install --no-interaction
+        var baseInstallArgs = new List<string> { "install", "--no-interaction" };
+        
+        // Append user-provided install args
+        if (installArgs != null)
+        {
+            baseInstallArgs.AddRange(installArgs);
+        }
+
+        // Store Poetry environment variables in an annotation for later use
+        if (env != null && env.Length > 0)
+        {
+            var envDict = new Dictionary<string, string>(env.Length);
+            foreach (var (key, value) in env)
+            {
+                envDict[key] = value;
+            }
+            builder.WithAnnotation(new PoetryEnvironmentAnnotation(envDict), ResourceAnnotationMutationBehavior.Replace);
+        }
+
+        builder
+            .WithAnnotation(new PythonPackageManagerAnnotation("poetry"), ResourceAnnotationMutationBehavior.Replace)
+            .WithAnnotation(new PythonInstallCommandAnnotation([.. baseInstallArgs]), ResourceAnnotationMutationBehavior.Replace);
+
+        AddInstaller(builder, install);
+
+        // Poetry handles venv creation, so remove any existing venv creator
         RemoveVenvCreator(builder);
 
         return builder;
@@ -1349,16 +1573,24 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder.Resource)
                 .ExcludeFromManifest();
 
-            // Add validation for the installer command (uv or python)
+            // Add validation for the installer command (uv, poetry, or python)
             installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
             {
                 // Check which command this installer is using (set by BeforeStartEvent)
-                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
-                    executable.Command == "uv")
+                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable))
                 {
-                    // Validate that uv is installed - don't throw so the app fails as it normally would
-                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
-                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                    if (executable.Command == "uv")
+                    {
+                        // Validate that uv is installed - don't throw so the app fails as it normally would
+                        var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
+                        await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                    }
+                    else if (executable.Command == "poetry")
+                    {
+                        // Validate that poetry is installed - don't throw so the app fails as it normally would
+                        var poetryInstallationManager = e.Services.GetRequiredService<PoetryInstallationManager>();
+                        await poetryInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+                    }
                 }
                 // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
             });
@@ -1379,6 +1611,24 @@ public static class PythonAppResourceBuilderExtensions
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(builder.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
+
+                // Add Poetry-specific environment variables
+                if (packageManager.ExecutableName == "poetry")
+                {
+                    installerBuilder.WithEnvironment(ctx =>
+                    {
+                        // Apply user-specified environment variable overrides only
+                        // Do not set POETRY_VIRTUALENVS_IN_PROJECT or POETRY_VIRTUALENVS_PATH by default
+                        // Let Poetry use its own defaults
+                        if (builder.Resource.TryGetLastAnnotation<PoetryEnvironmentAnnotation>(out var poetryEnv))
+                        {
+                            foreach (var kvp in poetryEnv.EnvironmentVariables)
+                            {
+                                ctx.EnvironmentVariables[kvp.Key] = kvp.Value;
+                            }
+                        }
+                    });
+                }
 
                 return Task.CompletedTask;
             });
@@ -1506,14 +1756,14 @@ public static class PythonAppResourceBuilderExtensions
 
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource
     {
-        // Check if we're using uv (which handles venv creation itself)
-        var isUsingUv = builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr) &&
-                        pkgMgr.ExecutableName == "uv";
-
-        if (isUsingUv)
+        // Check if we're using a package manager that handles venv creation itself (uv, poetry)
+        if (builder.Resource.TryGetLastAnnotation<PythonPackageManagerAnnotation>(out var pkgMgr))
         {
-            // UV handles venv creation, we don't need to create it
-            return false;
+            // Package managers that handle their own venv creation
+            if (pkgMgr.ExecutableName is "uv" or "poetry")
+            {
+                return false;
+            }
         }
 
         // Get the virtual environment path
