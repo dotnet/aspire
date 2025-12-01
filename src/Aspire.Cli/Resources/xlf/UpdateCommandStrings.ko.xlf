@@ -117,6 +117,11 @@
         <target state="translated">   매핑: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratePackageFormat">
+        <source>Migrate package {0} to {1}</source>
+        <target state="new">Migrate package {0} to {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">Azure AppHost 프로젝트를 찾을 수 없습니다. 대신 Aspire CLI를 업데이트하시겠어요?</target>

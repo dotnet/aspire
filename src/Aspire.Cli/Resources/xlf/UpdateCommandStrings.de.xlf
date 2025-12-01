@@ -117,6 +117,11 @@
         <target state="translated">   Zuordnung: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratePackageFormat">
+        <source>Migrate package {0} to {1}</source>
+        <target state="new">Migrate package {0} to {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">Es wurde kein Aspire-AppHost-Projekt gefunden. Möchten Sie stattdessen die Aspire-CLI aktualisieren?</target>

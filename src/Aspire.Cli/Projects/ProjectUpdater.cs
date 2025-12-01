@@ -42,7 +42,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // Group update steps by project for better visual organization
         var updateStepsByProject = updateSteps
-            .OfType<PackageUpdateStep>()
+            .OfType<ProjectUpdateStep>()
             .GroupBy(step => step.ProjectFile.FullName)
             .ToList();
 
@@ -511,23 +511,20 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         // Get the latest version of the target package
         var latestTargetPackage = await GetLatestVersionOfPackageAsync(context, toPackageId, cancellationToken);
 
-        // Step 1: Remove the old package
-        var removeStep = new PackageMigrationRemoveStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RemovePackageFormat, fromPackageId),
-            () => RemovePackageFromProject(projectFile, fromPackageId, cancellationToken),
+        // Create a single migration step that removes the old package and adds the new one
+        var migrationStep = new PackageMigrationStep(
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MigratePackageFormat, fromPackageId, toPackageId),
+            async () =>
+            {
+                await RemovePackageFromProject(projectFile, fromPackageId, cancellationToken);
+                await UpdatePackageReferenceInProject(projectFile, latestTargetPackage!, cancellationToken);
+            },
             fromPackageId,
             fromVersion,
-            projectFile);
-        context.UpdateSteps.Enqueue(removeStep);
-
-        // Step 2: Add the new package
-        var addStep = new PackageMigrationAddStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddPackageFormat, toPackageId, latestTargetPackage!.Version),
-            () => UpdatePackageReferenceInProject(projectFile, latestTargetPackage, cancellationToken),
             toPackageId,
             latestTargetPackage!.Version,
             projectFile);
-        context.UpdateSteps.Enqueue(addStep);
+        context.UpdateSteps.Enqueue(migrationStep);
     }
 
     private async Task AnalyzePackageForCentralPackageManagementAsync(string packageId, FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
@@ -583,23 +580,20 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         // Get the latest version of the target package
         var latestTargetPackage = await GetLatestVersionOfPackageAsync(context, toPackageId, cancellationToken);
 
-        // Step 1: Remove the old package from Directory.Packages.props
-        var removeStep = new PackageMigrationRemoveStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RemovePackageFormat, fromPackageId),
-            () => RemovePackageFromDirectoryPackagesProps(fromPackageId, directoryPackagesPropsFile),
+        // Create a single migration step that removes the old package and adds the new one
+        var migrationStep = new PackageMigrationStep(
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MigratePackageFormat, fromPackageId, toPackageId),
+            async () =>
+            {
+                await RemovePackageFromDirectoryPackagesProps(fromPackageId, directoryPackagesPropsFile);
+                await AddPackageToDirectoryPackagesProps(toPackageId, latestTargetPackage!.Version, directoryPackagesPropsFile);
+            },
             fromPackageId,
             fromVersion,
-            projectFile);
-        context.UpdateSteps.Enqueue(removeStep);
-
-        // Step 2: Add the new package to Directory.Packages.props
-        var addStep = new PackageMigrationAddStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddPackageFormat, toPackageId, latestTargetPackage!.Version),
-            () => AddPackageToDirectoryPackagesProps(toPackageId, latestTargetPackage!.Version, directoryPackagesPropsFile),
             toPackageId,
             latestTargetPackage!.Version,
             projectFile);
-        context.UpdateSteps.Enqueue(addStep);
+        context.UpdateSteps.Enqueue(migrationStep);
     }
 
     private async Task<int> RemovePackageFromProject(FileInfo projectFile, string packageId, CancellationToken cancellationToken)
@@ -1043,6 +1037,14 @@ internal abstract record UpdateStep(string Description, Func<Task> Callback)
 }
 
 /// <summary>
+/// Represents an update step associated with a specific project file.
+/// </summary>
+internal abstract record ProjectUpdateStep(
+    string Description,
+    Func<Task> Callback,
+    FileInfo ProjectFile) : UpdateStep(Description, Callback);
+
+/// <summary>
 /// Represents an update step for a package reference, containing package and project information.
 /// </summary>
 internal record PackageUpdateStep(
@@ -1051,7 +1053,7 @@ internal record PackageUpdateStep(
     string PackageId,
     string CurrentVersion,
     string NewVersion,
-    FileInfo ProjectFile) : UpdateStep(Description, Callback)
+    FileInfo ProjectFile) : ProjectUpdateStep(Description, Callback, ProjectFile)
 {
     public override string GetFormattedDisplayText()
     {
@@ -1060,34 +1062,20 @@ internal record PackageUpdateStep(
 }
 
 /// <summary>
-/// Represents a migration step to remove an old package during package migration.
+/// Represents a migration step that replaces one package with another during package migration.
 /// </summary>
-internal record PackageMigrationRemoveStep(
+internal record PackageMigrationStep(
     string Description,
     Func<Task> Callback,
-    string PackageId,
-    string Version,
-    FileInfo ProjectFile) : UpdateStep(Description, Callback)
+    string FromPackageId,
+    string FromVersion,
+    string ToPackageId,
+    string ToVersion,
+    FileInfo ProjectFile) : ProjectUpdateStep(Description, Callback, ProjectFile)
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold red]Remove[/] [bold yellow]{PackageId}[/] [bold green]{Version.EscapeMarkup()}[/]";
-    }
-}
-
-/// <summary>
-/// Represents a migration step to add a new package during package migration.
-/// </summary>
-internal record PackageMigrationAddStep(
-    string Description,
-    Func<Task> Callback,
-    string PackageId,
-    string Version,
-    FileInfo ProjectFile) : UpdateStep(Description, Callback)
-{
-    public override string GetFormattedDisplayText()
-    {
-        return $"[bold green]Add[/] [bold yellow]{PackageId}[/] [bold green]{Version.EscapeMarkup()}[/]";
+        return $"[bold yellow]{FromPackageId}[/] [bold green]{FromVersion.EscapeMarkup()}[/] to [bold yellow]{ToPackageId}[/] [bold green]{ToVersion.EscapeMarkup()}[/]";
     }
 }
 

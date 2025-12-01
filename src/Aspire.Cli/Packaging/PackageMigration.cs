@@ -62,12 +62,14 @@ internal sealed class PackageMigration : IPackageMigration
         // Example migration rules (placeholder - replace with actual migrations):
         // - When upgrading to version >= 10.0.0, migrate Aspire.Hosting.OldPackage to Aspire.Hosting.NewPackage
         // - When downgrading to version < 10.0.0, migrate Aspire.Hosting.NewPackage to Aspire.Hosting.OldPackage
+
+        var version13 = SemVersion.Parse("13.0.0", SemVersionStyles.Strict);
+
         return
         [
-            // Add migration rules here as packages are renamed/replaced
-            // Example:
-            // (v => v >= SemVersion.Parse("10.0.0", SemVersionStyles.Strict), "Aspire.Hosting.OldPackage", "Aspire.Hosting.NewPackage"),
-            // (v => v < SemVersion.Parse("10.0.0", SemVersionStyles.Strict), "Aspire.Hosting.NewPackage", "Aspire.Hosting.OldPackage"),
+            // Aspire.Hosting.NodeJs was renamed to Aspire.Hosting.JavaScript in 13.0.0
+            (v => v.ComparePrecedenceTo(version13) >= 0, "Aspire.Hosting.NodeJs", "Aspire.Hosting.JavaScript"),
+            (v => v.ComparePrecedenceTo(version13) < 0, "Aspire.Hosting.JavaScript", "Aspire.Hosting.NodeJs"),
         ];
     }
 
