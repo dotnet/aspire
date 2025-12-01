@@ -67,31 +67,11 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public virtual async Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(
-            cancellationToken).ConfigureAwait(false);
-
-        // Try to get the container registry from DeploymentTargetAnnotation first
-        IContainerRegistry registry;
-        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
-        if (deploymentTarget?.ContainerRegistry is not null)
-        {
-            registry = deploymentTarget.ContainerRegistry;
-        }
-        else
-        {
-            // Fall back to ContainerRegistryReferenceAnnotation
-            var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault()
-                ?? throw new InvalidOperationException($"Resource '{resource.Name}' does not have a container registry reference.");
-            registry = registryAnnotation.Registry;
-        }
-
         var localImageName = resource.TryGetContainerImageName(out var imageName)
             ? imageName
             : resource.Name.ToLowerInvariant();
 
-        var remoteImageName = await pushOptions.GetFullRemoteImageNameAsync(
-            registry,
-            cancellationToken).ConfigureAwait(false);
+        var remoteImageName = await resource.GetFullRemoteImageNameAsync(cancellationToken).ConfigureAwait(false);
 
         await TagImageAsync(localImageName, remoteImageName, cancellationToken).ConfigureAwait(false);
 

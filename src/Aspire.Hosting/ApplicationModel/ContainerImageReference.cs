@@ -36,26 +36,6 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// <inheritdoc/>
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        var pushOptions = await Resource.ProcessImagePushOptionsCallbackAsync(
-            cancellationToken).ConfigureAwait(false);
-
-        // Try to get the container registry from DeploymentTargetAnnotation first
-        IContainerRegistry registry;
-        var deploymentTarget = Resource.GetDeploymentTargetAnnotation();
-        if (deploymentTarget?.ContainerRegistry is not null)
-        {
-            registry = deploymentTarget.ContainerRegistry;
-        }
-        else
-        {
-            // Fall back to ContainerRegistryReferenceAnnotation
-            var registryAnnotation = Resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault()
-                ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry reference.");
-            registry = registryAnnotation.Registry;
-        }
-
-        return await pushOptions.GetFullRemoteImageNameAsync(
-            registry,
-            cancellationToken).ConfigureAwait(false);
+        return await Resource.GetFullRemoteImageNameAsync(cancellationToken).ConfigureAwait(false);
     }
 }

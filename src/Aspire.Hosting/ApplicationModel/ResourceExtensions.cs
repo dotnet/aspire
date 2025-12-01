@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE002
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -1470,7 +1472,6 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to process image push options for.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>The resolved image push options.</returns>
-#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     internal static async Task<ContainerImagePushOptions> ProcessImagePushOptionsCallbackAsync(
         this IResource resource,
         CancellationToken cancellationToken)
@@ -1497,6 +1498,49 @@ public static class ResourceExtensions
 
         return options;
     }
-#pragma warning restore ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+    /// <summary>
+    /// Gets the container registry associated with the specified resource.
+    /// </summary>
+    /// <param name="resource">The resource to get the container registry for.</param>
+    /// <returns>The container registry associated with the resource.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
+    /// <remarks>
+    /// This method first checks for a container registry in the <see cref="DeploymentTargetAnnotation"/>.
+    /// If not found, it falls back to the <see cref="ContainerRegistryReferenceAnnotation"/>.
+    /// </remarks>
+    internal static IContainerRegistry GetContainerRegistry(this IResource resource)
+    {
+        // Try to get the container registry from DeploymentTargetAnnotation first
+        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
+        if (deploymentTarget?.ContainerRegistry is not null)
+        {
+            return deploymentTarget.ContainerRegistry;
+        }
+
+        // Fall back to ContainerRegistryReferenceAnnotation
+        var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault()
+            ?? throw new InvalidOperationException($"Resource '{resource.Name}' does not have a container registry reference.");
+        return registryAnnotation.Registry;
+    }
+
+    /// <summary>
+    /// Gets the full remote image name for the specified resource, including registry endpoint and tag.
+    /// </summary>
+    /// <param name="resource">The resource to get the remote image name for.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>The fully qualified remote image name.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
+    /// <remarks>
+    /// This method processes any image push options callbacks on the resource and combines the result
+    /// with the container registry to produce the full remote image name.
+    /// </remarks>
+    internal static async Task<string> GetFullRemoteImageNameAsync(
+        this IResource resource,
+        CancellationToken cancellationToken)
+    {
+        var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(cancellationToken).ConfigureAwait(false);
+        var registry = resource.GetContainerRegistry();
+        return await pushOptions.GetFullRemoteImageNameAsync(registry, cancellationToken).ConfigureAwait(false);
+    }
 }
