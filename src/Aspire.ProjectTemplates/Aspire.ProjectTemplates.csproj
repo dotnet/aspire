@@ -57,6 +57,7 @@
                    Exclude="$(MSBuildThisFileDirectory)templates\**\bin\**;$(MSBuildThisFileDirectory)templates\**\obj\**;$(MSBuildThisFileDirectory)templates\**\*.csproj;$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs;$(MSBuildThisFileDirectory)templates\aspire-py-starter\**\apphost.cs">
       <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
     </TemplateFiles>
+
     <TemplateFilesObj Include="@(TemplateFiles->'$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)')" />
   </ItemGroup>
 
@@ -64,7 +65,7 @@
        replaces the package versions, and adds them to the package.-->
   <Target Name="AddTemplatesToPackageAsContent"
           AfterTargets="Build"
-          DependsOnTargets="ReplacePackageVersionOnTemplates;ReplacePackageVersionOnLocalizedTemplateFiles">
+          DependsOnTargets="ReplacePackageVersionOnTemplates">
     <ItemGroup>
       <Content Include="@(TemplateFilesObj);@(TemplateProjectFilesObj)" />
     </ItemGroup>
@@ -75,77 +76,73 @@
           DependsOnTargets="CopyTemplatesToIntermediateOutputPath"
           Inputs="@(TemplateConfigFiles);@(TemplateProjectFiles)"
           Outputs="@(TemplateConfigFilesObj);@(TemplateProjectFilesObj)">
+
     <PropertyGroup>
       <!-- Extract purely numeric portions before any '-' prerelease tag -->
       <_VersionBase>$(PackageVersion.Split('-')[0])</_VersionBase>
       <!-- Build major.minor version -->
-      <_VersionMajor>$(_VersionBase.Split('.')[0])</_VersionMajor>
-      <_VersionMinor>$(_VersionBase.Split('.')[1])</_VersionMinor>
-      <_VersionMajorMinor>$(_VersionMajor).$(_VersionMinor)</_VersionMajorMinor>
-    </PropertyGroup>
-
-    <WriteLinesToFile File="%(TemplateConfigFiles.DestinationFile)"
-                      Lines="$([MSBuild]::Escape(
-                        $([System.IO.File]::ReadAllText('%(TemplateConfigFiles.FullPath)')
-                                                 .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
-                                                 .Replace('!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!', '$(_VersionMajorMinor)') )
-                        )"
-                      WriteOnlyWhenDifferent="True"
-                      Overwrite="true" />
-
-    <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
-                      Lines="$([MSBuild]::Escape(
-                        $([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
-                                                 .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
-                                                 .Replace('!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!', '$(_VersionMajorMinor)')
-                                                 .Replace('!!REPLACE_WITH_ASPNETCORE_OPENAPI_9_VERSION!!', '$(MicrosoftAspNetCoreOpenApiVersion)')
-                                                 .Replace('!!REPLACE_WITH_ASPNETCORE_OPENAPI_10_VERSION!!', '$(MicrosoftAspNetCoreOpenApiPreviewVersion)')
-                                                 .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
-                                                 .Replace('!!REPLACE_WITH_SERVICE_DISCOVERY_VERSION!!', '$(MicrosoftExtensionsServiceDiscoveryVersion)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_NET8_VERSION!!', '$(OpenTelemetryNet8Version)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!', '$(OpenTelemetryExporterOpenTelemetryProtocolVersion)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_HOSTING_VERSION!!', '$(OpenTelemetryInstrumentationExtensionsHostingVersion)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!', '$(OpenTelemetryInstrumentationAspNetCoreVersion)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_HTTP_VERSION!!', '$(OpenTelemetryInstrumentationHttpVersion)')
-                                                 .Replace('!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!', '$(OpenTelemetryInstrumentationRuntimeVersion)') )
-                        )"
-                      WriteOnlyWhenDifferent="True"
-                      Overwrite="true" />
-  </Target>
-
-  <Target Name="ReplacePackageVersionOnLocalizedTemplateFiles"
-          DependsOnTargets="CopyTemplatesToIntermediateOutputPath;LocalizeTemplatesAfterBuild">
-    <PropertyGroup>
-      <!-- Extract purely numeric portions before any '-' prerelease tag -->
-      <_VersionBase>$(PackageVersion.Split('-')[0])</_VersionBase>
-      <!-- Build major.minor version -->
-      <_VersionMajor>$(_VersionBase.Split('.')[0])</_VersionMajor>
-      <_VersionMinor>$(_VersionBase.Split('.')[1])</_VersionMinor>
-      <_VersionMajorMinor>$(_VersionMajor).$(_VersionMinor)</_VersionMajorMinor>
+      <VersionMajor>$(_VersionBase.Split('.')[0])</VersionMajor>
+      <VersionMinor>$(_VersionBase.Split('.')[1])</VersionMinor>
+      <VersionMajorMinor>$(VersionMajor).$(VersionMinor)</VersionMajorMinor>
     </PropertyGroup>
 
     <ItemGroup>
+      <!-- This is defined here as these files aren't guaranteed to exist until the build has run -->
       <TemplateLocalizedStringsFiles Include="$(MSBuildThisFileDirectory)templates\**\.template.config\localize\templatestrings.*.json" />
       <TemplateLocalizedStringsFilesDest Include="@(TemplateLocalizedStringsFiles)"
                                          DestinationFile="$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)" />
+      <TemplateLocalizedStringsFilesObj Include="@(TemplateLocalizedStringsFilesDest->'%(DestinationFile)')" />
     </ItemGroup>
 
-    <WriteLinesToFile File="%(TemplateLocalizedStringsFilesDest.DestinationFile)"
-                      Lines="$([System.IO.File]::ReadAllText('%(TemplateLocalizedStringsFilesDest.FullPath)')
-                                                 .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
-                                                 .Replace('!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!', '$(_VersionMajorMinor)') )"
-                      WriteOnlyWhenDifferent="True"
-                      Overwrite="true" />
+    <ItemGroup>
+      <SourceFiles Include="@(TemplateConfigFilesObj)" />
+      <SourceFiles Include="@(TemplateProjectFilesObj)" />
+      <SourceFiles Include="@(TemplateLocalizedStringsFilesObj)" />
+      <CommandArgs Include="dotnet" />
+      <CommandArgs Include="$(RepoRoot)tools/scripts/replace-text.cs" />
+      <CommandArgs Include="@(SourceFiles, ';')" />
+      <!-- Replacement tokens and their values -->
+      <CommandArgs Include="!!REPLACE_WITH_LATEST_VERSION!!" />
+      <CommandArgs Include="$(PackageVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!" />
+      <CommandArgs Include="$(VersionMajorMinor)" />
+      <CommandArgs Include="!!REPLACE_WITH_ASPNETCORE_OPENAPI_9_VERSION!!" />
+      <CommandArgs Include="$(MicrosoftAspNetCoreOpenApiVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_ASPNETCORE_OPENAPI_10_VERSION!!" />
+      <CommandArgs Include="$(MicrosoftAspNetCoreOpenApiPreviewVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!" />
+      <CommandArgs Include="$(MicrosoftExtensionsHttpResilienceVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_SERVICE_DISCOVERY_VERSION!!" />
+      <CommandArgs Include="$(MicrosoftExtensionsServiceDiscoveryVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
+      <CommandArgs Include="$(OpenTelemetryNet8Version)" />
+      <CommandArgs Include="!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!" />
+      <CommandArgs Include="$(OpenTelemetryExporterOpenTelemetryProtocolVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_OTEL_HOSTING_VERSION!!" />
+      <CommandArgs Include="$(OpenTelemetryInstrumentationExtensionsHostingVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!" />
+      <CommandArgs Include="$(OpenTelemetryInstrumentationAspNetCoreVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_OTEL_HTTP_VERSION!!" />
+      <CommandArgs Include="$(OpenTelemetryInstrumentationHttpVersion)" />
+      <CommandArgs Include="!!REPLACE_WITH_OTEL_RUNTIME_VERSION!!" />
+      <CommandArgs Include="$(OpenTelemetryInstrumentationRuntimeVersion)" />
+    </ItemGroup>
+
+    <Exec Command="@(CommandArgs, ' ')" WorkingDirectory="$(MSBuildThisFileDirectory)" StandardOutputImportance="Normal" StandardErrorImportance="Normal" />
   </Target>
 
   <!-- Grabs the contents of the templates folder and copies them to IntermediateOutputPath directory -->
   <Target Name="CopyTemplatesToIntermediateOutputPath"
-          Inputs="@(TemplateFiles)"
-          Outputs="@(TemplateFilesObj)">
+          Inputs="@(TemplateFiles);@(TemplateProjectFiles)"
+          Outputs="@(TemplateFilesObj);@(TemplateProjectFilesObj)">
 
     <Copy SourceFiles="@(TemplateFiles)"
           DestinationFiles="@(TemplateFilesObj)"
           SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(TemplateProjectFiles)"
+          DestinationFiles="@(TemplateProjectFilesObj)"
+          SkipUnchangedFiles="true" />
+
   </Target>
 
 </Project>
