@@ -36,36 +36,35 @@ internal static class PathLookupHelper
     {
         Debug.Assert(!string.IsNullOrWhiteSpace(command));
 
-        var fullPath = FindFullPath(command, pathVariable, pathSeparator, fileExists);
-        if (fullPath is not null)
+        // If the command already has a known extension, just search for it directly.
+        if (pathExtensions is not null && pathExtensions.Any(ext => command.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
         {
-            return fullPath;
+            return FindFullPath(command, pathVariable, pathSeparator, fileExists, pathExtensions: null);
         }
 
-        if (pathExtensions is not null)
-        {
-            // Check for the command with all possible extensions.
-            foreach (var extension in pathExtensions)
-            {
-                var fileName = command.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? command : command + extension;
-
-                fullPath = FindFullPath(fileName, pathVariable, pathSeparator, fileExists);
-                if (fullPath is not null)
-                {
-                    return fullPath;
-                }
-            }
-        }
-
-        return null;
+        return FindFullPath(command, pathVariable, pathSeparator, fileExists, pathExtensions);
     }
 
-    private static string? FindFullPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    private static string? FindFullPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists, string[]? pathExtensions)
     {
         foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            var fullPath = Path.Combine(directory, command);
+            // On Windows, search each directory completely with all PATHEXT extensions before moving to the next.
+            // This matches Windows command lookup behavior where directory order takes precedence.
+            if (pathExtensions is not null && pathExtensions.Length > 0)
+            {
+                foreach (var extension in pathExtensions)
+                {
+                    var fullPathWithExt = Path.Combine(directory, command + extension);
+                    if (fileExists(fullPathWithExt))
+                    {
+                        return fullPathWithExt;
+                    }
+                }
+            }
 
+            // Try exact match (for non-Windows, or as fallback on Windows if no extension match found in this directory).
+            var fullPath = Path.Combine(directory, command);
             if (fileExists(fullPath))
             {
                 return fullPath;

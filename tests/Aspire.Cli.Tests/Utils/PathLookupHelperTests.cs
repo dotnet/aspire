@@ -136,9 +136,12 @@ public class PathLookupHelperTests
     }
 
     [Fact]
-    public void FindFullPathFromPath_WithPathExtensions_PrefersExactMatchOverExtension()
+    public void FindFullPathFromPath_WithPathExtensions_PrefersExtensionOverExactMatch()
     {
-        // Arrange - when the command exists without extension, it's preferred
+        // Arrange - when both exist, the extension-based file is preferred on Windows
+        // This is important because Windows cannot execute extension-less scripts directly.
+        // For example, "code" in VS Code's bin folder is a shell script that Windows can't run,
+        // but "code.cmd" is the proper executable wrapper.
         var dir = Path.Combine("testdir", "bin");
         var exactPath = Path.Combine(dir, "code");
         var cmdPath = Path.Combine(dir, "code.CMD");
@@ -149,8 +152,27 @@ public class PathLookupHelperTests
         };
         var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
 
-        // Act - should find "code" exactly, not "code.CMD"
+        // Act - should find "code.CMD", not "code" (extension-based files preferred on Windows)
         var result = PathLookupHelper.FindFullPathFromPath("code", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Equal(cmdPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_FallsBackToExactMatchIfNoExtensionFound()
+    {
+        // Arrange - when no extension-based file exists, fall back to exact match
+        var dir = Path.Combine("testdir", "bin");
+        var exactPath = Path.Combine(dir, "mytool");
+        var existingFiles = new HashSet<string>
+        {
+            exactPath
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - no extension files exist, so should fall back to exact match
+        var result = PathLookupHelper.FindFullPathFromPath("mytool", dir, ';', existingFiles.Contains, pathExtensions);
 
         // Assert
         Assert.Equal(exactPath, result);
@@ -173,6 +195,41 @@ public class PathLookupHelperTests
 
         // Assert
         Assert.Equal(expectedPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_CommandWithExtensionNotFound_ReturnsNull()
+    {
+        // Arrange - command has known extension but file doesn't exist
+        var dir = Path.Combine("testdir", "bin");
+        var existingFiles = new HashSet<string>();
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - searching for "code.EXE" when it doesn't exist should return null
+        var result = PathLookupHelper.FindFullPathFromPath("code.EXE", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_CommandWithExtension_DoesNotTryOtherExtensions()
+    {
+        // Arrange - when command has a known extension, don't try other extensions
+        var dir = Path.Combine("testdir", "bin");
+        var cmdPath = Path.Combine(dir, "code.CMD");
+        var existingFiles = new HashSet<string>
+        {
+            cmdPath
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - searching for "code.EXE" should NOT find "code.CMD"
+        // (we should not strip .EXE and try .CMD)
+        var result = PathLookupHelper.FindFullPathFromPath("code.EXE", dir, ';', existingFiles.Contains, pathExtensions);
+
+        // Assert
+        Assert.Null(result);
     }
 
     [Fact]
@@ -207,5 +264,54 @@ public class PathLookupHelperTests
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_DirectoryOrderTakesPrecedenceOverExtensionOrder()
+    {
+        // Arrange - This test validates Windows PATH lookup semantics:
+        // Windows searches each directory completely (trying all PATHEXT extensions) before moving to the next.
+        // So if dir1 has code.CMD and dir2 has code.EXE, dir1/code.CMD should be found first,
+        // even though .EXE comes before .CMD in PATHEXT order.
+        var dir1 = Path.Combine("first", "bin");
+        var dir2 = Path.Combine("second", "bin");
+        var dir1CmdPath = Path.Combine(dir1, "code.CMD");
+        var dir2ExePath = Path.Combine(dir2, "code.EXE");
+        var existingFiles = new HashSet<string>
+        {
+            dir1CmdPath,  // Lower priority extension, but in first directory
+            dir2ExePath   // Higher priority extension, but in second directory
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - should find dir1/code.CMD because directory order takes precedence
+        var result = PathLookupHelper.FindFullPathFromPath("code", $"{dir1};{dir2}", ';', existingFiles.Contains, pathExtensions);
+
+        // Assert - directory order (dir1) takes precedence over extension order (.EXE before .CMD)
+        Assert.Equal(dir1CmdPath, result);
+    }
+
+    [Fact]
+    public void FindFullPathFromPath_WithPathExtensions_ExactMatchInFirstDirBeatsExtensionInSecondDir()
+    {
+        // Arrange - exact match in first directory should be found before extension match in second directory
+        var dir1 = Path.Combine("first", "bin");
+        var dir2 = Path.Combine("second", "bin");
+        var dir1ExactPath = Path.Combine(dir1, "mytool");
+        var dir2ExePath = Path.Combine(dir2, "mytool.EXE");
+        var existingFiles = new HashSet<string>
+        {
+            dir1ExactPath,  // Exact match in first directory
+            dir2ExePath     // Extension match in second directory
+        };
+        var pathExtensions = new[] { ".COM", ".EXE", ".BAT", ".CMD" };
+
+        // Act - should find dir1/mytool because directory order takes precedence
+        // Note: Within a directory, extension matches are tried first, then exact match.
+        // But across directories, the first directory's results (including fallback) take precedence.
+        var result = PathLookupHelper.FindFullPathFromPath("mytool", $"{dir1};{dir2}", ';', existingFiles.Contains, pathExtensions);
+
+        // Assert - dir1 exact match is found because no extension match exists in dir1
+        Assert.Equal(dir1ExactPath, result);
     }
 }
