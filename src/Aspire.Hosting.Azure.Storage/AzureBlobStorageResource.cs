@@ -21,10 +21,19 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
+    /// Gets or sets the emulator account to use when running against the storage emulator.
+    /// </summary>
+    /// <remarks>
+    /// When <c>null</c>, the default emulator account will be used.
+    /// This property only affects connection strings when <see cref="AzureStorageResource.IsEmulator"/> is <c>true</c>.
+    /// </remarks>
+    internal AzureStorageEmulatorAccount? EmulatorAccount { get; set; }
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       Parent.GetBlobConnectionString();
+       Parent.GetBlobConnectionString(EmulatorAccount ?? AzureStorageEmulatorAccount.Default);
 
     internal ReferenceExpression GetConnectionString(string? blobContainerName)
     {
@@ -53,7 +62,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     {
         if (Parent.IsEmulator)
         {
-            var connectionString = Parent.GetBlobConnectionString();
+            var connectionString = Parent.GetBlobConnectionString(EmulatorAccount ?? AzureStorageEmulatorAccount.Default);
             target[connectionName] = connectionString;
             // Injected to support Aspire client integration for Azure Storage.
             target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;

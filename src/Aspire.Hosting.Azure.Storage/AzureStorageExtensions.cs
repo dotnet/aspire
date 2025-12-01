@@ -327,6 +327,78 @@ public static class AzureStorageExtensions
             return Task.CompletedTask;
         });
     }
+
+    /// <summary>
+    /// Configures custom storage accounts for the Azure Storage emulator (Azurite).
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="accounts">The custom storage accounts to configure.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method enables multiple storage accounts to be used within a single Azurite container.
+    /// Each account can have its own name and key, allowing isolation between different parts of an application.
+    /// </para>
+    /// <para>
+    /// The accounts are passed to Azurite via the <c>AZURITE_ACCOUNTS</c> environment variable.
+    /// For more information, see <a href="https://learn.microsoft.com/azure/storage/common/storage-connect-azurite#use-custom-storage-accounts-and-keys">Azurite custom storage accounts</a>.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
+    /// var newAccount = new AzureStorageEmulatorAccount("newdata");
+    /// 
+    /// var storage = builder.AddAzureStorage("storage")
+    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount, newAccount));
+    ///     
+    /// var legacyTables = storage.AddTables("legacy-tables").WithAccount(legacyAccount);
+    /// var newTables = storage.AddTables("new-tables").WithAccount(newAccount);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureStorageEmulatorResource> WithAccounts(
+        this IResourceBuilder<AzureStorageEmulatorResource> builder,
+        params AzureStorageEmulatorAccount[] accounts)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(accounts);
+
+        if (accounts.Length == 0)
+        {
+            return builder;
+        }
+
+        // Get the parent storage resource from the emulator
+        var emulatorResource = (AzureStorageEmulatorResource)builder.Resource;
+        var storageResource = emulatorResource.InnerResource;
+
+        // Store the accounts in the storage resource for later use
+        foreach (var account in accounts)
+        {
+            storageResource.EmulatorAccounts.Add(account);
+        }
+
+        // Build the AZURITE_ACCOUNTS environment variable value
+        // Format: account1:key1;account2:key2;...
+        // Always include the default account first to maintain compatibility
+        var accountEntries = new List<string>
+        {
+            $"{AzureStorageEmulatorAccount.DefaultAccountName}:{AzureStorageEmulatorAccount.DefaultAccountKey}"
+        };
+
+        foreach (var account in accounts)
+        {
+            if (account.Name != AzureStorageEmulatorAccount.DefaultAccountName)
+            {
+                accountEntries.Add($"{account.Name}:{account.Key}");
+            }
+        }
+
+        var azuriteAccountsValue = string.Join(";", accountEntries);
+
+        return builder.WithEnvironment("AZURITE_ACCOUNTS", azuriteAccountsValue);
+    }
+
     /// <summary>
     /// Creates a builder for the <see cref="AzureBlobStorageResource"/> which can be referenced to get the Azure Storage blob endpoint for the storage account.
     /// </summary>
@@ -647,5 +719,119 @@ public static class AzureStorageExtensions
             {
                 connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             });
+    }
+
+    /// <summary>
+    /// Configures the blob storage resource to use the specified emulator account.
+    /// </summary>
+    /// <param name="builder">The blob storage resource builder.</param>
+    /// <param name="account">The emulator account to use.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method configures the blob storage resource to connect to a specific account
+    /// when running against the Azurite emulator. The account must first be configured
+    /// using the <see cref="WithAccounts"/> method.
+    /// </para>
+    /// <para>
+    /// When not running against the emulator (i.e., when running against real Azure Storage),
+    /// this setting has no effect.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
+    /// 
+    /// var storage = builder.AddAzureStorage("storage")
+    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount));
+    ///     
+    /// var legacyBlobs = storage.AddBlobs("legacy-blobs").WithAccount(legacyAccount);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureBlobStorageResource> WithAccount(
+        this IResourceBuilder<AzureBlobStorageResource> builder,
+        AzureStorageEmulatorAccount account)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(account);
+
+        builder.Resource.EmulatorAccount = account;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the queue storage resource to use the specified emulator account.
+    /// </summary>
+    /// <param name="builder">The queue storage resource builder.</param>
+    /// <param name="account">The emulator account to use.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method configures the queue storage resource to connect to a specific account
+    /// when running against the Azurite emulator. The account must first be configured
+    /// using the <see cref="WithAccounts"/> method.
+    /// </para>
+    /// <para>
+    /// When not running against the emulator (i.e., when running against real Azure Storage),
+    /// this setting has no effect.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
+    /// 
+    /// var storage = builder.AddAzureStorage("storage")
+    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount));
+    ///     
+    /// var legacyQueues = storage.AddQueues("legacy-queues").WithAccount(legacyAccount);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureQueueStorageResource> WithAccount(
+        this IResourceBuilder<AzureQueueStorageResource> builder,
+        AzureStorageEmulatorAccount account)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(account);
+
+        builder.Resource.EmulatorAccount = account;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the table storage resource to use the specified emulator account.
+    /// </summary>
+    /// <param name="builder">The table storage resource builder.</param>
+    /// <param name="account">The emulator account to use.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method configures the table storage resource to connect to a specific account
+    /// when running against the Azurite emulator. The account must first be configured
+    /// using the <see cref="WithAccounts"/> method.
+    /// </para>
+    /// <para>
+    /// When not running against the emulator (i.e., when running against real Azure Storage),
+    /// this setting has no effect.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var legacyAccount = new AzureStorageEmulatorAccount("legacy");
+    /// 
+    /// var storage = builder.AddAzureStorage("storage")
+    ///     .RunAsEmulator(c => c.WithAccounts(legacyAccount));
+    ///     
+    /// var legacyTables = storage.AddTables("legacy-tables").WithAccount(legacyAccount);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureTableStorageResource> WithAccount(
+        this IResourceBuilder<AzureTableStorageResource> builder,
+        AzureStorageEmulatorAccount account)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(account);
+
+        builder.Resource.EmulatorAccount = account;
+        return builder;
     }
 }

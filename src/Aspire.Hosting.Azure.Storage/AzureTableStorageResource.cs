@@ -20,16 +20,25 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
+    /// Gets or sets the emulator account to use when running against the storage emulator.
+    /// </summary>
+    /// <remarks>
+    /// When <c>null</c>, the default emulator account will be used.
+    /// This property only affects connection strings when <see cref="AzureStorageResource.IsEmulator"/> is <c>true</c>.
+    /// </remarks>
+    internal AzureStorageEmulatorAccount? EmulatorAccount { get; set; }
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Table Storage resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        Parent.GetTableConnectionString();
+        Parent.GetTableConnectionString(EmulatorAccount ?? AzureStorageEmulatorAccount.Default);
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (Parent.IsEmulator)
         {
-            var connectionString = Parent.GetEmulatorConnectionString();
+            var connectionString = Parent.GetEmulatorConnectionString(EmulatorAccount ?? AzureStorageEmulatorAccount.Default);
             target[connectionName] = connectionString;
             target[$"{AzureStorageResource.TablesConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
         }
