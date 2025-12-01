@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Gathers commandline arguments for resources.
+/// Gathers command line arguments for resources.
 /// </summary>
 internal class ResourceArgumentsConfigurationGatherer : IResourceConfigurationGatherer
 {
