@@ -169,7 +169,10 @@ internal sealed class UpdateCommand : BaseCommand
             await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
             
             // After successful project update, check if CLI update is available and prompt
-            if (_cliDownloader is not null && _updateNotifier.IsUpdateAvailable())
+            // Only prompt if the channel supports CLI downloads (has a non-null CliDownloadBaseUrl)
+            if (_cliDownloader is not null && 
+                _updateNotifier.IsUpdateAvailable() && 
+                !string.IsNullOrEmpty(channel.CliDownloadBaseUrl))
             {
                 var shouldUpdateCli = await InteractionService.ConfirmAsync(
                     UpdateCommandStrings.UpdateCliAfterProjectUpdatePrompt,

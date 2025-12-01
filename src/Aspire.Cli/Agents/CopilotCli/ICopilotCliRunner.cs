@@ -3,7 +3,7 @@
 
 using Semver;
 
-namespace Aspire.Cli.Agents.VsCode;
+namespace Aspire.Cli.Agents.CopilotCli;
 
 /// <summary>
 /// Interface for running GitHub Copilot CLI commands.

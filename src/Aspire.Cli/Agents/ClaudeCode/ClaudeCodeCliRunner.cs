@@ -18,9 +18,16 @@ internal sealed class ClaudeCodeCliRunner(ILogger<ClaudeCodeCliRunner> logger) :
     {
         logger.LogDebug("Checking for Claude Code CLI installation");
 
+        var executablePath = PathLookupHelper.FindFullPathFromPath("claude");
+        if (executablePath is null)
+        {
+            logger.LogDebug("Claude Code CLI is not installed or not found in PATH");
+            return null;
+        }
+
         try
         {
-            var startInfo = new ProcessStartInfo("claude", "--version")
+            var startInfo = new ProcessStartInfo(executablePath, "--version")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

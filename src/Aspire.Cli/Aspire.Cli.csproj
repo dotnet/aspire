@@ -57,6 +57,7 @@
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>
