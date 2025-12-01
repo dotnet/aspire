@@ -3208,7 +3208,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(callback);
 
 #pragma warning disable ASPIREAGENTCONTENT001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
-        return builder.WithAnnotation(new AgentContentAnnotation(callback));
+        return builder.WithAnnotation(new AgentContentAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
 #pragma warning restore ASPIREAGENTCONTENT001
     }
 }
