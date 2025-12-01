@@ -1482,7 +1482,7 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         // Check if installer has explicit start annotation (install=false was used)
-        var installerHasExplicitStart = installerBuilder?.Resource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _) ?? false;
+        var shouldSkipInstallerWait = installerBuilder?.Resource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _) ?? false;
 
         // Set up wait dependencies based on what exists:
         // 1. If both venv creator and installer exist (and installer doesn't have explicit start): installer waits for venv creator, app waits for installer
@@ -1493,7 +1493,7 @@ public static class PythonAppResourceBuilderExtensions
 
         if (venvCreatorBuilder != null && installerBuilder != null)
         {
-            if (!installerHasExplicitStart)
+            if (!shouldSkipInstallerWait)
             {
                 // Both exist and installer should run automatically: installer waits for venv, app waits for installer
                 installerBuilder.WaitForCompletion(venvCreatorBuilder);
@@ -1505,7 +1505,7 @@ public static class PythonAppResourceBuilderExtensions
                 appBuilder.WaitForCompletion(venvCreatorBuilder);
             }
         }
-        else if (installerBuilder != null && !installerHasExplicitStart)
+        else if (installerBuilder != null && !shouldSkipInstallerWait)
         {
             // Only installer exists (without explicit start): app waits for installer
             appBuilder.WaitForCompletion(installerBuilder);
