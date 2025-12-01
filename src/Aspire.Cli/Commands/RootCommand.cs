@@ -32,6 +32,7 @@ internal sealed class RootCommand : BaseRootCommand
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
+        TestCommand testCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -49,6 +50,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
         ArgumentNullException.ThrowIfNull(mcpCommand);
+        ArgumentNullException.ThrowIfNull(testCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -120,6 +122,11 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {
             Subcommands.Add(execCommand);
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.TestCommandEnabled, false))
+        {
+            Subcommands.Add(testCommand);
         }
 
     }
