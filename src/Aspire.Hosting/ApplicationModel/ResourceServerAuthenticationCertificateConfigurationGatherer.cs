@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A gatherer that configures server authentication certificate configuration for a resource.
 /// </summary>
-public class ResourceServerAuthenticationCertificateConfigurationGatherer : IResourceConfigurationGatherer
+internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IResourceConfigurationGatherer
 {
     private readonly Func<X509Certificate2, ServerAuthenticationCertificateConfigurationContext> _configContextFactory;
 

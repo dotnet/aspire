@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Gathers commandline arguments for resources.
 /// </summary>
-public class ResourceArgumentsConfigurationGatherer : IResourceConfigurationGatherer
+internal class ResourceArgumentsConfigurationGatherer : IResourceConfigurationGatherer
 {
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IResourceConfigurationGathererContext context, CancellationToken cancellationToken = default)

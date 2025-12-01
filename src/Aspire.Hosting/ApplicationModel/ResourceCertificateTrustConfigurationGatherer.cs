@@ -13,7 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Gathers certificate trust configuration for resources that require it.
 /// </summary>
-public class ResourceCertificateTrustConfigurationGatherer : IResourceConfigurationGatherer
+internal class ResourceCertificateTrustConfigurationGatherer : IResourceConfigurationGatherer
 {
     private readonly Func<CertificateTrustScope, CertificateTrustConfigurationContext> _configContextFactory;
 
