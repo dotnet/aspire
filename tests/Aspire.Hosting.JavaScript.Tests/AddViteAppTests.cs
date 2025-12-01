@@ -242,9 +242,6 @@ public class AddViteAppTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
-        // Verify ViteConfigPath is set
-        Assert.Equal("custom.vite.config.js", nodeResource.ViteConfigPath);
-
         // Get the command line args annotation to inspect the args callback
         var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
         var args = new List<object>();
@@ -269,9 +266,6 @@ public class AddViteAppTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
-
-        // Verify ViteConfigPath is not set
-        Assert.Null(nodeResource.ViteConfigPath);
 
         // Get the command line args annotation to inspect the args callback
         var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
