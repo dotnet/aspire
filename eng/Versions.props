@@ -74,6 +74,8 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksPreviewVersion>10.0.0</MicrosoftExtensionsDiagnosticsHealthChecksPreviewVersion>
     <MicrosoftExtensionsFeaturesPreviewVersion>10.0.0</MicrosoftExtensionsFeaturesPreviewVersion>
     <MicrosoftAspNetCoreSignalRClientPreviewVersion>10.0.0</MicrosoftAspNetCoreSignalRClientPreviewVersion>
+    <!-- MAUI -->
+    <MicrosoftMauiCorePreviewVersion>10.0.0</MicrosoftMauiCorePreviewVersion>
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.0</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
     <MicrosoftExtensionsHostingPreviewVersion>10.0.0</MicrosoftExtensionsHostingPreviewVersion>
