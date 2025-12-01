@@ -33,7 +33,6 @@ internal class ResourceServerAuthenticationCertificateConfigurationGatherer : IR
             effectiveAnnotation = annotation;
         }
 
-
         X509Certificate2? certificate = effectiveAnnotation.Certificate;
         if (certificate is null)
         {
