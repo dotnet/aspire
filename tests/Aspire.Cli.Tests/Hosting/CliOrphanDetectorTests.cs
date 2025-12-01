@@ -167,6 +167,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12710")]
     public async Task CliOrphanDetectorAfterTheProcessWasRunningForAWhileThenStops()
     {
         var configuration = new ConfigurationBuilder()

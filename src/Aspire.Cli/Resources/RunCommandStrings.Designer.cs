@@ -164,5 +164,35 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartingDebugSessionInExtension", resourceCulture);
             }
         }
+        
+        public static string AgentConfigurationPrompt {
+            get {
+                return ResourceManager.GetString("AgentConfigurationPrompt", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationYes {
+            get {
+                return ResourceManager.GetString("AgentConfigurationYes", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationNo {
+            get {
+                return ResourceManager.GetString("AgentConfigurationNo", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationMaybeLater {
+            get {
+                return ResourceManager.GetString("AgentConfigurationMaybeLater", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationSelectPrompt {
+            get {
+                return ResourceManager.GetString("AgentConfigurationSelectPrompt", resourceCulture);
+            }
+        }
     }
 }

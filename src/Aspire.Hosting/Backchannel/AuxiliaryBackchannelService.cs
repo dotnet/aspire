@@ -152,14 +152,17 @@ internal sealed class AuxiliaryBackchannelService(
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
         
-        // Use AppHost:PathSha256 from configuration for consistent hashing
-        var appHostPathSha = configuration["AppHost:PathSha256"];
+        // Use AppHost:FilePath or AppHost:Path from configuration for consistent hashing
+        // This matches the logic in AuxiliaryBackchannelRpcTarget.GetAppHostInformationAsync
+        var appHostPath = configuration["AppHost:FilePath"] ?? configuration["AppHost:Path"];
         string hash;
         
-        if (!string.IsNullOrEmpty(appHostPathSha))
+        if (!string.IsNullOrEmpty(appHostPath))
         {
+            // Compute hash from the AppHost path for consistency
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
             // Use first 16 characters to keep socket path length reasonable (Unix socket path limits)
-            hash = appHostPathSha[..16].ToLowerInvariant();
+            hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
         }
         else
         {

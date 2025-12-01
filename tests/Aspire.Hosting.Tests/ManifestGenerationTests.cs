@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
 
-public class ManifestGenerationTests
+public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
@@ -91,7 +91,7 @@ public class ManifestGenerationTests
     [Fact]
     public async Task WithContainerRegistryUpdatesContainerImageAnnotationsDuringPublish()
     {
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        var builder = CreateBuilder(new DistributedApplicationOptions
         {
             Args = GetManifestArgs(),
             ContainerRegistryOverride = "myprivateregistry.company.com"
@@ -113,7 +113,7 @@ public class ManifestGenerationTests
     [Fact]
     public void ExcludeLaunchProfileOmitsBindings()
     {
-        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        var appBuilder = CreateBuilder(new DistributedApplicationOptions
         { Args = GetJsonManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
         var manifestStore = new JsonDocumentManifestStore();
         appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null);
@@ -509,7 +509,7 @@ public class ManifestGenerationTests
     [Fact]
     public async Task ParameterInputDefaultValuesGenerateCorrectly()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        var appBuilder = CreateBuilder();
         var param = appBuilder.AddParameter("param");
         param.Resource.Default = new GenerateParameterDefault()
         {
@@ -556,7 +556,7 @@ public class ManifestGenerationTests
     [Fact]
     public async Task ContainerFilesAreWrittenToManifest()
     {
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        var builder = CreateBuilder(new DistributedApplicationOptions
         {
             Args = GetManifestArgs()
         });
@@ -598,7 +598,7 @@ public class ManifestGenerationTests
     [Fact]
     public async Task ContainerFilesWithMultipleSourcesAreWrittenToManifest()
     {
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        var builder = CreateBuilder(new DistributedApplicationOptions
         {
             Args = GetManifestArgs()
         });
@@ -642,7 +642,7 @@ public class ManifestGenerationTests
     [Fact]
     public async Task ContainerFilesWithMultipleDestinationsAreWrittenToManifest()
     {
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        var builder = CreateBuilder(new DistributedApplicationOptions
         {
             Args = GetManifestArgs()
         });
@@ -695,9 +695,10 @@ public class ManifestGenerationTests
         Assert.Equal(expectedManifest, destManifest.ToString());
     }
 
-    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
+    private TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
     {
         var program = TestProgram.Create<ManifestGenerationTests>(GetJsonManifestArgs(), includeIntegrationServices, includeNodeApp);
+        program.AppBuilder.Services.AddTestAndResourceLogging(testOutputHelper);
         program.AppBuilder.Pipeline.AddJsonDocumentManifestPublishing();
         return program;
     }
@@ -712,5 +713,19 @@ public class ManifestGenerationTests
     {
         var manifestPath = Path.Combine(Path.GetTempPath(), "tempmanifests", Guid.NewGuid().ToString(), "manifest.json");
         return ["--operation", "publish", "--step", "publish-manifest", "--output-path", manifestPath];
+    }
+
+    private IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
+    {
+        var builder = DistributedApplication.CreateBuilder(options);
+        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        return builder;
+    }
+
+    private IDistributedApplicationBuilder CreateBuilder()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        return builder;
     }
 }
