@@ -6,6 +6,7 @@ using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Git;
 using Aspire.Cli.Tests.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
 namespace Aspire.Cli.Tests.Agents;
@@ -19,7 +20,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var vsCodeFolder = workspace.CreateDirectory(".vscode");
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -36,7 +37,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var childDir = workspace.CreateDirectory("subdir");
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = childDir };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -52,7 +53,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         // Git root is the workspace root, so search should stop there
         var gitRepository = new FakeGitRepository(workspace.WorkspaceRoot);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = childDir };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -66,7 +67,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var gitRepository = new FakeGitRepository(workspace.WorkspaceRoot);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(new SemVersion(1, 85, 0));
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -80,7 +81,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         // This test assumes no VSCODE_* environment variables are set
@@ -98,7 +99,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var vsCodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         
         // First, make the scanner find a parent .vscode folder to get an applicator
         var parentVsCode = workspace.CreateDirectory(".vscode");
@@ -123,7 +124,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var vsCodeFolder = workspace.CreateDirectory(".vscode");
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -179,7 +180,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -220,7 +221,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         var gitRepository = new FakeGitRepository(null);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner);
+        var scanner = new VsCodeAgentEnvironmentScanner(gitRepository, vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
