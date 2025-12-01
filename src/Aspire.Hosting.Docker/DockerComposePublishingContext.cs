@@ -162,7 +162,7 @@ internal sealed class DockerComposePublishingContext(
                 {
                     var envVar = entry.Value;
 
-                    envFile.Add(entry.Key, value: envVar.DefaultValue, envVar.Description, onlyIfMissing: true);
+                    envFile.Add(entry.Key, value: null, envVar.Description, onlyIfMissing: true);
                 }
 
                 envFile.Save(includeValues: false);
