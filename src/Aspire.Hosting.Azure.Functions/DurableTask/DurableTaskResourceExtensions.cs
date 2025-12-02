@@ -21,6 +21,9 @@ public static class DurableTaskResourceExtensions
     public static IResourceBuilder<DurableTaskSchedulerResource> AddDurableTaskScheduler(this IDistributedApplicationBuilder builder, string name)
     {
         var scheduler = new DurableTaskSchedulerResource(name);
+
+        scheduler.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
         return builder.AddResource(scheduler);
     }
 
@@ -138,6 +141,9 @@ public static class DurableTaskResourceExtensions
     public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name)
     {
         var hub = new DurableTaskHubResource(name, builder.Resource);
+
+        hub.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
         var hubBuilder = builder.ApplicationBuilder.AddResource(hub);
 
         if (builder.Resource.IsEmulator)
