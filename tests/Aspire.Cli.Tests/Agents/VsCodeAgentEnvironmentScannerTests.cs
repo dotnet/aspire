@@ -87,7 +87,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ScanAsync_WhenNoVsCodeOrGitFolder_AndNoCliAvailable_ReturnsNoApplicator()
+    public async Task ScanAsync_WhenNoVsCodeFolder_AndNoCliAvailable_ReturnsNoApplicator()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);

@@ -43,37 +43,29 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         _logger.LogDebug("Searching for .claude folder...");
         var claudeCodeFolder = FindClaudeCodeFolder(context.WorkingDirectory, context.RepositoryRoot);
 
-        // Determine the repo root - use the provided workspace root, or infer from .claude folder location
-        DirectoryInfo? repoRoot = context.RepositoryRoot;
         if (claudeCodeFolder is not null)
         {
-            // .claude folder's parent is the repo root (override the provided workspace root)
-            repoRoot = claudeCodeFolder.Parent ?? context.RepositoryRoot;
-            _logger.LogDebug("Inferred workspace root from .claude folder parent: {RepoRoot}", repoRoot.FullName);
-        }
-
-        if (claudeCodeFolder is not null || repoRoot is not null)
-        {
-            var targetRepoRoot = repoRoot ?? context.WorkingDirectory;
-            _logger.LogDebug("Found .claude folder or workspace root at: {RepoRoot}", targetRepoRoot.FullName);
+            // If .claude folder is found, override the workspace root with its parent directory
+            var workspaceRoot = claudeCodeFolder.Parent ?? context.RepositoryRoot;
+            _logger.LogDebug("Inferred workspace root from .claude folder parent: {WorkspaceRoot}", workspaceRoot.FullName);
 
             // Check if the aspire server is already configured in .mcp.json
             _logger.LogDebug("Checking if Aspire MCP server is already configured in .mcp.json...");
-            if (HasAspireServerConfigured(targetRepoRoot))
+            if (HasAspireServerConfigured(workspaceRoot))
             {
                 _logger.LogDebug("Aspire MCP server is already configured - skipping");
                 // Already configured, no need to offer an applicator
                 return;
             }
 
-            // Found a .claude folder or git repo - add an applicator to configure MCP
-            _logger.LogDebug("Adding Claude Code applicator for .mcp.json at: {RepoRoot}", targetRepoRoot.FullName);
-            context.AddApplicator(CreateApplicator(targetRepoRoot));
+            // Found a .claude folder - add an applicator to configure MCP
+            _logger.LogDebug("Adding Claude Code applicator for .mcp.json at: {WorkspaceRoot}", workspaceRoot.FullName);
+            context.AddApplicator(CreateApplicator(workspaceRoot));
         }
         else
         {
-            // No .claude folder or git repo found - check if Claude Code CLI is installed
-            _logger.LogDebug("No .claude folder or git repo found, checking for Claude Code CLI installation...");
+            // No .claude folder found - check if Claude Code CLI is installed
+            _logger.LogDebug("No .claude folder found, checking for Claude Code CLI installation...");
             var claudeCodeVersion = await _claudeCodeCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
 
             if (claudeCodeVersion is not null)
@@ -81,16 +73,16 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Found Claude Code CLI version: {Version}", claudeCodeVersion);
                 
                 // Check if the aspire server is already configured in .mcp.json
-                if (HasAspireServerConfigured(context.WorkingDirectory))
+                if (HasAspireServerConfigured(context.RepositoryRoot))
                 {
                     _logger.LogDebug("Aspire MCP server is already configured - skipping");
                     // Already configured, no need to offer an applicator
                     return;
                 }
 
-                // Claude Code is installed - offer to create config at working directory
-                _logger.LogDebug("Adding Claude Code applicator for .mcp.json at working directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-                context.AddApplicator(CreateApplicator(context.WorkingDirectory));
+                // Claude Code is installed - offer to create config at workspace root
+                _logger.LogDebug("Adding Claude Code applicator for .mcp.json at workspace root: {WorkspaceRoot}", context.RepositoryRoot.FullName);
+                context.AddApplicator(CreateApplicator(context.RepositoryRoot));
             }
             else
             {

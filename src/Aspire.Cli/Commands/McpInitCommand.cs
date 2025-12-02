@@ -55,14 +55,14 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Discover the git repository root upfront
+        // Try to discover the git repository root to use as the default workspace root
         var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
-        var defaultRepositoryRoot = gitRoot ?? ExecutionContext.WorkingDirectory;
+        var defaultWorkspaceRoot = gitRoot ?? ExecutionContext.WorkingDirectory;
 
         // Prompt the user for the workspace root
-        var repositoryRootPath = await _interactionService.PromptForStringAsync(
+        var workspaceRootPath = await _interactionService.PromptForStringAsync(
             McpCommandStrings.InitCommand_WorkspaceRootPrompt,
-            defaultValue: defaultRepositoryRoot.FullName,
+            defaultValue: defaultWorkspaceRoot.FullName,
             validator: path =>
             {
                 if (string.IsNullOrWhiteSpace(path))
@@ -79,11 +79,11 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
             },
             cancellationToken: cancellationToken);
 
-        var repositoryRoot = new DirectoryInfo(repositoryRootPath);
+        var workspaceRoot = new DirectoryInfo(workspaceRootPath);
 
         var applicators = await _interactionService.ShowStatusAsync(
             McpCommandStrings.InitCommand_DetectingAgentEnvironments,
-            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, repositoryRoot, cancellationToken));
+            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, workspaceRoot, cancellationToken));
 
         if (applicators.Length == 0)
         {
