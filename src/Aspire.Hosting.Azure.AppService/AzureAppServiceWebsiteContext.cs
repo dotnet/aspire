@@ -455,8 +455,10 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var playwrightWorkspaceName = environmentContext.Environment.PlaywrightWorkspaceName.AsProvisioningParameter(Infra);
             var playwrightWorkspaceId = environmentContext.Environment.PlaywrightWorkspaceId.AsProvisioningParameter(Infra);
+            var playwrightWorkspaceUri = environmentContext.Environment.PlaywrightWorkspaceDataPlaneUri.AsProvisioningParameter(Infra);
             webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "PLAYWRIGHT_WORKSPACE_NAME", Value = playwrightWorkspaceName });
             webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "PLAYWRIGHT_WORKSPACE_ID", Value = playwrightWorkspaceId });
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "PLAYWRIGHT_WORKSPACE_DATA_PLANE_URI", Value = playwrightWorkspaceUri});
         }
 
         // Add Website Contributor role assignment to dashboard's managed identity for this webapp

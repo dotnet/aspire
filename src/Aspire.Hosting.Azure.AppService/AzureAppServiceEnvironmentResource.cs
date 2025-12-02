@@ -240,6 +240,11 @@ public class AzureAppServiceEnvironmentResource :
     /// </summary>
     public BicepOutputReference PlaywrightWorkspaceId => new("AZURE_PLAYWRIGHT_WORKSPACE_ID", this);
 
+    /// <summary>
+    /// Gets the Playwright Workspace DataPlane Uri.
+    /// </summary>
+    public BicepOutputReference PlaywrightWorkspaceDataPlaneUri => new("AZURE_PLAYWRIGHT_WORKSPACE_DATA_PLANE_URI", this);
+
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
 

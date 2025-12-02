@@ -144,6 +144,10 @@ internal static class AzureAppServiceEnvironmentUtility
         {
             Value = new MemberExpression(new IdentifierExpression(playwrightWorkspace.BicepIdentifier), "id")
         });
+        infra.Add(new ProvisioningOutput("AZURE_PLAYWRIGHT_WORKSPACE_DATA_PLANE_URI", typeof(string))
+        {
+            Value = new MemberExpression(new IdentifierExpression(playwrightWorkspace.BicepIdentifier), "properties.dataplaneUri")
+        });
     }
 }
 
