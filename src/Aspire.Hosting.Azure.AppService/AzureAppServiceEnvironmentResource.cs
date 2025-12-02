@@ -141,7 +141,7 @@ public class AzureAppServiceEnvironmentResource :
         var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
         await context.ReportingStep.CompleteAsync(
-            $"Dashboard available at [dashboard URL]({dashboardUri})",
+            $"Dashboard available at [{dashboardUri}]({dashboardUri})",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
     }

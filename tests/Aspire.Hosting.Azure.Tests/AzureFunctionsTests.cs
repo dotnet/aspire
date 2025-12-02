@@ -756,4 +756,17 @@ public class AzureFunctionsTests
         // Verify that AzureFunctionsAnnotation is added
         Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
     }
+
+    [Fact]
+    public void AddAzureFunctionsProject_RegistersFuncCoreToolsInstallationManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        // Verify that FuncCoreToolsInstallationManager is registered as a singleton
+        var descriptor = builder.Services.FirstOrDefault(s => s.ServiceType == typeof(FuncCoreToolsInstallationManager));
+        Assert.NotNull(descriptor);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+    }
 }
