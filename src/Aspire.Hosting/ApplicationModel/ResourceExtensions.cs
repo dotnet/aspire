@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -187,23 +188,15 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var env = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, value, ex) =>
-            {
-                if (value is string s)
-                {
-                    env[key] = s;
-                }
-            },
-            NullLogger.Instance).ConfigureAwait(false);
+        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+            .WithEnvironmentVariables()
+            .BuildProcessedAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
 
-        return env;
+        return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
 
     /// <summary>
@@ -239,25 +232,15 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var args = new List<string>();
+        var argumentConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+            .WithArguments()
+            .BuildProcessedAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
 
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, value, ex, _) =>
-            {
-                if (value is string s)
-                {
-                    args.Add(s);
-                }
-
-            },
-            NullLogger.Instance).ConfigureAwait(false);
-
-        return [.. args];
+        return argumentConfiguration.Arguments.Select(a => a.Value).ToArray();
     }
 
     /// <summary>
@@ -269,6 +252,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the retrieval of argument values.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A list of unprocessed argument values.</returns>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     internal static async ValueTask<List<object>> GatherArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -303,6 +287,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     internal static async ValueTask ProcessGatheredArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -342,6 +327,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -364,6 +350,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the gathering process.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A dictionary of unprocessed environment variable values.</returns>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     internal static async ValueTask<Dictionary<string, object>> GatherEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -397,6 +384,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     internal static async ValueTask ProcessGatheredEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -432,6 +420,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -1144,5 +1133,17 @@ public static class ResourceExtensions
         var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(cancellationToken).ConfigureAwait(false);
         var registry = resource.GetContainerRegistry();
         return await pushOptions.GetFullRemoteImageNameAsync(registry, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets a logger for the specified resource using the provided service provider.
+    /// </summary>
+    /// <param name="resource">The resource to get the logger for.</param>
+    /// <param name="serviceProvider">The service provider to resolve dependencies.</param>
+    /// <returns>A logger instance for the specified resource.</returns>
+    internal static ILogger GetLogger(this IResource resource, IServiceProvider serviceProvider)
+    {
+        var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
+        return resourceLoggerService.GetLogger(resource);
     }
 }

@@ -10,27 +10,20 @@ public sealed class ArgumentEvaluator
 {
     public static async ValueTask<List<string>> GetArgumentListAsync(IResource resource, IServiceProvider? serviceProvider = null)
     {
-        var args = new List<string>();
-
-        await resource.ProcessArgumentValuesAsync(
-            new(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
-            {
-                ServiceProvider = serviceProvider
-            }),
-            (_, processed, ex, _) =>
-            {
-                if (ex is not null)
+        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+            .WithArguments()
+            .BuildProcessedAsync(
+                new(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
                 {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
+                    ServiceProvider = serviceProvider,
+                }),
+                CancellationToken.None).ConfigureAwait(false);
 
-                if (processed is string s)
-                {
-                    args.Add(s);
-                }
-            },
-            NullLogger.Instance);
+        if (executionConfiguration.Exception is not null)
+        {
+            ExceptionDispatchInfo.Throw(executionConfiguration.Exception);
+        }
 
-        return args;
+        return executionConfiguration.Arguments.Select(a => a.Value).ToList();
     }
 }

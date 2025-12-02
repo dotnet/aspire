@@ -18,24 +18,15 @@ public static class EnvironmentVariableEvaluator
             ServiceProvider = serviceProvider
         });
 
-        var environmentVariables = new Dictionary<string, string>();
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
+        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+            .WithEnvironmentVariables()
+            .BuildProcessedAsync(executionContext, CancellationToken.None);
 
-                if (value is string s)
-                {
-                    environmentVariables[key] = s;
-                }
-            },
-            NullLogger.Instance,
-            CancellationToken.None);
+        if (executionConfiguration.Exception is not null)
+        {
+            ExceptionDispatchInfo.Throw(executionConfiguration.Exception);
+        }
 
-        return environmentVariables;
+        return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
 }

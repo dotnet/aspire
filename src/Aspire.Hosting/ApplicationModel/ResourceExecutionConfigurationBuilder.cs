@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Provides a builder for constructing an <see cref="IResourceExecutionConfiguration"/> for a specific resource in the distributed application model.
+/// Provides a builder for constructing an <see cref="IProcessedResourceExecutionConfiguration"/> for a specific resource in the distributed application model.
 /// This resolves command line arguments and environment variables and potentially additional metadata through registered gatherers.
 /// </summary>
 /// <remarks>
@@ -38,17 +38,35 @@ namespace Aspire.Hosting.ApplicationModel;
 public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigurationBuilder
 {
     private readonly IResource _resource;
+    private readonly ILogger? _resourceLogger;
     private readonly List<IResourceExecutionConfigurationGatherer> _gatherers = new();
 
     private ResourceExecutionConfigurationBuilder(IResource resource)
+        : this(resource, null)
+    {
+    }
+
+    private ResourceExecutionConfigurationBuilder(IResource resource, ILogger? resourceLogger)
     {
         _resource = resource;
+        _resourceLogger = resourceLogger;
     }
 
     /// <summary>
     /// Creates a new instance of <see cref="IResourceExecutionConfigurationBuilder"/>.
     /// </summary>
     /// <param name="resource">The resource to build the configuration for.</param>
+    /// <returns>A new <see cref="IResourceExecutionConfigurationBuilder"/>.</returns>
+    public static IResourceExecutionConfigurationBuilder Create(IResource resource)
+    {
+        return new ResourceExecutionConfigurationBuilder(resource);
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="IResourceExecutionConfigurationBuilder"/>.
+    /// </summary>
+    /// <param name="resource">The resource to build the configuration for.</param>
+    /// <param name="resourceLogger">The logger to use for the resource. If <c>null</c>, a resource logger will be created.</param>
     /// <returns>A new <see cref="IResourceExecutionConfigurationBuilder"/>.</returns>
     /// <example>
     /// <code>
@@ -59,9 +77,9 @@ public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigura
     ///     .BuildAsync(executionContext).ConfigureAwait(false);
     /// </code>
     /// </example>
-    public static IResourceExecutionConfigurationBuilder Create(IResource resource)
+    public static IResourceExecutionConfigurationBuilder Create(IResource resource, ILogger? resourceLogger)
     {
-        return new ResourceExecutionConfigurationBuilder(resource);
+        return new ResourceExecutionConfigurationBuilder(resource, resourceLogger);
     }
 
     /// <inheritdoc />
@@ -73,23 +91,17 @@ public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigura
     }
 
     /// <inheritdoc />
-    public async Task<IResourceExecutionConfiguration> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
+    public async Task<IProcessedResourceExecutionConfiguration> BuildProcessedAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        var resourceLoggerService = executionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var resourceLogger = resourceLoggerService.GetLogger(_resource);
+        var resourceLogger = _resourceLogger ?? _resource.GetLogger(executionContext.ServiceProvider);
 
-        var context = new ResourceExecutionConfigurationGathererContext
-        {
-            Resource = _resource,
-            ResourceLogger = resourceLogger,
-            ExecutionContext = executionContext
-        };
+        var context = new ResourceExecutionConfigurationGathererContext();
 
         foreach (var gatherer in _gatherers)
         {
-            await gatherer.GatherAsync(context, cancellationToken).ConfigureAwait(false);
+            await gatherer.GatherAsync(context, _resource, resourceLogger, executionContext, cancellationToken).ConfigureAwait(false);
         }
 
-        return await context.ResolveAsync(cancellationToken).ConfigureAwait(false);
+        return await context.ResolveAsync(_resource, resourceLogger, executionContext, cancellationToken).ConfigureAwait(false);
     }
 }

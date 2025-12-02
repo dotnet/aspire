@@ -305,7 +305,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002));
 
         var redisInsight = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
-        var envs = await redisInsight.GetEnvironmentVariableValuesAsync();
+        var envs = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsight);
 
         Assert.Collection(envs,
             (item) =>
@@ -720,9 +720,9 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var redisInsightResource = Assert.Single(appModel.Resources.OfType<RedisInsightResource>());
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await redisInsightResource.GetEnvironmentVariableValuesAsync();
-        var config2 = await redisInsightResource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsightResource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsightResource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);
@@ -773,6 +773,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairUsesProvidedCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -788,6 +789,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairWithPasswordStoresPassword()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -804,6 +806,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresCertificateStoreAccess]
     public async Task RedisWithCertificateHasCorrectConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);

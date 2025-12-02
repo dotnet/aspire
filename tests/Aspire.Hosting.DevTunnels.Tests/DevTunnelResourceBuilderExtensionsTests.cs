@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.DevTunnels.Tests;
 
@@ -25,7 +28,7 @@ public class DevTunnelResourceBuilderExtensionsTests
 
         tunnelPort.TunnelEndpointAnnotation.AllocatedEndpoint = new(tunnelPort.TunnelEndpointAnnotation, "test123.devtunnels.ms", 443);
 
-        var values = await consumer.Resource.GetEnvironmentVariableValuesAsync();
+        var values = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, serviceProvider: builder.Services.BuildServiceProvider()).DefaultTimeout();
 
         Assert.Equal("https://test123.devtunnels.ms:443", values["services__target__https__0"]);
         Assert.Equal("https://test123.devtunnels.ms:443", values["TARGET_HTTPS"]);
@@ -130,10 +133,10 @@ public class DevTunnelResourceBuilderExtensionsTests
             .WithReference(target);
 
         var endpointRef = tunnel.GetEndpoint(target.Resource, "nonexistent");
-        
+
         Assert.NotNull(endpointRef);
         Assert.False(endpointRef.Exists);
-        
+
         var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
         Assert.Equal("The dev tunnel 'tunnel' has not been associated with 'nonexistent' on resource 'target'. Use 'WithReference(target)' on the dev tunnel to expose this endpoint.", ex.Message);
     }
@@ -152,10 +155,10 @@ public class DevTunnelResourceBuilderExtensionsTests
 
         var target2Endpoint = target2.GetEndpoint("https");
         var endpointRef = tunnel.GetEndpoint(target2Endpoint);
-        
+
         Assert.NotNull(endpointRef);
         Assert.False(endpointRef.Exists);
-        
+
         var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
         Assert.Equal("The dev tunnel 'tunnel' has not been associated with 'https' on resource 'target2'. Use 'WithReference(target2)' on the dev tunnel to expose this endpoint.", ex.Message);
     }
@@ -170,10 +173,10 @@ public class DevTunnelResourceBuilderExtensionsTests
         var tunnel = builder.AddDevTunnel("tunnel");
 
         var endpointRef = tunnel.GetEndpoint(target.Resource, "https");
-        
+
         Assert.NotNull(endpointRef);
         Assert.False(endpointRef.Exists);
-        
+
         var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
         Assert.Equal("The dev tunnel 'tunnel' has not been associated with 'https' on resource 'target'. Use 'WithReference(target)' on the dev tunnel to expose this endpoint.", ex.Message);
     }
@@ -196,7 +199,7 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.NotNull(httpsTunnelEndpoint);
         Assert.Equal(DevTunnelPortResource.TunnelEndpointName, httpTunnelEndpoint.EndpointName);
         Assert.Equal(DevTunnelPortResource.TunnelEndpointName, httpsTunnelEndpoint.EndpointName);
-        
+
         // Verify they reference different ports (implicitly through the annotation)
         Assert.NotSame(httpTunnelEndpoint.EndpointAnnotation, httpsTunnelEndpoint.EndpointAnnotation);
     }

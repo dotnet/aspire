@@ -8,15 +8,6 @@ namespace Aspire.Hosting.ApplicationModel;
 internal class ResourceExecutionConfigurationGathererContext : IResourceExecutionConfigurationGathererContext
 {
     /// <inheritdoc/>
-    public required IResource Resource { get; init; }
-
-    /// <inheritdoc/>
-    public required ILogger ResourceLogger { get; init; }
-
-    /// <inheritdoc/>
-    public required DistributedApplicationExecutionContext ExecutionContext { get; init; }
-
-    /// <inheritdoc/>
     public List<object> Arguments { get; } = new();
 
     /// <inheritdoc/>
@@ -34,26 +25,38 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
     }
 
     /// <summary>
-    /// Resolves the actual <see cref="IResourceExecutionConfiguration"/> from the gatherer context.
+    /// Resolves the actual <see cref="IProcessedResourceExecutionConfiguration"/> from the gatherer context.
     /// </summary>
+    /// <param name="resource">The resource for which the configuration is being resolved.</param>
+    /// <param name="resourceLogger">The logger associated with the resource.</param>
+    /// <param name="executionContext">The execution context of the distributed application.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains the resolved resource configuration.
     /// </returns>
-    internal async Task<IResourceExecutionConfiguration> ResolveAsync(CancellationToken cancellationToken = default)
+    internal async Task<IProcessedResourceExecutionConfiguration> ResolveAsync(
+        IResource resource,
+        ILogger resourceLogger,
+        DistributedApplicationExecutionContext executionContext,
+        CancellationToken cancellationToken = default)
     {
-        List<(string value, bool isSensitive)> resolvedArguments = new(Arguments.Count);
-        Dictionary<string, string> resolvedEnvironmentVariables = new(EnvironmentVariables.Count);
+        HashSet<object> references = new();
+        List<(object Unprocessed, string Value, bool IsSensitive)> resolvedArguments = new(Arguments.Count);
+        Dictionary<string, (object Unprocessed, string Value)> resolvedEnvironmentVariables = new(EnvironmentVariables.Count);
         List<Exception> exceptions = new();
 
         foreach (var argument in Arguments)
         {
             try
             {
-                var resolvedValue = await Resource.ResolveValueAsync(ExecutionContext, ResourceLogger, argument, null, cancellationToken).ConfigureAwait(false);
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, resourceLogger, argument, null, cancellationToken).ConfigureAwait(false);
                 if (resolvedValue?.Value != null)
                 {
-                    resolvedArguments.Add((resolvedValue.Value, resolvedValue.IsSensitive));
+                    resolvedArguments.Add((argument, resolvedValue.Value, resolvedValue.IsSensitive));
+                    if (argument is IValueProvider or IManifestExpressionProvider)
+                    {
+                        references.Add(argument);
+                    }
                 }
             }
             catch (Exception ex)
@@ -66,10 +69,14 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
         {
             try
             {
-                var resolvedValue = await Resource.ResolveValueAsync(ExecutionContext, ResourceLogger, kvp.Value, null, cancellationToken).ConfigureAwait(false);
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, resourceLogger, kvp.Value, null, cancellationToken).ConfigureAwait(false);
                 if (resolvedValue?.Value != null)
                 {
-                    resolvedEnvironmentVariables[kvp.Key] = resolvedValue.Value;
+                    resolvedEnvironmentVariables[kvp.Key] = (kvp.Value, resolvedValue.Value);
+                    if (kvp.Value is IValueProvider or IManifestExpressionProvider)
+                    {
+                        references.Add(kvp.Value);
+                    }
                 }
             }
             catch (Exception ex)
@@ -78,10 +85,11 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
             }
         }
 
-        return new ResourceExecutionConfiguration
+        return new ProcessedResourceExecutionConfiguration
         {
-            Arguments = resolvedArguments,
-            EnvironmentVariables = resolvedEnvironmentVariables,
+            References = references,
+            ArgumentsWithUnprocessed = resolvedArguments,
+            EnvironmentVariablesWithUnprocessed = resolvedEnvironmentVariables,
             AdditionalConfigurationData = AdditionalConfigurationData,
             Exception = exceptions.Count == 0 ? null : new AggregateException("One or more errors occurred while resolving resource configuration.", exceptions)
         };

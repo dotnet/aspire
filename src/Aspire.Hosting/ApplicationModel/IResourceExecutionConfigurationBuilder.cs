@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Builder for producing the resolved execution configuration (arguments and environment variables) for a specific resource.
+/// Builder for gathering and resolving the execution configuration (arguments and environment variables) for a specific resource.
 /// </summary>
 public interface IResourceExecutionConfigurationBuilder
 {
@@ -16,10 +16,10 @@ public interface IResourceExecutionConfigurationBuilder
     IResourceExecutionConfigurationBuilder AddExecutionConfigurationGatherer(IResourceExecutionConfigurationGatherer gatherer);
 
     /// <summary>
-    /// Builds the resource configuration.
+    /// Builds the processed resource configuration (resolved arguments and environment variables).
     /// </summary>
-    /// <param name="executionContext">The execution context.</param>
+    /// <param name="executionContext">The distributed application execution context.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The resource configuration.</returns>
-    Task<IResourceExecutionConfiguration> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default);
+    Task<IProcessedResourceExecutionConfiguration> BuildProcessedAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default);
 }

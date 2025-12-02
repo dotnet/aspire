@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Extension methods for <see cref="IResourceExecutionConfiguration"/>.
+/// Extension methods for <see cref="IProcessedResourceExecutionConfiguration"/>.
 /// </summary>
 public static class ResourceExecutionConfigurationExtensions
 {
@@ -18,7 +18,7 @@ public static class ResourceExecutionConfigurationExtensions
     /// <param name="configuration">The resource execution configuration.</param>
     /// <param name="additionalData">The additional data if found.</param>
     /// <returns>True if the additional data was found; otherwise, false.</returns>
-    public static bool TryGetAdditionalData<T>(this IResourceExecutionConfiguration configuration, [NotNullWhen(true)] out T? additionalData) where T : IResourceExecutionConfigurationData
+    public static bool TryGetAdditionalData<T>(this IProcessedResourceExecutionConfiguration configuration, [NotNullWhen(true)] out T? additionalData) where T : IResourceExecutionConfigurationData
     {
         foreach (var item in configuration.AdditionalConfigurationData)
         {

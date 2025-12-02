@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -9,14 +11,14 @@ namespace Aspire.Hosting.ApplicationModel;
 internal class ArgumentsExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
 {
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        if (context.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
-            var callbackContext = new CommandLineArgsCallbackContext(context.Arguments, context.Resource, cancellationToken)
+            var callbackContext = new CommandLineArgsCallbackContext(context.Arguments, resource, cancellationToken)
             {
-                Logger = context.ResourceLogger,
-                ExecutionContext = context.ExecutionContext
+                Logger = resourceLogger,
+                ExecutionContext = executionContext
             };
 
             foreach (var callback in callbacks)

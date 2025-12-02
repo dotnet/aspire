@@ -178,7 +178,9 @@ public class ResourceExtensionsTests
              context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.Collection(env,
             env =>
@@ -211,7 +213,9 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.Collection(env,
             env =>
@@ -244,7 +248,9 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var env = await container.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish).DefaultTimeout();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.Collection(env,
             env =>
@@ -267,6 +273,7 @@ public class ResourceExtensionsTests
     [Fact]
     public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         var builder = DistributedApplication.CreateBuilder();
         var surrogate = builder.AddResource(new ConnectionStringParameterResource("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
         var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
@@ -291,6 +298,7 @@ public class ResourceExtensionsTests
             .Resource.GetArgumentValuesAsync().DefaultTimeout();
 
         Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], executableArgs);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]

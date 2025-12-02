@@ -5,6 +5,7 @@
 
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -25,10 +26,10 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
     }
 
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
         var effectiveAnnotation = new ServerAuthenticationCertificateAnnotation();
-        if (context.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+        if (resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
         {
             effectiveAnnotation = annotation;
         }
@@ -36,7 +37,7 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
         X509Certificate2? certificate = effectiveAnnotation.Certificate;
         if (certificate is null)
         {
-            var developerCertificateService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+            var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
             if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication))
             {
                 certificate = developerCertificateService.Certificates.FirstOrDefault();
@@ -61,8 +62,8 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
 
         var callbackContext = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
         {
-            ExecutionContext = context.ExecutionContext,
-            Resource = context.Resource,
+            ExecutionContext = executionContext,
+            Resource = resource,
             Arguments = context.Arguments,
             EnvironmentVariables = context.EnvironmentVariables,
             CertificatePath = configurationContext.CertificatePath,
@@ -73,7 +74,7 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
             CancellationToken = cancellationToken,
         };
 
-        foreach (var callback in context.Resource.TryGetAnnotationsOfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<ServerAuthenticationCertificateConfigurationCallbackAnnotation>())
+        foreach (var callback in resource.TryGetAnnotationsOfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<ServerAuthenticationCertificateConfigurationCallbackAnnotation>())
         {
             await callback.Callback(callbackContext).ConfigureAwait(false);
         }

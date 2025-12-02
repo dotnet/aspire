@@ -27,9 +27,9 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
     }
 
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        var developerCertificateService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+        var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
         var trustDevCert = developerCertificateService.TrustCertificate;
 
         // Add additional certificate trust configuration metadata
@@ -38,7 +38,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
 
         additionalData.Scope = CertificateTrustScope.Append;
         var certificates = new X509Certificate2Collection();
-        if (context.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+        if (resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
         {
             foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
             {
@@ -61,7 +61,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
             certificates.AddRootCertificates();
         }
 
-        if (context.ExecutionContext.IsRunMode && trustDevCert)
+        if (executionContext.IsRunMode && trustDevCert)
         {
             foreach (var cert in developerCertificateService.Certificates)
             {
@@ -74,7 +74,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
         if (!additionalData.Certificates.Any())
         {
             // No certificates to configure
-            context.ResourceLogger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", context.Resource.Name);
+            resourceLogger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
             return;
         }
 
@@ -90,8 +90,8 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
 
         var callbackContext = new CertificateTrustConfigurationCallbackAnnotationContext
         {
-            ExecutionContext = context.ExecutionContext,
-            Resource = context.Resource,
+            ExecutionContext = executionContext,
+            Resource = resource,
             Scope = additionalData.Scope,
             CertificateBundlePath = configurationContext.CertificateBundlePath,
             CertificateDirectoriesPath = configurationContext.CertificateDirectoriesPath,
@@ -100,7 +100,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
             CancellationToken = cancellationToken,
         };
 
-        if (context.Resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
+        if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
         {
             foreach (var callback in callbacks)
             {
@@ -110,7 +110,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
 
         if (additionalData.Scope == CertificateTrustScope.System)
         {
-            context.ResourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", context.Resource.Name, Enum.GetName(additionalData.Scope));
+            resourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(additionalData.Scope));
         }
 
     }

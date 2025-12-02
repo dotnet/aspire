@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -36,6 +37,7 @@ public static class ResourceExecutionConfigurationBuilderExtensions
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <param name="configContextFactory">A factory function to create the configuration context.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceExecutionConfigurationBuilder WithCertificateTrust(this IResourceExecutionConfigurationBuilder builder, Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> configContextFactory)
     {
         return builder.AddExecutionConfigurationGatherer(new CertificateTrustExecutionConfigurationGatherer(configContextFactory));
@@ -47,6 +49,7 @@ public static class ResourceExecutionConfigurationBuilderExtensions
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <param name="configContextFactory">A factory function to create the configuration context.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceExecutionConfigurationBuilder WithServerAuthenticationCertificate(this IResourceExecutionConfigurationBuilder builder, Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> configContextFactory)
     {
         return builder.AddExecutionConfigurationGatherer(new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory));
