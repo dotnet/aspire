@@ -35,6 +35,7 @@ jobs:
     uses: ./.github/workflows/specialized-test-runner.yml
     with:
       testRunnerName: "QuarantinedTestRunsheetBuilder"
+      attributeName: "QuarantinedTest"
       extraRunSheetBuilderArgs: "-p:RunQuarantinedTests=true"
       extraTestArgs: "--filter-trait quarantined=true"
       enablePlaywrightInstall: true
