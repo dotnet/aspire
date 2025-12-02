@@ -1348,12 +1348,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
-            var aliases = new List<string> { container.Name };
-            var networkAliasAnnotations = container.Annotations.OfType<ContainerNetworkAliasAnnotation>();
-            foreach (var aliasAnnotation in networkAliasAnnotations)
-            {
-                aliases.Add(aliasAnnotation.Alias);
-            }
+            var aliases = container.Annotations
+                .OfType<ContainerNetworkAliasAnnotation>()
+                .Select(a => a.Alias)
+                .Prepend(container.Name)
+                .ToList();
 
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
