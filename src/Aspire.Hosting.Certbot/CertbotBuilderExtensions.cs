@@ -6,22 +6,22 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding Let's Encrypt Certbot resources to the application model.
+/// Provides extension methods for adding Certbot resources to the application model.
 /// </summary>
-public static class LetsEncryptBuilderExtensions
+public static class CertbotBuilderExtensions
 {
     /// <summary>
-    /// Adds a Let's Encrypt Certbot container to the application model.
+    /// Adds a Certbot container to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="domain">The parameter containing the domain name to obtain a certificate for.</param>
-    /// <param name="email">The parameter containing the email address for Let's Encrypt registration.</param>
+    /// <param name="email">The parameter containing the email address for certificate registration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This method adds a Certbot container that obtains SSL/TLS certificates from Let's Encrypt.
-    /// Port 80 is published to the host for Let's Encrypt to reach the ACME challenge.
+    /// This method adds a Certbot container that obtains SSL/TLS certificates using the ACME protocol.
+    /// Port 80 is published to the host for the ACME challenge.
     /// </para>
     /// <para>
     /// The certificates are stored in a shared volume named "letsencrypt" at /etc/letsencrypt.
@@ -32,7 +32,7 @@ public static class LetsEncryptBuilderExtensions
     /// Use in application host:
     /// <code lang="csharp">
     /// var domain = builder.AddParameter("domain");
-    /// var email = builder.AddParameter("letsencrypt-email");
+    /// var email = builder.AddParameter("email");
     ///
     /// var certbot = builder.AddCertbot("certbot", domain, email);
     ///
@@ -79,7 +79,7 @@ public static class LetsEncryptBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a reference to the Let's Encrypt certificates volume from a Certbot resource.
+    /// Adds a reference to the certificates volume from a Certbot resource.
     /// </summary>
     /// <typeparam name="T">The type of the container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource that needs access to the certificates.</param>
@@ -88,22 +88,22 @@ public static class LetsEncryptBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This method adds the Let's Encrypt certificates volume to the specified container resource,
+    /// This method adds the certificates volume to the specified container resource,
     /// allowing it to access SSL/TLS certificates obtained by Certbot.
     /// </para>
     /// <example>
     /// <code lang="csharp">
     /// var domain = builder.AddParameter("domain");
-    /// var email = builder.AddParameter("letsencrypt-email");
+    /// var email = builder.AddParameter("email");
     ///
     /// var certbot = builder.AddCertbot("certbot", domain, email);
     ///
     /// var yarp = builder.AddContainer("yarp", "myimage")
-    ///                   .WithCertbotCertificates(certbot);
+    ///                   .WithServerCertificates(certbot);
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithCertbotCertificates<T>(
+    public static IResourceBuilder<T> WithServerCertificates<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<CertbotResource> certbot,
         string mountPath = CertbotResource.CertificatesPath) where T : ContainerResource

@@ -4,11 +4,11 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a Let's Encrypt Certbot container resource for obtaining and renewing SSL/TLS certificates.
+/// Represents a Certbot container resource for obtaining and renewing SSL/TLS certificates.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="domain">A parameter containing the domain name to obtain a certificate for.</param>
-/// <param name="email">A parameter containing the email address for Let's Encrypt registration and notifications.</param>
+/// <param name="email">A parameter containing the email address for certificate registration and notifications.</param>
 public class CertbotResource(string name, ParameterResource domain, ParameterResource email) : ContainerResource(name)
 {
     internal const string HttpEndpointName = "http";
@@ -28,7 +28,7 @@ public class CertbotResource(string name, ParameterResource domain, ParameterRes
     public ParameterResource DomainParameter { get; } = domain ?? throw new ArgumentNullException(nameof(domain));
 
     /// <summary>
-    /// Gets the parameter that contains the email address for Let's Encrypt registration.
+    /// Gets the parameter that contains the email address for certificate registration.
     /// </summary>
     public ParameterResource EmailParameter { get; } = email ?? throw new ArgumentNullException(nameof(email));
 
@@ -36,7 +36,7 @@ public class CertbotResource(string name, ParameterResource domain, ParameterRes
     /// Gets an expression representing the path to the SSL/TLS certificate (fullchain.pem) for the domain.
     /// </summary>
     /// <remarks>
-    /// The certificate path follows the Let's Encrypt convention: <c>/etc/letsencrypt/live/{domain}/fullchain.pem</c>.
+    /// The certificate path follows the standard convention: <c>/etc/letsencrypt/live/{domain}/fullchain.pem</c>.
     /// This property returns a <see cref="ReferenceExpression"/> that resolves to the actual path at runtime
     /// based on the domain parameter value.
     /// </remarks>
@@ -47,7 +47,7 @@ public class CertbotResource(string name, ParameterResource domain, ParameterRes
     /// Gets an expression representing the path to the private key (privkey.pem) for the domain.
     /// </summary>
     /// <remarks>
-    /// The private key path follows the Let's Encrypt convention: <c>/etc/letsencrypt/live/{domain}/privkey.pem</c>.
+    /// The private key path follows the standard convention: <c>/etc/letsencrypt/live/{domain}/privkey.pem</c>.
     /// This property returns a <see cref="ReferenceExpression"/> that resolves to the actual path at runtime
     /// based on the domain parameter value.
     /// </remarks>

@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.LetsEncrypt.Tests;
+namespace Aspire.Hosting.Certbot.Tests;
 
 public class AddCertbotTests
 {
@@ -15,7 +15,7 @@ public class AddCertbotTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var domain = appBuilder.AddParameter("domain");
-        var email = appBuilder.AddParameter("letsencrypt-email");
+        var email = appBuilder.AddParameter("email");
 
         appBuilder.AddCertbot("certbot", domain, email);
 
@@ -46,7 +46,7 @@ public class AddCertbotTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var domain = appBuilder.AddParameter("domain");
-        var email = appBuilder.AddParameter("letsencrypt-email");
+        var email = appBuilder.AddParameter("email");
 
         appBuilder.AddCertbot("certbot", domain, email);
 
@@ -67,7 +67,7 @@ public class AddCertbotTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var domain = appBuilder.AddParameter("domain");
-        var email = appBuilder.AddParameter("letsencrypt-email");
+        var email = appBuilder.AddParameter("email");
 
         appBuilder.AddCertbot("certbot", domain, email);
 
@@ -86,7 +86,7 @@ public class AddCertbotTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var domain = appBuilder.AddParameter("domain");
-        var email = appBuilder.AddParameter("letsencrypt-email");
+        var email = appBuilder.AddParameter("email");
 
         appBuilder.AddCertbot("certbot", domain, email);
 
@@ -99,7 +99,7 @@ public class AddCertbotTests
         Assert.NotNull(containerResource.DomainParameter);
         Assert.Equal("domain", containerResource.DomainParameter.Name);
         Assert.NotNull(containerResource.EmailParameter);
-        Assert.Equal("letsencrypt-email", containerResource.EmailParameter.Name);
+        Assert.Equal("email", containerResource.EmailParameter.Name);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class AddCertbotTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var manifest = await ManifestUtils.GetManifest(certbot.Resource);
@@ -126,7 +126,7 @@ public class AddCertbotTests
                 "--deploy-hook",
                 "chmod -R 755 /etc/letsencrypt/live \u0026\u0026 chmod -R 755 /etc/letsencrypt/archive",
                 "--email",
-                "{letsencrypt-email.value}",
+                "{email.value}",
                 "-d",
                 "{domain.value}"
               ],
@@ -152,15 +152,15 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public void WithCertbotCertificatesAddsVolumeAnnotation()
+    public void WithServerCertificatesAddsVolumeAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var container = builder.AddContainer("test", "testimage")
-                               .WithCertbotCertificates(certbot);
+                               .WithServerCertificates(certbot);
 
         var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
         Assert.Single(volumes);
@@ -172,15 +172,15 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public void WithCertbotCertificatesWithCustomMountPath()
+    public void WithServerCertificatesWithCustomMountPath()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var container = builder.AddContainer("test", "testimage")
-                               .WithCertbotCertificates(certbot, "/custom/certs");
+                               .WithServerCertificates(certbot, "/custom/certs");
 
         var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
         Assert.Single(volumes);
@@ -198,7 +198,7 @@ public class AddCertbotTests
 
         using var appBuilder = TestDistributedApplicationBuilder.Create();
         var domain = appBuilder.AddParameter("domain");
-        var email = appBuilder.AddParameter("letsencrypt-email");
+        var email = appBuilder.AddParameter("email");
 
         Assert.Throws<ArgumentNullException>(() => builder.AddCertbot("certbot", domain, email));
     }
@@ -208,7 +208,7 @@ public class AddCertbotTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
 
         Assert.Throws<ArgumentNullException>(() => builder.AddCertbot(null!, domain, email));
     }
@@ -217,7 +217,7 @@ public class AddCertbotTests
     public void AddCertbotThrowsWhenDomainIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
 
         Assert.Throws<ArgumentNullException>(() => builder.AddCertbot("certbot", null!, email));
     }
@@ -236,7 +236,7 @@ public class AddCertbotTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var certificatePath = certbot.Resource.CertificatePath;
@@ -250,7 +250,7 @@ public class AddCertbotTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("letsencrypt-email");
+        var email = builder.AddParameter("email");
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var privateKeyPath = certbot.Resource.PrivateKeyPath;

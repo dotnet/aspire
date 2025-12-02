@@ -1,15 +1,15 @@
-# Aspire.Hosting.LetsEncrypt library
+# Aspire.Hosting.Certbot library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure a Let's Encrypt Certbot resource.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a Certbot resource.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the Aspire Let's Encrypt Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Certbot Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.LetsEncrypt
+dotnet add package Aspire.Hosting.Certbot
 ```
 
 ## Usage example
@@ -18,18 +18,18 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Certbot resource to obtain SS
 
 ```csharp
 var domain = builder.AddParameter("domain");
-var email = builder.AddParameter("letsencrypt-email");
+var email = builder.AddParameter("email");
 
 var certbot = builder.AddCertbot("certbot", domain, email);
 
 var myService = builder.AddContainer("myservice", "myimage")
-                       .WithCertbotCertificates(certbot);
+                       .WithServerCertificates(certbot);
 ```
 
 The certbot container will:
 
 - Run in standalone mode to handle ACME challenges on port 80
-- Obtain certificates for the specified domain from Let's Encrypt
+- Obtain certificates for the specified domain using the ACME protocol
 - Store certificates in a shared volume at `/etc/letsencrypt`
 - Fix permissions so non-root containers can read the certificates
 
@@ -42,22 +42,22 @@ The Certbot resource requires two parameters:
 | Parameter | Description |
 |-----------|-------------|
 | `domain` | The domain name to obtain a certificate for |
-| `letsencrypt-email` | The email address for Let's Encrypt registration and notifications |
+| `email` | The email address for certificate registration and notifications |
 
 These parameters can be set via environment variables or configuration:
 
 ```bash
 Parameters__domain=example.com
-Parameters__letsencrypt-email=admin@example.com
+Parameters__email=admin@example.com
 ```
 
 ### Sharing Certificates with Other Resources
 
-Use the `WithCertbotCertificates` extension method to mount the certificates volume in other containers:
+Use the `WithServerCertificates` extension method to mount the certificates volume in other containers:
 
 ```csharp
 var yarp = builder.AddContainer("yarp", "myimage")
-                  .WithCertbotCertificates(certbot);
+                  .WithServerCertificates(certbot);
 ```
 
 Or mount the volume directly:
@@ -88,12 +88,12 @@ var privateKeyPath = certbot.Resource.PrivateKeyPath;     // /etc/letsencrypt/li
 
 The Certbot resource does not expose connection properties through `WithReference`. This is because the Certbot resource is a certificate provisioning tool, not a service that other resources connect to.
 
-Instead, use the `WithCertbotCertificates` extension method to share certificates with other containers via a mounted volume. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
+Instead, use the `WithServerCertificates` extension method to share certificates with other containers via a mounted volume. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
 
 ## Additional documentation
 
-* https://letsencrypt.org/docs/
 * https://certbot.eff.org/docs/
+* https://letsencrypt.org/docs/
 
 ## Feedback & contributing
 
