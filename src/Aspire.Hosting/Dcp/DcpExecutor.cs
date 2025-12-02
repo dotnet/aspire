@@ -1789,7 +1789,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var aanns = container.Annotations.OfType<ContainerNetworkAliasAnnotation>().ToImmutableArray();
             if (aanns.Any(a => a.Network != KnownNetworkIdentifiers.DefaultAspireContainerNetwork))
             {
-                throw new InvalidOperationException("Custom container networks are not supported by Aspire yet");
+                throw new InvalidOperationException("Custom container networks are not supported yet.");
             }
 
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
