@@ -1786,12 +1786,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
+            var aanns = container.Annotations.OfType<ContainerNetworkAliasAnnotation>().ToImmutableArray();
+            if (aanns.Any(a => a.Network != KnownNetworkIdentifiers.DefaultAspireContainerNetwork))
+            {
+                throw new InvalidOperationException("Custom container networks are not supported by Aspire yet");
+            }
+
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
                 new ContainerNetworkConnection
                 {
                     Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value,
-                    Aliases = [container.Name, $"{container.Name}.dev.internal"], // Alias to .dev.internal to support dev cert trust
+                    Aliases = aanns.Select(a => a.Alias)
+                                .Prepend($"{container.Name}.dev.internal") // Alias to .dev.internal to support dev cert trust
+                                .Prepend(container.Name)
+                                .ToList()
                 }
             };
 

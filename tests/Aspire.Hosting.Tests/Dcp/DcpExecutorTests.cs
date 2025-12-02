@@ -1991,6 +1991,43 @@ public class DcpExecutorTests
         Assert.Equal(ExecutionType.IDE, exe.Spec.ExecutionType);
     }
 
+    [Theory]
+    [InlineData()]
+    [InlineData("alias1", "alias2")]
+    public async Task ContainerNetworkAliases(params string[]? aliases)
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var ctr = builder.AddContainer("mycontainer", "myimage");
+        foreach (var alias in aliases ?? Array.Empty<string>())
+        {
+            ctr.WithContainerNetworkAlias(alias);
+        }
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        Assert.NotNull(container.Spec.Networks);
+        var network = Assert.Single(container.Spec.Networks);
+        Assert.NotNull(network.Aliases);
+        Assert.Equal(2 + (aliases?.Length ?? 0), network.Aliases.Count);
+        Assert.Contains("mycontainer", network.Aliases);
+        Assert.Contains("mycontainer.dev.internal", network.Aliases);
+        foreach (var alias in aliases ?? Array.Empty<string>())
+        {
+            Assert.Contains(alias, network.Aliases);
+        }
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();

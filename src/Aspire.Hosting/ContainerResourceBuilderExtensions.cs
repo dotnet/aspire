@@ -1503,6 +1503,60 @@ public static class ContainerResourceBuilderExtensions
             RuntimeImage = runtimeImage
         }, ResourceAnnotationMutationBehavior.Replace);
     }
+
+    /// <summary>
+    /// Adds a network alias to container resource.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="alias">The network alias for the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Network aliases enable DNS resolution of the container on the network by custom names.
+    /// By default, containers are accessible on the network using their resource name as a DNS alias.
+    /// This method allows adding additional aliases for the same container.
+    /// </para>
+    /// <para>
+    /// Multiple aliases can be added by calling this method multiple times.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
+    {
+        return builder.WithContainerNetworkAlias(alias, KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+    }
+
+    /// <summary>
+    /// Adds a network alias to container resource.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="alias">The network alias for the container.</param>
+    /// <param name="network">The identifier of the network to which the alias should be applied.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Network aliases enable DNS resolution of the container on the network by custom names.
+    /// By default, containers are accessible on the network using their resource name as a DNS alias.
+    /// This method allows adding additional aliases for the same container.
+    /// </para>
+    /// <para>
+    /// Multiple aliases can be added by calling this method multiple times.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias, NetworkIdentifier network) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(alias);
+        ArgumentException.ThrowIfNullOrWhiteSpace(network.Value);
+
+        if (network != KnownNetworkIdentifiers.DefaultAspireContainerNetwork)
+        {
+            throw new ArgumentOutOfRangeException(nameof(network), "Custom container networks are not supported yet.");
+        }
+
+        return builder.WithAnnotation(new ContainerNetworkAliasAnnotation { Alias = alias, Network = network });
+    }
 }
 
 internal static class IListExtensions
