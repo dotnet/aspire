@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
     <PackageTags>aspire hosting devtunnels</PackageTags>
     <Description>DevTunnels support for Aspire.</Description>
   </PropertyGroup>
