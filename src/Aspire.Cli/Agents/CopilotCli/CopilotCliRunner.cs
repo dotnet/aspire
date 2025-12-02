@@ -18,6 +18,16 @@ internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopi
     {
         logger.LogDebug("Checking for GitHub Copilot CLI installation");
 
+        // Check if we're running in a VSCode terminal
+        if (IsRunningInVSCode())
+        {
+            logger.LogDebug("Detected VSCode terminal environment. Assuming GitHub Copilot CLI is available to avoid potential hangs from interactive installation prompts.");
+            // Return a dummy version to indicate Copilot is assumed to be available
+            // The user will be prompted to configure it, and if they don't have it installed,
+            // they'll be prompted to install it when they try to use it
+            return new SemVersion(1, 0, 0);
+        }
+
         var executablePath = PathLookupHelper.FindFullPathFromPath("copilot");
         if (executablePath is null)
         {
@@ -87,5 +97,23 @@ internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopi
             logger.LogDebug(ex, "GitHub Copilot CLI is not installed or not found in PATH");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Checks if the current process is running in a VSCode terminal.
+    /// </summary>
+    /// <returns>True if running in VSCode, false otherwise.</returns>
+    private static bool IsRunningInVSCode()
+    {
+        // VSCode sets various environment variables when running a terminal
+        // Check for any of these to detect if we're in a VSCode terminal
+        return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_INJECTION")) ||
+               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_IPC_HOOK")) ||
+               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_ASKPASS_NODE")) ||
+               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_ASKPASS_EXTRA_ARGS")) ||
+               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_ASKPASS_MAIN")) ||
+               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_IPC_HANDLE")) ||
+               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TERM_PROGRAM")) && 
+                   Environment.GetEnvironmentVariable("TERM_PROGRAM") == "vscode";
     }
 }
