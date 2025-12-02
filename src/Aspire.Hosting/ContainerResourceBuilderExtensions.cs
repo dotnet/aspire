@@ -1144,10 +1144,40 @@ public static class ContainerResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
     {
+        return builder.WithContainerNetworkAlias(alias, ContainerNetworkIdentifier.Default);
+    }
+
+    /// <summary>
+    /// Adds a network alias to the container resource for a specific network.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="alias">The network alias for the container.</param>
+    /// <param name="networkIdentifier">The identifier of the network to which the alias applies.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Network aliases enable DNS resolution of the container on the network by custom names.
+    /// By default, containers are accessible on the network using their resource name as a DNS alias.
+    /// This method allows adding additional aliases for the same container on a specific network.
+    /// </para>
+    /// <para>
+    /// Multiple aliases can be added by calling this method multiple times.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="NotSupportedException">Thrown when a network identifier other than the default Aspire container network is specified.</exception>
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias, ContainerNetworkIdentifier networkIdentifier) where T : ContainerResource
+    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(alias);
+        ArgumentException.ThrowIfNullOrWhiteSpace(networkIdentifier.Value);
 
-        return builder.WithAnnotation(new ContainerNetworkAliasAnnotation { Alias = alias });
+        if (networkIdentifier != ContainerNetworkIdentifier.Default)
+        {
+            throw new NotSupportedException($"Custom container networks are not supported. Only the default Aspire container network ('{ContainerNetworkIdentifier.Default.Value}') is supported.");
+        }
+
+        return builder.WithAnnotation(new ContainerNetworkAliasAnnotation { Alias = alias, NetworkIdentifier = networkIdentifier });
     }
 }
 

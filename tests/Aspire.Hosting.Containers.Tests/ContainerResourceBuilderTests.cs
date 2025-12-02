@@ -281,6 +281,48 @@ public class ContainerResourceBuilderTests
         Assert.Throws<ArgumentException>(() => container.WithContainerNetworkAlias("   "));
     }
 
+    [Fact]
+    public void WithContainerNetworkAliasWithDefaultNetworkWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage")
+            .WithContainerNetworkAlias("alias1", ContainerNetworkIdentifier.Default);
+
+        var annotation = container.Resource.Annotations.OfType<ContainerNetworkAliasAnnotation>().Single();
+        Assert.Equal("alias1", annotation.Alias);
+        Assert.Equal(ContainerNetworkIdentifier.Default, annotation.NetworkIdentifier);
+    }
+
+    [Fact]
+    public void WithContainerNetworkAliasThrowsForCustomNetwork()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var customNetwork = new ContainerNetworkIdentifier("custom-network");
+        Assert.Throws<NotSupportedException>(() => container.WithContainerNetworkAlias("alias1", customNetwork));
+    }
+
+    [Fact]
+    public void WithContainerNetworkAliasThrowsForNullNetworkIdentifierValue()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var emptyNetwork = new ContainerNetworkIdentifier(null!);
+        Assert.Throws<ArgumentNullException>(() => container.WithContainerNetworkAlias("alias1", emptyNetwork));
+    }
+
+    [Fact]
+    public void WithContainerNetworkAliasThrowsForEmptyNetworkIdentifierValue()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var emptyNetwork = new ContainerNetworkIdentifier("");
+        Assert.Throws<ArgumentException>(() => container.WithContainerNetworkAlias("alias1", emptyNetwork));
+    }
+
     private sealed class TestContainerResource(string name) : ContainerResource(name)
     {
     }

@@ -1350,6 +1350,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var aliases = container.Annotations
                 .OfType<ContainerNetworkAliasAnnotation>()
+                .Where(a => a.NetworkIdentifier == ContainerNetworkIdentifier.Default)
                 .Select(a => a.Alias)
                 .Prepend(container.Name)
                 .ToList();

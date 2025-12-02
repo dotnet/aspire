@@ -12,11 +12,19 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Network aliases enable DNS resolution of the container on the network by custom names.
 /// Multiple aliases can be specified for a single container by adding multiple annotations.
 /// </remarks>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Alias = {Alias}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Alias = {Alias}, Network = {NetworkIdentifier}")]
 public sealed class ContainerNetworkAliasAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Gets or sets the network alias for the container.
     /// </summary>
     public required string Alias { get; set; }
+
+    /// <summary>
+    /// Gets or sets the network identifier for the network to which the alias applies.
+    /// </summary>
+    /// <remarks>
+    /// If not specified, defaults to the default Aspire container network.
+    /// </remarks>
+    public ContainerNetworkIdentifier NetworkIdentifier { get; set; } = ContainerNetworkIdentifier.Default;
 }
