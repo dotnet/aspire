@@ -9,14 +9,14 @@ using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.Tests;
 
-public class ContainerTunnelTests
+public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
     public async Task ContainerTunnelWorksWithYarp()
     {
         const string testName = "container-tunnel-works-with-yarp";
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Configuration[KnownConfigNames.EnableContainerTunnel] = "true";
 
         var servicea = builder.AddProject<Projects.ServiceA>($"{testName}-servicea");

@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.CopilotCli;
 using Aspire.Cli.Tests.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
 namespace Aspire.Cli.Tests.Agents;
@@ -17,7 +18,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -31,7 +32,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(null);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = new AgentEnvironmentScanContext { WorkingDirectory = workspace.WorkspaceRoot };
 
         await scanner.ScanAsync(context, CancellationToken.None);

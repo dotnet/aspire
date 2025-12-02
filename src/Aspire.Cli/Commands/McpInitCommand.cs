@@ -5,6 +5,7 @@ using System.CommandLine;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 
@@ -13,10 +14,20 @@ namespace Aspire.Cli.Commands;
 /// <summary>
 /// Command that initializes MCP server configuration for detected agent environments.
 /// </summary>
-internal sealed class McpInitCommand : BaseCommand
+internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
     private readonly IInteractionService _interactionService;
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
+
+    /// <summary>
+    /// McpInitCommand does not need template package metadata prefetching.
+    /// </summary>
+    public bool PrefetchesTemplatePackageMetadata => false;
+
+    /// <summary>
+    /// McpInitCommand does not need CLI package metadata prefetching.
+    /// </summary>
+    public bool PrefetchesCliPackageMetadata => false;
 
     public McpInitCommand(
         IInteractionService interactionService,
@@ -37,7 +48,9 @@ internal sealed class McpInitCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var applicators = await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+        var applicators = await _interactionService.ShowStatusAsync(
+            McpCommandStrings.InitCommand_DetectingAgentEnvironments,
+            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, cancellationToken));
 
         if (applicators.Length == 0)
         {

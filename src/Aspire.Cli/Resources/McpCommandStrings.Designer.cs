@@ -113,5 +113,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_ConfigurationComplete", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detecting agent environments....
+        /// </summary>
+        internal static string InitCommand_DetectingAgentEnvironments {
+            get {
+                return ResourceManager.GetString("InitCommand_DetectingAgentEnvironments", resourceCulture);
+            }
+        }
     }
 }
