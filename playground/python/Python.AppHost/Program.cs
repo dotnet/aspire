@@ -34,12 +34,9 @@ var uvicornApp = builder.AddUvicornApp("uvicornapp", "../uvicorn_app", "app:app"
     .WithUv()
     .WithExternalHttpEndpoints();
 
-// Python executable that waits for the uvicorn app to be ready
-builder.AddPythonExecutable("uvicorn-tests", "../uvicorn_app", "pytest")
-    .WithUv()
-    .WithArgs("-v", "tests/")
-    .WithEnvironment("UVICORNAPP_HTTP", uvicornApp.GetEndpoint("http"))
-    .WaitFor(uvicornApp);
+builder.AddPytest("uvicorn-tests", "../uvicorn_app")
+    .WithReference(uvicornApp).WaitFor(uvicornApp)
+    .WithUv();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
