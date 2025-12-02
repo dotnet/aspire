@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Agents.VsCode;
 
@@ -20,46 +21,66 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
     private readonly IGitRepository _gitRepository;
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
+    private readonly ILogger<VsCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="VsCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
     /// <param name="vsCodeCliRunner">The VS Code CLI runner for checking if VS Code is installed.</param>
-    public VsCodeAgentEnvironmentScanner(IGitRepository gitRepository, IVsCodeCliRunner vsCodeCliRunner)
+    /// <param name="logger">The logger for diagnostic output.</param>
+    public VsCodeAgentEnvironmentScanner(IGitRepository gitRepository, IVsCodeCliRunner vsCodeCliRunner, ILogger<VsCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(gitRepository);
         ArgumentNullException.ThrowIfNull(vsCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(logger);
         _gitRepository = gitRepository;
         _vsCodeCliRunner = vsCodeCliRunner;
+        _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Starting VS Code environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
+        
         // Get the git root to use as a boundary for searching
+        _logger.LogDebug("Finding git repository root...");
         var gitRoot = await _gitRepository.GetRootAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Git root: {GitRoot}", gitRoot?.FullName ?? "(none)");
+        
+        _logger.LogDebug("Searching for .vscode folder...");
         var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory, gitRoot);
 
         if (vsCodeFolder is not null)
         {
+            _logger.LogDebug("Found .vscode folder at: {VsCodeFolder}", vsCodeFolder.FullName);
+            
             // Check if the aspire server is already configured
             if (HasAspireServerConfigured(vsCodeFolder))
             {
+                _logger.LogDebug("Aspire MCP server is already configured in .vscode/mcp.json - skipping");
                 // Already configured, no need to offer an applicator
                 return;
             }
 
             // Found a .vscode folder - add an applicator to configure MCP
+            _logger.LogDebug("Adding VS Code applicator for .vscode folder at: {VsCodeFolder}", vsCodeFolder.FullName);
             context.AddApplicator(CreateApplicator(vsCodeFolder));
         }
         else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
+            _logger.LogDebug("No .vscode folder found, but VS Code is available on the system");
             // No .vscode folder found, but VS Code is available
             // Use git root if available, otherwise fall back to current working directory
             var targetDirectory = gitRoot ?? context.WorkingDirectory;
             var targetVsCodeFolder = new DirectoryInfo(Path.Combine(targetDirectory.FullName, VsCodeFolderName));
+            _logger.LogDebug("Adding VS Code applicator for new .vscode folder at: {VsCodeFolder}", targetVsCodeFolder.FullName);
             context.AddApplicator(CreateApplicator(targetVsCodeFolder));
+        }
+        else
+        {
+            _logger.LogDebug("No .vscode folder found and VS Code is not available - skipping VS Code configuration");
         }
     }
 
@@ -73,25 +94,32 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private async Task<bool> IsVsCodeAvailableAsync(CancellationToken cancellationToken)
     {
         // First check environment variables (low cost)
+        _logger.LogDebug("Checking for VS Code environment variables...");
         if (HasVsCodeEnvironmentVariables())
         {
+            _logger.LogDebug("Found VS Code environment variables");
             return true;
         }
 
         // Try VS Code stable
+        _logger.LogDebug("Checking for VS Code stable CLI...");
         var vsCodeVersion = await _vsCodeCliRunner.GetVersionAsync(new VsCodeRunOptions { UseInsiders = false }, cancellationToken).ConfigureAwait(false);
         if (vsCodeVersion is not null)
         {
+            _logger.LogDebug("Found VS Code stable version: {Version}", vsCodeVersion);
             return true;
         }
 
         // Try VS Code Insiders
+        _logger.LogDebug("Checking for VS Code Insiders CLI...");
         var vsCodeInsidersVersion = await _vsCodeCliRunner.GetVersionAsync(new VsCodeRunOptions { UseInsiders = true }, cancellationToken).ConfigureAwait(false);
         if (vsCodeInsidersVersion is not null)
         {
+            _logger.LogDebug("Found VS Code Insiders version: {Version}", vsCodeInsidersVersion);
             return true;
         }
 
+        _logger.LogDebug("VS Code not found on the system");
         return false;
     }
 

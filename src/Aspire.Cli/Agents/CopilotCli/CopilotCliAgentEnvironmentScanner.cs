@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Resources;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Agents.CopilotCli;
 
@@ -17,37 +18,50 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string AspireServerName = "aspire";
 
     private readonly ICopilotCliRunner _copilotCliRunner;
+    private readonly ILogger<CopilotCliAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CopilotCliAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="copilotCliRunner">The Copilot CLI runner for checking if Copilot CLI is installed.</param>
-    public CopilotCliAgentEnvironmentScanner(ICopilotCliRunner copilotCliRunner)
+    /// <param name="logger">The logger for diagnostic output.</param>
+    public CopilotCliAgentEnvironmentScanner(ICopilotCliRunner copilotCliRunner, ILogger<CopilotCliAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(copilotCliRunner);
+        ArgumentNullException.ThrowIfNull(logger);
         _copilotCliRunner = copilotCliRunner;
+        _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Starting GitHub Copilot CLI environment scan");
+        
         // Check if Copilot CLI is installed
+        _logger.LogDebug("Checking for GitHub Copilot CLI installation...");
         var copilotVersion = await _copilotCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
 
         if (copilotVersion is null)
         {
+            _logger.LogDebug("GitHub Copilot CLI is not installed - skipping");
             // Copilot CLI is not installed, no need to offer configuration
             return;
         }
 
+        _logger.LogDebug("Found GitHub Copilot CLI version: {Version}", copilotVersion);
+
         // Check if the aspire server is already configured in the global config
+        _logger.LogDebug("Checking if Aspire MCP server is already configured in Copilot CLI global config...");
         if (HasAspireServerConfigured())
         {
+            _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI - skipping");
             // Already configured, no need to offer an applicator
             return;
         }
 
         // Copilot CLI is installed and aspire is not configured - offer to configure
+        _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
         context.AddApplicator(CreateApplicator());
     }
 

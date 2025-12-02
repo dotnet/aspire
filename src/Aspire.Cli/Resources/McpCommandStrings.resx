@@ -78,4 +78,7 @@
   <data name="InitCommand_ConfigurationComplete" xml:space="preserve">
     <value>Agent environment configuration complete.</value>
   </data>
+  <data name="InitCommand_DetectingAgentEnvironments" xml:space="preserve">
+    <value>Detecting agent environments...</value>
+  </data>
 </root>

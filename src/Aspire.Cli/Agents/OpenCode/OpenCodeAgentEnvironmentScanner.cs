@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Agents.OpenCode;
 
@@ -18,25 +19,33 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
     private readonly IGitRepository _gitRepository;
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
+    private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="OpenCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
     /// <param name="openCodeCliRunner">The OpenCode CLI runner for checking if OpenCode is installed.</param>
-    public OpenCodeAgentEnvironmentScanner(IGitRepository gitRepository, IOpenCodeCliRunner openCodeCliRunner)
+    /// <param name="logger">The logger for diagnostic output.</param>
+    public OpenCodeAgentEnvironmentScanner(IGitRepository gitRepository, IOpenCodeCliRunner openCodeCliRunner, ILogger<OpenCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(gitRepository);
         ArgumentNullException.ThrowIfNull(openCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(logger);
         _gitRepository = gitRepository;
         _openCodeCliRunner = openCodeCliRunner;
+        _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Starting OpenCode environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
+        
         // Get the git root - OpenCode config should be at the repo root
+        _logger.LogDebug("Finding git repository root...");
         var gitRoot = await _gitRepository.GetRootAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Git root: {GitRoot}", gitRoot?.FullName ?? "(none)");
 
         // Look for existing opencode.jsonc file at git root or working directory
         var configDirectory = gitRoot ?? context.WorkingDirectory;
@@ -45,25 +54,37 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
         if (configFileExists)
         {
+            _logger.LogDebug("Found existing opencode.jsonc at: {ConfigFilePath}", configFilePath);
+            
             // Check if aspire is already configured
+            _logger.LogDebug("Checking if Aspire MCP server is already configured in opencode.jsonc...");
             if (HasAspireServerConfigured(configFilePath))
             {
+                _logger.LogDebug("Aspire MCP server is already configured - skipping");
                 // Already configured, no need to offer an applicator
                 return;
             }
 
             // Config file exists but aspire is not configured - offer to add it
+            _logger.LogDebug("Adding OpenCode applicator to update existing opencode.jsonc");
             context.AddApplicator(CreateApplicator(configDirectory));
         }
         else
         {
             // No config file - check if OpenCode CLI is installed
+            _logger.LogDebug("No opencode.jsonc found, checking for OpenCode CLI installation...");
             var openCodeVersion = await _openCodeCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
 
             if (openCodeVersion is not null)
             {
+                _logger.LogDebug("Found OpenCode CLI version: {Version}", openCodeVersion);
                 // OpenCode is installed - offer to create config
+                _logger.LogDebug("Adding OpenCode applicator to create new opencode.jsonc at: {ConfigDirectory}", configDirectory.FullName);
                 context.AddApplicator(CreateApplicator(configDirectory));
+            }
+            else
+            {
+                _logger.LogDebug("OpenCode CLI not found - skipping");
             }
         }
     }
