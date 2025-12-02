@@ -22,6 +22,11 @@
         <target state="translated">初始化检测到的智能体环境的 MCP 服务器配置。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_DetectingAgentEnvironments">
+        <source>Detecting agent environments...</source>
+        <target state="new">Detecting agent environments...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
         <source>No agent environments were detected.</source>
         <target state="translated">未检测到智能体环境。</target>

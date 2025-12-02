@@ -22,6 +22,11 @@
         <target state="translated">Inizializzare la configurazione del server MCP per gli ambienti agente rilevati.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_DetectingAgentEnvironments">
+        <source>Detecting agent environments...</source>
+        <target state="new">Detecting agent environments...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
         <source>No agent environments were detected.</source>
         <target state="translated">Non sono stati rilevati ambienti agente.</target>
