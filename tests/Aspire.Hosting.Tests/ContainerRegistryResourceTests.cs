@@ -124,9 +124,25 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void ContainerRegistryResourceIsAddedToModel()
+    public void ContainerRegistryResourceNotAddedToModelInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        // In run mode, the resource should not be added to the application model
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Resource should NOT be in the model in run mode
+        Assert.Empty(appModel.Resources.OfType<ContainerRegistryResource>());
+    }
+
+    [Fact]
+    public void ContainerRegistryResourceIsAddedToModelInPublishMode()
+    {
+        // In publish mode, the resource should be added to the application model
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
 
@@ -135,6 +151,38 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
 
         var registry = Assert.Single(appModel.Resources.OfType<ContainerRegistryResource>());
         Assert.Equal("docker-hub", registry.Name);
+    }
+
+    [Fact]
+    public void ContainerRegistryWithParametersNotAddedToModelInRunMode()
+    {
+        // In run mode, the resource should not be added to the application model
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var endpointParam = builder.AddParameter("registry-endpoint");
+        builder.AddContainerRegistry("my-registry", endpointParam);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Resource should NOT be in the model in run mode
+        Assert.Empty(appModel.Resources.OfType<ContainerRegistryResource>());
+    }
+
+    [Fact]
+    public void ContainerRegistryWithParametersIsAddedToModelInPublishMode()
+    {
+        // In publish mode, the resource should be added to the application model
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var endpointParam = builder.AddParameter("registry-endpoint");
+        builder.AddContainerRegistry("my-registry", endpointParam);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var registry = Assert.Single(appModel.Resources.OfType<ContainerRegistryResource>());
+        Assert.Equal("my-registry", registry.Name);
     }
 
     [Fact]
@@ -226,9 +274,9 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void MultipleContainerRegistriesCanBeAdded()
+    public void MultipleContainerRegistriesCanBeAddedInPublishMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
         builder.AddContainerRegistry("ghcr", "ghcr.io", "user2/repo");
@@ -242,5 +290,41 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(registries, r => r.Name == "docker-hub");
         Assert.Contains(registries, r => r.Name == "ghcr");
         Assert.Contains(registries, r => r.Name == "acr");
+    }
+
+    [Fact]
+    public void WithContainerRegistryAddsAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var container = builder.AddContainer("mycontainer", "myimage")
+            .WithContainerRegistry(registry);
+
+        var annotation = container.Resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Same(registry.Resource, annotation.Registry);
+    }
+
+    [Fact]
+    public void WithContainerRegistryWithNullBuilderThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        IResourceBuilder<ContainerResource> containerBuilder = null!;
+
+        Assert.Throws<ArgumentNullException>(() => containerBuilder.WithContainerRegistry(registry));
+    }
+
+    [Fact]
+    public void WithContainerRegistryWithNullRegistryThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("mycontainer", "myimage");
+        IResourceBuilder<ContainerRegistryResource> registry = null!;
+
+        Assert.Throws<ArgumentNullException>(() => container.WithContainerRegistry(registry));
     }
 }

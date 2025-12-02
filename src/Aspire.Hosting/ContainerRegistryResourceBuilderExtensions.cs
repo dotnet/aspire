@@ -20,7 +20,8 @@ public static class ContainerRegistryResourceBuilderExtensions
     /// <returns>An <see cref="IResourceBuilder{ContainerRegistryResource}"/> for the container registry resource.</returns>
     /// <remarks>
     /// Use this method when the registry endpoint and repository values need to be provided dynamically
-    /// via configuration or user input.
+    /// via configuration or user input. The resource is only added to the application model in publish mode;
+    /// in run mode, a resource builder is created without adding the resource to the model.
     /// </remarks>
     /// <example>
     /// Add a container registry with parameterized values:
@@ -46,7 +47,10 @@ public static class ContainerRegistryResourceBuilderExtensions
             : null;
 
         var resource = new ContainerRegistryResource(name, endpointExpression, repositoryExpression);
-        return builder.AddResource(resource);
+
+        return builder.ExecutionContext.IsRunMode
+            ? builder.CreateResourceBuilder(resource)
+            : builder.AddResource(resource);
     }
 
     /// <summary>
@@ -59,7 +63,8 @@ public static class ContainerRegistryResourceBuilderExtensions
     /// <returns>An <see cref="IResourceBuilder{ContainerRegistryResource}"/> for the container registry resource.</returns>
     /// <remarks>
     /// Use this method when the registry endpoint and repository values are known at design time
-    /// and do not need to be parameterized.
+    /// and do not need to be parameterized. The resource is only added to the application model in publish mode;
+    /// in run mode, a resource builder is created without adding the resource to the model.
     /// </remarks>
     /// <example>
     /// Add a Docker Hub container registry:
@@ -89,6 +94,41 @@ public static class ContainerRegistryResourceBuilderExtensions
             : null;
 
         var resource = new ContainerRegistryResource(name, endpointExpression, repositoryExpression);
-        return builder.AddResource(resource);
+
+        return builder.ExecutionContext.IsRunMode
+            ? builder.CreateResourceBuilder(resource)
+            : builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Configures the resource to use the specified container registry for container image operations.
+    /// </summary>
+    /// <typeparam name="TDestination">The type of the destination resource.</typeparam>
+    /// <typeparam name="TContainerRegistry">The type of the container registry resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="registry">The container registry resource builder.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// This method adds a <see cref="ContainerRegistryReferenceAnnotation"/> to the resource,
+    /// indicating that the resource should use the specified container registry for container image operations.
+    /// </remarks>
+    /// <example>
+    /// Configure a project to use a container registry:
+    /// <code>
+    /// var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myusername");
+    /// var project = builder.AddProject&lt;MyProject&gt;("myproject")
+    ///     .WithContainerRegistry(registry);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<TDestination> WithContainerRegistry<TDestination, TContainerRegistry>(
+        this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<TContainerRegistry> registry)
+        where TDestination : IResource
+        where TContainerRegistry : IResource, IContainerRegistry
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(registry);
+
+        return builder.WithAnnotation(new ContainerRegistryReferenceAnnotation(registry.Resource));
     }
 }
