@@ -107,7 +107,7 @@ public class ContainerImageBuildOptions
 }
 
 /// <summary>
-/// Provides a service to publishers for building containers that represent a resource.
+/// Provides a service to publishers for building and pushing container images that represent a resource.
 /// </summary>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IResourceContainerImageManager
