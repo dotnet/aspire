@@ -474,7 +474,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             EnableApplicationInsightsForWebSite(webSite);
         }
 
-        return (webSite, mainContainer);
+        return webSite;
     }
 
     private void BuildWebSiteCore(
