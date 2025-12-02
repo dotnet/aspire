@@ -124,6 +124,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                             };
 
                             TargetResource.Annotations.Add(updatedDeploymentTargetAnnotation);
+                            TargetResource.Annotations.Remove(deploymentTargetAnnotation);
 
                             ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource", false);
                         }
@@ -209,7 +210,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
             var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
             updateWebsiteResourceSteps.DependsOn(checkWebsiteExistsSteps);
-            provisionSteps.DependsOn(updateWebsiteResourceSteps);
+            pushSteps.DependsOn(updateWebsiteResourceSteps);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
