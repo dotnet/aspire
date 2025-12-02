@@ -244,10 +244,10 @@ public sealed class ResourceUrlHelpersTests
     public void GetUrls_SortOrder_Combinations()
     {
         var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
-            new("Zero-Https", new("https://localhost:8079"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
-            new("Zero-Http", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0)),
-            new("Positive", new("http://localhost:8082"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 1)),
-            new("Negative", new("http://localhost:8083"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, -1))
+            new("Zero-Https", new("https://localhost:8079"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0, null, null)),
+            new("Zero-Http", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 0 null, null)),
+            new("Positive", new("http://localhost:8082"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, 1 null, null)),
+            new("Negative", new("http://localhost:8083"), isInternal: false, isInactive: false, displayProperties: new UrlDisplayPropertiesViewModel(string.Empty, -1 null, null))
         ]));
 
         Assert.Collection(endpoints,

@@ -36,6 +36,16 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// </summary>
     public UrlDisplayLocation DisplayLocation { get; set; } = UrlDisplayLocation.SummaryAndDetails;
 
+    /// <summary>
+    /// The name of the icon to display with this URL.
+    /// </summary>
+    public string? IconName { get; set; }
+
+    /// <summary>
+    /// The variant of the icon to display with this URL.
+    /// </summary>
+    public IconVariant? IconVariant { get; set; }
+
     internal bool IsInternal => DisplayLocation == UrlDisplayLocation.DetailsOnly;
 
     internal ResourceUrlAnnotation WithEndpoint(EndpointReference endpoint)
@@ -46,7 +56,7 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
             DisplayText = DisplayText,
             Endpoint = endpoint,
             DisplayOrder = DisplayOrder,
-            DisplayLocation = DisplayLocation
+            DisplayLocation = DisplayLocation,
         };
     }
 }

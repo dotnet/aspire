@@ -66,6 +66,16 @@ partial class Resource
                 displayProperties.SortOrder = urlSnapshot.DisplayProperties.SortOrder;
             }
 
+            if (urlSnapshot.DisplayProperties?.IconName is not null)
+            {
+                displayProperties.IconName = urlSnapshot.DisplayProperties.IconName;
+            }
+
+            if (urlSnapshot.DisplayProperties?.IconVariant is not null)
+            {
+                displayProperties.IconVariant = MapIconVariant(urlSnapshot.DisplayProperties.IconVariant);
+            }
+
             url.DisplayProperties = displayProperties;
             resource.Urls.Add(url);
         }

@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
 
@@ -51,7 +52,9 @@ internal static class ResourceUrlHelpers
                     SortOrder = url.DisplayProperties.SortOrder,
                     DisplayName = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? null : url.DisplayProperties.DisplayName,
                     OriginalUrlString = url.Url.OriginalString,
-                    Text = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? url.Url.OriginalString : url.DisplayProperties.DisplayName
+                    Text = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? url.Url.OriginalString : url.DisplayProperties.DisplayName,
+                    IconName = url.DisplayProperties.IconName,
+                    IconVariant = url.DisplayProperties.IconVariant,
                 });
                 index++;
             }
@@ -85,6 +88,9 @@ public sealed class DisplayedUrl : IPropertyGridItem
     public int SortOrder { get; set; }
     public string? DisplayName { get; set; }
     public required string OriginalUrlString { get; set; }
+
+    public string? IconName { get; set; }
+    public IconVariant? IconVariant { get; set; }
 
     /// <summary>
     /// Don't display a plain string value here. The URL will be displayed as a hyperlink
