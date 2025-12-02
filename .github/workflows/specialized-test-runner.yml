@@ -108,7 +108,7 @@ jobs:
       fail-fast: false
       matrix:
         tests: ${{ fromJson(needs.generate_tests_matrix.outputs.runsheet) }}
-    if: ${{ github.repository_owner == 'dotnet' && !cancelled() && !failure() }}
+    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.result == 'success' && needs.build_packages.result != 'failure' && needs.build_packages.result != 'cancelled'}}
     uses: ./.github/workflows/run-tests.yml
     with:
       testShortName: ${{ matrix.tests.project }}
