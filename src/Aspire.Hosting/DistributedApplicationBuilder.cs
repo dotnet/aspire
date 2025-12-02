@@ -476,7 +476,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 null => sp.GetRequiredKeyedService<IContainerRuntime>("docker")
             };
         });
-        _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
+        _innerBuilder.Services.AddSingleton<IResourceContainerImageManager, ResourceContainerImageManager>();
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();

@@ -162,7 +162,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
 
         // Assert - Verify MockImageBuilder was only called to build an image and not push it
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.True(mockImageBuilder.BuildImageCalled);
         var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
@@ -207,7 +207,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
 
         // Assert - Verify MockImageBuilder was NOT called when there are no compute resources
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.BuildImageCalled);
         Assert.False(mockImageBuilder.BuildImagesCalled);
@@ -258,7 +258,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
 
         // Assert - Verify MockImageBuilder push method was NOT called for existing container image
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.PushImageCalled);
         Assert.Empty(mockImageBuilder.PushImageCalls);
@@ -309,7 +309,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder push method was called
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.True(mockImageBuilder.PushImageCalled);
 
@@ -363,7 +363,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder push method was called
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.True(mockImageBuilder.PushImageCalled);
 
@@ -469,7 +469,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder push method was called for multiple registries
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.True(mockImageBuilder.PushImageCalled);
 
@@ -637,7 +637,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
 
         // Assert that compute resources deployment logic was triggered (Redis doesn't require image build/push)
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.BuildImageCalled);
         Assert.False(mockImageBuilder.PushImageCalled);
@@ -684,7 +684,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
 
         // Assert that no compute resources were deployed (no image build/push)
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.False(mockImageBuilder.BuildImageCalled);
         Assert.False(mockImageBuilder.PushImageCalled);
@@ -904,7 +904,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             call.username == "00000000-0000-0000-0000-000000000000");
 
         // Assert - Verify MockImageBuilder push method was called
-        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
         Assert.NotNull(mockImageBuilder);
         Assert.True(mockImageBuilder.PushImageCalled);
 
@@ -1102,7 +1102,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             builder.Services.AddSingleton(bicepProvisioner);
         }
         builder.Services.AddSingleton<IProcessRunner>(processRunner ?? new MockProcessRunner());
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(containerRuntime ?? new FakeContainerRuntime());
         builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
     }
@@ -1489,7 +1489,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         }
 
         builder.Services.AddSingleton<IProcessRunner>(new MockProcessRunner());
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(new FakeContainerRuntime());
         builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
     }

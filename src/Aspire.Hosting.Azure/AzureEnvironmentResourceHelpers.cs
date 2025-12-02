@@ -64,7 +64,7 @@ internal static class AzureEnvironmentResourceHelpers
         }
     }
 
-    public static async Task PushImageToRegistryAsync(IContainerRegistry registry, IResource resource, PipelineStepContext context, IResourceContainerImageBuilder containerImageBuilder)
+    public static async Task PushImageToRegistryAsync(IContainerRegistry registry, IResource resource, PipelineStepContext context, IResourceContainerImageManager containerImageBuilder)
     {
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                          throw new InvalidOperationException("Failed to retrieve container registry information.");

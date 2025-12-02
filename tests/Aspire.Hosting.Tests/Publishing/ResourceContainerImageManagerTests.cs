@@ -34,7 +34,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -66,7 +66,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -98,7 +98,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -135,7 +135,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -169,7 +169,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -199,7 +199,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -236,7 +236,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -276,7 +276,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -311,7 +311,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -343,7 +343,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -372,7 +372,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         // Test without explicit options - should use defaults from annotation
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
@@ -423,7 +423,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         // This should not fail even with trailing slash in context path
         await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
@@ -452,7 +452,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         // Act
         await imageBuilder.PushImageAsync(testResource.Resource, cts.Token);
@@ -476,7 +476,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -511,7 +511,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         // This should not fail despite the fake container runtime being configured to fail
         // because we only have project resources (no DockerfileBuildAnnotation)
@@ -542,7 +542,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         await imageBuilder.BuildImagesAsync([dockerfileResource.Resource], cts.Token);
 
@@ -574,7 +574,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         await imageBuilder.BuildImagesAsync([dockerfileResource.Resource], cts.Token);
 
@@ -611,7 +611,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             imageBuilder.BuildImagesAsync([container.Resource], cts.Token));
@@ -657,7 +657,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
 
         // Validate that BuildImageAsync succeeded by checking the log output
@@ -729,7 +729,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         try
         {
             using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-            var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+            var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
             await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
 
             // Verify that different value types are resolved correctly
@@ -778,19 +778,19 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     public async Task ResolveValue_FormatsDecimalWithInvariantCulture()
     {
         // Test decimal value
-        var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
+        var result = await ResourceContainerImageManager.ResolveValue(3.14, CancellationToken.None);
         Assert.Equal("3.14", result);
 
         // Test double value
-        result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
+        result = await ResourceContainerImageManager.ResolveValue(3.14d, CancellationToken.None);
         Assert.Equal("3.14", result);
 
         // Test float value
-        result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
+        result = await ResourceContainerImageManager.ResolveValue(3.14f, CancellationToken.None);
         Assert.Equal("3.14", result);
 
         // Test integer (should also work)
-        result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
+        result = await ResourceContainerImageManager.ResolveValue(42, CancellationToken.None);
         Assert.Equal("42", result);
     }
 
@@ -824,7 +824,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
         await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
 
         // Verify that different value types are resolved correctly

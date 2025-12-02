@@ -41,7 +41,7 @@ public static class ContainerResourceBuilderExtensions
                 Name = $"build-{builder.Resource.Name}",
                 Action = async ctx =>
                 {
-                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                     await containerImageBuilder.BuildImageAsync(
                         builder.Resource,
@@ -1502,6 +1502,28 @@ public static class ContainerResourceBuilderExtensions
             BuildImage = buildImage,
             RuntimeImage = runtimeImage
         }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a network alias to container resource.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="alias">The network alias for the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Network aliases enable DNS resolution of the container on the network by custom names.
+    /// By default, containers are accessible on the network using their resource name as a DNS alias.
+    /// This method allows adding additional aliases for the same container.
+    /// </para>
+    /// <para>
+    /// Multiple aliases can be added by calling this method multiple times.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerNetworkAliasAnnotation(alias) { Network = KnownNetworkIdentifiers.DefaultAspireContainerNetwork });
     }
 }
 
