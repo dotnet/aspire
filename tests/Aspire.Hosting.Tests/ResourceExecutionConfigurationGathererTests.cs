@@ -26,6 +26,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithArgs("arg1", "arg2")
             .Resource;
 
+        await builder.BuildAsync();
+
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
@@ -47,6 +49,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithArgs(ctx => ctx.Args.Add("arg2"))
             .Resource;
 
+        await builder.BuildAsync();
+
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
@@ -64,6 +68,8 @@ public class ResourceExecutionConfigurationGathererTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddExecutable("test", "test.exe", ".").Resource;
+
+        await builder.BuildAsync();
 
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
@@ -86,6 +92,8 @@ public class ResourceExecutionConfigurationGathererTests
                 ctx.Args.Add("async-arg");
             })
             .Resource;
+
+        await builder.BuildAsync();
 
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
@@ -111,6 +119,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithEnvironment("KEY2", "value2")
             .Resource;
 
+        await builder.BuildAsync();
+
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
@@ -132,6 +142,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithEnvironment(ctx => ctx.EnvironmentVariables["KEY2"] = "value2")
             .Resource;
 
+        await builder.BuildAsync();
+
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
@@ -149,6 +161,8 @@ public class ResourceExecutionConfigurationGathererTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddContainer("test", "image").Resource;
+
+        await builder.BuildAsync();
 
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
@@ -171,6 +185,8 @@ public class ResourceExecutionConfigurationGathererTests
                 ctx.EnvironmentVariables["ASYNC_KEY"] = "async-value";
             })
             .Resource;
+
+        await builder.BuildAsync();
 
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
@@ -200,6 +216,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithCertificateAuthorityCollection(caCollection)
             .Resource;
 
+        await builder.BuildAsync();
+
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
@@ -226,6 +244,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithCertificateAuthorityCollection(caCollection)
             .WithCertificateTrustScope(CertificateTrustScope.System)
             .Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
@@ -256,6 +276,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithCertificateTrustScope(CertificateTrustScope.Override)
             .Resource;
 
+        await builder.BuildAsync();
+
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
@@ -283,6 +305,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithCertificateTrustScope(CertificateTrustScope.None)
             .Resource;
 
+        await builder.BuildAsync();
+
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
@@ -302,6 +326,8 @@ public class ResourceExecutionConfigurationGathererTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddContainer("test", "image").Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
@@ -327,6 +353,8 @@ public class ResourceExecutionConfigurationGathererTests
             .WithCertificateAuthorityCollection(caCollection)
             .WithCertificateTrustScope(CertificateTrustScope.Append)
             .Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
@@ -354,6 +382,8 @@ public class ResourceExecutionConfigurationGathererTests
         var resource = builder.AddContainer("test", "image")
             .WithAnnotation(new ServerAuthenticationCertificateAnnotation { Certificate = cert })
             .Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
@@ -387,6 +417,8 @@ public class ResourceExecutionConfigurationGathererTests
             })
             .Resource;
 
+        await builder.BuildAsync();
+
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
@@ -416,6 +448,8 @@ public class ResourceExecutionConfigurationGathererTests
             })
             .Resource;
 
+        await builder.BuildAsync();
+
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
         var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
@@ -433,6 +467,8 @@ public class ResourceExecutionConfigurationGathererTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddContainer("test", "image").Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
@@ -455,6 +491,8 @@ public class ResourceExecutionConfigurationGathererTests
         var resource = builder.AddContainer("test", "image")
             .WithAnnotation(new ServerAuthenticationCertificateAnnotation { Certificate = cert })
             .Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var context = new ResourceExecutionConfigurationGathererContext();
@@ -495,6 +533,8 @@ public class ResourceExecutionConfigurationGathererTests
                 return Task.CompletedTask;
             }))
             .Resource;
+
+        await builder.BuildAsync();
 
         var configContextFactory = CreateServerAuthenticationCertificateConfigurationContextFactory();
         var gatherer = new ServerAuthenticationCertificateExecutionConfigurationGatherer(configContextFactory);
