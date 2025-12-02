@@ -107,7 +107,7 @@ All logs saved in current directory with pattern: failed_job_*.log
 
 ### Technical Details
 
-- **Language**: C# 9.0+ (file-based program)
+- **Language**: C# 10+ (file-based program)
 - **Runtime**: .NET 10
 - **Key Dependencies**:
   - `System.IO.Compression` - For extracting zip artifacts
