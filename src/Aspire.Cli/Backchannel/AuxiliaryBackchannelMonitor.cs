@@ -4,7 +4,9 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Commands;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
@@ -21,6 +23,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
 {
     private readonly ConcurrentDictionary<string, AppHostConnection> _connections = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
+
+    // Track known socket files to detect additions and removals
+    private readonly HashSet<string> _knownSocketFiles = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets the collection of active AppHost connections.
@@ -58,22 +63,28 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 Directory.CreateDirectory(_backchannelsDirectory);
             }
 
-            // Monitor the directory for changes
-            using var watcher = new FileSystemWatcher(_backchannelsDirectory)
-            {
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
-                Filter = "aux.sock.*",
-                EnableRaisingEvents = true
-            };
-
-            watcher.Created += OnSocketCreated;
-            watcher.Deleted += OnSocketDeleted;
-
             // Scan for existing sockets on startup
-            await ScanExistingSocketsAsync(stoppingToken).ConfigureAwait(false);
+            await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
 
-            // Keep the service running
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+            // Use PhysicalFileProvider with polling for cross-platform compatibility
+            // FileSystemWatcher doesn't work reliably on macOS, so we use PhysicalFileProvider
+            // which falls back to polling when the DOTNET_USE_POLLING_FILE_WATCHER env var is set
+            // or when UsePollingFileWatcher is set to true
+            using var fileProvider = new PhysicalFileProvider(_backchannelsDirectory);
+
+            // Enable polling on macOS where FileSystemWatcher doesn't work reliably
+            if (OperatingSystem.IsMacOS())
+            {
+                fileProvider.UsePollingFileWatcher = true;
+                fileProvider.UseActivePolling = true;
+            }
+
+            // Continuously watch for changes using IAsyncEnumerable
+            await foreach (var _ in WatchForChangesAsync(fileProvider, stoppingToken))
+            {
+                // Process the changes by rescanning the directory
+                await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -99,37 +110,44 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
     }
 
-    private void OnSocketCreated(object sender, FileSystemEventArgs e)
+    private async Task ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
     {
-        logger.LogDebug("Socket created: {SocketPath}", e.FullPath);
-        _ = Task.Run(async () => await TryConnectToSocketAsync(e.FullPath).ConfigureAwait(false));
-    }
-
-    private void OnSocketDeleted(object sender, FileSystemEventArgs e)
-    {
-        logger.LogDebug("Socket deleted: {SocketPath}", e.FullPath);
-        var hash = ExtractHashFromSocketPath(e.FullPath);
-        if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
+        try
         {
-            _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false));
-        }
-    }
+            var currentFiles = new HashSet<string>(
+                Directory.GetFiles(_backchannelsDirectory, "aux.sock.*"),
+                StringComparer.OrdinalIgnoreCase);
 
-    private async Task ScanExistingSocketsAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Scanning for existing auxiliary sockets in {Directory}", _backchannelsDirectory);
-
-        var socketFiles = Directory.GetFiles(_backchannelsDirectory, "aux.sock.*");
-        logger.LogInformation("Found {Count} existing socket(s)", socketFiles.Length);
-
-        foreach (var socketPath in socketFiles)
-        {
-            if (cancellationToken.IsCancellationRequested)
+            // Find new files (files that exist now but weren't known before)
+            var newFiles = currentFiles.Except(_knownSocketFiles, StringComparer.OrdinalIgnoreCase);
+            foreach (var newFile in newFiles)
             {
-                break;
+                logger.LogDebug("Socket created: {SocketPath}", newFile);
+                await TryConnectToSocketAsync(newFile, cancellationToken).ConfigureAwait(false);
             }
 
-            await TryConnectToSocketAsync(socketPath, cancellationToken).ConfigureAwait(false);
+            // Find removed files (files that were known but no longer exist)
+            var removedFiles = _knownSocketFiles.Except(currentFiles, StringComparer.OrdinalIgnoreCase).ToList();
+            foreach (var removedFile in removedFiles)
+            {
+                logger.LogDebug("Socket deleted: {SocketPath}", removedFile);
+                var hash = ExtractHashFromSocketPath(removedFile);
+                if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
+                {
+                    await DisconnectAsync(connection).ConfigureAwait(false);
+                }
+            }
+
+            // Update the known files set
+            _knownSocketFiles.Clear();
+            foreach (var file in currentFiles)
+            {
+                _knownSocketFiles.Add(file);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Error processing directory changes");
         }
     }
 
@@ -267,6 +285,30 @@ internal sealed class AuxiliaryBackchannelMonitor(
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+    }
+
+    private static async IAsyncEnumerable<bool> WatchForChangesAsync(IFileProvider fileProvider, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var changeToken = fileProvider.Watch("aux.sock.*");
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using var registration = changeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
+            using var cancellationRegistration = cancellationToken.Register(() => tcs.TrySetCanceled());
+
+            bool changed;
+            try
+            {
+                changed = await tcs.Task.ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                yield break;
+            }
+
+            yield return changed;
+        }
     }
 }
 

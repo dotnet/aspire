@@ -140,7 +140,7 @@ public class AzureContainerAppEnvironmentResource :
         var dashboardUrl = $"https://aspire-dashboard.ext.{domainValue}";
 
         await context.ReportingStep.CompleteAsync(
-            $"Dashboard available at [dashboard URL]({dashboardUrl})",
+            $"Dashboard available at [{dashboardUrl}]({dashboardUrl})",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
     }

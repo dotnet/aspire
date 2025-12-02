@@ -169,7 +169,7 @@ public class RoleAssignmentTests()
         return RoleAssignmentTest("redis",
             builder =>
             {
-                var redis = builder.AddAzureRedisEnterprise("redis");
+                var redis = builder.AddAzureManagedRedis("redis");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
                     .WithReference(redis);
