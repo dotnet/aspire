@@ -115,7 +115,16 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                             {
                                 ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
                             };
-                            deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
+                            //deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
+
+                            var updatedDeploymentTargetAnnotation = new DeploymentTargetAnnotation(provisioningResource)
+                            {
+                                ComputeEnvironment = deploymentTargetAnnotation.ComputeEnvironment,
+                                ContainerRegistry = deploymentTargetAnnotation.ContainerRegistry
+                            };
+
+                            TargetResource.Annotations.Add(updatedDeploymentTargetAnnotation);
+
                             ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource", false);
                         }
                         else

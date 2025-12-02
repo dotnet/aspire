@@ -272,7 +272,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         BuildWebSiteCore(infra, deploymentSlotValue);
     }
 
-    private (dynamic webSite, dynamic mainContainer) CreateAndConfigureWebSite(
+    private dynamic CreateAndConfigureWebSite(
     AzureResourceInfrastructure infra,
     BicepValue<string> name,
     BicepValue<ResourceIdentifier> appServicePlanParameter,
@@ -462,6 +462,8 @@ internal sealed class AzureAppServiceWebsiteContext(
             webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, isSlot);
         }
 
+        infra.Add(webSite);
+
         if (webSiteRa is not null)
         {
             infra.Add(webSiteRa);
@@ -497,7 +499,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             Infra.Add(parentWebSite);
         }
 
-        var (webSite, mainContainer) = CreateAndConfigureWebSite(
+        var webSite = CreateAndConfigureWebSite(
             infra,
             HostName,
             appServicePlanParameter,
@@ -507,9 +509,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             isSlot: deploymentSlot is not null,
             parentWebSite: parentWebSite,
             deploymentSlot: deploymentSlot);
-
-        infra.Add(webSite);
-        infra.Add(mainContainer);
 
         // Allow users to customize the web app here
         if (deploymentSlot is not null)
@@ -547,7 +546,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
 
         // Main site
-        var (webSite, mainContainer) = CreateAndConfigureWebSite(
+        var webSite = CreateAndConfigureWebSite(
             infra,
             HostName,
             appServicePlanParameter,
@@ -556,11 +555,8 @@ internal sealed class AzureAppServiceWebsiteContext(
             containerImage,
             isSlot: false);
 
-        infra.Add(webSite);
-        infra.Add(mainContainer);
-
         // Slot
-        var (webSiteSlot, slotMainContainer) = CreateAndConfigureWebSite(
+        var webSiteSlot = CreateAndConfigureWebSite(
             infra,
             deploymentSlot,
             appServicePlanParameter,
@@ -570,9 +566,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             isSlot: true ,
             parentWebSite: (WebSite)webSite,
             deploymentSlot: deploymentSlot);
-
-        infra.Add(webSiteSlot);
-        infra.Add(slotMainContainer);
 
         // Allow users to customize the slot
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
