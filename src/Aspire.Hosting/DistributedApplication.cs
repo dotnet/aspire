@@ -501,8 +501,22 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
             foreach (var resource in appModel.Resources)
             {
-                // Publish finalizer events in reverse order to ensure that any event
-                await eventing.PublishAsync(new FinalizeResourceAnnotationsEvent(resource, _host.Services), reverseOrder: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (resource.TryGetAnnotationsOfType<FinalizeResourceConfigurationCallbackAnnotation>(out var finalizeAnnotations))
+                {
+                    var context = new FinalizeResourceConfigurationCallbackAnnotationContext
+                    {
+                        Resource = resource,
+                        ExecutionContext = execContext,
+                        CancellationToken = cancellationToken,
+                    };
+
+                    // Execute in reverse order; take as a list to avoid mutating the collection during enumeration
+                    var callbacks = finalizeAnnotations.Reverse().ToList();
+                    foreach (var callback in callbacks)
+                    {
+                        await callback.Callback(context).ConfigureAwait(false);
+                    }
+                }
             }
         }
         finally

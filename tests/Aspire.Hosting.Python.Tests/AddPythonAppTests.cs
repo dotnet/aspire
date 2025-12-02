@@ -2300,7 +2300,22 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         foreach (var resource in appModel.Resources)
         {
-            await eventing.PublishAsync(new FinalizeResourceAnnotationsEvent(resource, app.Services), reverseOrder: true).ConfigureAwait(false);
+            if (resource.TryGetAnnotationsOfType<FinalizeResourceConfigurationCallbackAnnotation>(out var finalizeAnnotations))
+            {
+                var context = new FinalizeResourceConfigurationCallbackAnnotationContext
+                {
+                    Resource = resource,
+                    ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+                    CancellationToken = CancellationToken.None,
+                };
+
+                // Execute in reverse order; take as a list to avoid mutating the collection during enumeration
+                var callbacks = finalizeAnnotations.Reverse().ToList();
+                foreach (var callback in callbacks)
+                {
+                    await callback.Callback(context).ConfigureAwait(false);
+                }
+            }
         }
     }
 }

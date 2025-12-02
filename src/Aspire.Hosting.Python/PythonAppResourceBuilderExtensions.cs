@@ -1363,7 +1363,7 @@ public static class PythonAppResourceBuilderExtensions
                 // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
             });
 
-            installerBuilder.OnFinalizeResourceAnnotations((_, _, ct) =>
+            installerBuilder.WithConfigurationFinalizer(_ =>
             {
                 // Set the installer's working directory to match the resource's working directory
                 // and set the install command and args based on the resource's annotations

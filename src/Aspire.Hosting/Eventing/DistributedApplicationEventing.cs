@@ -16,34 +16,15 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
     public Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
     {
-        return PublishAsync(@event, reverseOrder: false, dispatchBehavior: EventDispatchBehavior.BlockingSequential, cancellationToken);
+        return PublishAsync(@event, EventDispatchBehavior.BlockingSequential, cancellationToken);
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
-    public Task PublishAsync<T>(T @event, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
-    {
-        return PublishAsync(@event, reverseOrder: false, dispatchBehavior, cancellationToken);
-    }
-
-    /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, bool, CancellationToken)" />
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
-    public Task PublishAsync<T>(T @event, bool reverseOrder, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
-    {
-        return PublishAsync(@event, reverseOrder, EventDispatchBehavior.BlockingSequential, cancellationToken);
-    }
-
-    /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, EventDispatchBehavior, CancellationToken)" />
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
-    public async Task PublishAsync<T>(T @event, bool reverseOrder, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
+    public async Task PublishAsync<T>(T @event, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
-            if (reverseOrder)
-            {
-                subscriptions.Reverse();
-            }
-
             if (dispatchBehavior == EventDispatchBehavior.BlockingConcurrent || dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
             {
                 var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);

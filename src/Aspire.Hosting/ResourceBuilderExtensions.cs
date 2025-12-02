@@ -3026,4 +3026,23 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
     }
+
+    /// <summary>
+    /// Adds a resource configuration finalizer callback annotation to the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to be invoked during resource finalization. All resource configuration finalizers will be invoked in reverse order of their registration immediately after the BeforeStartEvent is complete.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithConfigurationFinalizer<T>(this IResourceBuilder<T> builder, Func<FinalizeResourceConfigurationCallbackAnnotationContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new FinalizeResourceConfigurationCallbackAnnotation
+        {
+            Callback = callback,
+        }, ResourceAnnotationMutationBehavior.Append);
+    }
 }

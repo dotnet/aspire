@@ -677,7 +677,7 @@ public static class JavaScriptHostingExtensions
                 .WithParentRelationship(resource.Resource)
                 .ExcludeFromManifest();
 
-            resource.OnFinalizeResourceAnnotations((_, _, cancellationToken) =>
+            resource.WithConfigurationFinalizer(_ =>
             {
                 // set the installer's working directory to match the resource's working directory
                 // and set the install command and args based on the resource's annotations
