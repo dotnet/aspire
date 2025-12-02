@@ -5,8 +5,10 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 
 namespace Aspire.Dashboard.Mcp;
 
@@ -16,6 +18,7 @@ namespace Aspire.Dashboard.Mcp;
 internal sealed class ResourceMcpProxyService : IAsyncDisposable
 {
     private readonly IDashboardClient _dashboardClient;
+    private readonly McpServerOptions _mcpServerOptions;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<ResourceMcpProxyService> _logger;
     private readonly CancellationTokenSource _cts = new();
@@ -29,13 +32,18 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
 
     private Task? _watchTask;
 
-    public ResourceMcpProxyService(IDashboardClient dashboardClient, ILoggerFactory loggerFactory, ILogger<ResourceMcpProxyService> logger)
+    public ResourceMcpProxyService(IDashboardClient dashboardClient, IOptions<McpServerOptions> options, ILoggerFactory loggerFactory, ILogger<ResourceMcpProxyService> logger)
     {
         _dashboardClient = dashboardClient;
+        _mcpServerOptions = options.Value;
         _loggerFactory = loggerFactory;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Starts a background task that monitors resource events to refresh the tools list
+    /// </summary>
+    /// <returns></returns>
     public async Task EnsureStartedAsync()
     {
         if (_watchTask is not null)
@@ -46,6 +54,7 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
         await _startGate.WaitAsync(_cts.Token).ConfigureAwait(false);
         try
         {
+            // Watch for resource changes
             _watchTask ??= Task.Run(WatchAsync, _cts.Token);
         }
         finally
@@ -141,6 +150,8 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
             return;
         }
 
+        _logger.LogDebug("Updating tools for resource {ResourceName}", resource.Name);
+
         var newRegistration = new ResourceRegistration(resource.Name);
 
         foreach (var endpoint in endpoints)
@@ -175,7 +186,22 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
             _toolIndex[tool.Name] = tool;
         }
 
+        _logger.LogDebug("Tools updated for resource {ResourceName}", resource.Name);
+
         _registrations[resource.Name] = newRegistration;
+
+        // if the tools have changed between newRegistration and existing, we might want to notify the MCP server about the change
+        var existingNames = existing?.ToolNames.Distinct().Order();
+        var newNames = newRegistration.ToolNames.Distinct().Order();
+        if (!existingNames?.SequenceEqual(newNames) ?? true)
+        {
+            _logger.LogDebug("MCP tools changed for resource {ResourceName}, notifying server.", resource.Name);
+
+            // Notify the MCP server clients that the tool list has changed by updating the ToolCollection property.
+            // Its content is irrelevant since the client is intercepted by a handler; we just need to trigger the notification.
+
+            _mcpServerOptions?.ToolCollection?.Clear();
+        }
     }
 
     private async Task<ResourceRegistration?> CreateClientAsync(ResourceViewModel resource, McpEndpointExport endpoint, CancellationToken cancellationToken)
@@ -188,11 +214,11 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
             return null;
         }
 
-        var options = new ModelContextProtocol.Client.HttpClientTransportOptions
+        var options = new HttpClientTransportOptions
         {
             Endpoint = endpoint.Uri,
             Name = $"{resource.Name}-mcp",
-            TransportMode = ModelContextProtocol.Client.HttpTransportMode.AutoDetect
+            TransportMode = HttpTransportMode.AutoDetect
         };
 
         if (!string.IsNullOrEmpty(endpoint.AuthToken))
@@ -203,7 +229,7 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
             };
         }
 
-        var transport = new ModelContextProtocol.Client.HttpClientTransport(options, _loggerFactory);
+        var transport = new HttpClientTransport(options, _loggerFactory);
 
         var client = await McpClient.CreateAsync(
             transport,
