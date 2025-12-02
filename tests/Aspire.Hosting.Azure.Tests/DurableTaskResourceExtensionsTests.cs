@@ -77,7 +77,12 @@ public class DurableTaskResourceExtensionsTests
             .AddDurableTaskScheduler("dts")
             .RunAsExisting(dtsConnectionString);
 
-        var taskHub = dts.AddTaskHub("mytaskhub", taskHubName);
+        var taskHub = dts.AddTaskHub("mytaskhub");
+        
+        if (taskHubName is not null)
+        {
+            taskHub = taskHub.WithTaskHubName(taskHubName);   
+        }
 
         var connectionString = await taskHub.Resource.ConnectionStringExpression.GetValueAsync(default);
 

@@ -91,35 +91,38 @@ public static class DurableTaskResourceExtensions
 
         var emulatorResource = new DurableTaskSchedulerEmulatorResource(builder.Resource);
 
-        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorResource)
-        .WithEnvironment(
-            context =>
-            {
-                ReferenceExpressionBuilder builder1 = new();
-
-                var durableTaskHubNames = builder.ApplicationBuilder
-                    .Resources
-                    .OfType<DurableTaskHubResource>()
-                    .Where(th => th.Parent == builder.Resource)
-                    .Select(th => th.TaskHubName)
-                    .ToList();
-
-                for (int i = 0; i < durableTaskHubNames.Count; i++)
-                {
-                    if (i == 0)
+        var surrogateBuilder =
+            builder
+                .ApplicationBuilder
+                .CreateResourceBuilder(emulatorResource)
+                .WithEnvironment(
+                    context =>
                     {
-                        builder1.AppendFormatted(durableTaskHubNames[i]);
-                    }
-                    else
-                    {
-                        builder1.AppendFormatted($", {durableTaskHubNames[i]}");
-                    }
-                }
+                        ReferenceExpressionBuilder namesBuilder = new();
 
-                ReferenceExpression referenceExpression = builder1.Build();
+                        var durableTaskHubNames =
+                            builder
+                                .ApplicationBuilder
+                                .Resources
+                                .OfType<DurableTaskHubResource>()
+                                .Where(th => th.Parent == builder.Resource)
+                                .Select(th => th.TaskHubName)
+                                .ToList();
 
-                context.EnvironmentVariables["DTS_TASK_HUB_NAMES"] = referenceExpression;
-            });
+                        for (int i = 0; i < durableTaskHubNames.Count; i++)
+                        {
+                            if (i == 0)
+                            {
+                                namesBuilder.AppendFormatted(durableTaskHubNames[i]);
+                            }
+                            else
+                            {
+                                namesBuilder.AppendFormatted($", {durableTaskHubNames[i]}");
+                            }
+                        }
+
+                        context.EnvironmentVariables["DTS_TASK_HUB_NAMES"] = namesBuilder.Build();
+                    });
 
         configureContainer?.Invoke(surrogateBuilder);
 
