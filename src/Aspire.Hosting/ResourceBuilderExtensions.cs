@@ -3028,14 +3028,16 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-        /// Adds a resource configuration finalizer callback annotation to the resource.
+    /// Adds a resource configuration finalizer callback annotation to the resource.
+    /// This is the last safe opportunity to modify resource annotations before configuration processing begins and provides an
+    /// opportunity to apply default behaviors based on the final resource configuration.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to be invoked during resource finalization. All resource configuration finalizers will be invoked in reverse order of their registration immediately after the BeforeStartEvent is complete.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithConfigurationFinalizer<T>(this IResourceBuilder<T> builder, Func<FinalizeResourceConfigurationCallbackAnnotationContext, Task> callback)
-    where T : IResource
+        where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
