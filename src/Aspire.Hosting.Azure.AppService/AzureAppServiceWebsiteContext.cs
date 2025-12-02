@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Utils;
+using Azure.Core;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
@@ -271,28 +272,23 @@ internal sealed class AzureAppServiceWebsiteContext(
         BuildWebSiteCore(infra, deploymentSlotValue);
     }
 
-    private void BuildWebSiteCore(
-        AzureResourceInfrastructure infra,
-        BicepValue<string>? deploymentSlot = null)
+    private (dynamic webSite, dynamic mainContainer) CreateAndConfigureWebSite(
+    AzureResourceInfrastructure infra,
+    BicepValue<string> name,
+    BicepValue<ResourceIdentifier> appServicePlanParameter,
+    BicepValue<string> acrMidParameter,
+    ProvisioningParameter acrClientIdParameter,
+    ProvisioningParameter containerImage,
+    bool isSlot = false,
+    WebSite? parentWebSite = null,
+    BicepValue<string>? deploymentSlot = null)
     {
-        _infrastructure = infra;
-
-        var containerRegistryUrl = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
-        var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
-        var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
-        var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
-        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-
         // Create WebSite or WebSiteSlot
         dynamic webSite;
         dynamic mainContainer;
-        if (deploymentSlot is not null)
-        {
-            // Create parent WebSite from existing
-            var parentWebSite = WebSite.FromExisting("webapp");
-            parentWebSite.Name = HostName;
-            Infra.Add(parentWebSite);
 
+        if (isSlot && parentWebSite is not null && deploymentSlot is not null)
+        {
             webSite = new WebSiteSlot("webappslot")
             {
                 Parent = parentWebSite,
@@ -327,7 +323,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             webSite = new WebSite("webapp")
             {
-                Name = HostName,
+                Name = name,
                 AppServicePlanId = appServicePlanParameter,
                 // Creating the app service with new sidecar configuration
                 SiteConfig = new SiteConfigProperties()
@@ -373,7 +369,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         foreach (var kv in EnvironmentVariables)
         {
-            var (val, secretType) = ProcessValue(kv.Value, isSlot: deploymentSlot != null);
+            var (val, secretType) = ProcessValue(kv.Value, isSlot: isSlot);
             var value = ResolveValue(val);
 
             if (secretType == SecretType.KeyVault)
@@ -463,10 +459,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         RoleAssignment? webSiteRa = null;
         if (environmentContext.Environment.EnableDashboard)
         {
-            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter);
+            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, isSlot);
         }
 
-        infra.Add(webSite);
         if (webSiteRa is not null)
         {
             infra.Add(webSiteRa);
@@ -476,6 +471,45 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             EnableApplicationInsightsForWebSite(webSite);
         }
+
+        return (webSite, mainContainer);
+    }
+
+    private void BuildWebSiteCore(
+        AzureResourceInfrastructure infra,
+        BicepValue<string>? deploymentSlot = null)
+    {
+        _infrastructure = infra;
+
+        _ = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
+        var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
+        var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
+        var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
+        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
+
+        // Create parent WebSite from existing
+        WebSite? parentWebSite = null;
+
+        if (deploymentSlot is not null)
+        {
+            parentWebSite = WebSite.FromExisting("webapp");
+            parentWebSite.Name = HostName;
+            Infra.Add(parentWebSite);
+        }
+
+        var (webSite, mainContainer) = CreateAndConfigureWebSite(
+            infra,
+            HostName,
+            appServicePlanParameter,
+            acrMidParameter,
+            acrClientIdParameter,
+            containerImage,
+            isSlot: deploymentSlot is not null,
+            parentWebSite: parentWebSite,
+            deploymentSlot: deploymentSlot);
+
+        infra.Add(webSite);
+        infra.Add(mainContainer);
 
         // Allow users to customize the web app here
         if (deploymentSlot is not null)
@@ -506,227 +540,46 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         _infrastructure = infra;
 
-        var containerRegistryUrl = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
+        _ = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
         var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
 
-        WebSite webSite = new WebSite("webapp")
-        {
-            Name = HostName,
-            AppServicePlanId = appServicePlanParameter,
-            // Creating the app service with new sidecar configuration
-            SiteConfig = new SiteConfigProperties()
-            {
-                LinuxFxVersion = "SITECONTAINERS",
-                AcrUserManagedIdentityId = acrClientIdParameter,
-                UseManagedIdentityCreds = true,
-                // Setting NumberOfWorkers to maximum allowed value for Premium SKU
-                // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
-                // This is required due to use of feature PerSiteScaling for the App Service plan
-                // We want the web apps to scale normally as defined for the app service plan
-                // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
-                NumberOfWorkers = 30,
-                AppSettings = []
-            },
-            Identity = new ManagedServiceIdentity()
-            {
-                ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                UserAssignedIdentities = []
-            },
-        };
-
-        // Defining the main container for the app service
-        SiteContainer  mainContainer = new SiteContainer("mainContainer")
-        {
-            Parent = webSite,
-            Name = "main",
-            Image = containerImage,
-            AuthType = SiteContainerAuthType.UserAssigned,
-            UserManagedIdentityClientId = acrClientIdParameter,
-            IsMain = true
-        };
-
-        WebSiteSlot webSiteSlot = new WebSiteSlot("webappslot")
-        {
-            Parent = webSite,
-            Name = deploymentSlot,
-            AppServicePlanId = appServicePlanParameter,
-            SiteConfig = new SiteConfigProperties()
-            {
-                LinuxFxVersion = "SITECONTAINERS",
-                AcrUserManagedIdentityId = acrClientIdParameter,
-                UseManagedIdentityCreds = true,
-                NumberOfWorkers = 30,
-                AppSettings = []
-            },
-            Identity = new ManagedServiceIdentity()
-            {
-                ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                UserAssignedIdentities = []
-            },
-        };
-
-        SiteSlotSiteContainer slotMainContainer = new SiteSlotSiteContainer("mainContainerSlot")
-        {
-            Parent = webSiteSlot,
-            Name = "main",
-            Image = containerImage,
-            AuthType = SiteContainerAuthType.UserAssigned,
-            UserManagedIdentityClientId = acrClientIdParameter,
-            IsMain = true
-        };
-
-        // There should be a single valid target port
-        if (_endpointMapping.FirstOrDefault() is var (_, mapping))
-        {
-            var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
-
-            mainContainer.TargetPort = targetPort;
-            slotMainContainer.TargetPort = targetPort;
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
-            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
-        }
-
-        foreach (var kv in EnvironmentVariables)
-        {
-            var (val, secretType) = ProcessValue(kv.Value, isSlot: false);
-            var (valForSlot, secretTypeForSlot) = ProcessValue(kv.Value, isSlot: true);
-            var value = ResolveValue(val);
-            var valueForSlot = ResolveValue(valForSlot);
-
-            if (secretType == SecretType.KeyVault)
-            {
-                // https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
-                // @Microsoft.KeyVault({referenceString})
-                value = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={val})");
-                valueForSlot = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={valForSlot})");
-            }
-
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
-            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = valueForSlot });
-        }
-
-        if (Args.Count > 0)
-        {
-            var args = new List<BicepValue<string>>();
-
-            foreach (var arg in Args)
-            {
-                var (val, secretType) = ProcessValue(arg);
-                var value = ResolveValue(val);
-
-                args.Add(value);
-            }
-
-            // App Service does not support array arguments, so we need to join them into a single string
-            static FunctionCallExpression Join(BicepExpression args, string delimeter) =>
-                new(new IdentifierExpression("join"), args, new StringLiteralExpression(delimeter));
-
-            var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
-
-            mainContainer.StartUpCommand = Join(arrayExpression, " ");
-            slotMainContainer.StartUpCommand = Join(arrayExpression, " ");
-        }
-
-        infra.Add(mainContainer);
-
-        var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
-        webSite.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
-        webSiteSlot.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
-
-        // This is the user assigned identity associated with the web app, not the container registry
-        if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
-        {
-            var appIdentityResource = appIdentityAnnotation.IdentityResource;
-
-            var computeIdentity = appIdentityResource.Id.AsProvisioningParameter(infra);
-
-            var cid = BicepFunction.Interpolate($"{computeIdentity}").Compile().ToString();
-
-            webSite.KeyVaultReferenceIdentity = computeIdentity;
-            webSiteSlot.KeyVaultReferenceIdentity = computeIdentity;
-
-            webSite.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
-            webSiteSlot.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
-            webSite.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
-            webSiteSlot.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
-
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "AZURE_CLIENT_ID",
-                Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
-            });
-            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "AZURE_CLIENT_ID",
-                Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
-            });
-
-            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "AZURE_TOKEN_CREDENTIALS",
-                Value = "ManagedIdentityCredential"
-            });
-            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "AZURE_TOKEN_CREDENTIALS",
-                Value = "ManagedIdentityCredential"
-            });
-
-            // Added appsetting to identify the resource in a specific aspire environment
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
-            webSiteSlot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
-        }
-
-        // Probes
-#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        if (resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
-        {
-            // AppService allow only one "health check" with only path, so prioritize "liveness" and/or take the first one
-            var endpointProbeAnnotation = probeAnnotations
-                .OfType<EndpointProbeAnnotation>()
-                .OrderBy(probeAnnotation => probeAnnotation.Type == ProbeType.Liveness ? 0 : 1)
-                .FirstOrDefault();
-
-            if (endpointProbeAnnotation is not null)
-            {
-                webSite.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
-                webSiteSlot.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
-            }
-        }
-#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-        RoleAssignment? webSiteRa = null;
-        RoleAssignment? webSiteSlotRa = null;
-        if (environmentContext.Environment.EnableDashboard)
-        {
-            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter);
-            webSiteSlotRa = AddDashboardPermissionAndSettings(webSiteSlot, acrClientIdParameter, true);
-        }
+        // Main site
+        var (webSite, mainContainer) = CreateAndConfigureWebSite(
+            infra,
+            HostName,
+            appServicePlanParameter,
+            acrMidParameter,
+            acrClientIdParameter,
+            containerImage,
+            isSlot: false);
 
         infra.Add(webSite);
-        infra.Add(slotMainContainer);
+        infra.Add(mainContainer);
+
+        // Slot
+        var (webSiteSlot, slotMainContainer) = CreateAndConfigureWebSite(
+            infra,
+            deploymentSlot,
+            appServicePlanParameter,
+            acrMidParameter,
+            acrClientIdParameter,
+            containerImage,
+            isSlot: true ,
+            parentWebSite: (WebSite)webSite,
+            deploymentSlot: deploymentSlot);
+
         infra.Add(webSiteSlot);
-        if (webSiteRa is not null)
-        {
-            infra.Add(webSiteRa);
-            infra.Add(webSiteSlotRa!);
-        }
+        infra.Add(slotMainContainer);
 
-        if (environmentContext.Environment.EnableApplicationInsights)
-        {
-            EnableApplicationInsightsForWebSite(webSite);
-            EnableApplicationInsightsForWebSite(webSiteSlot);
-        }
-
+        // Allow users to customize the slot
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
         {
-            foreach (var customizeWebSiteAnnotation in customizeWebSiteSlotAnnotations)
+            foreach (var customizeWebSiteSlotAnnotation in customizeWebSiteSlotAnnotations)
             {
-                customizeWebSiteAnnotation.Configure(infra, webSiteSlot);
+                customizeWebSiteSlotAnnotation.Configure(infra, webSiteSlot);
             }
         }
     }
