@@ -807,17 +807,44 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact]
-    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl(bool useLaunchSettings, bool useHttps)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
+        var project = useLaunchSettings
+            ? builder.AddProject<ProjectB>("project")
+            : builder.AddProject<ProjectA>("project");
+
+        if (useHttps)
+        {
+            project.WithHttpsEndpoint(name: "test");
+        }
+        else
+        {
+            project.WithHttpEndpoint(name: "test");
+        }
+
+        if (useLaunchSettings)
+        {
+            // Update the URL from the launch profile
+            project.WithUrlForEndpoint("http", url =>
+            {
+                url.Url = "/test-sub-path";
+                url.DisplayText = "Test Link";
+            });
+        }
+
         var tcs = new TaskCompletionSource();
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithHttpEndpoint(name: "test")
+        project
             .WithUrlForEndpoint("test", url =>
             {
-                url.Url = "/sub-path";
+                url.Url = "/test-sub-path";
+                url.DisplayText = "Test Link";
             })
             .OnBeforeResourceStarted((_, _, _) =>
             {
@@ -829,10 +856,22 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
-        var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
+        var endpointUrl = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
 
         Assert.NotNull(endpointUrl);
-        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
+        Assert.StartsWith(useHttps ? "https://localhost" : "http://localhost", endpointUrl.Url);
+        Assert.EndsWith("/test-sub-path", endpointUrl.Url);
+        Assert.Equal("Test Link", endpointUrl.DisplayText);
+
+        if (useLaunchSettings)
+        {
+            var launchProfileUrl = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "http");
+
+            Assert.NotNull(launchProfileUrl);
+            Assert.StartsWith("http://localhost", launchProfileUrl.Url);
+            Assert.EndsWith("/test-sub-path", launchProfileUrl.Url);
+            Assert.Equal("Test Link", launchProfileUrl.DisplayText);
+        }
 
         await app.StopAsync();
     }
