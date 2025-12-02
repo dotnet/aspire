@@ -61,11 +61,38 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AppHost started. Waiting for completion....
+        /// </summary>
+        internal static string AppHostStarted {
+            get {
+                return ResourceManager.GetString("AppHostStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connecting to AppHost....
+        /// </summary>
+        internal static string ConnectingToAppHost {
+            get {
+                return ResourceManager.GetString("ConnectingToAppHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Run test resources to completion and then shutdown. Launches the AppHost, executes specified test resources, and exits after tests complete. (Preview).
         /// </summary>
         internal static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory..
+        /// </summary>
+        internal static string ProjectArgumentDescription {
+            get {
+                return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
             }
         }
     }

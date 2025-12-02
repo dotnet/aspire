@@ -84,7 +84,7 @@ public class TestCommandTests
     }
 
     [Fact]
-    public async Task TestCommand_BasicExecution_ReturnsSuccess()
+    public async Task TestCommand_WhenNoProjectFileFound_ReturnsFailedToFindProject()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
@@ -102,7 +102,7 @@ public class TestCommandTests
 
         var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
 
-        // Should succeed with placeholder implementation
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        // Should fail because no project is found
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 }

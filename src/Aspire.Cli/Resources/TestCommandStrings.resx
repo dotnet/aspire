@@ -120,4 +120,13 @@
   <data name="Description" xml:space="preserve">
     <value>Run test resources to completion and then shutdown. Launches the AppHost, executes specified test resources, and exits after tests complete. (Preview)</value>
   </data>
+  <data name="ProjectArgumentDescription" xml:space="preserve">
+    <value>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</value>
+  </data>
+  <data name="ConnectingToAppHost" xml:space="preserve">
+    <value>Connecting to AppHost...</value>
+  </data>
+  <data name="AppHostStarted" xml:space="preserve">
+    <value>AppHost started. Waiting for completion...</value>
+  </data>
 </root>
