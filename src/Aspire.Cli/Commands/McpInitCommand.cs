@@ -2,12 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -18,6 +21,7 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
 {
     private readonly IInteractionService _interactionService;
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
+    private readonly IGitRepository _gitRepository;
 
     /// <summary>
     /// McpInitCommand does not need template package metadata prefetching.
@@ -34,23 +38,52 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        IAgentEnvironmentDetector agentEnvironmentDetector)
+        IAgentEnvironmentDetector agentEnvironmentDetector,
+        IGitRepository gitRepository)
         : base("init", McpCommandStrings.InitCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(agentEnvironmentDetector);
+        ArgumentNullException.ThrowIfNull(gitRepository);
 
         _interactionService = interactionService;
         _agentEnvironmentDetector = agentEnvironmentDetector;
+        _gitRepository = gitRepository;
     }
 
     protected override bool UpdateNotificationsEnabled => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Discover the git repository root upfront
+        var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
+        var defaultRepositoryRoot = gitRoot ?? ExecutionContext.WorkingDirectory;
+
+        // Prompt the user for the workspace root
+        var repositoryRootPath = await _interactionService.PromptForStringAsync(
+            McpCommandStrings.InitCommand_WorkspaceRootPrompt,
+            defaultValue: defaultRepositoryRoot.FullName,
+            validator: path =>
+            {
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    return ValidationResult.Error(McpCommandStrings.InitCommand_WorkspaceRootRequired);
+                }
+
+                if (!Directory.Exists(path))
+                {
+                    return ValidationResult.Error(string.Format(CultureInfo.InvariantCulture, McpCommandStrings.InitCommand_WorkspaceRootNotFound, path));
+                }
+
+                return ValidationResult.Success();
+            },
+            cancellationToken: cancellationToken);
+
+        var repositoryRoot = new DirectoryInfo(repositoryRootPath);
+
         var applicators = await _interactionService.ShowStatusAsync(
             McpCommandStrings.InitCommand_DetectingAgentEnvironments,
-            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, cancellationToken));
+            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, repositoryRoot, cancellationToken));
 
         if (applicators.Length == 0)
         {

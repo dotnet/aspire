@@ -122,5 +122,32 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_DetectingAgentEnvironments", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter the path to the root of your workspace:.
+        /// </summary>
+        internal static string InitCommand_WorkspaceRootPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_WorkspaceRootPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Workspace root path is required..
+        /// </summary>
+        internal static string InitCommand_WorkspaceRootRequired {
+            get {
+                return ResourceManager.GetString("InitCommand_WorkspaceRootRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Directory not found: {0}.
+        /// </summary>
+        internal static string InitCommand_WorkspaceRootNotFound {
+            get {
+                return ResourceManager.GetString("InitCommand_WorkspaceRootNotFound", resourceCulture);
+            }
+        }
     }
 }
