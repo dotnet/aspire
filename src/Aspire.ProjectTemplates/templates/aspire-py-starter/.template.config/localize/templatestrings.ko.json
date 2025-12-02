@@ -3,7 +3,7 @@
   "name": "Aspire Python 스타터 앱",
   "description": "Vite와 React를 사용해 Python 백엔드 API 서비스와 JavaScript 프런트엔드로 Aspire 앱을 만드는 프로젝트 템플릿입니다.",
   "symbols/UseRedisCache/displayName": "캐싱용 _Use Redis(지원되는 컨테이너 런타임 필요)",
-  "symbols/UseRedisCache/description": "캐싱에 Redis를 사용하도록 응용 프로그램을 설정할지 여부를 구성합니다. 로컬로 실행하려면 지원되는 컨테이너 런타임이 필요합니다. 자세한 내용은 https://aka.ms/dotnet/aspire/containers를 참조하세요.",
+  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/aspire/containers for more details.",
   "symbols/appHostHttpPort/description": "AppHost 프로젝트의 launchSettings.json HTTP 엔드포인트에 사용할 포트 번호입니다.",
   "symbols/appHostOtlpHttpPort/description": "AppHost 프로젝트의 launchSettings.json OTLP HTTP 엔드포인트에 사용할 포트 번호입니다.",
   "symbols/appHostMcpHttpPort/description": "AppHost 프로젝트의 launchSettings.json에서 MCP HTTP 엔드포인트에 사용할 포트 번호입니다.",
