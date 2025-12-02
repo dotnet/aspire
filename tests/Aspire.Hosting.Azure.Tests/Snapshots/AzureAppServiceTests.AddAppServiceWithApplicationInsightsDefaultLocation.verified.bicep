@@ -30,7 +30,7 @@ resource env_acr_env_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04
   scope: env_acr
 }
 
-resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
+resource env_asplan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: take('envasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
@@ -60,7 +60,7 @@ resource env_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-resource dashboard 'Microsoft.Web/sites@2024-11-01' = {
+resource dashboard 'Microsoft.Web/sites@2025-03-01' = {
   name: take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
