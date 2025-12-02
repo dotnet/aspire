@@ -97,7 +97,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
     private async Task BuildProjectImage(PipelineStepContext ctx)
     {
-        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
         var logger = ctx.Logger;
 
         // Build the container image for the project first
