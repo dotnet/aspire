@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -31,6 +32,7 @@ public static class ContainerRegistryResourceBuilderExtensions
     /// var registry = builder.AddContainerRegistry("my-registry", endpointParameter, repositoryParameter);
     /// </code>
     /// </example>
+    [Experimental("ASPIRECOMPUTE003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerRegistryResource> AddContainerRegistry(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -78,6 +80,7 @@ public static class ContainerRegistryResourceBuilderExtensions
     /// var registry = builder.AddContainerRegistry("ghcr", "ghcr.io", "owner/repo");
     /// </code>
     /// </example>
+    [Experimental("ASPIRECOMPUTE003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerRegistryResource> AddContainerRegistry(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -120,6 +123,7 @@ public static class ContainerRegistryResourceBuilderExtensions
     ///     .WithContainerRegistry(registry);
     /// </code>
     /// </example>
+    [Experimental("ASPIRECOMPUTE003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<TDestination> WithContainerRegistry<TDestination, TContainerRegistry>(
         this IResourceBuilder<TDestination> builder,
         IResourceBuilder<TContainerRegistry> registry)
