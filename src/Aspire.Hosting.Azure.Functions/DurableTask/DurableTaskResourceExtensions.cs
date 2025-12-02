@@ -91,7 +91,35 @@ public static class DurableTaskResourceExtensions
 
         var emulatorResource = new DurableTaskSchedulerEmulatorResource(builder.Resource);
 
-        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorResource);
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorResource)
+        .WithEnvironment(
+            context =>
+            {
+                ReferenceExpressionBuilder builder1 = new();
+
+                var durableTaskHubNames = builder.ApplicationBuilder
+                    .Resources
+                    .OfType<DurableTaskHubResource>()
+                    .Where(th => th.Parent == builder.Resource)
+                    .Select(th => th.TaskHubName)
+                    .ToList();
+
+                for (int i = 0; i < durableTaskHubNames.Count; i++)
+                {
+                    if (i == 0)
+                    {
+                        builder1.AppendFormatted(durableTaskHubNames[i]);
+                    }
+                    else
+                    {
+                        builder1.AppendFormatted($", {durableTaskHubNames[i]}");
+                    }
+                }
+
+                ReferenceExpression referenceExpression = builder1.Build();
+
+                context.EnvironmentVariables["DTS_TASK_HUB_NAMES"] = referenceExpression;
+            });
 
         configureContainer?.Invoke(surrogateBuilder);
 
@@ -116,7 +144,7 @@ public static class DurableTaskResourceExtensions
                 {
                     var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
 
-                    var url = await ReferenceExpression.Create($"{r.Parent.EmulatorDashboardEndpoint}/subscriptions/default/schedulers/default/taskhubs/{r.Name}").GetValueAsync(ct).ConfigureAwait(false);
+                    var url = await ReferenceExpression.Create($"{r.Parent.EmulatorDashboardEndpoint}/subscriptions/default/schedulers/default/taskhubs/{r.TaskHubName}").GetValueAsync(ct).ConfigureAwait(false);
 
                     await notifications.PublishUpdateAsync(r, snapshot => snapshot with
                     {
