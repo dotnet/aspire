@@ -1135,14 +1135,14 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithNetworkAlias("alias1")
-    ///        .WithNetworkAlias("alias2");
+    ///        .WithContainerNetworkAlias("alias1")
+    ///        .WithContainerNetworkAlias("alias2");
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(alias);

@@ -52,8 +52,8 @@ public class DcpExecutorTests
         // Arrange
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("mycontainer", "myimage")
-            .WithNetworkAlias("alias1")
-            .WithNetworkAlias("alias2");
+            .WithContainerNetworkAlias("alias1")
+            .WithContainerNetworkAlias("alias2");
 
         var kubernetesService = new TestKubernetesService();
 
@@ -70,8 +70,8 @@ public class DcpExecutorTests
         Assert.NotNull(container.Spec.Networks);
         var network = Assert.Single(container.Spec.Networks);
         Assert.NotNull(network.Aliases);
-        Assert.Equal(3, network.Aliases.Count);
-        Assert.Contains("mycontainer", network.Aliases); // Default alias is the resource name
+        Assert.Equal(3, network.Aliases.Count); // mycontainer, alias1, alias2
+        Assert.Contains("mycontainer", network.Aliases);
         Assert.Contains("alias1", network.Aliases);
         Assert.Contains("alias2", network.Aliases);
     }
@@ -99,7 +99,7 @@ public class DcpExecutorTests
         var network = Assert.Single(container.Spec.Networks);
         Assert.NotNull(network.Aliases);
         var alias = Assert.Single(network.Aliases);
-        Assert.Equal("mycontainer", alias); // Default alias is the resource name
+        Assert.Equal("mycontainer", alias);
     }
 
     [Fact]

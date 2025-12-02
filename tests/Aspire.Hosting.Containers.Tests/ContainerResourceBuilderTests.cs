@@ -228,24 +228,24 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
-    public void WithNetworkAliasAddsAnnotation()
+    public void WithContainerNetworkAliasAddsAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage")
-            .WithNetworkAlias("alias1");
+            .WithContainerNetworkAlias("alias1");
 
         var annotation = container.Resource.Annotations.OfType<ContainerNetworkAliasAnnotation>().Single();
         Assert.Equal("alias1", annotation.Alias);
     }
 
     [Fact]
-    public void WithNetworkAliasAddsMultipleAnnotations()
+    public void WithContainerNetworkAliasAddsMultipleAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage")
-            .WithNetworkAlias("alias1")
-            .WithNetworkAlias("alias2")
-            .WithNetworkAlias("alias3");
+            .WithContainerNetworkAlias("alias1")
+            .WithContainerNetworkAlias("alias2")
+            .WithContainerNetworkAlias("alias3");
 
         var annotations = container.Resource.Annotations.OfType<ContainerNetworkAliasAnnotation>().ToList();
         Assert.Equal(3, annotations.Count);
@@ -255,30 +255,30 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
-    public void WithNetworkAliasThrowsWhenAliasIsNull()
+    public void WithContainerNetworkAliasThrowsWhenAliasIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentNullException>(() => container.WithNetworkAlias(null!));
+        Assert.Throws<ArgumentNullException>(() => container.WithContainerNetworkAlias(null!));
     }
 
     [Fact]
-    public void WithNetworkAliasThrowsWhenAliasIsEmpty()
+    public void WithContainerNetworkAliasThrowsWhenAliasIsEmpty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentException>(() => container.WithNetworkAlias(""));
+        Assert.Throws<ArgumentException>(() => container.WithContainerNetworkAlias(""));
     }
 
     [Fact]
-    public void WithNetworkAliasThrowsWhenAliasIsWhitespace()
+    public void WithContainerNetworkAliasThrowsWhenAliasIsWhitespace()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentException>(() => container.WithNetworkAlias("   "));
+        Assert.Throws<ArgumentException>(() => container.WithContainerNetworkAlias("   "));
     }
 
     private sealed class TestContainerResource(string name) : ContainerResource(name)
