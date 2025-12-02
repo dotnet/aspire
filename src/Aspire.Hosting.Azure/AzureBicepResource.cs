@@ -663,7 +663,7 @@ public sealed class BicepOutputReference(string name, AzureBicepResource resourc
         {
             if (!Resource.Outputs.TryGetValue(Name, out var value))
             {
-                throw new InvalidOperationException($"No output for {Name}");
+                throw new InvalidOperationException($"No output for {Name} on resource {Resource.Name}");
             }
 
             return value?.ToString();
