@@ -123,7 +123,8 @@ public class AspireStoreTests
     [InlineData("obj/")]
     public void AspireStoreConstructor_ShouldThrow_IfNotAbsolutePath(string? basePath)
     {
-        Assert.ThrowsAny<Exception>(() => new AspireStore(basePath!));
+        var directoryService = new FileSystemService();
+        Assert.ThrowsAny<Exception>(() => new AspireStore(basePath!, directoryService));
     }
 
     private static IAspireStore CreateStore()
