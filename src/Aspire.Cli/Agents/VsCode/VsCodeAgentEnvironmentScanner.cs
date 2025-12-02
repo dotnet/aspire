@@ -38,7 +38,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting VS Code environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        _logger.LogDebug("Repository root: {RepositoryRoot}", context.RepositoryRoot.FullName);
+        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
         
         _logger.LogDebug("Searching for .vscode folder...");
         var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory, context.RepositoryRoot);
@@ -63,7 +63,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         {
             _logger.LogDebug("No .vscode folder found, but VS Code is available on the system");
             // No .vscode folder found, but VS Code is available
-            // Use repository root for new .vscode folder
+            // Use workspace root for new .vscode folder
             var targetVsCodeFolder = new DirectoryInfo(Path.Combine(context.RepositoryRoot.FullName, VsCodeFolderName));
             _logger.LogDebug("Adding VS Code applicator for new .vscode folder at: {VsCodeFolder}", targetVsCodeFolder.FullName);
             context.AddApplicator(CreateApplicator(targetVsCodeFolder));
@@ -115,11 +115,11 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
     /// <summary>
     /// Walks up the directory tree to find a .vscode folder.
-    /// Stops if we go above the repository root.
+    /// Stops if we go above the workspace root.
     /// Ignores the .vscode folder in the user's home directory (used for user settings, not workspace config).
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
-    /// <param name="repositoryRoot">The repository root to use as the boundary for searches.</param>
+    /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
     private static DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
     {
         var currentDirectory = startDirectory;
@@ -135,8 +135,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 return new DirectoryInfo(vsCodePath);
             }
 
-            // Stop if we've reached the repository root without finding .vscode
-            // (don't search above the repository boundary)
+            // Stop if we've reached the workspace root without finding .vscode
+            // (don't search above the workspace boundary)
             if (string.Equals(currentDirectory.FullName, repositoryRoot.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;

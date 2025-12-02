@@ -37,25 +37,25 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting Claude Code environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        _logger.LogDebug("Repository root: {RepositoryRoot}", context.RepositoryRoot.FullName);
+        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
 
         // Find the .claude folder to determine if Claude Code is being used in this project
         _logger.LogDebug("Searching for .claude folder...");
         var claudeCodeFolder = FindClaudeCodeFolder(context.WorkingDirectory, context.RepositoryRoot);
 
-        // Determine the repo root - use the provided repository root, or infer from .claude folder location
+        // Determine the repo root - use the provided workspace root, or infer from .claude folder location
         DirectoryInfo? repoRoot = context.RepositoryRoot;
         if (claudeCodeFolder is not null)
         {
-            // .claude folder's parent is the repo root (override the provided repository root)
+            // .claude folder's parent is the repo root (override the provided workspace root)
             repoRoot = claudeCodeFolder.Parent ?? context.RepositoryRoot;
-            _logger.LogDebug("Inferred repo root from .claude folder parent: {RepoRoot}", repoRoot.FullName);
+            _logger.LogDebug("Inferred workspace root from .claude folder parent: {RepoRoot}", repoRoot.FullName);
         }
 
         if (claudeCodeFolder is not null || repoRoot is not null)
         {
             var targetRepoRoot = repoRoot ?? context.WorkingDirectory;
-            _logger.LogDebug("Found .claude folder or repo root at: {RepoRoot}", targetRepoRoot.FullName);
+            _logger.LogDebug("Found .claude folder or workspace root at: {RepoRoot}", targetRepoRoot.FullName);
 
             // Check if the aspire server is already configured in .mcp.json
             _logger.LogDebug("Checking if Aspire MCP server is already configured in .mcp.json...");
@@ -101,11 +101,11 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
     /// <summary>
     /// Walks up the directory tree to find a .claude folder.
-    /// Stops if we go above the repository root.
+    /// Stops if we go above the workspace root.
     /// Ignores the .claude folder in the user's home directory.
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
-    /// <param name="repositoryRoot">The repository root to use as the boundary for searches.</param>
+    /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
     private static DirectoryInfo? FindClaudeCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
     {
         var currentDirectory = startDirectory;
@@ -121,8 +121,8 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 return new DirectoryInfo(claudeCodePath);
             }
 
-            // Stop if we've reached the repository root without finding .claude
-            // (don't search above the repository boundary)
+            // Stop if we've reached the workspace root without finding .claude
+            // (don't search above the workspace boundary)
             if (string.Equals(currentDirectory.FullName, repositoryRoot.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;

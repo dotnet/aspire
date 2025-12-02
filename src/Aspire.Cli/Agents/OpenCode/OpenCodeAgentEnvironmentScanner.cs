@@ -36,9 +36,9 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting OpenCode environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        _logger.LogDebug("Repository root: {RepositoryRoot}", context.RepositoryRoot.FullName);
+        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
 
-        // Look for existing opencode.jsonc file at repository root
+        // Look for existing opencode.jsonc file at workspace root
         var configDirectory = context.RepositoryRoot;
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
         var configFileExists = File.Exists(configFilePath);
