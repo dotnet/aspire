@@ -181,4 +181,19 @@
   <data name="StartingDebugSessionInExtension" xml:space="preserve">
     <value>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</value>
   </data>
+  <data name="AgentConfigurationPrompt" xml:space="preserve">
+    <value>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</value>
+  </data>
+  <data name="AgentConfigurationYes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="AgentConfigurationNo" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="AgentConfigurationMaybeLater" xml:space="preserve">
+    <value>Maybe later</value>
+  </data>
+  <data name="AgentConfigurationSelectPrompt" xml:space="preserve">
+    <value>Select agent environments to configure:</value>
+  </data>
 </root>

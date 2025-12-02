@@ -284,7 +284,6 @@ jobs:
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --ignore-exit-code 8
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
-          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
           --filter-not-trait "category=failing"
@@ -308,12 +307,12 @@ jobs:
           /p:ContinuousIntegrationBuild=true
           /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
           -bl:${{ github.workspace }}/testresults/test.binlog
+          -tl:false
           --no-restore
           --no-build
           --
           --ignore-exit-code 8
           --report-trx
-          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
           --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}

@@ -14,16 +14,16 @@ using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure RedisEnterprise resources to the application model.
+/// Provides extension methods for adding the Azure Managed Redis resources to the application model.
 /// </summary>
-public static class AzureRedisEnterpriseExtensions
+public static class AzureManagedRedisExtensions
 {
     /// <summary>
     /// Adds an Azure Managed Redis resource to the application model.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisEnterpriseResource}"/> builder.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureManagedRedisResource}"/> builder.</returns>
     /// <remarks>
     /// By default, the Azure Managed Redis resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
@@ -34,7 +34,7 @@ public static class AzureRedisEnterpriseExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var cache = builder.AddAzureRedisEnterprise("cache");
+    /// var cache = builder.AddAzureManagedRedis("cache");
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
     ///     .WithReference(cache);
@@ -43,7 +43,7 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<AzureRedisEnterpriseResource> AddAzureRedisEnterprise(
+    public static IResourceBuilder<AzureManagedRedisResource> AddAzureManagedRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
     {
@@ -52,7 +52,7 @@ public static class AzureRedisEnterpriseExtensions
 
         builder.AddAzureProvisioning();
 
-        var resource = new AzureRedisEnterpriseResource(name, ConfigureRedisInfrastructure);
+        var resource = new AzureManagedRedisResource(name, ConfigureRedisInfrastructure);
         return builder.AddResource(resource)
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
@@ -70,7 +70,7 @@ public static class AzureRedisEnterpriseExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var cache = builder.AddAzureRedisEnterprise("cache")
+    /// var cache = builder.AddAzureManagedRedis("cache")
     ///     .RunAsContainer();
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
@@ -80,8 +80,8 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<AzureRedisEnterpriseResource> RunAsContainer(
-        this IResourceBuilder<AzureRedisEnterpriseResource> builder,
+    public static IResourceBuilder<AzureManagedRedisResource> RunAsContainer(
+        this IResourceBuilder<AzureManagedRedisResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -104,17 +104,17 @@ public static class AzureRedisEnterpriseExtensions
     }
 
     /// <summary>
-    /// Configures the resource to use access key authentication for Azure Redis Enterprise.
+    /// Configures the resource to use access key authentication for Azure Managed Redis.
     /// </summary>
-    /// <param name="builder">The Azure Redis Enterprise resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisEnterpriseResource}"/> builder.</returns>
+    /// <param name="builder">The Azure Managed Redis resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureManagedRedisResource}"/> builder.</returns>
     /// <remarks>
     /// <example>
-    /// The following example creates an Azure Redis Enterprise resource that uses access key authentication.
+    /// The following example creates an Azure Managed Redis resource that uses access key authentication.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var cache = builder.AddAzureRedisEnterprise("cache")
+    /// var cache = builder.AddAzureManagedRedis("cache")
     ///     .WithAccessKeyAuthentication();
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
@@ -124,7 +124,7 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisEnterpriseResource> builder)
+    public static IResourceBuilder<AzureManagedRedisResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureManagedRedisResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -149,12 +149,12 @@ public static class AzureRedisEnterpriseExtensions
     }
 
     /// <summary>
-    /// Configures the resource to use access key authentication for Azure Redis Enterprise.
+    /// Configures the resource to use access key authentication for Azure Managed Redis.
     /// </summary>
-    /// <param name="builder">The Azure Redis Enterprise resource builder.</param>
-    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisEnterpriseResource will be stored.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisEnterpriseResource}"/> builder.</returns>
-    public static IResourceBuilder<AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisEnterpriseResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
+    /// <param name="builder">The Azure Managed Redis resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureManagedRedisResource will be stored.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureManagedRedisResource}"/> builder.</returns>
+    public static IResourceBuilder<AzureManagedRedisResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureManagedRedisResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(keyVaultBuilder);
@@ -176,7 +176,7 @@ public static class AzureRedisEnterpriseExtensions
 
     private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
-        var redisResource = (AzureRedisEnterpriseResource)infrastructure.AspireResource;
+        var redisResource = (AzureManagedRedisResource)infrastructure.AspireResource;
 
         var redis = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>

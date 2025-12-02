@@ -77,5 +77,41 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartCommand_Description", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments..
+        /// </summary>
+        internal static string InitCommand_Description {
+            get {
+                return ResourceManager.GetString("InitCommand_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select agent environments to configure:.
+        /// </summary>
+        internal static string InitCommand_AgentConfigurationSelectPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_AgentConfigurationSelectPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No agent environments were detected..
+        /// </summary>
+        internal static string InitCommand_NoAgentEnvironmentsDetected {
+            get {
+                return ResourceManager.GetString("InitCommand_NoAgentEnvironmentsDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Agent environment configuration complete..
+        /// </summary>
+        internal static string InitCommand_ConfigurationComplete {
+            get {
+                return ResourceManager.GetString("InitCommand_ConfigurationComplete", resourceCulture);
+            }
+        }
     }
 }
