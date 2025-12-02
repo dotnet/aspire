@@ -141,6 +141,42 @@ public static class PythonAppResourceBuilderExtensions
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, DefaultVirtualEnvFolder);
 
     /// <summary>
+    /// Adds a pytest test runner to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="appDirectory">The path to the directory containing the Python test files.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method runs pytest from the virtual environment using the pytest executable.
+    /// The resource is automatically marked with a <see cref="TestResourceAnnotation"/> to indicate
+    /// it's a test resource that runs to completion.
+    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// Use <see cref="WithVirtualEnvironment{T}(IResourceBuilder{T}, string, bool)"/> to specify a different virtual environment path.
+    /// Use <c>WithArgs</c> to pass arguments to pytest.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a pytest test runner to the application model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddPytest("api-tests", "../api")
+    ///        .WithArgs("-v", "tests/");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<PythonAppResource> AddPytest(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory)
+    {
+        var resource = AddPythonExecutable(builder, name, appDirectory, "pytest");
+        resource.WithAnnotation(new TestResourceAnnotation());
+        return resource;
+    }
+
+    /// <summary>
     /// Adds a python application with a virtual environment to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>

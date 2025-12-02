@@ -123,7 +123,8 @@ internal sealed class AuxiliaryBackchannelService(
             // Create a new RPC target for this connection
             var rpcTarget = new AuxiliaryBackchannelRpcTarget(
                 serviceProvider.GetRequiredService<ILogger<AuxiliaryBackchannelRpcTarget>>(),
-                serviceProvider);
+                serviceProvider,
+                serviceProvider.GetRequiredService<IHostApplicationLifetime>());
 
             // Set up JSON-RPC over the client socket
             using var stream = new NetworkStream(clientSocket, ownsSocket: true);

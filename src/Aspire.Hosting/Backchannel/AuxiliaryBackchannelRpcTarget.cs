@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -15,7 +16,8 @@ namespace Aspire.Hosting.Backchannel;
 /// </summary>
 internal sealed class AuxiliaryBackchannelRpcTarget(
     ILogger<AuxiliaryBackchannelRpcTarget> logger,
-    IServiceProvider serviceProvider)
+    IServiceProvider serviceProvider,
+    IHostApplicationLifetime hostApplicationLifetime)
 {
     private const string McpEndpointName = "mcp";
 
@@ -126,4 +128,110 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             ApiToken = mcpApiKey
         };
     }
+
+    /// <summary>
+    /// Gets the test results by waiting for all test resources to complete.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that completes when all test resources have reached a completed state.</returns>
+    public async Task<TestResults> GetTestResultsAsync(CancellationToken cancellationToken = default)
+    {
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is null)
+        {
+            logger.LogWarning("Application model not found.");
+            return new TestResults { Success = false, Message = "Application model not found." };
+        }
+
+        var resourceNotificationService = serviceProvider.GetService<ResourceNotificationService>();
+        if (resourceNotificationService is null)
+        {
+            logger.LogWarning("ResourceNotificationService not found.");
+            return new TestResults { Success = false, Message = "ResourceNotificationService not found." };
+        }
+
+        // Find all resources with TestResourceAnnotation
+        var testResources = appModel.Resources
+            .Where(r => r.Annotations.OfType<TestResourceAnnotation>().Any())
+            .ToList();
+
+        if (testResources.Count == 0)
+        {
+            logger.LogInformation("No test resources found in the application model.");
+            return new TestResults { Success = true, Message = "No test resources found." };
+        }
+
+        logger.LogInformation("Waiting for {Count} test resource(s) to complete", testResources.Count);
+
+        // Wait for all test resources to reach a completed state
+        var waitTasks = testResources.Select(async resource =>
+        {
+            try
+            {
+                await resourceNotificationService.WaitForResourceAsync(
+                    resource.Name,
+                    KnownResourceStates.Finished,
+                    cancellationToken).ConfigureAwait(false);
+                
+                logger.LogInformation("Test resource '{ResourceName}' completed", resource.Name);
+                return (resource.Name, Success: true, Error: (string?)null);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error waiting for test resource '{ResourceName}'", resource.Name);
+                return (resource.Name, Success: false, Error: ex.Message);
+            }
+        });
+
+        var results = await Task.WhenAll(waitTasks).ConfigureAwait(false);
+
+        var allSuccessful = results.All(r => r.Success);
+        var message = allSuccessful 
+            ? $"All {testResources.Count} test resource(s) completed successfully."
+            : $"Some test resources failed: {string.Join(", ", results.Where(r => !r.Success).Select(r => r.Name))}";
+
+        return new TestResults 
+        { 
+            Success = allSuccessful, 
+            Message = message,
+            TestResourceResults = results.Select(r => new TestResourceResult
+            {
+                ResourceName = r.Name,
+                Success = r.Success,
+                Error = r.Error
+            }).ToArray()
+        };
+    }
+
+    /// <summary>
+    /// Initiates an orderly shutdown of the AppHost.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that completes immediately. The actual shutdown occurs after the RPC channel disconnects.</returns>
+    public Task StopAppHostAsync(CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken; // Unused - shutdown is intentionally not cancellable once requested
+        
+        logger.LogInformation("Received request to stop AppHost. Scheduling shutdown after RPC disconnect.");
+
+        // Fire off a background task that waits for the RPC to disconnect, then stops the application
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // Give the RPC response time to be sent back
+                await Task.Delay(500, CancellationToken.None).ConfigureAwait(false);
+                
+                logger.LogInformation("Stopping AppHost application.");
+                hostApplicationLifetime.StopApplication();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error stopping AppHost");
+            }
+        }, CancellationToken.None);
+
+        return Task.CompletedTask;
+    }
 }
+

@@ -287,3 +287,45 @@ internal sealed class AppHostInformation
     /// </summary>
     public int? CliProcessId { get; init; }
 }
+
+/// <summary>
+/// Results from running test resources.
+/// </summary>
+internal sealed class TestResults
+{
+    /// <summary>
+    /// Gets or sets a value indicating whether all tests succeeded.
+    /// </summary>
+    public bool Success { get; set; }
+
+    /// <summary>
+    /// Gets or sets a message describing the test results.
+    /// </summary>
+    public required string Message { get; set; }
+
+    /// <summary>
+    /// Gets or sets the individual test resource results.
+    /// </summary>
+    public TestResourceResult[]? TestResourceResults { get; set; }
+}
+
+/// <summary>
+/// Result from a single test resource.
+/// </summary>
+internal sealed class TestResourceResult
+{
+    /// <summary>
+    /// Gets or sets the name of the test resource.
+    /// </summary>
+    public required string ResourceName { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the test succeeded.
+    /// </summary>
+    public bool Success { get; set; }
+
+    /// <summary>
+    /// Gets or sets an error message if the test failed.
+    /// </summary>
+    public string? Error { get; set; }
+}
