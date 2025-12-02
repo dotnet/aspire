@@ -23,7 +23,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -44,7 +44,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -67,7 +67,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -126,7 +126,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var env1 = builder.AddDockerComposeEnvironment("env1");
         var env2 = builder.AddDockerComposeEnvironment("env2");
@@ -151,7 +151,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("env")
                .WithDashboard(d => d.WithForwardedHeaders());
@@ -175,7 +175,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("swarm-env");
 
@@ -223,7 +223,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.Empty(endpointReferenceEx.ValueProviders);
     }
 
-    private sealed class MockImageBuilder : IResourceContainerImageBuilder
+    private sealed class MockImageBuilder : IResourceContainerImageManager
     {
         public bool BuildImageCalled { get; private set; }
 
@@ -264,7 +264,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         const string testSha = "ABC123DEF456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABC";
         builder.Configuration["AppHost:PathSha256"] = testSha;
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var composeEnv = builder.AddDockerComposeEnvironment("my-environment");
         builder.AddContainer("service", "nginx");

@@ -808,7 +808,7 @@ public class ProjectResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "build-projectName");
         builder.Services.AddSingleton<IContainerRuntime, FakeContainerRuntime>();
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         // Create a test container resource that implements IResourceWithContainerFiles
         var sourceContainerResource = new TestContainerFilesResource("source");
@@ -838,7 +838,7 @@ public class ProjectResourceTests
         await app.StartAsync();
         await app.WaitForShutdownAsync();
 
-        var mockImageBuilder = (MockImageBuilder)app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var mockImageBuilder = (MockImageBuilder)app.Services.GetRequiredService<IResourceContainerImageManager>();
         Assert.True(mockImageBuilder.BuildImageCalled);
         var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
         Assert.Equal("projectName", builtImage.Name);

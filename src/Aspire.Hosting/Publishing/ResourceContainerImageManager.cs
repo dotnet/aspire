@@ -107,10 +107,10 @@ public class ContainerImageBuildOptions
 }
 
 /// <summary>
-/// Provides a service to publishers for building containers that represent a resource.
+/// Provides a service to publishers for building and pushing container images that represent a resource.
 /// </summary>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IResourceContainerImageBuilder
+public interface IResourceContainerImageManager
 {
     /// <summary>
     /// Builds a container that represents the specified resource.
@@ -135,11 +135,11 @@ public interface IResourceContainerImageBuilder
     Task PushImageAsync(IResource resource, CancellationToken cancellationToken);
 }
 
-internal sealed class ResourceContainerImageBuilder(
-    ILogger<ResourceContainerImageBuilder> logger,
+internal sealed class ResourceContainerImageManager(
+    ILogger<ResourceContainerImageManager> logger,
     IContainerRuntime containerRuntime,
     IServiceProvider serviceProvider,
-    DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageBuilder
+    DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageManager
 {
     // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
     private readonly SemaphoreSlim _throttle = new(1);

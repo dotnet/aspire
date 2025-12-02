@@ -41,7 +41,7 @@ public static class ContainerResourceBuilderExtensions
                 Name = $"build-{builder.Resource.Name}",
                 Action = async ctx =>
                 {
-                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                     await containerImageBuilder.BuildImageAsync(
                         builder.Resource,
