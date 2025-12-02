@@ -207,11 +207,17 @@ public sealed class ParameterProcessor(
                 "Value missing" :
                 "Error initializing parameter";
 
+            // Use warning style for missing parameters to match the notification banner,
+            // and error style for actual initialization errors.
+            var stateStyle = ex is MissingParameterValueException ?
+                KnownResourceStateStyles.Warn :
+                KnownResourceStateStyles.Error;
+
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
-                    State = new(stateText, KnownResourceStateStyles.Error),
+                    State = new(stateText, stateStyle),
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
