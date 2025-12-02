@@ -44,7 +44,6 @@ internal sealed class RunCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
