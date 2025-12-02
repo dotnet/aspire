@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aspire 単一ファイル アプリ ホスト",
-  "description": "単一ファイル シナリオ向けの最小構成の Aspire AppHost (Aspire 9.5 以降、.NET 10 以降)。",
+  "description": "A minimal Aspire AppHost for single-file scenarios (.NET 10+).",
   "symbols/Framework/choices/net10.0/description": "ターゲット net10.0",
   "symbols/appHostHttpPort/description": "AppHost プロジェクトの launchSettings.json の HTTP エンドポイントに使用するポート番号。",
   "symbols/appHostOtlpHttpPort/description": "AppHost プロジェクトの launchSettings.json で OTLP HTTP エンドポイントに使用するポート番号。",
