@@ -1,13 +1,10 @@
 {
-    "servers": {
-        "aspire-mcp-tools": {
-            "type": "stdio",
-            "command": "dotnet",
-            "args": [
-                "run",
-                "--project",
-                "${workspaceFolder}/tools/AspireMcpTools/AspireMcpTools.csproj"
-            ]
-        }
-    }
+	"servers": {
+		"aspire": {
+			"type": "stdio",
+			"command": "aspire",
+			"args": ["mcp", "start"]
+		}
+	},
+	"inputs": []
 }

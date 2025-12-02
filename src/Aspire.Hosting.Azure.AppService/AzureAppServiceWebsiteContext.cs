@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
@@ -29,8 +28,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     // bicep compatible values
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
-
-    private int? _targetPort;
 
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
@@ -80,40 +77,49 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     private void ProcessEndpoints()
     {
-        if (!resource.TryGetEndpoints(out var endpoints) || !endpoints.Any())
+        // Resolve endpoint ports using the centralized helper
+        var resolvedEndpoints = resource.ResolveEndpoints();
+
+        if (resolvedEndpoints.Count == 0)
         {
             return;
         }
 
         // Only http/https are supported in App Service
-        var unsupportedEndpoints = endpoints.Where(e => e.UriScheme is not ("http" or "https")).ToArray();
+        var unsupportedEndpoints = resolvedEndpoints.Where(r => r.Endpoint.UriScheme is not ("http" or "https")).ToArray();
         if (unsupportedEndpoints.Length > 0)
         {
-            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
+            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(r => $"'{r.Endpoint.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
         }
 
         // App Service supports only one target port
-        var targetPortEndpoints = endpoints.Where(e => e.IsExternal && e.TargetPort is not null).Select(e => e.TargetPort).Distinct().ToList();
+        var targetPortEndpoints = resolvedEndpoints
+            .Where(r => r.Endpoint.IsExternal)
+            .Select(r => r.TargetPort.Value)
+            .Distinct()
+            .ToList();
+
         if (targetPortEndpoints.Count > 1)
         {
             throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
         }
 
-        _targetPort = targetPortEndpoints.FirstOrDefault();
-
-        foreach (var endpoint in endpoints)
+        foreach (var resolved in resolvedEndpoints)
         {
+            var endpoint = resolved.Endpoint;
+
             if (!endpoint.IsExternal)
             {
                 throw new NotSupportedException($"The endpoint '{endpoint.Name}' on resource '{resource.Name}' is not external. App Service only supports external endpoints.");
             }
 
             // For App Service, we ignore port mappings since ports are handled by the platform
+            // TargetPort is null only for default ProjectResource endpoints (container port decides)
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
                 Host: HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
-                TargetPort: endpoint.TargetPort,
+                TargetPort: resolved.TargetPort,
                 IsHttpIngress: true,
                 External: true); // All App Service endpoints are external
         }
@@ -238,7 +244,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-        
+
         var webSite = new WebSite("webapp")
         {
             // Use the host name as the name of the web app
@@ -276,10 +282,13 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        if (_targetPort is not null)
+        // There should be a single valid target port
+        if (_endpointMapping.FirstOrDefault() is var  (_, mapping))
         {
-            mainContainer.TargetPort = _targetPort.Value.ToString(CultureInfo.InvariantCulture);
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = _targetPort.Value.ToString(CultureInfo.InvariantCulture) });
+            var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
+
+            mainContainer.TargetPort = targetPort;
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
         }
 
         foreach (var kv in EnvironmentVariables)
@@ -383,6 +392,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             infra.Add(webSiteRa);
         }
 
+        if (environmentContext.Environment.EnableApplicationInsights)
+        {
+            EnableApplicationInsightsForWebSite(webSite);
+        }
+
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
         {
@@ -449,6 +463,31 @@ internal sealed class AzureAppServiceWebsiteContext(
             PrincipalId = contributorPrincipalId,
             RoleDefinitionId = websiteRaId,
         };
+    }
+
+    private void EnableApplicationInsightsForWebSite(WebSite webSite)
+    {
+        var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
+        var appInsightsConnectionString = environmentContext.Environment.AzureAppInsightsConnectionStringReference.AsProvisioningParameter(Infra);
+
+        // Website configuration for Application Insights
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+            Value = appInsightsInstrumentationKey
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            Value = appInsightsConnectionString
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+            Value = "~3"
+        });
     }
 
     enum SecretType

@@ -27,19 +27,20 @@ internal static class BicepUtilities
     /// <summary>
     /// Converts the parameters to a JSON object compatible with the ARM template.
     /// </summary>
-    public static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipDynamicValues = false, CancellationToken cancellationToken = default)
+    public static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false, CancellationToken cancellationToken = default)
     {
         // Convert the parameters to a JSON object
         foreach (var parameter in resource.Parameters)
         {
-            if (skipDynamicValues &&
-                (s_knownParameterNames.Contains(parameter.Key) || IsParameterWithGeneratedValue(parameter.Value)))
+            // Execute parameter values which are deferred.
+            var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
+            // Skip known parameters with 'null' values, like PrincipalType and PrincipalId, since they are filled in by the provisioner
+            // and are not available at this time. If we don't do this, the "roles" resources will be re-deployed every run.
+            if (skipKnownValues && s_knownParameterNames.Contains(parameter.Key) && parameterValue is null)
             {
                 continue;
             }
-
-            // Execute parameter values which are deferred.
-            var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
 
             parameters[parameter.Key] = new JsonObject()
             {
@@ -121,10 +122,11 @@ internal static class BicepUtilities
                 return null;
             }
 
-            // Now overwrite with live object values skipping known and generated values.
-            // This is important because the provisioner will fill in the known values and
-            // generated values would change every time, so they can't be part of the checksum.
-            await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            // Force evaluation of the Bicep template to ensure parameters are expanded
+            _ = resource.GetBicepTemplateString();
+
+            // Now overwrite with live object values skipping known values.
+            await SetParametersAsync(parameters, resource, skipKnownValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (scope is not null)
             {
                 await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
@@ -145,9 +147,4 @@ internal static class BicepUtilities
             (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
                 existingResource.ResourceGroup :
                 null);
-
-    private static bool IsParameterWithGeneratedValue(object? value)
-    {
-        return value is ParameterResource { Default: not null };
-    }
 }

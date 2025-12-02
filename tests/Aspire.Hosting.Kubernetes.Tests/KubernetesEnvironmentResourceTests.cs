@@ -1,4 +1,4 @@
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -15,7 +15,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     {
         var tempDir = Directory.CreateTempSubdirectory(".k8s-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
         builder.AddKubernetesEnvironment("env");
 
@@ -74,7 +74,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         var env1 = builder.AddKubernetesEnvironment("env1");
         var env2 = builder.AddKubernetesEnvironment("env2");

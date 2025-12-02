@@ -11,7 +11,6 @@ module.exports = (env) => {
           context: ["/api"],
           target:
             process.env.WEATHERAPI_HTTPS || process.env.WEATHERAPI_HTTP,
-          pathRewrite: { "^/api": "" },
           secure: false,
         },
       ],

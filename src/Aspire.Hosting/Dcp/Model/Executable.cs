@@ -63,6 +63,12 @@ internal sealed class ExecutableSpec
     /// </summary>
     [JsonPropertyName("ambientEnvironment")]
     public AmbientEnvironment? AmbientEnvironment { get; set; }
+
+    /// <summary>
+    /// Public PEM certificates to be configured for the Executable.
+    /// </summary>
+    [JsonPropertyName("pemCertificates")]
+    public ExecutablePemCertificates? PemCertificates { get; set; }
 }
 
 internal sealed class AmbientEnvironment
@@ -99,6 +105,18 @@ internal static class ExecutionType
     /// Executable will be run via an IDE such as Visual Studio or Visual Studio Code.
     /// </summary>
     public const string IDE = "IDE";
+}
+
+internal sealed class ExecutablePemCertificates
+{
+    // The list of public PEM encoded certificates for the executable.
+    [JsonPropertyName("certificates")]
+    public List<PemCertificate>? Certificates { get; set; }
+
+    // Indicates whether to continue starting the Executable if there are issues setting up any certificates for
+    // the executable.
+    [JsonPropertyName("continueOnError")]
+    public bool ContinueOnError { get; set; }
 }
 
 internal sealed record ExecutableStatus : V1Status
@@ -219,7 +237,7 @@ internal static class ExecutableState
     public const string Stopping = "Stopping";
 }
 
-internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>
+internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>, IKubernetesStaticMetadata
 {
     public const string LaunchConfigurationsAnnotation = "executable.usvc-dev.developer.microsoft.com/launch-configurations";
 
@@ -240,8 +258,7 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
         return exe;
     }
 
-    public bool LogsAvailable =>
-        !string.IsNullOrEmpty(this.Status?.State);
+    public bool LogsAvailable => !string.IsNullOrEmpty(this.Status?.State);
 
     public void SetProjectLaunchConfiguration(ProjectLaunchConfiguration launchConfiguration)
     {
@@ -263,41 +280,6 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
 
         return launchConfiguration is not null;
     }
-}
 
-internal static class ExecutableLaunchMode
-{
-    public const string Debug = "Debug";
-    public const string NoDebug = "NoDebug";
-}
-
-/// <summary>
-/// Base properties for all executable launch configurations.
-/// </summary>
-/// <param name="type">Launch configuration type indicator.</param>
-public class ExecutableLaunchConfiguration(string type)
-{
-    /// <summary>
-    /// The launch configuration type indicator.
-    /// </summary>
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = type;
-
-    /// <summary>
-    /// Specifies the launch mode. Currently supported modes are Debug (run the project under the debugger) and NoDebug (run the project without debugging).
-    /// </summary>
-    [JsonPropertyName("mode")]
-    public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ExecutableLaunchMode.Debug : ExecutableLaunchMode.NoDebug;
-}
-
-internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("project")
-{
-    [JsonPropertyName("launch_profile")]
-    public string LaunchProfile { get; set; } = string.Empty;
-
-    [JsonPropertyName("disable_launch_profile")]
-    public bool DisableLaunchProfile { get; set; } = false;
-
-    [JsonPropertyName("project_path")]
-    public string ProjectPath { get; set; } = string.Empty;
+    public static string ObjectKind => Dcp.ExecutableKind;
 }

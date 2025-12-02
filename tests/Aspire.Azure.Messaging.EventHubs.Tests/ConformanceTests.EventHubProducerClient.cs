@@ -4,7 +4,6 @@
 using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -12,6 +11,11 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests_EventHubProducerClient : ConformanceTestsBase<EventHubProducerClient, AzureMessagingEventHubsProducerSettings>
 {
+    public ConformanceTests_EventHubProducerClient(ITestOutputHelper? output = null)
+        : base(output)
+    {
+    }
+
     protected override void SetHealthCheck(AzureMessagingEventHubsProducerSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
 
@@ -60,9 +64,9 @@ public class ConformanceTests_EventHubProducerClient : ConformanceTestsBase<Even
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTracingForAzureSdk()).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests_EventHubProducerClient().ActivitySourceTest(key: null), Output, EnableTracingForAzureSdk());
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests_EventHubProducerClient().ActivitySourceTest(key: "key"), Output, EnableTracingForAzureSdk());
 }

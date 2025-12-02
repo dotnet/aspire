@@ -3,29 +3,25 @@
 
 using System.Collections.Concurrent;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting.ConsoleLogs;
-using Humanizer;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model.Assistant;
 
 public sealed class AssistantChatDataContext
 {
-    public const int TracesLimit = 200;
-    public const int StructuredLogsLimit = 200;
-    public const int ConsoleLogsLimit = 500;
-
     private readonly IDashboardClient _dashboardClient;
     private readonly IEnumerable<IOutgoingPeerResolver> _outgoingPeerResolvers;
     private readonly IStringLocalizer<AIAssistant> _loc;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
 
     public TelemetryRepository TelemetryRepository { get; }
 
@@ -38,12 +34,14 @@ public sealed class AssistantChatDataContext
         TelemetryRepository telemetryRepository,
         IDashboardClient dashboardClient,
         IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers,
-        IStringLocalizer<AIAssistant> loc)
+        IStringLocalizer<AIAssistant> loc,
+        IOptionsMonitor<DashboardOptions> dashboardOptions)
     {
         TelemetryRepository = telemetryRepository;
         _dashboardClient = dashboardClient;
         _outgoingPeerResolvers = outgoingPeerResolvers;
         _loc = loc;
+        _dashboardOptions = dashboardOptions;
     }
 
     private async Task InvokeToolCallbackAsync(string toolName, string message, CancellationToken cancellationToken)
@@ -68,7 +66,7 @@ public sealed class AssistantChatDataContext
 
         var resources = _dashboardClient.GetResources();
 
-        var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList());
+        var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList(), _dashboardOptions.CurrentValue);
 
         var response = $"""
             Always format resource_name in the response as code like this: `frontend-abcxyz`
@@ -99,7 +97,7 @@ public sealed class AssistantChatDataContext
 
         _referencedTraces.TryAdd(trace.TraceId, trace);
 
-        return AIHelpers.GetTraceJson(trace, _outgoingPeerResolvers, new PromptContext());
+        return AIHelpers.GetTraceJson(trace, _outgoingPeerResolvers, new PromptContext(), _dashboardOptions.CurrentValue);
     }
 
     [Description("Get structured logs for resources.")]
@@ -131,7 +129,7 @@ public sealed class AssistantChatDataContext
             Filters = []
         });
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
 
         var response = $"""
             Always format log_id in the response as code like this: `log_id: 123`.
@@ -173,7 +171,7 @@ public sealed class AssistantChatDataContext
             FilterText = string.Empty
         });
 
-        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers);
+        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers, _dashboardOptions.CurrentValue);
 
         var response = $"""
             {limitMessage}
@@ -210,7 +208,7 @@ public sealed class AssistantChatDataContext
 
         await InvokeToolCallbackAsync(nameof(GetTraceStructuredLogsAsync), _loc.GetString(nameof(AIAssistant.ToolNotificationTraceStructuredLogs), OtlpHelpers.ToShortenedId(traceId)), cancellationToken).ConfigureAwait(false);
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items);
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
 
         var response = $"""
             {limitMessage}
@@ -244,7 +242,7 @@ public sealed class AssistantChatDataContext
         await InvokeToolCallbackAsync(nameof(GetConsoleLogsAsync), _loc.GetString(nameof(AIAssistant.ToolNotificationConsoleLogs), resourceName), cancellationToken).ConfigureAwait(false);
 
         var logParser = new LogParser(ConsoleColor.Black);
-        var logEntries = new LogEntries(maximumEntryCount: ConsoleLogsLimit) { BaseLineNumber = 1 };
+        var logEntries = new LogEntries(maximumEntryCount: AIHelpers.ConsoleLogsLimit) { BaseLineNumber = 1 };
 
         // Add a timeout for getting all console logs.
         using var subscribeConsoleLogsCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -267,10 +265,10 @@ public sealed class AssistantChatDataContext
 
         var entries = logEntries.GetEntries().ToList();
         var totalLogsCount = entries.Count == 0 ? 0 : entries.Last().LineNumber;
-        var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary<LogEntry>(
+        var (trimmedItems, limitMessage) = AIHelpers.GetLimitFromEndWithSummary<LogEntry>(
             entries,
             totalLogsCount,
-            ConsoleLogsLimit,
+            AIHelpers.ConsoleLogsLimit,
             "console log",
             AIHelpers.SerializeLogEntry,
             logEntry => AIHelpers.EstimateTokenCount((string) logEntry));
@@ -287,54 +285,6 @@ public sealed class AssistantChatDataContext
             """;
 
         return consoleLogsData;
-    }
-
-    public static (List<object> items, string message) GetLimitFromEndWithSummary<T>(List<T> values, int limit, string itemName, Func<T, object> convertToDto, Func<object, int> estimateTokenSize)
-    {
-        return GetLimitFromEndWithSummary(values, values.Count, limit, itemName, convertToDto, estimateTokenSize);
-    }
-
-    public static (List<object> items, string message) GetLimitFromEndWithSummary<T>(List<T> values, int totalValues, int limit, string itemName, Func<T, object> convertToDto, Func<object, int> estimateTokenSize)
-    {
-        Debug.Assert(totalValues >= values.Count, "Total values should be large or equal to the values passed into the method.");
-
-        var trimmedItems = values.Count <= limit
-            ? values
-            : values[^limit..];
-
-        var currentTokenCount = 0;
-        var serializedValuesCount = 0;
-        var dtos = trimmedItems.Select(i => convertToDto(i)).ToList();
-
-        // Loop backwards to prioritize the latest items.
-        for (var i = dtos.Count - 1; i >= 0; i--)
-        {
-            var obj = dtos[i];
-            var tokenCount = estimateTokenSize(obj);
-
-            if (currentTokenCount + tokenCount > AIHelpers.MaximumListTokenLength)
-            {
-                break;
-            }
-
-            serializedValuesCount++;
-            currentTokenCount += tokenCount;
-        }
-
-        // Trim again with what fits in the token limit.
-        dtos = dtos[^serializedValuesCount..];
-
-        return (dtos, GetLimitSummary(totalValues, dtos.Count, itemName));
-    }
-
-    private static string GetLimitSummary(int totalValues, int returnedCount, string itemName)
-    {
-        if (totalValues == returnedCount)
-        {
-            return $"Returned {itemName.ToQuantity(totalValues, formatProvider: CultureInfo.InvariantCulture)}.";
-        }
-
-        return $"Returned latest {itemName.ToQuantity(returnedCount, formatProvider: CultureInfo.InvariantCulture)}. Earlier {itemName.ToQuantity(totalValues - returnedCount, formatProvider: CultureInfo.InvariantCulture)} not returned because of size limits.";
     }
 
     private bool TryResolveResourceNameForTelemetry([NotNullWhen(false)] string? resourceName, [NotNullWhen(false)] out string? message, out ResourceKey? resourceKey)

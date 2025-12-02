@@ -7,6 +7,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -389,7 +390,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
-        Assert.Contains("No template versions were found", displayedErrorMessage);
+        Assert.Contains(TemplatingStrings.NoTemplateVersionsFound, displayedErrorMessage);
     }
 
     [Fact]
@@ -510,7 +511,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     public async Task NewCommandPromptsForTemplateVersionBeforeTemplateOptions()
     {
         var operationOrder = new List<string>();
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -555,7 +556,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                 return runner;
             };
         });
-        
+
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
@@ -563,19 +564,89 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
-        
+
         // Verify that template version was prompted before template options
         Assert.Contains("TemplateVersion", operationOrder);
-        
+
         // If template options were prompted, they should come after version selection
         var versionIndex = operationOrder.IndexOf("TemplateVersion");
         var optionIndex = operationOrder.IndexOf("TemplateOption");
-        
+
         if (optionIndex >= 0)
         {
-            Assert.True(versionIndex < optionIndex, 
+            Assert.True(versionIndex < optionIndex,
                 $"Template version should be prompted before template options. Order: {string.Join(", ", operationOrder)}");
         }
+    }
+
+    [Fact]
+    public async Task NewCommandEscapesMarkupInProjectNameAndOutputPath()
+    {
+        // This test validates that project names containing Spectre markup characters
+        // (like '[' and ']') are properly escaped when displayed as default values in prompts.
+        // This prevents crashes when the markup parser encounters malformed markup.
+        
+        var projectNameWithMarkup = "[27;5;13~";  // Example of input that could crash the markup parser
+        var capturedProjectNameDefault = string.Empty;
+        var capturedOutputPathDefault = string.Empty;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+
+                // Simulate user entering a project name with markup characters
+                prompter.PromptForProjectNameCallback = (defaultName) =>
+                {
+                    capturedProjectNameDefault = defaultName;
+                    return projectNameWithMarkup;
+                };
+
+                // Capture what default value is passed for the output path
+                // The path passed to this callback is the unescaped version
+                prompter.PromptForOutputPathCallback = (path) =>
+                {
+                    capturedOutputPathDefault = path;
+                    // Return the path as-is - the escaping is handled internally by PromptForOutputPath
+                    return path;
+                };
+
+                return prompter;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+
+        // Verify that the default output path was derived from the project name with markup characters
+        // The path parameter passed to the callback contains the unescaped markup characters
+        var expectedPath = $"./[27;5;13~";
+        Assert.Equal(expectedPath, capturedOutputPathDefault);
     }
 }
 
@@ -648,7 +719,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         }
 
         // Track template option prompts
-        if (promptText?.Contains("Redis") == true || 
+        if (promptText?.Contains("Redis") == true ||
             promptText?.Contains("test framework") == true ||
             promptText?.Contains("Create a test project") == true ||
             promptText?.Contains("xUnit") == true)
@@ -681,5 +752,5 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayPlainText(string text) { }
     public void DisplayMarkdown(string markdown) { }
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
-    public void DisplayVersionUpdateNotification(string newerVersion) { }
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 }

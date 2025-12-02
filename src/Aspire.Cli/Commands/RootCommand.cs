@@ -26,10 +26,12 @@ internal sealed class RootCommand : BaseRootCommand
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
+        DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
+        McpCommand mcpCommand,
         PolyglotCommand polyglotCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
@@ -44,8 +46,10 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(cacheCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
+        ArgumentNullException.ThrowIfNull(doCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
+        ArgumentNullException.ThrowIfNull(mcpCommand);
         ArgumentNullException.ThrowIfNull(polyglotCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
@@ -106,9 +110,11 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
         Subcommands.Add(deployCommand);
+        Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(polyglotCommand);
         Subcommands.Add(extensionInternalCommand);
+        Subcommands.Add(mcpCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

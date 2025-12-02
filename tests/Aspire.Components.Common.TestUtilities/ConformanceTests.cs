@@ -13,6 +13,7 @@ using Json.Schema;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Xunit;
+using Microsoft.DotNet.RemoteExecutor;
 
 namespace Aspire.Components.ConformanceTests;
 
@@ -21,6 +22,25 @@ public abstract class ConformanceTests<TService, TOptions>
     where TOptions : class, new()
 {
     protected static readonly EvaluationOptions DefaultEvaluationOptions = new() { RequireFormatValidation = true, OutputFormat = OutputFormat.List };
+
+    /// <summary>
+    /// Optional ITestOutputHelper for capturing diagnostic logs during test execution.
+    /// When provided, all logs will be output to xUnit test results for easier debugging.
+    /// </summary>
+    protected ITestOutputHelper? Output { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the ConformanceTests base class.
+    /// </summary>
+    /// <param name="output">
+    /// Optional ITestOutputHelper for capturing diagnostic logs. When provided,
+    /// all logs from components under test will be written to xUnit output,
+    /// making test failures easier to diagnose.
+    /// </param>
+    protected ConformanceTests(ITestOutputHelper? output = null)
+    {
+        Output = output;
+    }
 
     protected abstract ServiceLifetime ServiceLifetime { get; }
 
@@ -303,6 +323,35 @@ public abstract class ConformanceTests<TService, TOptions>
         }
         catch (Exception) { }
 
+        // Output diagnostic information about which categories were actually logged
+        // to help debug failures when expected categories are not found.
+        if (Output is not null)
+        {
+            Output.WriteLine("=== Logged Categories ===");
+            foreach (var category in loggerFactory.Categories.OrderBy(c => c))
+            {
+                Output.WriteLine($"  - {category}");
+            }
+            Output.WriteLine("");
+            Output.WriteLine("=== Required Categories ===");
+            foreach (var category in RequiredLogCategories.OrderBy(c => c))
+            {
+                var found = loggerFactory.Categories.Contains(category);
+                Output.WriteLine($"  {(found ? "✓" : "✗")} {category}");
+            }
+            if (NotAcceptableLogCategories.Length > 0)
+            {
+                Output.WriteLine("");
+                Output.WriteLine("=== Not Acceptable Categories (should not be present) ===");
+                foreach (var category in NotAcceptableLogCategories.OrderBy(c => c))
+                {
+                    var found = loggerFactory.Categories.Contains(category);
+                    Output.WriteLine($"  {(found ? "✗ FOUND" : "✓ Not found")} {category}");
+                }
+            }
+            Output.WriteLine("");
+        }
+
         foreach (string logCategory in RequiredLogCategories)
         {
             Assert.Contains(logCategory, loggerFactory.Categories);
@@ -444,6 +493,7 @@ public abstract class ConformanceTests<TService, TOptions>
     protected void ActivitySourceTest(string? key)
     {
         HostApplicationBuilder builder = CreateHostBuilder(key: key);
+        builder.Logging.AddConsole();
         RegisterComponent(builder, options => SetTracing(options, true), key);
 
         List<Activity> exportedActivities = new();
@@ -549,6 +599,56 @@ public abstract class ConformanceTests<TService, TOptions>
         if (!SupportsNamedConfig || ConfigurationSectionName is null)
         {
             Assert.Skip("Named configuration is not supported.");
+        }
+    }
+
+    protected static void RemoteInvokeWithLogging(Action action, ITestOutputHelper? testOutput, RemoteInvokeOptions? options = null)
+    {
+        using var handle = RemoteExecutor.Invoke(action, GetRemoteInvokeOptionsForLogging(options));
+        ConfigureLoggingAndStart(handle, testOutput);
+    }
+
+    protected static void RemoteInvokeWithLogging(Action<string> action, string arg, ITestOutputHelper? testOutput, RemoteInvokeOptions? options = null)
+    {
+        using var handle = RemoteExecutor.Invoke(action, arg, GetRemoteInvokeOptionsForLogging(options));
+        ConfigureLoggingAndStart(handle, testOutput);
+    }
+
+    private static RemoteInvokeOptions GetRemoteInvokeOptionsForLogging(RemoteInvokeOptions? options = null)
+    {
+        options ??= new RemoteInvokeOptions();
+        options.StartInfo.RedirectStandardError = true;
+        options.StartInfo.RedirectStandardOutput = true;
+        options.Start = false;
+        return options;
+    }
+
+    private static void ConfigureLoggingAndStart(RemoteInvokeHandle handle, ITestOutputHelper? testOutput)
+    {
+        if (testOutput is not null)
+        {
+            handle.Process.OutputDataReceived += (sender, e) =>
+            {
+                if (e.Data is not null)
+                {
+                    testOutput.WriteLine($"[RemoteExecutor] {e.Data}");
+                }
+            };
+            handle.Process.ErrorDataReceived += (sender, e) =>
+            {
+                if (e.Data is not null)
+                {
+                    testOutput.WriteLine($"[RemoteExecutor] ERROR: {e.Data}");
+                }
+            };
+        }
+
+        handle.Process.Start();
+        // RemoteInvokeHandle Dispose will handle the wait for exit
+        if (testOutput is not null)
+        {
+            handle.Process.BeginErrorReadLine();
+            handle.Process.BeginOutputReadLine();
         }
     }
 

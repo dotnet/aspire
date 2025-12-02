@@ -3,7 +3,8 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
@@ -789,12 +790,12 @@ public class ParameterProcessorTests
     {
         public string? StateFilePath => null;
 
-        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new JsonObject());
+            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
         }
 
-        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
@@ -854,5 +855,161 @@ public class ParameterProcessorTests
         Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
         Assert.True(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompletedSuccessfully);
         Assert.Equal("existingValue", await parameterWithGenerateDefault.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task ConnectionStringParameterStateIsSavedWithCorrectKey()
+    {
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var connectionStringParam = new ConnectionStringParameterResource(
+            "mydb",
+            _ => throw new MissingParameterValueException("Connection string 'mydb' is missing"),
+            null);
+        connectionStringParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [connectionStringParam];
+
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "Server=localhost;Database=mydb";
+        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        await handleTask;
+
+        // Verify the value was saved correctly in the flattened state
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("ConnectionStrings:mydb", out var valueNode));
+        Assert.Equal("Server=localhost;Database=mydb", valueNode?.GetValue<string>());
+
+        // Verify the entire state structure as JSON (mimics what gets saved to disk)
+        await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    [Fact]
+    public async Task RegularParameterStateIsSavedWithCorrectKey()
+    {
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var regularParam = new ParameterResource(
+            "myparam",
+            _ => throw new MissingParameterValueException("Parameter 'myparam' is missing"),
+            secret: false);
+        regularParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [regularParam];
+
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "myvalue";
+        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        await handleTask;
+
+        // Verify the value was saved correctly in the flattened state
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("Parameters:myparam", out var valueNode));
+        Assert.Equal("myvalue", valueNode?.GetValue<string>());
+
+        // Verify the entire state structure as JSON (mimics what gets saved to disk)
+        await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    [Fact]
+    public async Task CustomConfigurationKeyParameterStateIsSavedWithCorrectKey()
+    {
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var customParam = new ParameterResource(
+            "customparam",
+            _ => throw new MissingParameterValueException("Parameter 'customparam' is missing"),
+            secret: false)
+        {
+            ConfigurationKey = "MyCustomSection:MyCustomKey"
+        };
+        customParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [customParam];
+
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "customvalue";
+        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        await handleTask;
+
+        // Verify the value was saved correctly in the flattened state
+        Assert.True(capturingStateManager.State.TryGetPropertyValue("MyCustomSection:MyCustomKey", out var valueNode));
+        Assert.Equal("customvalue", valueNode?.GetValue<string>());
+
+        // Verify the entire state structure as JSON (mimics what gets saved to disk)
+        await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    private sealed class CapturingMockDeploymentStateManager : IDeploymentStateManager
+    {
+        // Stores the entire state in an unflattened structure in memory, then flattens for verification
+        // to mimic FileDeploymentStateManager behavior
+        private readonly JsonObject _unflattenedState = [];
+        private JsonObject? _flattenedState;
+
+        // Provides the flattened state for verification, matching what FileDeploymentStateManager saves to disk
+        public JsonObject State => _flattenedState ?? [];
+        public string? StateFilePath => null;
+
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        {
+            // Return existing section data if it exists, otherwise return empty
+            var sectionData = _unflattenedState.TryGetPropertyValue(sectionName, out var sectionNode) && sectionNode is JsonObject obj
+                ? obj.DeepClone().AsObject()
+                : null;
+
+            return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
+        }
+
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            // Increment version to allow multiple saves with the same instance (mimics FileDeploymentStateManager)
+            section.Version++;
+
+            // Store the section data in the unflattened state object
+            _unflattenedState[section.SectionName] = section.Data.DeepClone().AsObject();
+
+            // Flatten the state to mimic what FileDeploymentStateManager saves to disk
+            _flattenedState = JsonFlattener.FlattenJsonObject(_unflattenedState);
+
+            return Task.CompletedTask;
+        }
     }
 }

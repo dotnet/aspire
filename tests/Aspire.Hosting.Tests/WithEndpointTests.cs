@@ -164,7 +164,7 @@ public class WithEndpointTests
                     .WithHttpsEndpoint(3000, 2000, name: "mybinding");
         });
 
-        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
+        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class WithEndpointTests
                     .WithHttpsEndpoint(3000, 2000);
         });
 
-        Assert.Equal("Endpoint with name 'https' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
+        Assert.Equal("Endpoint with name 'https' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class WithEndpointTests
                    .WithHttpsEndpoint(2000, name: "mybinding");
         });
 
-        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
+        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
@@ -220,24 +220,6 @@ public class WithEndpointTests
         Assert.Equal(3001, endpoints[0].TargetPort);
         Assert.Equal("http", endpoints[0].UriScheme);
         Assert.Equal("3001", config["PORT"]);
-    }
-
-    [Fact]
-    public void GettingContainerHostNameFailsIfNoContainerHostNameSet()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var container = builder.AddContainer("app", "image")
-            .WithEndpoint("ep", e =>
-            {
-                e.AllocatedEndpoint = new(e, "localhost", 8031);
-            });
-
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-        {
-            return container.GetEndpoint("ep").ContainerHost;
-        });
-
-        Assert.Equal("The endpoint \"ep\" has no associated container host name.", ex.Message);
     }
 
     [Fact]
@@ -637,8 +619,8 @@ public class WithEndpointTests
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Collection(urls,
-            url => Assert.StartsWith("https://localhost:", url.Url),
-            url => Assert.StartsWith("https://example.localhost:", url.Url));
+            url => Assert.StartsWith("https://example.localhost:", url.Url),
+            url => Assert.StartsWith("https://localhost:", url.Url));
 
         EndpointAnnotation endpoint = Assert.Single(projectA.Resource.Annotations.OfType<EndpointAnnotation>());
         Assert.NotNull(endpoint.AllocatedEndpoint);
@@ -682,12 +664,55 @@ public class WithEndpointTests
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task VerifyManifestProjectWithExplicitPortAndNoLaunchProfile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var project = builder.AddProject<TestProjectNoLaunchSettings>("proj", launchProfileName: null)
+            .WithHttpEndpoint(port: 5001);
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource).DefaultTimeout();
+
+        var expectedManifest =
+            """
+            {
+              "type": "project.v0",
+              "path": "projectpath",
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "{proj.bindings.http.targetPort}"
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "port": 5001
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "projectpath";
 
         public LaunchSettings? LaunchSettings { get; } = new();
     }
+
+    private sealed class TestProjectNoLaunchSettings : IProjectMetadata
+    {
+        public string ProjectPath => "projectpath";
+
+        public LaunchSettings? LaunchSettings => null;
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";

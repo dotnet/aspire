@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../DoCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Execute a specific pipeline step and its dependencies. (Preview)</source>
+        <target state="translated">특정 파이프라인 단계와 그에 필요한 종속 항목을 실행하세요. (미리 보기)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GeneratingArtifacts">
+        <source>Executing pipeline...</source>
+        <target state="translated">파이프라인을 실행하는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCanceled">
+        <source>The operation was canceled.</source>
+        <target state="translated">작업이 취소되었습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>OPERATION COMPLETED</source>
+        <target state="translated">작업이 완료됨</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>OPERATION FAILED</source>
+        <target state="translated">작업 실패</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputPathArgumentDescription">
+        <source>The optional output path for artifacts.</source>
+        <target state="translated">아티팩트의 선택적 출력 경로입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StepArgumentDescription">
+        <source>The name of the step to execute.</source>
+        <target state="translated">실행할 단계의 이름입니다.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

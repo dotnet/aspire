@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Pipelines;
 /// This context combines the shared pipeline context with a step-specific publishing step,
 /// allowing each step to track its own tasks and completion state independently.
 /// </remarks>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PipelineStepContext
 {
     /// <summary>
@@ -46,17 +46,12 @@ public sealed class PipelineStepContext
     public IServiceProvider Services => PipelineContext.Services;
 
     /// <summary>
-    /// Gets the logger for pipeline operations.
+    /// Gets the logger for pipeline operations that writes to both the pipeline logger and the step logger.
     /// </summary>
-    public ILogger Logger => PipelineContext.Logger; // Review, this should be a step logger
+    public ILogger Logger => PipelineContext.Logger;
 
     /// <summary>
     /// Gets the cancellation token for the pipeline operation.
     /// </summary>
     public CancellationToken CancellationToken => PipelineContext.CancellationToken;
-
-    /// <summary>
-    /// Gets the output path for deployment artifacts.
-    /// </summary>
-    public string? OutputPath => PipelineContext.OutputPath;
 }

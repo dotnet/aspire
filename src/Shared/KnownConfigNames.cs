@@ -8,6 +8,7 @@ internal static class KnownConfigNames
     public const string AspNetCoreUrls = "ASPNETCORE_URLS";
     public const string AllowUnsecuredTransport = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";
     public const string VersionCheckDisabled = "ASPIRE_VERSION_CHECK_DISABLED";
+    public const string DashboardMcpEndpointUrl = "ASPIRE_DASHBOARD_MCP_ENDPOINT_URL";
     public const string DashboardOtlpGrpcEndpointUrl = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
     public const string DashboardOtlpHttpEndpointUrl = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
     public const string DashboardFrontendBrowserToken = "ASPIRE_DASHBOARD_FRONTEND_BROWSERTOKEN";
@@ -33,6 +34,7 @@ internal static class KnownConfigNames
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
     public const string InteractivityEnabled = "ASPIRE_INTERACTIVITY_ENABLED";
+    public const string EnableContainerTunnel = "ASPIRE_ENABLE_CONTAINER_TUNNEL";
 
     public const string LocaleOverride = "ASPIRE_LOCALE_OVERRIDE";
     public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
@@ -43,6 +45,9 @@ internal static class KnownConfigNames
     public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
     public const string ExtensionDebugSessionId = "ASPIRE_EXTENSION_DEBUG_SESSION_ID";
+
+    public const string TrustDeveloperCertificate = "ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_TRUST";
+    public const string UseDeveloperCertificateForServerAuthentication = "ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_SERVER_AUTHENTICATION";
 
     public const string DebugSessionInfo = "DEBUG_SESSION_INFO";
     public const string DebugSessionRunMode = "DEBUG_SESSION_RUN_MODE";

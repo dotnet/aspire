@@ -18,6 +18,7 @@ internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly bool _isDebugOrTraceLoggingEnabled;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -35,6 +36,9 @@ internal sealed class ConsoleActivityLogger
     private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
     private int _spinnerIndex;
 
+    private string? _finalStatusHeader;
+    private bool _pipelineSucceeded;
+
     // No raw ANSI escape codes; rely on Spectre.Console markup tokens.
 
     private const string SuccessSymbol = "✓";
@@ -43,10 +47,11 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool isDebugOrTraceLoggingEnabled = false, bool? forceColor = null)
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
+        _isDebugOrTraceLoggingEnabled = isDebugOrTraceLoggingEnabled;
 
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
@@ -100,17 +105,29 @@ internal sealed class ConsoleActivityLogger
         _spinning = true;
         _spinnerTask = Task.Run(async () =>
         {
-            // Spinner sits at bottom; we write spinner char then backspace.
-            while (_spinning)
+            AnsiConsole.Cursor.Hide();
+
+            try
             {
-                AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[_spinnerIndex % _spinnerChars.Length]);
-                AnsiConsole.Write(CultureInfo.InvariantCulture, "\b");
-                _spinnerIndex++;
-                await Task.Delay(120).ConfigureAwait(false);
+                while (_spinning)
+                {
+                    var spinChar = _spinnerChars[_spinnerIndex % _spinnerChars.Length];
+
+                    // Write then move back so nothing can write between these events (hopefully)
+                    AnsiConsole.Write(CultureInfo.InvariantCulture, spinChar);
+                    AnsiConsole.Cursor.MoveLeft();
+
+                    _spinnerIndex++;
+                    await Task.Delay(120).ConfigureAwait(false);
+                }
             }
-            // Clear spinner character
-            AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
-            AnsiConsole.Write(CultureInfo.InvariantCulture, "\b");
+            finally
+            {
+                // Clear spinner character
+                AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
+                AnsiConsole.Cursor.MoveLeft();
+                AnsiConsole.Cursor.Show();
+            }
         });
     }
 
@@ -178,7 +195,7 @@ internal sealed class ConsoleActivityLogger
         }
     }
 
-    public void WriteSummary(string? dashboardUrl = null)
+    public void WriteSummary()
     {
         lock (_lock)
         {
@@ -252,18 +269,14 @@ internal sealed class ConsoleActivityLogger
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
-            }
-            if (!string.IsNullOrEmpty(dashboardUrl))
-            {
-                // Render dashboard URL as clickable link in interactive terminals, plain in non-interactive
-                var url = dashboardUrl;
-                if (!_hostEnvironment.SupportsInteractiveOutput || !_enableColor)
+                
+                // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
+                if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
                 {
-                    AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
+                    var helpMessage = _enableColor
+                        ? "[dim]For more details, add --log-level debug/trace to the command.[/]"
+                        : "For more details, add --log-level debug/trace to the command.";
+                    AnsiConsole.MarkupLine(helpMessage);
                 }
             }
             AnsiConsole.MarkupLine(line);
@@ -271,26 +284,25 @@ internal sealed class ConsoleActivityLogger
         }
     }
 
-    private string? _finalStatusHeader;
-
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
     /// Optional usage so existing callers remain compatible.
     /// </summary>
     public void SetFinalResult(bool succeeded)
     {
+        _pipelineSucceeded = succeeded;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {
             _finalStatusHeader = _enableColor
-                ? $"[green]{SuccessSymbol} DEPLOYMENT SUCCEEDED[/]"
-                : $"{SuccessSymbol} DEPLOYMENT SUCCEEDED";
+                ? $"[green]{SuccessSymbol} PIPELINE SUCCEEDED[/]"
+                : $"{SuccessSymbol} PIPELINE SUCCEEDED";
         }
         else
         {
             _finalStatusHeader = _enableColor
-                ? $"[red]{FailureSymbol} DEPLOYMENT FAILED[/]"
-                : $"{FailureSymbol} DEPLOYMENT FAILED";
+                ? $"[red]{FailureSymbol} PIPELINE FAILED[/]"
+                : $"{FailureSymbol} PIPELINE FAILED";
         }
     }
 
@@ -388,7 +400,7 @@ internal sealed class ConsoleActivityLogger
         _ => symbol
     };
 
-    // Messages are already converted from Markdown to Spectre markup in PublishCommandBase.
+    // Messages are already converted from Markdown to Spectre markup in PipelineCommandBase.
     // When interactive output is not supported, we need to convert Spectre link markup
     // back to plain text since clickable links won't work. Show the URL for accessibility.
     private string HighlightMessage(string message)

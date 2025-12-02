@@ -1,84 +1,135 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
-
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Provides extension methods for adding pipeline steps to resources.
+/// Extension methods for pipeline steps.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class PipelineStepExtensions
 {
     /// <summary>
-    /// Adds a pipeline step to the resource that will be executed during deployment.
+    /// Makes each step in the collection depend on the specified step.
     /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="factory">A factory function that creates the pipeline step.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
-        this IResourceBuilder<T> builder,
-        Func<PipelineStepFactoryContext, PipelineStep> factory) where T : IResource
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="step">The step to depend on.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> DependsOn(this IEnumerable<PipelineStep> steps, PipelineStep? step)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(factory);
+        if (step is null)
+        {
+            return steps;
+        }
 
-        return builder.WithAnnotation(new PipelineStepAnnotation(factory));
+        foreach (var s in steps)
+        {
+            s.DependsOn(step);
+        }
+
+        return steps;
     }
 
     /// <summary>
-    /// Adds a pipeline step to the resource that will be executed during deployment.
+    /// Makes each step in the collection depend on the specified step name.
     /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="factory">An async factory function that creates the pipeline step.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
-        this IResourceBuilder<T> builder,
-        Func<PipelineStepFactoryContext, Task<PipelineStep>> factory) where T : IResource
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="stepName">The name of the step to depend on.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> DependsOn(this IEnumerable<PipelineStep> steps, string stepName)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(factory);
+        if (string.IsNullOrEmpty(stepName))
+        {
+            return steps;
+        }
 
-        return builder.WithAnnotation(new PipelineStepAnnotation(factory));
+        foreach (var s in steps)
+        {
+            s.DependsOn(stepName);
+        }
+
+        return steps;
     }
 
     /// <summary>
-    /// Adds multiple pipeline steps to the resource that will be executed during deployment.
+    /// Makes each step in the collection depend on the specified target steps.
     /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="factory">A factory function that creates multiple pipeline steps.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
-        this IResourceBuilder<T> builder,
-        Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> factory) where T : IResource
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="targetSteps">The target steps to depend on.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> DependsOn(this IEnumerable<PipelineStep> steps, IEnumerable<PipelineStep> targetSteps)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(factory);
+        foreach (var step in targetSteps)
+        {
+            foreach (var s in steps)
+            {
+                s.DependsOn(step);
+            }
+        }
 
-        return builder.WithAnnotation(new PipelineStepAnnotation(factory));
+        return steps;
     }
 
     /// <summary>
-    /// Adds multiple pipeline steps to the resource that will be executed during deployment.
+    /// Specifies that each step in the collection is required by the specified step.
     /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="factory">An async factory function that creates multiple pipeline steps.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
-        this IResourceBuilder<T> builder,
-        Func<PipelineStepFactoryContext, Task<IEnumerable<PipelineStep>>> factory) where T : IResource
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="step">The step that requires these steps.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> RequiredBy(this IEnumerable<PipelineStep> steps, PipelineStep? step)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(factory);
+        if (step is null)
+        {
+            return steps;
+        }
 
-        return builder.WithAnnotation(new PipelineStepAnnotation(factory));
+        foreach (var s in steps)
+        {
+            s.RequiredBy(step);
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// Specifies that each step in the collection is required by the specified step name.
+    /// </summary>
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="stepName">The name of the step that requires these steps.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> RequiredBy(this IEnumerable<PipelineStep> steps, string stepName)
+    {
+        if (string.IsNullOrEmpty(stepName))
+        {
+            return steps;
+        }
+
+        foreach (var s in steps)
+        {
+            s.RequiredBy(stepName);
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// Specifies that each step in the collection is required by the specified target steps.
+    /// </summary>
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="targetSteps">The target steps that require these steps.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> RequiredBy(this IEnumerable<PipelineStep> steps, IEnumerable<PipelineStep> targetSteps)
+    {
+        foreach (var step in targetSteps)
+        {
+            foreach (var s in steps)
+            {
+                s.RequiredBy(step);
+            }
+        }
+
+        return steps;
     }
 }

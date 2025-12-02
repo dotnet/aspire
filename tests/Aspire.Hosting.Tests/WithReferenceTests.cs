@@ -514,7 +514,7 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public async Task NpmAppResourceWithReferenceGetsConnectionStringAndProperties()
+    public async Task JavaScriptAppAppResourceWithReferenceGetsConnectionStringAndProperties()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -524,7 +524,7 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-        var executable = builder.AddNpmApp("NpmApp", ".\\app")
+        var executable = builder.AddJavaScriptApp("NpmApp", ".\\app")
                                 .WithReference(resource);
 
         // Call environment variable callbacks.
@@ -549,10 +549,10 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-#pragma warning disable ASPIREHOSTINGPYTHON001, CS0612, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable CS0618
         var executable = builder.AddPythonApp("PythonApp", ".\\app", "app.py")
                                 .WithReference(resource);
-#pragma warning restore ASPIREHOSTINGPYTHON001, CS0612, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore CS0618
 
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();

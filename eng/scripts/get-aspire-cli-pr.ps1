@@ -28,7 +28,7 @@
     Override OS detection (win, linux, linux-musl, osx)
 
 .PARAMETER Architecture
-    Override architecture detection (x64, x86, arm64)
+    Override architecture detection (x64, arm64)
 
 .PARAMETER HiveOnly
     Only install NuGet packages to the hive, skip CLI download
@@ -95,7 +95,7 @@ param(
     [string]$OS = "",
 
     [Parameter(HelpMessage = "Override architecture detection")]
-    [ValidateSet("", "x64", "x86", "arm64")]
+    [ValidateSet("", "x64", "arm64")]
     [string]$Architecture = "",
 
     [Parameter(HelpMessage = "Only install NuGet packages to the hive, skip CLI download")]
@@ -280,7 +280,6 @@ function Get-MachineArchitecture {
                 $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
                 switch ($runtimeArch) {
                     "X64" { return "x64" }
-                    "X86" { return "x86" }
                     "Arm64" { return "arm64" }
                     default {
                         Write-Message "Unknown runtime architecture: $runtimeArch" -Level Verbose
@@ -290,7 +289,6 @@ function Get-MachineArchitecture {
                             switch ($unameArch) {
                                 { @("x86_64", "amd64") -contains $_ } { return "x64" }
                                 { @("aarch64", "arm64") -contains $_ } { return "arm64" }
-                                { @("i386", "i686") -contains $_ } { return "x86" }
                                 default {
                                     throw "Architecture '$unameArch' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
                                 }
@@ -331,9 +329,6 @@ function Get-CLIArchitectureFromArchitecture {
     switch ($normalizedArch) {
         { @("amd64", "x64") -contains $_ } {
             return "x64"
-        }
-        { $_ -eq "x86" } {
-            return "x86"
         }
         { $_ -eq "arm64" } {
             return "arm64"

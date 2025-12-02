@@ -79,7 +79,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public Func<string, Task>? DisplayPlainTextAsyncCallback { get; set; }
 
     public TaskCompletionSource? WriteDebugSessionMessageAsyncCalled { get; set; }
-    public Func<string, bool, Task>? WriteDebugSessionMessageAsyncCallback { get; set; }
+    public Func<string, bool, string?, Task>? WriteDebugSessionMessageAsyncCallback { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -259,11 +259,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.CompletedTask;
     }
 
-    public Task WriteDebugSessionMessageAsync(string message, bool stdout, CancellationToken cancellationToken)
+    public Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken)
     {
         WriteDebugSessionMessageAsyncCalled?.SetResult();
         return WriteDebugSessionMessageAsyncCallback != null
-            ? WriteDebugSessionMessageAsyncCallback.Invoke(message, stdout)
+            ? WriteDebugSessionMessageAsyncCallback.Invoke(message, stdout, textStyle)
             : Task.CompletedTask;
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -96,6 +97,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
+        services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -103,10 +106,12 @@ internal static class CliTestHelper
         services.AddTransient<ExecCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<DeployCommand>();
+        services.AddTransient<DoCommand>();
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
         services.AddTransient<UpdateCommand>();
+        services.AddTransient<McpCommand>();
         services.AddTransient<PolyglotCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
@@ -134,7 +139,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory);
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")));
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -212,8 +217,7 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry, features);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)
@@ -344,6 +348,16 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
         return new TestCliDownloader(tmpDirectory);
+    };
+
+    public Func<IServiceProvider, IAuxiliaryBackchannelMonitor> AuxiliaryBackchannelMonitorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestAuxiliaryBackchannelMonitor();
+    };
+
+    public Func<IServiceProvider, IAgentEnvironmentDetector> AgentEnvironmentDetectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new AgentEnvironmentDetector([]);
     };
 }
 

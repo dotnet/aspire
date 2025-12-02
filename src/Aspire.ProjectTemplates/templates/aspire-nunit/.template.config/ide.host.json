@@ -2,24 +2,7 @@
   "$schema": "https://json.schemastore.org/ide.host",
   "icon": "ide/AspireNUnit.ico",
   "displayOverviewPage": "0",
-  "symbolInfo": [
-    {
-      "id": "AspireVersionCli",
-      "isVisible": false
-    },
-    {
-      "id": "AspireVersion",
-      "isVisible": true
-    },
-    {
-      "id": "AspireVersionNet9",
-      "isVisible": true
-    },
-    {
-      "id": "AspireVersionNet10",
-      "isVisible": true
-    }
-  ],
+  "symbolInfo": [],
   "unsupportedHosts": [
     {
       "id": "vs",

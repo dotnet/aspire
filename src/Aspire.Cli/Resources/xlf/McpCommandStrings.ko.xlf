@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../McpCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Manage MCP (Model Context Protocol) server.</source>
+        <target state="translated">MCP(모델 컨텍스트 프로토콜) 서버를 관리합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="new">Select agent environments to configure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_ConfigurationComplete">
+        <source>Agent environment configuration complete.</source>
+        <target state="new">Agent environment configuration complete.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_Description">
+        <source>Initialize MCP server configuration for detected agent environments.</source>
+        <target state="new">Initialize MCP server configuration for detected agent environments.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_DetectingAgentEnvironments">
+        <source>Detecting agent environments...</source>
+        <target state="new">Detecting agent environments...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
+        <source>No agent environments were detected.</source>
+        <target state="new">No agent environments were detected.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartCommand_Description">
+        <source>Start the MCP (Model Context Protocol) server.</source>
+        <target state="translated">MCP(모델 컨텍스트 프로토콜) 서버를 시작합니다.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

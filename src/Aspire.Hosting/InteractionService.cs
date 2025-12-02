@@ -374,7 +374,7 @@ internal class InteractionService : IInteractionService
                 var context = new InputsDialogValidationContext
                 {
                     CancellationToken = cancellationToken,
-                    ServiceProvider = _serviceProvider,
+                    Services = _serviceProvider,
                     Inputs = inputsInfo.Inputs
                 };
 

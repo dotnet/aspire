@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECERTIFICATES001
+
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
@@ -25,6 +27,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.Tests;
@@ -122,7 +125,6 @@ public class DistributedApplicationTests
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
         testProgram.AppBuilder.Services.AddHealthChecks().AddCheck("dummy_healthcheck", () => HealthCheckResult.Unhealthy());
 
         var dependentResourceName = "force-resource-start-serviceb";
@@ -165,7 +167,6 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-executable";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-servicea";
         var dependentResourceName = $"{testName}-serviceb";
@@ -236,7 +237,6 @@ public class DistributedApplicationTests
     {
         const string testName = "explicit-start-container";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var notStartedResourceName = $"{testName}-redis";
         var dependentResourceName = $"{testName}-serviceb";
@@ -311,7 +311,6 @@ public class DistributedApplicationTests
         {
             const string testName = "explicit-start-persistent-container";
             using var testProgram = CreateTestProgram(testName, randomizePorts: false);
-            SetupXUnitLogging(testProgram.AppBuilder.Services);
 
             var notStartedResourceName = $"{testName}-redis";
             var dependentResourceName = $"{testName}-serviceb";
@@ -480,7 +479,6 @@ public class DistributedApplicationTests
         var replicaCount = 3;
 
         using var testProgram = CreateTestProgram("multi-replica-svcs");
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
 
@@ -534,7 +532,6 @@ public class DistributedApplicationTests
     public async Task VerifyContainerArgs()
     {
         using var testProgram = CreateTestProgram("verify-container-args");
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         AddRedisContainer(testProgram.AppBuilder, "verify-container-args-redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
@@ -563,7 +560,6 @@ public class DistributedApplicationTests
     public async Task VerifyContainerCreateFile()
     {
         using var testProgram = CreateTestProgram("verify-container-create-file", trustDeveloperCertificate: false);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
         var umask = UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
@@ -624,28 +620,98 @@ public class DistributedApplicationTests
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
+    [Fact]
+    [RequiresDocker]
+    [RequiresCertificateStoreAccess]
+    public async Task VerifyRedisWithCertificateKeyPair()
+    {
+        const string testName = "verify-redis-with-certificate";
+        using var testProgram = CreateTestProgram(testName, trustDeveloperCertificate: false);
+
+        // Create a test certificate
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest("CN=test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+        using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+
+        var redis = testProgram.AppBuilder.AddRedis($"{testName}-redis")
+            .WithServerAuthenticationCertificate(cert);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var redisContainer = Assert.Single(list, c => c.Metadata.Name.StartsWith($"{testName}-redis"));
+
+        Assert.NotNull(redisContainer.Spec.Args);
+        Assert.Equal(2, redisContainer.Spec.Args.Count);
+        // Verify that arguments are passed as shell command
+        Assert.Equal("-c", redisContainer.Spec.Args[0]);
+        Assert.Contains("--tls-cert-file", redisContainer.Spec.Args[1]);
+        Assert.Contains("--tls-key-file", redisContainer.Spec.Args[1]);
+        Assert.Contains("--tls-auth-clients", redisContainer.Spec.Args[1]);
+        Assert.Contains("--tls-port", redisContainer.Spec.Args[1]);
+        Assert.Contains("--port", redisContainer.Spec.Args[1]);
+
+        // Verify both endpoints exist (TLS on 6380, non-TLS on 6379)
+        Assert.NotNull(redisContainer.Spec.Ports);
+        Assert.Contains(redisContainer.Spec.Ports, p => p.ContainerPort == 6380);
+        Assert.Contains(redisContainer.Spec.Ports, p => p.ContainerPort == 6379);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
     [Theory]
     [RequiresDocker]
     [RequiresDevCert]
-    [InlineData(null, null, true)]
-    [InlineData(null, false, false)]
-    [InlineData(null, true, true)]
-    [InlineData(false, null, false)]
-    [InlineData(false, false, false)]
-    [InlineData(false, true, true)]
-    [InlineData(true, null, true)]
-    [InlineData(true, false, false)]
-    [InlineData(true, true, true)]
-    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert)
+    [InlineData(false, false, false, false, CertificateTrustScope.Append)]
+    [InlineData(false, true, true, false, CertificateTrustScope.Append)]
+    [InlineData(true, false, false, false, CertificateTrustScope.Append)]
+    [InlineData(false, false, false, false, CertificateTrustScope.Override)]
+    [InlineData(false, true, true, false, CertificateTrustScope.Override)]
+    [InlineData(true, false, false, false, CertificateTrustScope.Override)]
+    [InlineData(false, false, false, true, CertificateTrustScope.Override)]
+    [InlineData(false, true, true, true, CertificateTrustScope.Override)]
+    [InlineData(true, false, false, true, CertificateTrustScope.Override)]
+    [InlineData(false, false, false, false, CertificateTrustScope.None)]
+    [InlineData(false, true, false, false, CertificateTrustScope.None)]
+    [InlineData(true, false, false, false, CertificateTrustScope.None)]
+    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert, bool overridePaths, CertificateTrustScope trustScope)
     {
         using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis");
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis")
+            .WithoutServerAuthenticationCertificate();
         if (explicitTrust.HasValue)
         {
             container.WithDeveloperCertificateTrust(explicitTrust.Value);
         }
+
+        var expectedDestination = "/usr/lib/ssl/aspire";
+        var expectedDefaultCertificateDirs = new List<string>();
+        var expectedDefaultBundleFiles = new List<string>();
+        if (overridePaths)
+        {
+            expectedDestination = "/usr/lib/ssl/someotherpath";
+            expectedDefaultCertificateDirs.Add("/usr/lib/someothercertpath");
+            expectedDefaultCertificateDirs.Add("/usr/share/lib/anotherpath");
+            expectedDefaultBundleFiles.Add("/usr/lib/somessl/cert.pem");
+            expectedDefaultBundleFiles.Add("/usr/share/certfile.pem");
+
+            container.WithContainerCertificatePaths(customCertificatesDestination: expectedDestination, defaultCertificateBundlePaths: expectedDefaultBundleFiles, defaultCertificateDirectoryPaths: expectedDefaultCertificateDirs);
+        }
+        else
+        {
+            expectedDefaultCertificateDirs.AddRange(ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths);
+            expectedDefaultBundleFiles.AddRange(ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths);
+        }
+
+        container.WithCertificateTrustScope(trustScope);
 
         await using var app = testProgram.Build();
 
@@ -663,47 +729,63 @@ public class DistributedApplicationTests
                 if (expectDevCert)
                 {
                     Assert.NotNull(item.Spec.Env);
-                    Assert.Collection(item.Spec.Env.OrderBy(e => e.Name),
+                    if (trustScope == CertificateTrustScope.Append)
+                    {
+                        Assert.DoesNotContain(item.Spec.Env, e => e.Name == "SSL_CERT_FILE");
+                    }
+                    else if (trustScope == CertificateTrustScope.Override)
+                    {
+                        Assert.Collection(item.Spec.Env.Where(e => e.Name == "SSL_CERT_FILE"),
+                            certFile =>
+                            {
+                                Assert.Equal("SSL_CERT_FILE", certFile.Name);
+                                Assert.Equal($"{expectedDestination}/cert.pem", certFile.Value);
+                            });
+                    }
+
+                    Assert.Collection(item.Spec.Env.Where(e => e.Name == "SSL_CERT_DIR"),
                         certDir =>
                         {
                             Assert.Equal("SSL_CERT_DIR", certDir.Name);
-                            Assert.StartsWith("/usr/lib/ssl/aspire/certs:", certDir.Value);
+                            Assert.NotNull(certDir.Value);
+                            var certDirPaths = certDir.Value.Split(':');
+                            Assert.Contains($"{expectedDestination}/certs", certDirPaths);
+                            if (trustScope == CertificateTrustScope.Append)
+                            {
+                                foreach (var expectedPath in expectedDefaultCertificateDirs)
+                                {
+                                    Assert.Contains(expectedPath, certDirPaths);
+                                }
+                            }
                         });
-                    Assert.NotNull(item.Spec.CreateFiles);
-                    Assert.Collection(item.Spec.CreateFiles,
-                        createCerts =>
+
+                    if (trustScope == CertificateTrustScope.None)
+                    {
+                        Assert.Empty(item.Spec?.PemCertificates?.Certificates ?? []);
+                        return;
+                    }
+
+                    foreach (var cert in dc.Certificates)
+                    {
+                        var foundCert = Assert.Single(item.Spec?.PemCertificates?.Certificates ?? [], c => string.Equals(c.Thumbprint, cert.Thumbprint, StringComparison.Ordinal));
+                        if (cert.IsAspNetCoreDevelopmentCertificate())
                         {
-                            Assert.Equal("/usr/lib/ssl/aspire", createCerts.Destination);
-                            Assert.NotNull(createCerts.Entries);
-                            Assert.Collection(createCerts.Entries,
-                                bundle =>
-                                {
-                                    Assert.Equal("cert.pem", bundle.Name);
-                                    Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
-                                    var certs = new X509Certificate2Collection();
-                                    certs.ImportFromPem(bundle.Contents);
-                                    Assert.Equal(dc.Certificates.Count, certs.Count);
-                                    Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
-                                },
-                                dir =>
-                                {
-                                    Assert.Equal("certs", dir.Name);
-                                    Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
-                                    Assert.NotNull(dir.Entries);
-                                    Assert.Equal(dc.Certificates.Count, dir.Entries.Count);
-                                    foreach (var devCert in dc.Certificates)
-                                    {
-                                        Assert.Contains(dir.Entries, (cert) =>
-                                        {
-                                            return cert.Type == ContainerFileSystemEntryType.OpenSSL && string.Equals(cert.Name, devCert.Thumbprint + ".pem", StringComparison.Ordinal) && string.Equals(cert.Contents, devCert.ExportCertificatePem(), StringComparison.Ordinal);
-                                        });
-                                    }
-                                });
-                        });
+                            Assert.True(X509Certificate2.CreateFromPem(foundCert.Contents).IsAspNetCoreDevelopmentCertificate());
+                        }
+                    }
+
+                    if (trustScope == CertificateTrustScope.Override)
+                    {
+                        Assert.Equal(expectedDefaultBundleFiles.Count, item.Spec?.PemCertificates?.OverwriteBundlePaths?.Count ?? 0);
+                        foreach (var bundlePath in expectedDefaultBundleFiles)
+                        {
+                            Assert.Contains(bundlePath, item.Spec?.PemCertificates?.OverwriteBundlePaths ?? []);
+                        }
+                    }
                 }
                 else
                 {
-                    Assert.Empty(item.Spec.CreateFiles ?? []);
+                    Assert.Empty(item.Spec?.PemCertificates?.Certificates ?? []);
                 }
             });
 
@@ -715,7 +797,6 @@ public class DistributedApplicationTests
     public async Task VerifyContainerSucceedsWithCreateFileContinueOnError()
     {
         using var testProgram = CreateTestProgram("verify-container-continue-on-error", trustDeveloperCertificate: false);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-continue-on-error-redis")
             .WithContainerFiles("/tmp", [
@@ -742,11 +823,94 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [RequiresDevCert]
+    public async Task VerifyEnvironmentVariablesAvailableInCertificateTrustConfigCallback()
+    {
+        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: true);
+
+        var value = "SomeValue";
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
+            .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
+            .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                if (ctx.EnvironmentVariables.ContainsKey("INITIAL_ENV_VAR"))
+                {
+                    // Add an additional environment variable in the callback
+                    ctx.EnvironmentVariables["CALLBACK_ADDED_VAR"] = "CallbackValue";
+                    var initialRE = Assert.IsType<ReferenceExpression>(ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"]);
+                    ctx.EnvironmentVariables["INITIAL_REFERENCE_EXPRESSION"] = ReferenceExpression.Create($"{initialRE}_AppendedInCallback");
+                }
+
+                return Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
+            s,
+            $"verify-env-vars-in-cert-callback-redis-{ReplicaIdRegex}-{suffix}",
+            r => r.Spec.Env != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.NotNull(redisContainer);
+        Assert.NotNull(redisContainer.Spec.Env);
+
+        // Verify both environment variables are present in the final container spec
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_ENV_VAR" && e.Value == "InitialValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "CALLBACK_ADDED_VAR" && e.Value == "CallbackValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_REFERENCE_EXPRESSION" && e.Value == $"{value}_AppendedInCallback");
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyEnvironmentVariablesAppliedWithoutCertificateTrustConfig()
+    {
+        // Don't apply developer certificate trust so the config callback shouldn't be invoked
+        using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: false);
+
+        var value = "SomeValue";
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-env-vars-in-cert-callback-redis")
+            .WithEnvironment("INITIAL_ENV_VAR", "InitialValue")
+            .WithEnvironment("INITIAL_REFERENCE_EXPRESSION", ReferenceExpression.Create($"{value}"))
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                Assert.Fail("Certificate trust configuration callback should not be invoked when developer certificate trust is not applied.");
+
+                return Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
+            s,
+            $"verify-env-vars-in-cert-callback-redis-{ReplicaIdRegex}-{suffix}",
+            r => r.Spec.Env != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.NotNull(redisContainer);
+        Assert.NotNull(redisContainer.Spec.Env);
+
+        // Verify both environment variables are present in the final container spec
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_ENV_VAR" && e.Value == "InitialValue");
+        Assert.Single(redisContainer.Spec.Env, e => e.Name == "INITIAL_REFERENCE_EXPRESSION" && e.Value == $"{value}");
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyContainerStopStartWorks()
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
-
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         const string containerName = "container-start-stop-redis";
         AddRedisContainer(testProgram.AppBuilder, containerName)
@@ -800,8 +964,6 @@ public class DistributedApplicationTests
         const string testName = "executable-start-stop";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
-
         await using var app = testProgram.Build();
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
@@ -835,15 +997,13 @@ public class DistributedApplicationTests
         const string testName = "ports-flow-to-env";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
-
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
-        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
+        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath", "fake.js")
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();
@@ -895,8 +1055,6 @@ public class DistributedApplicationTests
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
-
         await using var app = testProgram.Build();
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
@@ -928,8 +1086,6 @@ public class DistributedApplicationTests
             $"{tokenEnvVarName}={browserToken}"
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
-
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -969,8 +1125,6 @@ public class DistributedApplicationTests
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
-
         await using var app = testProgram.Build();
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
@@ -999,7 +1153,6 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-entrypoint";
         using var testProgram = CreateTestProgram(testName);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithEntrypoint("bob");
@@ -1027,7 +1180,6 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-bindmount-absolute";
         using var testProgram = CreateTestProgram(testName);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
@@ -1057,7 +1209,6 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-bindmount-relative";
         using var testProgram = CreateTestProgram(testName);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithBindMount("etc/path-here", "path-here");
@@ -1087,7 +1238,6 @@ public class DistributedApplicationTests
     {
         const string testName = "docker-volume";
         using var testProgram = CreateTestProgram(testName);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
             .WithVolume($"{testName}-volume", "/path-here");
@@ -1116,7 +1266,6 @@ public class DistributedApplicationTests
     {
         const string testName = "kube-resource-names";
         using var testProgram = CreateTestProgram(testName, includeIntegrationServices: true);
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -1177,7 +1326,6 @@ public class DistributedApplicationTests
         {
             endpoint.IsProxied = false;
         });
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -1196,7 +1344,6 @@ public class DistributedApplicationTests
             endpoint.Port = null;
             endpoint.IsProxied = false;
         });
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -1219,7 +1366,6 @@ public class DistributedApplicationTests
                 e.TargetPort = 1234;
                 e.IsProxied = false;
             });
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
@@ -1242,6 +1388,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [OuterloopTest("Long-running endpoint proxy test")]
     [RequiresSSLCertificate]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
@@ -1260,8 +1407,6 @@ public class DistributedApplicationTests
                 e.UriScheme = "https";
                 e.Port = 1543;
             }, createIfNotExists: true);
-
-        SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         await using var app = testProgram.Build();
 
@@ -1313,11 +1458,12 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [OuterloopTest("Long-running container test")]
     [RequiresDocker]
     public async Task ProxylessContainerCanBeReferenced()
     {
         const string testName = "proxyless-container";
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         var redis = builder.AddRedis($"{testName}-redis", 1234).WithEndpoint("tcp", endpoint =>
         {
@@ -1337,7 +1483,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
@@ -1348,40 +1494,54 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+        var sslVal = redis.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}{sslVal}", env.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
-        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        if (redis.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, redisContainer.Spec.Ports!.Count);
+            Assert.Contains(redisContainer.Spec.Ports!, p => p.HostPort == 1234);
+        }
+        else
+        {
+            Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        }
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+        sslVal = redisNoPort.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}{sslVal}", otherRedisEnv.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
-
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
-        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        if (redisNoPort.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, otherRedisContainer.Spec.Ports!.Count);
+            Assert.Contains(otherRedisContainer.Spec.Ports!, p => p.HostPort == 6379);
+        }
+        else
+        {
+            Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        }
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
+    [OuterloopTest("Long-running endpoint proxy test")]
     [RequiresDocker]
     public async Task WithEndpointProxySupportDisablesProxies()
     {
         const string testName = "endpoint-proxy-support";
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
-#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var redis = builder.AddRedis($"{testName}-redis", 1234).WithEndpointProxySupport(false);
-#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Since port is not specified, this instance will use the container target port (6379) as the host port.
-#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var redisNoPort = builder.AddRedis($"{testName}-redisNoPort").WithEndpointProxySupport(false);
-#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var servicea = builder.AddProject<Projects.ServiceA>($"{testName}-servicea")
             .WithReference(redis)
@@ -1391,7 +1551,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
@@ -1406,21 +1566,39 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+        var sslVal = redis.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}{sslVal}", env.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
-        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        if (redis.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, redisContainer.Spec.Ports!.Count);
+            Assert.Contains(redisContainer.Spec.Ports!, p => p.HostPort == 1234);
+        }
+        else
+        {
+            Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+        }
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+        sslVal = redisNoPort.Resource.TlsEnabled ? ",ssl=true" : string.Empty;
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}{sslVal}", otherRedisEnv.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
-        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        if (redisNoPort.Resource.TlsEnabled)
+        {
+            Assert.Equal(2, otherRedisContainer.Spec.Ports!.Count);
+            Assert.Contains(otherRedisContainer.Spec.Ports!, p => p.HostPort == 6379);
+        }
+        else
+        {
+            Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+        }
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
@@ -1430,7 +1608,7 @@ public class DistributedApplicationTests
     public async Task ProxylessContainerWithoutPortThrows()
     {
         const string testName = "proxyless-container-without-ports";
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         var redis = AddRedisContainer(builder, $"{testName}-redis").WithEndpoint("tcp", endpoint =>
         {
@@ -1450,7 +1628,7 @@ public class DistributedApplicationTests
     public async Task PersistentNetworkCreatedIfPersistentContainers(bool createPersistentContainer)
     {
         const string testName = "persistent-network-if-persistent-containers";
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         if (createPersistentContainer)
         {
@@ -1482,7 +1660,7 @@ public class DistributedApplicationTests
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         const string testName = "lifecycle-hook-after-resource-created";
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         builder.AddRedis($"{testName}-redis");
 #pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
@@ -1509,20 +1687,12 @@ public class DistributedApplicationTests
             .WithImageRegistry(AspireTestContainerRegistry);
     }
 
-    private void SetupXUnitLogging(IServiceCollection services)
-    {
-        services.AddLogging(b =>
-        {
-            b.AddXunit(_testOutputHelper);
-            b.SetMinimumLevel(LogLevel.Trace);
-        });
-    }
-
 #pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
 #pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     {
         private readonly TaskCompletionSource _tcs = new();
+        private readonly CountdownEvent _cevent = new(2); // AfterResourcesCreated and AfterEndpointsAllocated
 
         public IKubernetesService? KubernetesService { get; set; }
 
@@ -1530,28 +1700,39 @@ public class DistributedApplicationTests
 
         public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
         {
-            Assert.Empty(await KubernetesService!.ListAsync<Container>(cancellationToken: cancellationToken));
+            if (_cevent.Signal())
+            {
+                _tcs.TrySetResult();
+            }
         }
 
         public async Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
         {
-            Assert.NotEmpty(await KubernetesService!.ListAsync<Container>(cancellationToken: cancellationToken));
-            _tcs.SetResult();
+            if (_cevent.Signal())
+            {
+                _tcs.TrySetResult();
+            }
         }
     }
 
-    private static TestProgram CreateTestProgram(
+    private TestProgram CreateTestProgram(
         string testName,
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
         bool randomizePorts = true,
-        bool? trustDeveloperCertificate = null) =>
-        TestProgram.Create<DistributedApplicationTests>(
+        bool? trustDeveloperCertificate = false)
+    {
+        var testProgram = TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,
             includeIntegrationServices: includeIntegrationServices,
             disableDashboard: disableDashboard,
             randomizePorts: randomizePorts,
             trustDeveloperCertificate: trustDeveloperCertificate);
+
+        testProgram.AppBuilder.Services.AddTestAndResourceLogging(_testOutputHelper);
+
+        return testProgram;
+    }
 }

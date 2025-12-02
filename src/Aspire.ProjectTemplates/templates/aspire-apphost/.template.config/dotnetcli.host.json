@@ -4,19 +4,6 @@
       "Framework": {
         "longName": "framework"
       },
-      "AspireVersionCli": {
-        "shortName": "",
-        "longName": "aspire-version"
-      },
-      "AspireVersion": {
-        "isHidden": true
-      },
-      "AspireVersionNet9": {
-        "isHidden": true
-      },
-      "AspireVersionNet10": {
-        "isHidden": true
-      },
       "skipRestore": {
         "longName": "no-restore",
         "shortName": ""
@@ -33,6 +20,12 @@
       "appHostOtlpHttpsPort": {
         "isHidden": true
       },
+      "appHostMcpHttpPort": {
+        "isHidden": true
+      },
+      "appHostMcpHttpsPort": {
+        "isHidden": true
+      },
       "appHostResourceHttpPort": {
         "isHidden": true
       },
@@ -41,6 +34,10 @@
       },
       "NoHttps": {
         "longName": "no-https",
+        "shortName": ""
+      },
+      "LocalhostTld": {
+        "longName": "localhost-tld",
         "shortName": ""
       }
     },

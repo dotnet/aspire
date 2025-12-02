@@ -1,10 +1,14 @@
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Yarp.Tests;
 
@@ -19,8 +23,12 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         var resource = Assert.Single(builder.Resources.OfType<YarpResource>());
-        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5000, endpoint.TargetPort);
+        Assert.Collection(resource.Annotations.OfType<EndpointAnnotation>(),
+            endpoint =>
+            {
+                Assert.Equal("http", endpoint.Name);
+                Assert.Equal(5000, endpoint.TargetPort);
+            });
     }
 
     [Theory]
@@ -32,7 +40,13 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Report that developer certificates won't support container scenarios
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), containerCertificateSupport));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            containerCertificateSupport,
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
+        testProvider.AddService(Options.Create(new DcpOptions()));
 
         var yarp = builder.AddYarp("yarp");
 
@@ -48,8 +62,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         }
         else
         {
-            var value = Assert.Contains("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
-            Assert.Equal("true", value);
+            Assert.Contains("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
         }
     }
 
@@ -76,7 +89,13 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), false));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
+        testProvider.AddService(Options.Create(new DcpOptions()));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -93,7 +112,12 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), false));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -110,10 +134,16 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), false));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
+        testProvider.AddService(Options.Create(new DcpOptions()));
 
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Run, testProvider);
@@ -128,7 +158,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
@@ -142,7 +172,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>());
@@ -154,7 +184,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
@@ -167,25 +197,206 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.NotNull(annotation.DockerfileFactory);
-        
+
         var context = new DockerfileFactoryContext
         {
             Resource = yarp.Resource,
             Services = TestServiceProvider.Instance,
             CancellationToken = CancellationToken.None
         };
-        
+
         var dockerfile = await annotation.DockerfileFactory(context);
-        
+
         Assert.Contains("FROM", dockerfile);
         Assert.Contains("dotnet/nightly/yarp:2.3.0-preview.4", dockerfile);
         Assert.Contains("AS yarp", dockerfile);
         Assert.Contains("WORKDIR /app", dockerfile);
         Assert.Contains("COPY . /app/wwwroot", dockerfile);
+    }
+
+    [Fact]
+    public void VerifyPublishWithStaticFilesDoesNothingInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // In run mode, PublishWithStaticFiles should not add any annotations
+        Assert.Empty(yarp.Resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Empty(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesAddsEnvironmentVariableInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Verify ContainerFilesDestinationAnnotation was added
+        var containerFilesAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
+        Assert.Equal("/app/wwwroot", containerFilesAnnotation.DestinationPath);
+
+        // Verify static files environment variable was set
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+        var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
+        Assert.Equal("true", value);
+
+        // Verify DockerfileBuildAnnotation was added (instead of DockerfileBuilderCallbackAnnotation)
+        Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesGeneratesCorrectDockerfile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("sourceimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Get the DockerfileBuildAnnotation (added by WithDockerfileBuilder)
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesHandlesMissingSourceImageGracefully()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource without an image name
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Get the DockerfileBuildAnnotation
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        // Build the app to get service provider
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesGeneratesCorrectDockerfileWithMultipleContainerFiles()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a test container resource with multiple container file sources
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("sourceimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets" });
+
+        var yarp = builder.AddYarp("yarp").PublishWithStaticFiles(sourceContainer);
+
+        // Get the DockerfileBuildAnnotation
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyPublishWithStaticFilesGeneratesCorrectDockerfileWithMultipleSourceContainerFiles()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create multiple test container resources with multiple container file sources
+        var sourceContainer1 = builder.AddResource(new TestContainerFilesResource("source1"))
+            .WithImage("sourceimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets" });
+
+        var sourceContainer2 = builder.AddResource(new TestContainerFilesResource("source2"))
+            .WithImage("sourceimage2")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist2" })
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/assets2" });
+
+        var yarp = builder.AddYarp("yarp")
+            .PublishWithStaticFiles(sourceContainer1)
+            .PublishWithStaticFiles(sourceContainer2);
+
+        // Get the DockerfileBuildAnnotation
+        var buildAnnotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(buildAnnotation.DockerfileFactory);
+
+        using var app = builder.Build();
+
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = app.Services,
+            CancellationToken = CancellationToken.None
+        };
+
+        var dockerfile = await buildAnnotation.DockerfileFactory(context);
+
+        await Verify(dockerfile);
+    }
+
+    private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
+    {
     }
 }

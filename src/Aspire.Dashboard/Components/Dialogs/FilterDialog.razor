@@ -11,7 +11,7 @@
     <DataAnnotationsValidator />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-        <div class="filter-input-container">
+        <div class="filter-input-container input-container">
             <FluentSelect TOption="SelectViewModel<string>"
                           Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]"
                           Label="@Loc[nameof(Dialogs.FilterDialogParameterInputLabel)]"
@@ -26,7 +26,7 @@
             </FluentSelect>
         </div>
 
-        <div class="filter-input-container">
+        <div class="filter-input-container input-container">
             <FluentSelect TOption="SelectViewModel<FilterCondition>"
                           Items="@_filterConditions"
                           @bind-SelectedOption="@_formModel.Condition"
@@ -35,7 +35,7 @@
                           Width="100%" />
         </div>
 
-        <div class="filter-input-container">
+        <div class="filter-input-container input-container">
             <FluentCombobox TOption="SelectViewModel<FieldValue>"
                             @bind-Value="_formModel.Value"
                             @bind-Value:after="ValueChanged"
@@ -61,7 +61,7 @@
             <ValidationMessage For="() => _formModel.Value" />
         </div>
 
-        <div class="filter-input-container filter-button-container">
+        <div class="filter-input-container filter-button-container input-container">
             <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Left">
                 @if (Content.Filter is not null)
                 {

@@ -31,6 +31,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IFeatures _features;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -43,7 +44,9 @@ internal sealed class RunCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext)
+        IServiceProvider serviceProvider,
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -54,6 +57,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -64,6 +68,7 @@ internal sealed class RunCommand : BaseCommand
         _configuration = configuration;
         _sdkInstaller = sdkInstaller;
         _features = features;
+        _hostEnvironment = hostEnvironment;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -106,7 +111,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -119,7 +124,7 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostFile is null)
             {
@@ -127,13 +132,6 @@ internal sealed class RunCommand : BaseCommand
             }
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
-
-            // Validate that single file AppHost feature is enabled if we detected a .cs file
-            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-            {
-                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
-                return ExitCodeConstants.FailedToFindProject;
-            }
 
             var env = new Dictionary<string, string>();
 
@@ -148,7 +146,7 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                if (!isSingleFileAppHost || isExtensionHost)
+                if (!isSingleFileAppHost && !isExtensionHost)
                 {
                     var buildOptions = new DotNetCliRunnerInvocationOptions
                     {
@@ -156,19 +154,13 @@ internal sealed class RunCommand : BaseCommand
                         StandardErrorCallback = buildOutputCollector.AppendError,
                     };
 
-                    // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                    if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
-                        || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken)
-                        || isSingleFileAppHost)
-                    {
-                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
-                        if (buildExitCode != 0)
-                        {
-                            InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                            InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                            return ExitCodeConstants.FailedToBuildArtifacts;
-                        }
+                    if (buildExitCode != 0)
+                    {
+                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
                     }
                 }
             }
@@ -211,6 +203,7 @@ internal sealed class RunCommand : BaseCommand
                     env["ASPNETCORE_ENVIRONMENT"] = "Development";
                     env["DOTNET_ENVIRONMENT"] = "Development";
                     env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                    env["ASPIRE_DASHBOARD_MCP_ENDPOINT_URL"] = "https://localhost:21294";
                     env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
                     env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
                 }
@@ -233,7 +226,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await InteractionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
+            var backchannel = await InteractionService.ShowStatusAsync(isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
@@ -271,10 +264,14 @@ internal sealed class RunCommand : BaseCommand
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
             topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+
+            if (!isExtensionHost)
             {
-                topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+                {
+                    topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
+                }
             }
 
             topGrid.AddRow(Text.Empty, Text.Empty);
@@ -448,7 +445,7 @@ internal sealed class RunCommand : BaseCommand
                     if (entry.LogLevel is not LogLevel.Trace and not LogLevel.Debug)
                     {
                         // Send only information+ level logs to the extension host.
-                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical);
+                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical, "\x1b[2m");
                     }
                 }
 

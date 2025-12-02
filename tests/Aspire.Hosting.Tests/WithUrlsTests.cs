@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -11,12 +12,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class WithUrlsTests
+public class WithUrlsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void WithUrlsAddsAnnotationForAsyncCallback()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         Func<ResourceUrlsCallbackContext, Task> callback = c => Task.CompletedTask;
 
@@ -32,7 +33,7 @@ public class WithUrlsTests
     [Fact]
     public void WithUrlsAddsAnnotationForSyncCallback()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var projectA = builder.AddProject<ProjectA>("projecta");
 
@@ -46,7 +47,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlsCallsCallbackAfterBeforeResourceStartedEvent()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var called = false;
         var tcs = new TaskCompletionSource();
@@ -78,7 +79,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlsProvidesLoggerInstanceOnCallbackContextAllocated()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         ILogger logger = NullLogger.Instance;
         var tcs = new TaskCompletionSource();
@@ -104,7 +105,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlsProvidesServiceProviderInstanceOnCallbackContextAllocated()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource<IServiceProvider>();
 
@@ -133,7 +134,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlsAddsUrlAnnotations()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -157,7 +158,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlAddsUrlAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -181,7 +182,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlInterpolatedStringAddsUrlAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpsEndpoint();
@@ -211,7 +212,7 @@ public class WithUrlsTests
     [Fact]
     public async Task EndpointsResultInUrls()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -232,10 +233,63 @@ public class WithUrlsTests
         await app.StopAsync();
     }
 
+    [Theory]
+    [InlineData("myapp.dev.localhost", "-myapp.dev.localhost")]
+    [InlineData("myapp-apphost.dev.localhost", "-myapp.dev.localhost")]
+    [InlineData("myapp_apphost.dev.localhost", "-myapp.dev.localhost")]
+    [InlineData("myapp.apphost.dev.localhost", "-myapp.dev.localhost")]
+    public async Task EndpointsGetDevLocalhostUrlsWhenDashboardHasDevLocalhostUrl(string dashboardHost, string expectedHostSuffix)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.Configure<DashboardOptions>(options =>
+        {
+            options.DashboardUrl = $"http://{dashboardHost}:12345";
+        });
+
+        var tcs = new TaskCompletionSource();
+        var projectB = builder.AddProject<ProjectB>("projectb")
+            .WithEndpoint(scheme: "tcp")
+            .WithUrlForEndpoint("http", u => u.DisplayText = "Custom Display Text")
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task.DefaultTimeout();
+
+        var urls = projectB.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Collection(urls,
+            u =>
+            {
+                Assert.StartsWith($"http://{projectB.Resource.Name.ToLowerInvariant()}{expectedHostSuffix}", u.Url);
+                Assert.EndsWith("/sub-path", u.Url);
+                Assert.Equal("http", u.Endpoint?.EndpointName);
+                Assert.Equal(UrlDisplayLocation.SummaryAndDetails, u.DisplayLocation);
+                Assert.Equal("Custom Display Text", u.DisplayText);
+            },
+            u =>
+            {
+                Assert.StartsWith("http://localhost", u.Url);
+                Assert.Equal("http", u.Endpoint?.EndpointName);
+                Assert.Equal(UrlDisplayLocation.DetailsOnly, u.DisplayLocation);
+            },
+            u =>
+            {
+                Assert.StartsWith("tcp://localhost", u.Url);
+                Assert.Equal("tcp", u.Endpoint?.EndpointName);
+            }
+        );
+
+        await app.StopAsync();
+    }
+
     [Fact]
     public async Task ProjectLaunchProfileRelativeLaunchUrlIsAddedToEndpointUrl()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectB>("projectb")
@@ -258,7 +312,7 @@ public class WithUrlsTests
     [Fact]
     public async Task ProjectLaunchProfileAbsoluteLaunchUrlIsUsedAsEndpointUrl()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectB>("projectb", launchProfileName: "custom")
@@ -281,7 +335,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlForEndpointUpdatesUrlForEndpoint()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -315,7 +369,7 @@ public class WithUrlsTests
     [Fact]
     public async Task EndpointUrlsAreInitiallyInactive()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrlForEndpoint("http", u => u.Url = "https://example.com");
@@ -351,7 +405,7 @@ public class WithUrlsTests
     [Fact]
     public async Task MultipleUrlsForSingleEndpointAreIncludedInUrlSnapshot()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea");
         var httpEndpoint = servicea.Resource.GetEndpoint("http");
@@ -394,7 +448,7 @@ public class WithUrlsTests
         // This test creates a single project resource with a custom URL and
         // a replica count of 3. It then checks that the number of URLs
         // generated isn't impacted by the number of replicas.
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrl("https://example.com/project")
@@ -437,7 +491,7 @@ public class WithUrlsTests
     [Fact]
     public async Task UrlsAreInExpectedStateForResourcesGivenTheirLifecycle()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrl("https://example.com/project");
@@ -601,7 +655,7 @@ public class WithUrlsTests
     [Fact]
     public async Task UrlsAreMarkedAsInternalDependingOnDisplayLocation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrls(c =>
@@ -650,7 +704,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlForEndpointUpdateDoesNotThrowOrCallCallbackIfEndpointNotFound()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var called = false;
         var tcs = new TaskCompletionSource();
@@ -678,7 +732,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlForEndpointAddDoesNotThrowOrCallCallbackIfEndpointNotFound()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var called = false;
         var tcs = new TaskCompletionSource();
@@ -707,7 +761,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlWithRelativeUrlAppliesPathToExpectedUrls()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -756,7 +810,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -786,7 +840,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlForEndpointAddTurnsRelativeUrlIntoAbsoluteUrl()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
@@ -816,7 +870,7 @@ public class WithUrlsTests
     [Fact]
     public async Task WithUrlsTurnsRelativeEndpointUrlsIntoAbsoluteUrls()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")

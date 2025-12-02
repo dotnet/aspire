@@ -1,5 +1,3 @@
-#pragma warning disable ASPIREPUBLISHERS001
-#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREPIPELINES001
 
 using Aspire.Hosting.Pipelines;
@@ -225,7 +223,7 @@ builder.Pipeline.AddStep("assign-storage-role", async (context) =>
                 context.CancellationToken).ConfigureAwait(false);
         }
     }
-}, requiredBy: "upload-bind-mounts", dependsOn: WellKnownPipelineSteps.ProvisionInfrastructure);
+}, requiredBy: "upload-bind-mounts", dependsOn: WellKnownPipelineTags.ProvisionInfrastructure);
 
 builder.Pipeline.AddStep("upload-bind-mounts", async (deployingContext) =>
 {
@@ -324,7 +322,7 @@ builder.Pipeline.AddStep("upload-bind-mounts", async (deployingContext) =>
             totalUploads += fileCount;
         }
     }
-}, requiredBy: WellKnownPipelineSteps.DeployCompute, dependsOn: WellKnownPipelineSteps.ProvisionInfrastructure);
+}, requiredBy: WellKnownPipelineTags.DeployCompute, dependsOn: WellKnownPipelineTags.ProvisionInfrastructure);
 
 builder.AddProject<Projects.Publishers_ApiService>("api-service")
     .WithComputeEnvironment(aasEnv)

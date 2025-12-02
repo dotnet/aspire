@@ -51,9 +51,24 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
         <target state="translated">Azure 预配</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupDialogTitle">
+        <source>Azure resource group</source>
+        <target state="translated">Azure 资源组</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
         <target state="translated">资源组</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="translated">选择或输入资源组</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupSelectionMessage">
+        <source>Select your Azure resource group or enter a new name:</source>
+        <target state="translated">选择你的 Azure 资源组或输入新名称:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
@@ -83,27 +98,27 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="TenantDialogTitle">
         <source>Azure tenant</source>
-        <target state="new">Azure tenant</target>
+        <target state="translated">Azure 租户</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantLabel">
         <source>Tenant ID</source>
-        <target state="new">Tenant ID</target>
+        <target state="translated">租户 ID</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantManualEntryMessage">
         <source>Enter your Azure tenant ID:</source>
-        <target state="new">Enter your Azure tenant ID:</target>
+        <target state="translated">输入 Azure 租户 ID:</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantPlaceholder">
         <source>Select tenant ID</source>
-        <target state="new">Select tenant ID</target>
+        <target state="translated">选择租户 ID</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
-        <target state="new">Select your Azure tenant:</target>
+        <target state="translated">选择 Azure 租户:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
@@ -118,7 +133,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="ValidationTenantIdInvalid">
         <source>Tenant ID must be a valid GUID.</source>
-        <target state="new">Tenant ID must be a valid GUID.</target>
+        <target state="translated">租户 ID 必须是有效的 GUID。</target>
         <note />
       </trans-unit>
     </body>

@@ -4,19 +4,6 @@
       "Framework": {
         "longName": "framework"
       },
-      "AspireVersionCli": {
-        "shortName": "",
-        "longName": "aspire-version"
-      },
-      "AspireVersion": {
-        "isHidden": true
-      },
-      "AspireVersionNet9": {
-        "isHidden": true
-      },
-      "AspireVersionNet10": {
-        "isHidden": true
-      },
       "XUnitVersion": {
         "shortName": "",
         "longName": "xunit-version",

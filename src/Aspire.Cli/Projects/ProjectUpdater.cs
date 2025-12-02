@@ -63,10 +63,10 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             interactionService.DisplayEmptyLine();
         }
 
-        // Display warning if fallback XML parsing was used
+        // Display warning if fallback parsing was used
         if (fallbackUsed)
         {
-            interactionService.DisplayMessage("warning", "[yellow]Note: Update plan generated using fallback XML parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.[/]");
+            interactionService.DisplayMessage("warning", $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]");
             interactionService.DisplayEmptyLine();
         }
 
@@ -108,7 +108,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
-                defaultValue: recommendedNuGetConfigFileDirectory,
+                defaultValue: recommendedNuGetConfigFileDirectory.EscapeMarkup(),
                 validator: null,
                 isSecret: false,
                 required: true,
@@ -157,14 +157,14 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             await analyzeStep.Callback();
         }
 
-        return (context.UpdateSteps, context.FallbackXmlParsing);
+        return (context.UpdateSteps, context.FallbackParsing);
     }
 
     private const string ItemsAndPropertiesCacheKeyPrefix = "ItemsAndProperties";
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], cancellationToken);
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally"], cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
@@ -189,7 +189,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], context, cancellationToken);
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally"], context, cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
@@ -202,12 +202,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         catch (ProjectUpdaterException ex) when (IsAppHostProject(projectFile, context))
         {
             // Only use fallback for AppHost projects
-            logger.LogWarning("Falling back to XML parsing for '{ProjectFile}'. Reason: {Message}", projectFile.FullName, ex.Message);
+            logger.LogWarning("Falling back to parsing for '{ProjectFile}'. Reason: {Message}", projectFile.FullName, ex.Message);
 
-            if (!context.FallbackXmlParsing)
+            if (!context.FallbackParsing)
             {
-                context.FallbackXmlParsing = true;
-                logger.LogWarning("Update plan will be generated using fallback XML parsing; dependency accuracy may be reduced.");
+                context.FallbackParsing = true;
+                logger.LogWarning("Update plan will be generated using fallback parsing; dependency accuracy may be reduced.");
             }
 
             return fallbackParser.ParseProject(projectFile);
@@ -236,7 +236,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var latestPackage = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             var packages = await context.Channel.GetPackagesAsync(packageId, context.AppHostProjectFile.Directory!, cancellationToken);
-            var latestPackage = packages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer).FirstOrDefault();
+            // Filter out packages with invalid semantic versions and find the latest valid one
+            var latestPackage = packages
+                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                .FirstOrDefault();
             return latestPackage;
         });
 
@@ -250,20 +254,23 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
         var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
+        var sdkVersion = sdkVersionElement.GetString();
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (!string.IsNullOrEmpty(sdkVersion) && IsValidSemanticVersion(sdkVersion) && sdkVersion == latestSdkPackage?.Version)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
         }
 
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersion ?? "unknown", latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
             "Aspire.AppHost.Sdk",
-            sdkVersionElement.GetString() ?? "unknown",
+            sdkVersion ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
@@ -354,13 +361,30 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return;
         }
 
-        // Detect if this project uses Central Package Management
-        var cpmInfo = DetectCentralPackageManagement(projectFile);
-
         // Use fallback wrapper for AppHost project, normal method for others
         var itemsAndPropertiesDocument = IsAppHostProject(projectFile, context)
             ? await GetItemsAndPropertiesWithFallbackAsync(projectFile, context, cancellationToken)
             : await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
+
+        // Check if this project has ManagePackageVersionsCentrally set to false
+        var usesCentralPackageManagement = true;
+        if (itemsAndPropertiesDocument.RootElement.TryGetProperty("Properties", out var propertiesElement))
+        {
+            if (propertiesElement.TryGetProperty("ManagePackageVersionsCentrally", out var managePkgVersionsElement))
+            {
+                var managePkgVersionsValue = managePkgVersionsElement.GetString();
+                // If the property is explicitly set to false, don't use CPM even if Directory.Packages.props exists
+                if (string.Equals(managePkgVersionsValue, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    usesCentralPackageManagement = false;
+                }
+            }
+        }
+
+        // Detect if this project uses Central Package Management (if not already disabled by property)
+        var cpmInfo = usesCentralPackageManagement
+            ? DetectCentralPackageManagement(projectFile)
+            : new CentralPackageManagementInfo(false, null);
 
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
@@ -439,7 +463,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     {
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (packageVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(packageVersion) && packageVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -467,7 +493,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (currentVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(currentVersion) && currentVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -580,15 +608,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static bool IsValidSemanticVersion(string version)
     {
-        try
-        {
-            SemVersion.Parse(version);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return SemVersion.TryParse(version, SemVersionStyles.Strict, out _);
     }
 
     private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
@@ -863,7 +883,7 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public ConcurrentQueue<UpdateStep> UpdateSteps { get; } = new();
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
     public HashSet<string> VisitedProjects { get; } = new();
-    public bool FallbackXmlParsing { get; set; }
+    public bool FallbackParsing { get; set; }
 }
 
 internal abstract record UpdateStep(string Description, Func<Task> Callback)
@@ -887,7 +907,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
+        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
     }
 }
 

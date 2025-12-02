@@ -14,7 +14,7 @@
 - **Project Templates**: Starter templates for new Aspire applications
 
 ### Technology Stack
-- .NET 10.0 RC (specified in global.json)
+- .NET 10.0
 - C# 13 preview features
 - xUnit SDK v3 with Microsoft.Testing.Platform for testing
 - Microsoft.DotNet.Arcade.Sdk for build infrastructure
@@ -133,7 +133,7 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **`/extension`**: VS Code extension source code
 
 ### Key Configuration Files
-- **`global.json`**: Pins .NET SDK version (10.0.100-rc.1.25411.109) - never modify without explicit request
+- **`global.json`**: Pins .NET SDK version - never modify without explicit request
 - **`.editorconfig`**: Code formatting rules, null annotations, diagnostic configurations
 - **`Directory.Build.props`**: Shared MSBuild properties across all projects
 - **`Directory.Packages.props`**: Centralized package version management
@@ -194,6 +194,8 @@ The `*.Designer.cs` files are in the repo, but are intended to match same named 
 * Code blocks should be formatted with triple backticks (```) and include the language identifier for syntax highlighting.
 * JSON code blocks should be indented properly.
 
+## Localization files
+* Files matching the pattern `*/localize/templatestrings.*.json` are localization files. Do not translate their content. It is done by a dedicated workflow.
 ## Trust These Instructions
 
 These instructions are comprehensive and tested. Only search for additional information if:
@@ -202,3 +204,12 @@ These instructions are comprehensive and tested. Only search for additional info
 3. You need details about new features not yet documented
 
 For most development tasks, following these instructions should be sufficient to build, test, and validate changes successfully.
+
+## Typescript
+
+* When possible, you should create Typescript files instead of Javascript files.
+* You must not use dynamic imports unless absolutely necessary. Instead, use static imports.
+
+## Aspire VS Code Extension
+
+* When displaying text to the user, ensure that the strings are localized. New localized strings must be put both in the extension `package.nls.json` and also `src/loc/strings.ts`.

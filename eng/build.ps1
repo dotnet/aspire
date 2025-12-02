@@ -8,6 +8,7 @@ Param(
   [ValidateSet("windows","linux","osx")][string]$os,
   [switch]$testnobuild,
   [ValidateSet("x86","x64","arm","arm64")][string[]][Alias('a')]$arch = @([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()),
+  [switch]$mauirestore,
 
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
@@ -36,6 +37,7 @@ function Get-Help() {
   Write-Host "                          This assumes -build has been run already."
   Write-Host "  -rebuild                Rebuild all source projects."
   Write-Host "  -restore                Restore dependencies."
+  Write-Host "  -mauirestore            Restore dependencies and install MAUI workload (only on Windows/macOS)."
   Write-Host "  -sign                   Sign build outputs."
   Write-Host "  -test (-t)              Incrementally builds and runs tests."
   Write-Host "                          Use in conjunction with -testnobuild to only run tests."
@@ -99,6 +101,7 @@ foreach ($argument in $PSBoundParameters.Keys)
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
     "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
     "buildExtension"         { $arguments += " /p:BuildExtension=true" }
+    "mauirestore"            { $arguments += " -restoreMaui" }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }
@@ -109,3 +112,4 @@ if ($env:TreatWarningsAsErrors -eq 'false') {
 
 Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
+exit $LASTEXITCODE

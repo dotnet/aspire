@@ -3,12 +3,10 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentAzurePackageTags) configuration appconfiguration</PackageTags>
+    <PackageTags>$(ComponentAzurePackageTags) configuration appconfiguration cloud</PackageTags>
     <Description>A client for Azure App Configuration that integrates with Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureAppConfig_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Common\AzureComponent.cs" Link="AzureComponent.cs" />

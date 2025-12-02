@@ -353,7 +353,7 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Contains(filteredResources, r => r.Name == "Resource3");
     }
 
-    private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports)
+    private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports, bool isHidden = false)
     {
         return new ResourceViewModel
         {
@@ -376,7 +376,34 @@ public partial class ResourcesTests : DashboardTestContext
             Relationships = default,
             Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             Commands = [],
-            IsHidden = false,
+            IsHidden = isHidden,
         };
+    }
+
+    [Fact]
+    public void ViewOptionsMenuIsVisibleWhenHiddenResourcesExist()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("HiddenResource", "Type2", null, null, isHidden: true), // Hidden resource without parent relationship
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(
+            this,
+            viewport,
+            dashboardClient);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Assert - the menu button should be present (it contains the "Show hidden resources" option)
+        var menuButton = cut.FindComponent<AspireMenuButton>();
+        Assert.NotNull(menuButton);
     }
 }

@@ -8,6 +8,7 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
@@ -15,6 +16,7 @@ using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -66,6 +68,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
+            .OrderBy(vm => vm.Name, StringComparers.EnvironmentVariableName)
             .AsQueryable();
 
     internal IQueryable<DisplayedUrl> FilteredUrls =>
@@ -86,11 +89,13 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     internal IQueryable<VolumeViewModel> FilteredVolumes =>
         Resource.Volumes
             .Where(vm => vm.MatchesFilter(_filter))
+            .OrderBy(vm => vm.Source, StringComparer.OrdinalIgnoreCase)
             .AsQueryable();
 
     internal IQueryable<HealthReportViewModel> FilteredHealthReports =>
         Resource.HealthReports
             .Where(vm => vm.MatchesFilter(_filter))
+            .OrderBy(vm => vm.Name, StringComparer.OrdinalIgnoreCase)
             .AsQueryable();
 
     internal IQueryable<DisplayedResourcePropertyViewModel> FilteredResourceProperties =>
@@ -106,6 +111,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     private bool _isBackRelationshipsExpanded;
 
     private string _filter = "";
+    private readonly List<MenuButtonItem> _resourceActionsMenuItems = [];
     private bool? _isMaskAllChecked;
     private bool _dataChanged;
     private AIContext? _aiContext;
@@ -176,6 +182,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                     Parameters = { ["Resource"] = _resource }
                 },
             };
+
+            UpdateResourceActionsMenu();
         }
 
         UpdateTelemetryProperties();
@@ -199,6 +207,56 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
         _aiContext = CreateAIContext();
+    }
+
+    private void UpdateResourceActionsMenu()
+    {
+        _resourceActionsMenuItems.Clear();
+
+        _resourceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = Loc[nameof(Resources.Resources.ResourceDetailsViewConsoleLogs)],
+            Icon = new Icons.Regular.Size16.SlideText(),
+            OnClick = () =>
+            {
+                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName)));
+                return Task.CompletedTask;
+            }
+        });
+
+        if (ShowSpecOnlyToggle)
+        {
+            _resourceActionsMenuItems.Add(new MenuButtonItem
+            {
+                Text = _showAll ? ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowAll)],
+                Icon = _showAll ? new Icons.Regular.Size16.DocumentHeader() : new Icons.Regular.Size16.DocumentOnePage(),
+                OnClick = () =>
+                {
+                    _showAll = !_showAll;
+
+                    UpdateResourceActionsMenu();
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }
+            });
+        }
+
+        _resourceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = IsMaskAllChecked ? ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)] : ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)],
+            Icon = IsMaskAllChecked ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff(),
+            OnClick = () =>
+            {
+                IsMaskAllChecked = !IsMaskAllChecked;
+                OnMaskAllCheckedChanged();
+
+                UpdateResourceActionsMenu();
+                StateHasChanged();
+                return Task.CompletedTask;
+            },
+            Class = "mask-all-switch",
+            IsDisabled = IsSpecOnlyToggleDisabled
+        });
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()

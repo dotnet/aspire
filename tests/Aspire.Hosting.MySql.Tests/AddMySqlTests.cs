@@ -4,18 +4,19 @@
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.MySql.Tests;
 
-public class AddMySqlTests
+public class AddMySqlTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddMySqlAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var mysql = appBuilder.AddMySql("mysql");
 
@@ -152,7 +153,7 @@ public class AddMySqlTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var mysql = appBuilder.AddMySql("mysql");
         var db = mysql.AddDatabase("db");
 
@@ -191,7 +192,7 @@ public class AddMySqlTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var pass = appBuilder.AddParameter("pass");
 
         var mysql = appBuilder.AddMySql("mysql", pass);
@@ -221,7 +222,7 @@ public class AddMySqlTests
     [Fact]
     public void WithMySqlTwiceEndsUpWithOneAdminContainer()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.AddMySql("mySql").WithPhpMyAdmin();
         builder.AddMySql("mySql2").WithPhpMyAdmin();
 
@@ -290,7 +291,7 @@ public class AddMySqlTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var db = builder.AddMySql("mysql1");
         db.AddDatabase("db");
@@ -301,7 +302,7 @@ public class AddMySqlTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         builder.AddMySql("mysql1")
             .AddDatabase("db");
@@ -313,7 +314,7 @@ public class AddMySqlTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var mysql1 = builder.AddMySql("mysql1");
 
@@ -333,7 +334,7 @@ public class AddMySqlTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var db1 = builder.AddMySql("mysql1")
             .AddDatabase("db1", "imports");
@@ -364,5 +365,36 @@ public class AddMySqlTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
         var connectionString = await connectionStringResource.ConnectionStringExpression.GetValueAsync(default);
         Assert.Equal("Server=localhost;Port=2000;User ID=root;Password=p@ssw0rd1", connectionString);
+    }
+
+    [Fact]
+    public async Task PhpMyAdminEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var mysql = appBuilder.AddMySql("mysql")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3306))
+            .WithPhpMyAdmin();
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var phpMyAdminResource = Assert.Single(appModel.Resources.OfType<PhpMyAdminContainerResource>());
+
+        // Trigger the BeforeResourceStartedEvent to add environment callbacks
+        await appBuilder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(phpMyAdminResource, app.Services),
+            EventDispatchBehavior.BlockingSequential);
+
+        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await phpMyAdminResource.GetEnvironmentVariableValuesAsync();
+        var config2 = await phpMyAdminResource.GetEnvironmentVariableValuesAsync();
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "PMA_HOST");
+        Assert.Contains(config2, kvp => kvp.Key == "PMA_HOST");
+        Assert.Equal(
+            config1.First(kvp => kvp.Key == "PMA_HOST").Value,
+            config2.First(kvp => kvp.Key == "PMA_HOST").Value);
     }
 }

@@ -39,18 +39,20 @@ using System.Text.RegularExpressions;
 
 public class Program
 {
-    private const string DefaultAttributeFullName = "Aspire.TestUtilities.QuarantinedTest";
+    private const string DefaultQuarantinedTestAttributeFullName = "Aspire.TestUtilities.QuarantinedTest";
+    private const string DefaultActiveIssueAttributeFullName = "Xunit.ActiveIssueAttribute";
 
     public static Task<int> Main(string[] args)
     {
-        var rootCommand = new RootCommand("Quarantine or unquarantine xUnit tests by adding/removing a QuarantinedTest attribute.");
+        var rootCommand = new RootCommand("Quarantine or unquarantine xUnit tests by adding/removing a QuarantinedTest or ActiveIssue attribute.");
 
         var optQuarantine = new Option<bool>("--quarantine", "-q") { Description = "Quarantine the specified test(s)." };
         var optUnquarantine = new Option<bool>("--unquarantine", "-u") { Description = "Unquarantine the specified test(s)." };
         var optUrl = new Option<string?>("--url", "-i") { Description = "Issue URL required for quarantining (http/https)." };
         var optRoot = new Option<string?>("--root", "-r") { Description = "Tests root to scan (defaults to '<repo>/tests')." };
-        var optAttribute = new Option<string>("--attribute", "-a") { Description = "Fully-qualified attribute type to add/remove (default: Aspire.TestUtilities.QuarantinedTest)." };
-        optAttribute.DefaultValueFactory = _ => DefaultAttributeFullName;
+        var optAttribute = new Option<string?>("--attribute", "-a") { Description = "Fully-qualified attribute type to add/remove. If not specified, defaults based on --mode." };
+        var optMode = new Option<string>("--mode", "-m") { Description = "Mode: 'quarantine' for QuarantinedTest or 'activeissue' for ActiveIssue (default: quarantine)." };
+        optMode.DefaultValueFactory = _ => "quarantine";
 
         var argTests = new Argument<string[]>("tests") { Arity = ArgumentArity.ZeroOrMore, Description = "Fully-qualified test method name(s) like Namespace.Type.Method" };
 
@@ -59,6 +61,7 @@ public class Program
         rootCommand.Options.Add(optUrl);
         rootCommand.Options.Add(optRoot);
         rootCommand.Options.Add(optAttribute);
+        rootCommand.Options.Add(optMode);
         rootCommand.Arguments.Add(argTests);
 
         rootCommand.SetAction(static (parseResult, token) =>
@@ -82,7 +85,23 @@ public class Program
 
             var issueUrl = parseResult.GetValue<string?>("--url");
             var scanRoot = parseResult.GetValue<string?>("--root");
-            var attributeFullName = parseResult.GetValue<string>("--attribute") ?? DefaultAttributeFullName;
+            var mode = parseResult.GetValue<string>("--mode") ?? "quarantine";
+            var attributeFullName = parseResult.GetValue<string?>("--attribute");
+
+            // Validate mode
+            if (mode != "quarantine" && mode != "activeissue")
+            {
+                Console.Error.WriteLine("Mode must be 'quarantine' or 'activeissue'.");
+                return Task.FromResult(1);
+            }
+
+            // If attribute not explicitly provided, use default based on mode
+            if (string.IsNullOrWhiteSpace(attributeFullName))
+            {
+                attributeFullName = mode == "activeissue"
+                    ? DefaultActiveIssueAttributeFullName
+                    : DefaultQuarantinedTestAttributeFullName;
+            }
 
             if (quarantine)
             {
@@ -104,7 +123,7 @@ public class Program
                     tests.ToList(),
                     string.IsNullOrWhiteSpace(issueUrl) ? null : issueUrl,
                     scanRoot,
-                    string.IsNullOrWhiteSpace(attributeFullName) ? DefaultAttributeFullName : attributeFullName,
+                    attributeFullName,
                     token);
         });
 

@@ -9,6 +9,8 @@ using Aspire.Dashboard.Model;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
 
 namespace Aspire.Dashboard.Components.Tests.Controls;
@@ -53,8 +55,14 @@ public class ResourceDetailsTests : DashboardTestContext
                 Assert.True(e.IsValueMasked);
             });
 
+        var actionsButton = cut.Find(".resource-details-actions");
+        await actionsButton.ClickAsync(new MouseEventArgs());
+
         var maskAllSwitch = cut.Find(".mask-all-switch");
-        await maskAllSwitch.ClickAsync(new MouseEventArgs());
+
+        // HACK. Calling OnClick on the element isn't triggering the event correctly. Instead, call OnClick on the component.
+        var item = cut.FindComponents<FluentMenuItem>().Single(s => s.Instance.Class == maskAllSwitch.Attributes["class"]!.Value);
+        await cut.InvokeAsync(() => item.Instance.OnClick.InvokeAsync(new MouseEventArgs()));
 
         Assert.Collection(cut.Instance.FilteredEnvironmentVariables,
             e =>
@@ -137,8 +145,14 @@ public class ResourceDetailsTests : DashboardTestContext
                 Assert.True(e.IsValueMasked);
             });
 
+        var actionsButton = cut.Find(".resource-details-actions");
+        await actionsButton.ClickAsync(new MouseEventArgs());
+
         var maskAllSwitch = cut.Find(".mask-all-switch");
-        await maskAllSwitch.ClickAsync(new MouseEventArgs());
+
+        // HACK. Calling OnClick on the element isn't triggering the event correctly. Instead, call OnClick on the component.
+        var item = cut.FindComponents<FluentMenuItem>().Single(s => s.Instance.Class == maskAllSwitch.Attributes["class"]!.Value);
+        await cut.InvokeAsync(() => item.Instance.OnClick.InvokeAsync(new MouseEventArgs()));
 
         Assert.Collection(cut.Instance.FilteredEnvironmentVariables,
             e =>
@@ -350,5 +364,113 @@ public class ResourceDetailsTests : DashboardTestContext
                 Assert.Equal("envvar3", e.Name);
                 Assert.True(e.IsValueMasked);
             });
+    }
+
+    [Fact]
+    public void FilteredEnvironmentVariables_SortedByName()
+    {
+        // Arrange
+        ResourceSetupHelpers.SetupResourceDetails(this);
+
+        var resource = ModelTestHelpers.CreateResource(
+            "app1",
+            environment: new List<EnvironmentVariableViewModel>
+            {
+                new EnvironmentVariableViewModel("ZEBRA", "value1", fromSpec: true),
+                new EnvironmentVariableViewModel("alpha", "value2", fromSpec: true),
+                new EnvironmentVariableViewModel("Beta", "value3", fromSpec: true),
+                new EnvironmentVariableViewModel("GAMMA", "value4", fromSpec: true),
+                new EnvironmentVariableViewModel("delta", "value5", fromSpec: true)
+            }.ToImmutableArray());
+
+        // Act
+        var cut = RenderComponent<ResourceDetails>(builder =>
+        {
+            builder.Add(p => p.ShowSpecOnlyToggle, true);
+            builder.Add(p => p.Resource, resource);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel>(resource.Name, resource)]));
+        });
+
+        // Assert - verify environment variables are sorted alphabetically (case-insensitive)
+        var envVars = cut.Instance.FilteredEnvironmentVariables.ToList();
+        Assert.Equal(5, envVars.Count);
+        Assert.Collection(envVars,
+            e => Assert.Equal("alpha", e.Name),
+            e => Assert.Equal("Beta", e.Name),
+            e => Assert.Equal("delta", e.Name),
+            e => Assert.Equal("GAMMA", e.Name),
+            e => Assert.Equal("ZEBRA", e.Name));
+    }
+
+    [Fact]
+    public void FilteredVolumes_SortedBySource()
+    {
+        // Arrange
+        ResourceSetupHelpers.SetupResourceDetails(this);
+
+        var resource = ModelTestHelpers.CreateResource(
+            "app1",
+            volumes: new List<VolumeViewModel>
+            {
+                new VolumeViewModel(0, "zebra-volume", "/target1", "bind", false),
+                new VolumeViewModel(1, "Alpha-Volume", "/target2", "volume", false),
+                new VolumeViewModel(2, "beta-volume", "/target3", "bind", true),
+                new VolumeViewModel(3, "GAMMA-Volume", "/target4", "volume", false),
+                new VolumeViewModel(4, "delta-volume", "/target5", "bind", false)
+            }.ToImmutableArray());
+
+        // Act
+        var cut = RenderComponent<ResourceDetails>(builder =>
+        {
+            builder.Add(p => p.ShowSpecOnlyToggle, true);
+            builder.Add(p => p.Resource, resource);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel>(resource.Name, resource)]));
+        });
+
+        // Assert - verify volumes are sorted alphabetically by source (case-insensitive)
+        var volumes = cut.Instance.FilteredVolumes.ToList();
+        Assert.Equal(5, volumes.Count);
+        Assert.Collection(volumes,
+            v => Assert.Equal("Alpha-Volume", v.Source),
+            v => Assert.Equal("beta-volume", v.Source),
+            v => Assert.Equal("delta-volume", v.Source),
+            v => Assert.Equal("GAMMA-Volume", v.Source),
+            v => Assert.Equal("zebra-volume", v.Source));
+    }
+
+    [Fact]
+    public void FilteredHealthReports_SortedByName()
+    {
+        // Arrange
+        ResourceSetupHelpers.SetupResourceDetails(this);
+
+        var resource = ModelTestHelpers.CreateResource(
+            "app1",
+            healthReports: new List<HealthReportViewModel>
+            {
+                new HealthReportViewModel("zebra-check", HealthStatus.Healthy, "OK", null),
+                new HealthReportViewModel("Alpha-Check", HealthStatus.Healthy, "OK", null),
+                new HealthReportViewModel("beta-check", HealthStatus.Degraded, "Warning", null),
+                new HealthReportViewModel("GAMMA-Check", HealthStatus.Healthy, "OK", null),
+                new HealthReportViewModel("delta-check", HealthStatus.Unhealthy, "Failed", null)
+            }.ToImmutableArray());
+
+        // Act
+        var cut = RenderComponent<ResourceDetails>(builder =>
+        {
+            builder.Add(p => p.ShowSpecOnlyToggle, true);
+            builder.Add(p => p.Resource, resource);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel>(resource.Name, resource)]));
+        });
+
+        // Assert - verify health reports are sorted alphabetically by name (case-insensitive)
+        var healthReports = cut.Instance.FilteredHealthReports.ToList();
+        Assert.Equal(5, healthReports.Count);
+        Assert.Collection(healthReports,
+            h => Assert.Equal("Alpha-Check", h.Name),
+            h => Assert.Equal("beta-check", h.Name),
+            h => Assert.Equal("delta-check", h.Name),
+            h => Assert.Equal("GAMMA-Check", h.Name),
+            h => Assert.Equal("zebra-check", h.Name));
     }
 }

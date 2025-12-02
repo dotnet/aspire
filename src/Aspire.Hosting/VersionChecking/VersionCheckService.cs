@@ -7,11 +7,11 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.Resources;
+using Aspire.Hosting.UserSecrets;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 using Semver;
 
 namespace Aspire.Hosting.VersionChecking;
@@ -32,10 +32,12 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly TimeProvider _timeProvider;
     private readonly SemVersion? _appHostVersion;
+    private readonly IUserSecretsManager _userSecretsManager;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
         IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
-        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider)
+        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider,
+        IUserSecretsManager userSecretsManager)
     {
         _interactionService = interactionService;
         _logger = logger;
@@ -44,6 +46,7 @@ internal sealed class VersionCheckService : BackgroundService
         _packageFetcher = packageFetcher;
         _executionContext = executionContext;
         _timeProvider = timeProvider;
+        _userSecretsManager = userSecretsManager;
 
         _appHostVersion = packageVersionProvider.GetPackageVersion();
     }
@@ -86,10 +89,13 @@ internal sealed class VersionCheckService : BackgroundService
         if (_configuration[LastCheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
         {
-            if (now - checkDate < s_checkInterval)
+            var intervalSinceLastCheck = now - checkDate;
+            if (intervalSinceLastCheck < s_checkInterval)
             {
                 // Already checked within the last day.
                 checkForLatestVersion = false;
+
+                _logger.LogDebug("Last version check was performed {IntervalSinceLastCheck} ago on {CheckDate}, skipping version check.", intervalSinceLastCheck, checkDateString);
             }
         }
 
@@ -99,21 +105,24 @@ internal sealed class VersionCheckService : BackgroundService
         {
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
-            SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
+            _userSecretsManager.TrySetSecret(LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion);
+            if (TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion))
+            {
+                _logger.LogDebug("Using stored known latest version {StoredKnownLatestVersion}.", storedKnownLatestVersion);
+            }
         }
 
         // Use known package versions to figure out what the newest valid version is.
         // Note: A pre-release version is only selected if the current app host version is pre-release.
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages ?? [], storedKnownLatestVersion);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_logger, _appHostVersion, packages ?? [], storedKnownLatestVersion);
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
         {
-            // App host version is up to date or the latest version is unknown.
+            _logger.LogDebug("App host version is up to date or the latest version is unknown.");
             return;
         }
 
@@ -130,7 +139,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (IsVersionGreater(latestVersion, storedKnownLatestVersion) || storedKnownLatestVersion == null)
         {
             // Latest version is greater than the stored known latest version, so update it.
-            SecretsStore.TrySetUserSecret(_options.Assembly, KnownLatestVersionKey, latestVersion.ToString());
+            _userSecretsManager.TrySetSecret(KnownLatestVersionKey, latestVersion.ToString());
         }
 
         var result = await _interactionService.PromptNotificationAsync(
@@ -148,7 +157,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (result.Data)
         {
             _logger.LogDebug("User chose to ignore version {Version}.", latestVersion);
-            SecretsStore.TrySetUserSecret(_options.Assembly, IgnoreVersionKey, latestVersion.ToString());
+            _userSecretsManager.TrySetSecret(IgnoreVersionKey, latestVersion.ToString());
         }
     }
 

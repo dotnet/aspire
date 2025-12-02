@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -34,8 +36,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
-    private PortAllocator PortAllocator { get; } = new();
-
     /// <summary>
     /// Gets cancellation token for this operation.
     /// </summary>
@@ -44,6 +44,12 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     private readonly Dictionary<string, IResource> _referencedResources = [];
 
     private readonly HashSet<object?> _currentDependencySet = [];
+
+    private readonly Dictionary<ParameterResource, Dictionary<string, string>> _formattedParameters = [];
+
+    private readonly HashSet<string> _manifestResourceNames = new(StringComparers.ResourceName);
+
+    private readonly IPortAllocator _portAllocator = new PortAllocator();
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
@@ -70,6 +76,14 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     internal async Task WriteModel(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
+        _formattedParameters.Clear();
+        _manifestResourceNames.Clear();
+
+        foreach (var resource in model.Resources)
+        {
+            _manifestResourceNames.Add(resource.Name);
+        }
+
         Writer.WriteStartObject();
         Writer.WriteString("$schema", SchemaUtils.SchemaVersion);
         Writer.WriteStartObject("resources");
@@ -81,10 +95,15 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteReferencedResources(model).ConfigureAwait(false);
 
+        WriteRemainingFormattedParameters();
+
         Writer.WriteEndObject();
         Writer.WriteEndObject();
 
         await Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+        _formattedParameters.Clear();
+        _manifestResourceNames.Clear();
     }
 
     internal async Task WriteResourceAsync(IResource resource)
@@ -128,6 +147,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteStartObject(resource.Name);
             await action().ConfigureAwait(false);
             Writer.WriteEndObject();
+
+            if (resource is ParameterResource parameterResource)
+            {
+                WriteFormattedParameterResources(parameterResource);
+            }
         }
     }
 
@@ -172,6 +196,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
         }
 
+        WriteContainerFilesDestination(project);
+
         await WriteCommandLineArgumentsAsync(project).ConfigureAwait(false);
 
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
@@ -190,6 +216,39 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
+    private void WriteContainerFilesDestination(IResource resource)
+    {
+        if (!resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+        {
+            return;
+        }
+
+        Writer.WriteStartObject("containerFiles");
+
+        foreach (var containerFileDestination in containerFilesAnnotations)
+        {
+            var source = containerFileDestination.Source;
+
+            Writer.WriteStartObject(source.Name);
+            Writer.WriteString("destination", containerFileDestination.DestinationPath);
+
+            // Get source paths from the source resource
+            if (source.TryGetAnnotationsOfType<ContainerFilesSourceAnnotation>(out var sourceAnnotations))
+            {
+                Writer.WriteStartArray("sources");
+                foreach (var sourceAnnotation in sourceAnnotations)
+                {
+                    Writer.WriteStringValue(sourceAnnotation.SourcePath);
+                }
+                Writer.WriteEndArray();
+            }
+
+            Writer.WriteEndObject();
+        }
+
+        Writer.WriteEndObject();
+    }
+
     private async Task WriteExecutableAsync(ExecutableResource executable)
     {
         Writer.WriteString("type", "executable.v0");
@@ -202,6 +261,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         Writer.WriteString("workingDirectory", relativePathToProjectFile);
 
         Writer.WriteString("command", executable.Command);
+
+        WriteContainerFilesDestination(executable);
 
         await WriteCommandLineArgumentsAsync(executable).ConfigureAwait(false);
 
@@ -292,6 +353,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         // Write args if they are present
         await WriteCommandLineArgumentsAsync(container).ConfigureAwait(false);
 
+        // Write container files destination if present
+        WriteContainerFilesDestination(container);
+
         // Write volume & bind mount details
         WriteContainerMounts(container);
 
@@ -315,7 +379,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
                 Directory.CreateDirectory(manifestDirectory);
                 File.Copy(annotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
-                
+
                 // Update the dockerfile path to use the generated file for the manifest
                 dockerfilePath = resourceDockerfilePath;
             }
@@ -329,6 +393,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("stage", stage);
             }
 
+            if (!annotation.HasEntrypoint)
+            {
+                Writer.WriteBoolean("buildOnly", true);
+            }
+
             if (annotation.BuildArguments.Count > 0)
             {
                 Writer.WriteStartObject("args");
@@ -338,11 +407,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     var valueString = value switch
                     {
                         string stringValue => stringValue,
-                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        IManifestExpressionProvider manifestExpression => GetManifestExpression(manifestExpression, manifestExpression.ValueExpression),
                         bool boolValue => boolValue ? "true" : "false",
                         null => null, // null means let docker build pull from env var.
                         _ => value.ToString()
                     };
+
+                    TryAddDependentResources(value);
 
                     Writer.WriteString(key, valueString);
                 }
@@ -360,7 +431,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     {
                         FileInfo fileValue => GetManifestRelativePath(fileValue.FullName),
                         string stringValue => stringValue,
-                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        IManifestExpressionProvider manifestExpression => GetManifestExpression(manifestExpression, manifestExpression.ValueExpression),
                         bool boolValue => boolValue ? "true" : "false",
                         null => null, // null means let docker build pull from env var.
                         _ => value.ToString()
@@ -380,6 +451,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     }
 
                     Writer.WriteEndObject();
+
+                    TryAddDependentResources(value);
                 }
 
                 Writer.WriteEndObject();
@@ -398,7 +471,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         if (resource is IResourceWithConnectionString resourceWithConnectionString &&
             resourceWithConnectionString.ConnectionStringExpression is { } connectionString)
         {
-            Writer.WriteString("connectionString", connectionString.ValueExpression);
+            TryAddDependentResources(connectionString);
+            Writer.WriteString("connectionString", GetManifestExpression(connectionString));
         }
     }
 
@@ -410,79 +484,31 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> that contains <see cref="EndpointAnnotation"/> annotations.</param>
     public void WriteBindings(IResource resource)
     {
-        if (resource.TryGetEndpoints(out var endpoints))
+        var resolvedEndpoints = resource.ResolveEndpoints(_portAllocator);
+
+        if (resolvedEndpoints.Count > 0)
         {
-            // This is used to determine if an endpoint should be treated as the Default endpoint.
-            // Endpoints can come from 3 different sources (in this order):
-            // 1. Kestrel configuration
-            // 2. Default endpoints added by the framework
-            // 3. Explicitly added endpoints
-            // But wherever they come from, we treat the first one as Default, for each scheme.
-            var httpSchemesEncountered = new HashSet<string>();
-
-            static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
-
             Writer.WriteStartObject("bindings");
-            foreach (var endpoint in endpoints)
+            foreach (var resolved in resolvedEndpoints)
             {
+                var endpoint = resolved.Endpoint;
+
                 Writer.WriteStartObject(endpoint.Name);
                 Writer.WriteString("scheme", endpoint.UriScheme);
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
+                // Only emit exposedPort if it's not implicit (i.e., it was explicitly set or allocated)
+                // and it's different from the target port
+                if (resolved.ExposedPort.Value is int exposedPort && !resolved.ExposedPort.IsImplicit &&
+                    (!resolved.TargetPort.Value.HasValue || resolved.TargetPort.Value.Value != exposedPort))
                 {
-                    // The port was specified so use it
-                    (_, _, int target, _) => target,
-
-                    // Container resources get their default listening port from the exposed port.
-                    (ContainerResource, _, null, int port) => port,
-
-                    // Check whether the project view this endpoint as Default (for its scheme).
-                    // If so, we don't specify the target port, as it will get one from the deployment tool.
-                    (ProjectResource project, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => null,
-
-                    // Allocate a dynamic port
-                    _ => PortAllocator.AllocatePort()
-                };
-
-                // We only keep track of schemes for project resources, since we don't want
-                // a non-project scheme to affect what project endpoints are considered default.
-                if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
-                {
-                    httpSchemesEncountered.Add(endpoint.UriScheme);
+                    Writer.WriteNumber("port", exposedPort);
                 }
 
-                int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
+                if (resolved.TargetPort.Value is int targetPort)
                 {
-                    // Exposed port and target port are the same, we don't need to mention the exposed port
-                    (_, int p0, int p1) when p0 == p1 => null,
-
-                    // Port was specified, so use it
-                    (_, int port, _) => port,
-
-                    // We have a target port, not need to specify an exposedPort
-                    // it will default to the targetPort
-                    (_, null, int port) => null,
-
-                    // Let the tool infer the default http and https ports
-                    ("http", null, null) => null,
-                    ("https", null, null) => null,
-
-                    // Other schemes just allocate a port
-                    _ => PortAllocator.AllocatePort()
-                };
-
-                if (exposedPort is int ep)
-                {
-                    PortAllocator.AddUsedPort(ep);
-                    Writer.WriteNumber("port", ep);
-                }
-
-                if (targetPort is int tp)
-                {
-                    PortAllocator.AddUsedPort(tp);
-                    Writer.WriteNumber("targetPort", tp);
+                    Writer.WriteNumber("targetPort", targetPort);
                 }
 
                 if (endpoint.IsExternal)
@@ -529,7 +555,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             {
                 var (unprocessed, processed) = value;
 
-                Writer.WriteString(key, processed);
+                var manifestExpression = GetManifestExpression(unprocessed, processed);
+
+                Writer.WriteString(key, manifestExpression);
 
                 TryAddDependentResources(unprocessed);
             }
@@ -570,7 +598,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
             foreach (var (unprocessed, expression) in args)
             {
-                Writer.WriteStringValue(expression);
+                var manifestExpression = GetManifestExpression(unprocessed, expression);
+
+                Writer.WriteStringValue(manifestExpression);
 
                 TryAddDependentResources(unprocessed);
             }
@@ -646,11 +676,19 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="value">The object to check for references that may be resources that need to be written.</param>
     public void TryAddDependentResources(object? value)
     {
+        if (value is ReferenceExpression referenceExpression)
+        {
+            RegisterFormattedParameters(referenceExpression);
+        }
+
         if (value is IResource resource)
         {
             // add the resource to the ReferencedResources for now. After the whole model is written,
             // these will be written to the manifest
-            _referencedResources.TryAdd(resource.Name, resource);
+            if (_referencedResources.TryAdd(resource.Name, resource))
+            {
+                _manifestResourceNames.Add(resource.Name);
+            }
         }
         else if (value is IValueWithReferences objectWithReferences)
         {
@@ -665,6 +703,176 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
             _currentDependencySet.Remove(value);
         }
+    }
+
+    private string GetManifestExpression(object? source, string expression)
+    {
+        return source switch
+        {
+            ReferenceExpression referenceExpression => GetManifestExpression(referenceExpression),
+            _ => expression
+        };
+    }
+
+    private string GetManifestExpression(ReferenceExpression referenceExpression)
+    {
+        var arguments = new string[referenceExpression.ManifestExpressions.Count];
+
+        for (var i = 0; i < arguments.Length; i++)
+        {
+            var expression = referenceExpression.ManifestExpressions[i];
+            var format = referenceExpression.StringFormats[i];
+
+            if (!string.IsNullOrEmpty(format))
+            {
+                if (GetFormattedResourceNameForProvider(referenceExpression.ValueProviders[i], format) is { } formattedResourceName)
+                {
+                    expression = $"{{{formattedResourceName}.value}}";
+                }
+            }
+
+            arguments[i] = expression;
+        }
+
+        return string.Format(CultureInfo.InvariantCulture, referenceExpression.Format, arguments);
+    }
+
+    private void RegisterFormattedParameters(ReferenceExpression referenceExpression)
+    {
+        var providers = referenceExpression.ValueProviders;
+        var formats = referenceExpression.StringFormats;
+
+        for (var i = 0; i < providers.Count; i++)
+        {
+            var format = formats[i];
+
+            if (string.IsNullOrEmpty(format))
+            {
+                continue;
+            }
+
+            _ = GetFormattedResourceNameForProvider(providers[i], format);
+        }
+    }
+
+    private string RegisterFormattedParameter(ParameterResource parameter, string format)
+    {
+        if (!_formattedParameters.TryGetValue(parameter, out var formats))
+        {
+            formats = new Dictionary<string, string>(StringComparer.Ordinal);
+            _formattedParameters[parameter] = formats;
+        }
+
+        if (!formats.TryGetValue(format, out var resourceName))
+        {
+            resourceName = CreateFormattedParameterResourceName(parameter.Name, format);
+            formats[format] = resourceName;
+        }
+
+        return resourceName;
+    }
+
+    private string CreateFormattedParameterResourceName(string parameterName, string format)
+    {
+        var sanitizedFormat = SanitizeFormat(format);
+        var baseName = $"{parameterName}-{sanitizedFormat}-encoded";
+        var candidate = baseName;
+        var suffix = 1;
+
+        while (_manifestResourceNames.Contains(candidate))
+        {
+            candidate = $"{baseName}-{suffix++}";
+        }
+
+        _manifestResourceNames.Add(candidate);
+        return candidate;
+    }
+
+    private static string SanitizeFormat(string format)
+    {
+        if (string.IsNullOrEmpty(format))
+        {
+            return "formatted";
+        }
+
+        var builder = new StringBuilder(format.Length);
+        var lastWasSeparator = false;
+
+        foreach (var ch in format)
+        {
+            if (char.IsLetterOrDigit(ch))
+            {
+                builder.Append(char.ToLowerInvariant(ch));
+                lastWasSeparator = false;
+            }
+            else if (!lastWasSeparator)
+            {
+                builder.Append('-');
+                lastWasSeparator = true;
+            }
+        }
+
+        var sanitized = builder.ToString().Trim('-');
+        return sanitized.Length > 0 ? sanitized : "formatted";
+    }
+
+    private void WriteFormattedParameterResources(ParameterResource parameter)
+    {
+        if (!_formattedParameters.TryGetValue(parameter, out var formats))
+        {
+            return;
+        }
+
+        foreach (var (format, resourceName) in formats)
+        {
+            Writer.WriteStartObject(resourceName);
+            Writer.WriteString("type", "annotated.string");
+            Writer.WriteString("value", parameter.ValueExpression);
+            Writer.WriteString("filter", format);
+            Writer.WriteEndObject();
+        }
+
+        _formattedParameters.Remove(parameter);
+    }
+
+    private void WriteRemainingFormattedParameters()
+    {
+        if (_formattedParameters.Count == 0)
+        {
+            return;
+        }
+
+        var pending = new List<ParameterResource>(_formattedParameters.Keys);
+
+        foreach (var parameter in pending)
+        {
+            WriteFormattedParameterResources(parameter);
+        }
+    }
+
+    private string? GetFormattedResourceNameForProvider(object provider, string format)
+    {
+        return provider switch
+        {
+            ParameterResource parameter => RegisterFormattedParameter(parameter, format),
+            ReferenceExpression referenceExpression when TryGetSingleParameterProvider(referenceExpression, out var parameter) => RegisterFormattedParameter(parameter, format),
+            _ => null
+        };
+    }
+
+    private static bool TryGetSingleParameterProvider(ReferenceExpression referenceExpression, out ParameterResource parameter)
+    {
+        if (referenceExpression.ValueProviders.Count == 1 &&
+            referenceExpression.ValueProviders[0] is ParameterResource parameterResource &&
+            referenceExpression.ManifestExpressions.Count == 1 &&
+            referenceExpression.Format == "{0}")
+        {
+            parameter = parameterResource;
+            return true;
+        }
+
+        parameter = null!;
+        return false;
     }
 
     private async Task WriteReferencedResources(DistributedApplicationModel model)

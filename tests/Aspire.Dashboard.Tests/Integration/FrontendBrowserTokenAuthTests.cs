@@ -98,7 +98,7 @@ public class FrontendBrowserTokenAuthTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
         var log = testSink.Writes.Single(s => s.LoggerName == typeof(FrontendCompositeAuthenticationHandler).FullName && s.EventId.Name == "AuthenticationSchemeNotAuthenticatedWithFailure");
-        Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection type Frontend is not enabled on this connection.", log.Message);
+        Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection types 'Frontend' are not enabled on this connection.", log.Message);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class FrontendBrowserTokenAuthTests
     [Theory]
     [InlineData(FrontendAuthMode.BrowserToken, "TestKey123!", HttpStatusCode.OK, true)]
     [InlineData(FrontendAuthMode.BrowserToken, "Wrong!", HttpStatusCode.OK, false)]
-    [InlineData(FrontendAuthMode.Unsecured, "Wrong!", HttpStatusCode.BadRequest, null)]
+    [InlineData(FrontendAuthMode.Unsecured, "Wrong!", HttpStatusCode.NotFound, null)]
     public async Task Post_ValidateTokenApi_AvailableBasedOnOptions(FrontendAuthMode authMode, string requestToken, HttpStatusCode statusCode, bool? result)
     {
         // Arrange
@@ -167,7 +167,7 @@ public class FrontendBrowserTokenAuthTests
         await app.StartAsync().DefaultTimeout();
 
         // Assert
-        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
         Assert.Collection(l,
             w =>
             {
@@ -196,7 +196,19 @@ public class FrontendBrowserTokenAuthTests
             },
             w =>
             {
+                Assert.Equal("MCP listening on: {McpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+
+                var uri = new Uri((string)GetValue(w.State, "McpEndpointUri")!);
+                Assert.NotEqual(0, uri.Port);
+            },
+            w =>
+            {
                 Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             },
             w =>

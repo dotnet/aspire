@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
@@ -67,7 +68,8 @@ internal static class AddressAllocationModes
     public const string Proxyless = "Proxyless";
 }
 
-internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
+[DebuggerDisplay("Service {Metadata.Name} State={Status?.State}")]
+internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>, IKubernetesStaticMetadata
 {
     [JsonConstructor]
     public Service(ServiceSpec spec) : base(spec) { }
@@ -107,5 +109,7 @@ internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
             Status.EffectivePort = other.Status.EffectivePort;
         }
     }
+
+    public static string ObjectKind => Dcp.ServiceKind;
 }
 

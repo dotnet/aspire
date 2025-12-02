@@ -1,9 +1,14 @@
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -13,6 +18,7 @@ namespace Aspire.Hosting;
 public static class YarpResourceExtensions
 {
     private const int Port = 5000;
+    private const int HttpsPort = 5001;
 
     /// <summary>
     /// Adds a YARP container to the application model.
@@ -34,7 +40,52 @@ public static class YarpResourceExtensions
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
-                      .WithOtlpExporter();
+                      .WithOtlpExporter()
+                      .WithServerAuthenticationCertificateConfiguration(ctx =>
+                      {
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
+                          if (ctx.Password is not null)
+                          {
+                              ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+                          }
+
+                          return Task.CompletedTask;
+                      });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForServerAuthentication)
+                    {
+                        // If no specific certificate is configured
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    yarpBuilder
+                        .WithHttpsEndpoint(targetPort: HttpsPort)
+                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
+                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -89,6 +140,23 @@ public static class YarpResourceExtensions
     }
 
     /// <summary>
+    /// Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port.
+    /// This will only have effect if an HTTPS endpoint is configured on the YARP resource due to TLS termination being enabled.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<YarpResource> WithHostHttpsPort(this IResourceBuilder<YarpResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("https", endpoint =>
+        {
+            endpoint.Port = port;
+        }, createIfNotExists: false);
+    }
+
+    /// <summary>
     /// Enables static file serving in the YARP resource. Static files are served from the wwwroot folder.
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
@@ -113,16 +181,13 @@ public static class YarpResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);
 
-        builder = builder.WithStaticFiles();
+        builder.WithStaticFiles();
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             builder.WithDockerfileFactory(sourcePath, ctx =>
             {
-                if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
-                {
-                    imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
-                }
+                var imageName = GetYarpImageName(ctx.Resource);
 
                 return $"""
                 FROM {imageName} AS yarp
@@ -137,5 +202,56 @@ public static class YarpResourceExtensions
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="resourceWithFiles">The resource with container files.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<YarpResource> PublishWithStaticFiles(this IResourceBuilder<YarpResource> builder, IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles)
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // In publish mode, generate a Dockerfile that copies the container files into /app/wwwroot
+        return builder
+               .PublishWithContainerFiles(resourceWithFiles, "/app/wwwroot")
+               .WithStaticFiles()
+               .EnsurePublishWithStaticFilesDockerFileBuilder();
+    }
+
+    private static IResourceBuilder<YarpResource> EnsurePublishWithStaticFilesDockerFileBuilder(this IResourceBuilder<YarpResource> builder)
+    {
+        if (builder.Resource.HasAnnotationOfType<DockerfileBuilderCallbackAnnotation>())
+        {
+            // Dockerfile builder already configured, skip adding it again
+            return builder;
+        }
+
+        return builder.WithDockerfileBuilder(".", ctx =>
+        {
+            var logger = ctx.Services.GetService<ILogger<YarpResource>>();
+            var imageName = GetYarpImageName(ctx.Resource);
+
+            ctx.Builder.AddContainerFilesStages(ctx.Resource, logger);
+
+            ctx.Builder.From(imageName)
+                .WorkDir("/app")
+                .AddContainerFiles(ctx.Resource, "/app/wwwroot", logger);
+        });
+    }
+
+    private static string GetYarpImageName(IResource resource)
+    {
+        if (!resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
+        {
+            imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
+        }
+
+        return imageName;
     }
 }

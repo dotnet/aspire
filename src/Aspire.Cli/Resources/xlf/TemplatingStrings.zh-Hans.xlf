@@ -157,6 +157,26 @@
         <target state="translated">未知</target>
         <note />
       </trans-unit>
+      <trans-unit id="UseLocalhostTld_Description">
+        <source>Configures whether to use *.dev.localhost URLs for local development.</source>
+        <target state="translated">配置是否使用 *.dev.localhost URL 进行本地开发。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_Prompt">
+        <source>Use *.dev.localhost URLs</source>
+        <target state="translated">使用 *.dev.localhost URL</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UnexpectedChoice">
+        <source>Unexpected choice for *.dev.localhost option</source>
+        <target state="translated">*.dev.localhost 选项的意外选择</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UsingLocalhostTld">
+        <source>Using *.dev.localhost URLs for local development.</source>
+        <target state="translated">使用 *.dev.localhost URL 进行本地开发。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UseRedisCache_Description">
         <source>Configures whether to setup the application to use Redis for caching.</source>
         <target state="translated">配置是否将应用程序设置为使用 Redis 进行缓存。</target>

@@ -1,12 +1,13 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,7 @@ internal sealed class RunModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
         interactionService,
         options,
@@ -32,6 +34,7 @@ internal sealed class RunModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateManager,
         distributedApplicationExecutionContext)
 {
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -87,13 +90,13 @@ internal sealed class RunModeProvisioningContextProvider(
         });
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         EnsureProvisioningOptions();
 
         await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
@@ -152,26 +155,15 @@ internal sealed class RunModeProvisioningContextProvider(
                 // show the value as from the configuration and disable the input
                 // there should be no option to change it
 
-                inputs.Add(new InteractionInput
+                InputLoadOptions? subscriptionLoadOptions = null;
+                InputType inputType = InputType.Text;
+                if (string.IsNullOrEmpty(_options.SubscriptionId))
                 {
-                    Name = SubscriptionIdName,
-                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
-                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
-                    Required = true,
-                    AllowCustomChoice = true,
-                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                    Disabled = !string.IsNullOrEmpty(_options.SubscriptionId),
-                    Value = _options.SubscriptionId,
-                    DynamicLoading = new InputLoadOptions
+                    inputType = InputType.Choice;
+                    subscriptionLoadOptions = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
                         {
-                            if (!string.IsNullOrEmpty(_options.SubscriptionId))
-                            {
-                                // If subscription ID is not set, we don't need to load options
-                                return;
-                            }
-
                             // Get tenant ID from input if tenant selection is enabled, otherwise use configured value
                             var tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
 
@@ -183,7 +175,58 @@ internal sealed class RunModeProvisioningContextProvider(
                                 : [];
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [TenantName] : []
+                        DependsOnInputs = [TenantName]
+                    };
+                }
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = SubscriptionIdName,
+                    InputType = inputType,
+                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
+                    Required = true,
+                    AllowCustomChoice = true,
+                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
+                    Disabled = true,
+                    Value = _options.SubscriptionId,
+                    DynamicLoading = subscriptionLoadOptions
+                });
+
+                var defaultResourceGroupNameSet = false;
+                inputs.Add(new InteractionInput
+                {
+                    Name = ResourceGroupName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.ResourceGroupLabel,
+                    Placeholder = AzureProvisioningStrings.ResourceGroupPlaceholder,
+                    AllowCustomChoice = true,
+                    Disabled = true,
+                    DynamicLoading = new InputLoadOptions
+                    {
+                        LoadCallback = async (context) =>
+                        {
+                            var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+
+                            var (resourceGroupOptions, fetchSucceeded) = await TryGetResourceGroupsWithLocationAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+
+                            if (fetchSucceeded && resourceGroupOptions is not null)
+                            {
+                                context.Input.Options = resourceGroupOptions.Select(rg => KeyValuePair.Create(rg.Name, rg.Name)).ToList();
+                            }
+                            else
+                            {
+                                context.Input.Options = [];
+
+                                // Only default the resource group name if we couldn't fetch existing ones.
+                                if (string.IsNullOrEmpty(context.Input.Value) && !defaultResourceGroupNameSet)
+                                {
+                                    context.Input.Value = GetDefaultResourceGroupName();
+                                    defaultResourceGroupNameSet = true;
+                                }
+                            }
+                            context.Input.Disabled = false;
+                        },
+                        DependsOnInputs = [SubscriptionIdName]
                     }
                 });
 
@@ -200,22 +243,31 @@ internal sealed class RunModeProvisioningContextProvider(
                         LoadCallback = async (context) =>
                         {
                             var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+                            var resourceGroupName = context.AllInputs[ResourceGroupName].Value ?? string.Empty;
 
+                            // Check if the selected resource group is an existing one
+                            var (resourceGroupOptions, fetchSucceeded) = await TryGetResourceGroupsWithLocationAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+
+                            if (fetchSucceeded && resourceGroupOptions is not null)
+                            {
+                                var (_, resourceGroupLocation) = resourceGroupOptions.FirstOrDefault(rg => rg.Name.Equals(resourceGroupName, StringComparison.OrdinalIgnoreCase));
+                                if (!string.IsNullOrEmpty(resourceGroupLocation))
+                                {
+                                    // Use location from existing resource group
+                                    context.Input.Options = [KeyValuePair.Create(resourceGroupLocation, resourceGroupLocation)];
+                                    context.Input.Value = resourceGroupLocation;
+                                    context.Input.Disabled = true; // Make it read-only since it's from existing RG
+                                    return;
+                                }
+                            }
+
+                            // For new resource groups, load all locations
                             var (locationOptions, _) = await TryGetLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
-
                             context.Input.Options = locationOptions;
                             context.Input.Disabled = false;
                         },
-                        DependsOnInputs = [SubscriptionIdName]
+                        DependsOnInputs = [SubscriptionIdName, ResourceGroupName]
                     }
-                });
-
-                inputs.Add(new InteractionInput
-                {
-                    Name = ResourceGroupName,
-                    InputType = InputType.Text,
-                    Label = AzureProvisioningStrings.ResourceGroupLabel,
-                    Value = GetDefaultResourceGroupName()
                 });
 
                 var result = await _interactionService.PromptInputsAsync(

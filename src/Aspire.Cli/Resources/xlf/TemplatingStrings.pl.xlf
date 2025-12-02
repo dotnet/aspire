@@ -157,6 +157,26 @@
         <target state="translated">Nieznany</target>
         <note />
       </trans-unit>
+      <trans-unit id="UseLocalhostTld_Description">
+        <source>Configures whether to use *.dev.localhost URLs for local development.</source>
+        <target state="translated">Konfiguruje, czy do lokalnego programowania mają być używane adresy URL *.dev.localhost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_Prompt">
+        <source>Use *.dev.localhost URLs</source>
+        <target state="translated">Użyj adresów URL *.dev.localhost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UnexpectedChoice">
+        <source>Unexpected choice for *.dev.localhost option</source>
+        <target state="translated">Nieoczekiwany wybór opcji *.dev.localhost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseLocalhostTld_UsingLocalhostTld">
+        <source>Using *.dev.localhost URLs for local development.</source>
+        <target state="translated">Używanie adresów URL *.dev.localhost do lokalnego programowania.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UseRedisCache_Description">
         <source>Configures whether to setup the application to use Redis for caching.</source>
         <target state="translated">Określa, czy konfigurować aplikację do korzystania z magazynu danych Redis na potrzeby buforowania.</target>

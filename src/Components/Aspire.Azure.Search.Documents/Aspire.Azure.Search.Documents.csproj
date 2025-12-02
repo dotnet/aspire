@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentAzurePackageTags) azure search</PackageTags>
+    <PackageTags>$(ComponentAzurePackageTags) azure search ai ai-search</PackageTags>
     <Description>A client for Azure AI Search that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureSearch_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>

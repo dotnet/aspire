@@ -48,10 +48,4 @@
     "ChatForAspire": {
       "type": "value.v0",
       "connectionString": "Endpoint={wps1.outputs.endpoint};Hub=ChatForAspire"
-    },
-    "NotificationForAspire": {
-      "type": "value.v0",
-      "connectionString": "Endpoint={wps1.outputs.endpoint};Hub=NotificationForAspire"
     }
-  }
-}

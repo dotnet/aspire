@@ -6,13 +6,14 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import { isCsharpInstalled, isPythonInstalled } from "../capabilities";
 import { pythonDebuggerExtension } from "./languages/python";
+import { isDirectory } from "../utils/io";
 
 // Represents a resource-specific debugger extension for when the default session configuration is not sufficient to launch the resource.
 export interface ResourceDebuggerExtension {
     resourceType: string;
     debugAdapter: string;
     extensionId: string | null;
-    displayName: string;
+    getDisplayName: (launchConfig: ExecutableLaunchConfiguration) => string;
     getProjectFile: (launchConfig: ExecutableLaunchConfiguration) => string;
     getSupportedFileTypes: () => string[];
     createDebugSessionConfigurationCallback?: (launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
@@ -24,15 +25,14 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
     const projectPath = debuggerExtension.getProjectFile(launchConfig);
-    const displayName = `${debuggerExtension.displayName ?? launchConfig.type}: ${path.basename(projectPath)}`;
 
     const configuration: AspireResourceExtendedDebugConfiguration = {
         type: debuggerExtension.debugAdapter || launchConfig.type,
         request: 'launch',
-        name: launchOptions.debug ? debugProject(displayName) : runProject(displayName),
+        name: launchOptions.debug ? debugProject(debuggerExtension.getDisplayName(launchConfig)) : runProject(debuggerExtension.getDisplayName(launchConfig)),
         program: projectPath,
         args: args,
-        cwd: path.dirname(projectPath),
+        cwd: await isDirectory(projectPath) ? projectPath : path.dirname(projectPath),
         env: mergeEnvs(process.env, env),
         justMyCode: false,
         stopAtEntry: false,

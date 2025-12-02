@@ -286,7 +286,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show all.
+        ///   Looks up a localized string similar to Show all properties.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowAll {
             get {
@@ -295,7 +295,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show spec only.
+        ///   Looks up a localized string similar to Show core properties.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowSpecOnly {
             get {
@@ -304,7 +304,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hide values.
+        ///   Looks up a localized string similar to Hide sensitive values.
         /// </summary>
         public static string EnvironmentVariablesHideVariableValues {
             get {
@@ -313,7 +313,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show values.
+        ///   Looks up a localized string similar to Show sensitive values.
         /// </summary>
         public static string EnvironmentVariablesShowVariableValues {
             get {

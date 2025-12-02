@@ -1,12 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREAZURE001
+
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Azure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -29,6 +39,53 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         TemplateResourceName = templateResourceName;
 
         Annotations.Add(new ManifestPublishingCallbackAnnotation(WriteToManifest));
+
+        // Add pipeline step annotation to provision this bicep resource
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
+        {
+            // Initialize the provisioning task completion source during step creation
+            ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var provisionStep = new PipelineStep
+            {
+                Name = $"provision-{name}",
+                Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false),
+                Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+            };
+            provisionStep.RequiredBy(AzureEnvironmentResource.ProvisionInfrastructureStepName);
+            provisionStep.DependsOn(AzureEnvironmentResource.CreateProvisioningContextStepName);
+
+            return provisionStep;
+        }));
+
+        // Add pipeline configuration annotation to set up dependencies between Azure resources
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            // Force evaluation of the Bicep template to ensure parameters are expanded
+            _ = GetBicepTemplateString();
+
+            // Find Azure resource references in the parameters
+            var azureReferences = new HashSet<IAzureResource>();
+            foreach (var parameter in Parameters)
+            {
+                ProcessAzureReferences(azureReferences, parameter.Value);
+            }
+
+            foreach (var reference in References)
+            {
+                ProcessAzureReferences(azureReferences, reference);
+            }
+
+            // Get the provision steps for this resource
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+
+            // Make this resource's provision steps depend on the provision steps of referenced Azure resources
+            foreach (var azureReference in azureReferences)
+            {
+                var dependencySteps = context.GetSteps(azureReference, WellKnownPipelineTags.ProvisionInfrastructure);
+                provisionSteps.DependsOn(dependencySteps);
+            }
+        }));
     }
 
     internal string? TemplateFile { get; }
@@ -41,6 +98,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// Parameters that will be passed into the bicep template.
     /// </summary>
     public Dictionary<string, object?> Parameters { get; } = [];
+
+    /// <summary>
+    /// References to other objects that may contain Azure resource references.
+    /// </summary>
+    public HashSet<object> References { get; } = [];
 
     IDictionary<string, object?> IResourceWithParameters.Parameters => Parameters;
 
@@ -220,6 +282,175 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     }
 
     /// <summary>
+    /// Provisions this Azure Bicep resource using the bicep provisioner.
+    /// </summary>
+    /// <param name="context">The pipeline step context.</param>
+    /// <param name="resource">The Azure Bicep resource to provision.</param>
+    private static async Task ProvisionAzureBicepResourceAsync(PipelineStepContext context, AzureBicepResource resource)
+    {
+        // Skip if the resource is excluded from publish
+        if (resource.IsExcludedFromPublish())
+        {
+            context.Logger.LogDebug("Resource {ResourceName} is excluded from publish. Skipping provisioning.", resource.Name);
+            return;
+        }
+
+        // Skip if already provisioned
+        if (resource.ProvisioningTaskCompletionSource != null &&
+            resource.ProvisioningTaskCompletionSource.Task.IsCompleted)
+        {
+            context.Logger.LogDebug("Resource {ResourceName} is already provisioned. Skipping provisioning.", resource.Name);
+            return;
+        }
+
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
+
+        // Find the AzureEnvironmentResource from the application model
+        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+        if (azureEnvironment == null)
+        {
+            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
+        }
+
+        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
+
+        var resourceTask = await context.ReportingStep
+            .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
+            .ConfigureAwait(false);
+
+        await using (resourceTask.ConfigureAwait(false))
+        {
+            try
+            {
+                if (await bicepProvisioner.ConfigureResourceAsync(
+                    configuration, resource, context.CancellationToken).ConfigureAwait(false))
+                {
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                    await resourceTask.CompleteAsync(
+                        $"Using existing deployment for **{resource.Name}**",
+                        CompletionState.Completed,
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await bicepProvisioner.GetOrCreateResourceAsync(
+                        resource, provisioningContext, context.CancellationToken)
+                        .ConfigureAwait(false);
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                    await resourceTask.CompleteAsync(
+                        $"Successfully provisioned **{resource.Name}**",
+                        CompletionState.Completed,
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = ex switch
+                {
+                    RequestFailedException requestEx =>
+                        $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                    _ => $"Deployment failed: {ex.Message}"
+                };
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                await resourceTask.CompleteAsync(
+                    $"Failed to provision **{resource.Name}**: {errorMessage}",
+                    CompletionState.CompletedWithError,
+                    context.CancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Extracts detailed error information from Azure RequestFailedException responses.
+    /// Parses the following JSON error structures:
+    /// 1. Standard Azure error format: { "error": { "code": "...", "message": "...", "details": [...] } }
+    /// 2. Deployment-specific error format: { "properties": { "error": { "code": "...", "message": "..." } } }
+    /// 3. Nested error details with recursive parsing for deeply nested error hierarchies
+    /// </summary>
+    /// <param name="requestEx">The Azure RequestFailedException containing the error response</param>
+    /// <returns>The most specific error message found, or the original exception message if parsing fails</returns>
+    private static string ExtractDetailedErrorMessage(RequestFailedException requestEx)
+    {
+        try
+        {
+            var response = requestEx.GetRawResponse();
+            if (response?.Content is not null)
+            {
+                var responseContent = response.Content.ToString();
+                if (!string.IsNullOrEmpty(responseContent))
+                {
+                    if (JsonNode.Parse(responseContent) is JsonObject responseObj)
+                    {
+                        if (responseObj["error"] is JsonObject errorObj)
+                        {
+                            var code = errorObj["code"]?.ToString();
+                            var message = errorObj["message"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(message))
+                            {
+                                if (errorObj["details"] is JsonArray detailsArray && detailsArray.Count > 0)
+                                {
+                                    var deepestErrorMessage = ExtractDeepestErrorMessage(detailsArray);
+                                    if (!string.IsNullOrEmpty(deepestErrorMessage))
+                                    {
+                                        return deepestErrorMessage;
+                                    }
+                                }
+
+                                return $"{code}: {message}";
+                            }
+                        }
+
+                        if (responseObj["properties"]?["error"] is JsonObject deploymentErrorObj)
+                        {
+                            var code = deploymentErrorObj["code"]?.ToString();
+                            var message = deploymentErrorObj["message"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(message))
+                            {
+                                return $"{code}: {message}";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (JsonException) { }
+
+        return requestEx.Message;
+    }
+
+    private static string ExtractDeepestErrorMessage(JsonArray detailsArray)
+    {
+        foreach (var detail in detailsArray)
+        {
+            if (detail is JsonObject detailObj)
+            {
+                var detailCode = detailObj["code"]?.ToString();
+                var detailMessage = detailObj["message"]?.ToString();
+
+                if (detailObj["details"] is JsonArray nestedDetailsArray && nestedDetailsArray.Count > 0)
+                {
+                    var deeperMessage = ExtractDeepestErrorMessage(nestedDetailsArray);
+                    if (!string.IsNullOrEmpty(deeperMessage))
+                    {
+                        return deeperMessage;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(detailCode) && !string.IsNullOrEmpty(detailMessage))
+                {
+                    return $"{detailCode}: {detailMessage}";
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
     /// Known parameters that will be filled in automatically by the host environment.
     /// </summary>
     public static class KnownParameters
@@ -273,6 +504,40 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         internal static bool IsKnownParameterName(string name) =>
             name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
 
+    }
+
+    /// <summary>
+    /// Processes a value to extract Azure resource references and adds them to the collection.
+    /// Uses IValueWithReferences to recursively walk the reference graph.
+    /// </summary>
+    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value)
+    {
+        ProcessAzureReferences(azureReferences, value, []);
+    }
+
+    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value, HashSet<object> visited)
+    {
+        // Null values can be added by environment variable or command line argument callbacks
+        // and should be ignored since they cannot contain Azure resource references.
+        if (value is null || !visited.Add(value))
+        {
+            return;
+        }
+
+        // Check if the value itself is an IAzureResource
+        if (value is IAzureResource azureResource)
+        {
+            azureReferences.Add(azureResource);
+        }
+
+        // Recursively process references if the value implements IValueWithReferences
+        if (value is IValueWithReferences vwr)
+        {
+            foreach (var reference in vwr.References)
+            {
+                ProcessAzureReferences(azureReferences, reference, visited);
+            }
+        }
     }
 }
 
@@ -398,7 +663,7 @@ public sealed class BicepOutputReference(string name, AzureBicepResource resourc
         {
             if (!Resource.Outputs.TryGetValue(Name, out var value))
             {
-                throw new InvalidOperationException($"No output for {Name}");
+                throw new InvalidOperationException($"No output for {Name} on resource {Resource.Name}");
             }
 
             return value?.ToString();

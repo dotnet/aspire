@@ -51,9 +51,24 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
         <target state="translated">Zřizování Azure</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupDialogTitle">
+        <source>Azure resource group</source>
+        <target state="translated">Skupina prostředků Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
         <target state="translated">Skupina prostředků</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="translated">Vyberte nebo zadejte skupinu prostředků</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupSelectionMessage">
+        <source>Select your Azure resource group or enter a new name:</source>
+        <target state="translated">Vyberte skupinu prostředků Azure nebo zadejte nový název:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
@@ -83,27 +98,27 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
       </trans-unit>
       <trans-unit id="TenantDialogTitle">
         <source>Azure tenant</source>
-        <target state="new">Azure tenant</target>
+        <target state="translated">Tenant Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantLabel">
         <source>Tenant ID</source>
-        <target state="new">Tenant ID</target>
+        <target state="translated">ID tenanta</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantManualEntryMessage">
         <source>Enter your Azure tenant ID:</source>
-        <target state="new">Enter your Azure tenant ID:</target>
+        <target state="translated">Zadejte ID tenanta Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantPlaceholder">
         <source>Select tenant ID</source>
-        <target state="new">Select tenant ID</target>
+        <target state="translated">Vybrat ID tenanta</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
-        <target state="new">Select your Azure tenant:</target>
+        <target state="translated">Vyberte tenanta Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
@@ -118,7 +133,7 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
       </trans-unit>
       <trans-unit id="ValidationTenantIdInvalid">
         <source>Tenant ID must be a valid GUID.</source>
-        <target state="new">Tenant ID must be a valid GUID.</target>
+        <target state="translated">ID tenanta musí být platný identifikátor GUID.</target>
         <note />
       </trans-unit>
     </body>

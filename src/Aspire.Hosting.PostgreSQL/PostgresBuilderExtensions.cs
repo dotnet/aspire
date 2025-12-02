@@ -105,8 +105,12 @@ public static class PostgresBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithImageRegistry(PostgresContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
-                      .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
+                      // PostgreSQL 18+ enables data checksums by default. We disable them to maintain backward compatibility
+                      // with existing volumes that don't have checksums enabled, preventing initialization failures when
+                      // reusing data directories from earlier versions.
+                      .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
@@ -340,12 +344,12 @@ public static class PostgresBuilderExtensions
     private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.
-        context.EnvironmentVariables.Add("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False");
-        context.EnvironmentVariables.Add("PGADMIN_CONFIG_SERVER_MODE", "False");
+        context.EnvironmentVariables["PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED"] = "False";
+        context.EnvironmentVariables["PGADMIN_CONFIG_SERVER_MODE"] = "False";
 
         // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
-        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
-        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
+        context.EnvironmentVariables["PGADMIN_DEFAULT_EMAIL"] = "admin@domain.com";
+        context.EnvironmentVariables["PGADMIN_DEFAULT_PASSWORD"] = "admin";
 
         // When running in the context of Codespaces we need to set some additional environment
         // variables so that PGAdmin will trust the forwarded headers that Codespaces port
@@ -369,8 +373,12 @@ public static class PostgresBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // PostgreSQL 18+ Docker images changed the data directory structure to use major-version-specific
+        // subdirectories (e.g., /var/lib/postgresql/data/18). The mount point must be /var/lib/postgresql
+        // instead of /var/lib/postgresql/data to accommodate this change. Prior to PostgreSQL 18, the
+        // mount point was /var/lib/postgresql/data.
         return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"),
-            "/var/lib/postgresql/data", isReadOnly);
+            "/var/lib/postgresql", isReadOnly);
     }
 
     /// <summary>
@@ -385,7 +393,11 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
+        // PostgreSQL 18+ Docker images changed the data directory structure to use major-version-specific
+        // subdirectories (e.g., /var/lib/postgresql/data/18). The mount point must be /var/lib/postgresql
+        // instead of /var/lib/postgresql/data to accommodate this change. Prior to PostgreSQL 18, the
+        // mount point was /var/lib/postgresql/data.
+        return builder.WithBindMount(source, "/var/lib/postgresql", isReadOnly);
     }
 
     /// <summary>

@@ -11,7 +11,9 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -284,7 +286,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -365,7 +367,7 @@ public static class ProjectResourceBuilderExtensions
 
         var resource = builder.AddResource(app)
                               .WithAnnotation(projectMetadata)
-                              .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
+                              .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
                               .WithProjectDefaults(options);
 
         resource.OnBeforeResourceStarted(async (r, e, ct) =>
@@ -420,6 +422,26 @@ public static class ProjectResourceBuilderExtensions
 
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
+
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, the custom certificate trust feature is not supported for .NET projects, so disable it by default.
+            builder.WithCertificateTrustScope(CertificateTrustScope.None);
+        }
+
+        builder.WithCertificateTrustConfiguration(ctx =>
+        {
+            if (ctx.Scope != CertificateTrustScope.None && OperatingSystem.IsWindows())
+            {
+                // Log if the user attempts to enable certificate trust customization on Windows for .NET projects.
+                var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                var logger = resourceLogger.GetLogger(builder.Resource);
+                logger.LogWarning("Certificate trust scope is set to '{Scope}', but the feature is not supported for .NET projects on Windows. No certificate trust customization will be applied. Set the certificate trust scope to 'None' to disable this warning.", Enum.GetName(ctx.Scope));
+                return Task.CompletedTask;
+            }
+
+            return Task.CompletedTask;
+        });
 
         var projectResource = builder.Resource;
 
@@ -983,7 +1005,7 @@ public static class ProjectResourceBuilderExtensions
 
     private static string ParseKestrelHost(string host)
     {
-        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        if (EndpointHostHelpers.IsLocalhost(host))
         {
             // Localhost is used as-is rather than being resolved to a specific loopback IP address.
             return "localhost";

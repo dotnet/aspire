@@ -42,7 +42,7 @@
       "image": "docker.io/library/redis:8.2",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "cache.module.bicep",
+        "path": "cache-containerapp.module.bicep",
         "params": {
           "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -107,7 +107,7 @@
       },
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "pythonapp.module.bicep",
+        "path": "pythonapp-containerapp.module.bicep",
         "params": {
           "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -122,7 +122,7 @@
       "path": "../AzureContainerApps.ApiService/AzureContainerApps.ApiService.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "api.module.bicep",
+        "path": "api-containerapp.module.bicep",
         "params": {
           "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -152,7 +152,7 @@
         "CACHE_HOST": "{cache.bindings.tcp.host}",
         "CACHE_PORT": "{cache.bindings.tcp.port}",
         "CACHE_PASSWORD": "{cache-password.value}",
-        "CACHE_URI": "redis://:{cache-password.value}@{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
+        "CACHE_URI": "redis://:{cache-password-uri-encoded.value}@{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
         "ConnectionStrings__account": "{account.connectionString}",
         "VALUE": "{secretparam.value}",
         "AZURE_PRINCIPAL_NAME": "{api-identity.outputs.principalName}"
@@ -207,6 +207,11 @@
           }
         }
       }
+    },
+    "cache-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{cache-password.value}",
+      "filter": "uri"
     }
   }
 }

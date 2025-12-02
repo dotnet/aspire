@@ -27,6 +27,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
@@ -52,7 +53,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -62,6 +63,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -69,6 +71,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _prompter = prompter;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
@@ -121,7 +124,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -240,18 +243,22 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheOutputPath,
-            defaultValue: path,
+            defaultValue: path.EscapeMarkup(),
             cancellationToken: cancellationToken
             );
     }
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the default name to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
-            defaultValue: defaultName,
+            defaultValue: defaultName.EscapeMarkup(),
             validator: name => ProjectNameValidator.IsProjectNameValid(name)
                 ? ValidationResult.Success()
                 : ValidationResult.Error(NewCommandStrings.InvalidProjectName),

@@ -160,13 +160,13 @@ public sealed partial class ResourceOutgoingPeerResolver : IOutgoingPeerResolver
         {
             // Apply transformers to the peer address cumulatively
             var transformedAddress = address;
-            
+
             // First check exact match
             if (TryMatchAgainstResources(transformedAddress, resources, out name, out resourceMatch))
             {
                 return true;
             }
-            
+
             // Then apply each transformer cumulatively and check
             foreach (var transformer in s_addressTransformers)
             {

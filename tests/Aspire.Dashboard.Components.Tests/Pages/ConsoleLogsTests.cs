@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
@@ -26,6 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
+using Aspire.TestUtilities;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
@@ -331,6 +332,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12740")]
     public async Task ReadingLogs_ErrorDuringRead_SetStatusAndLog()
     {
         // Arrange

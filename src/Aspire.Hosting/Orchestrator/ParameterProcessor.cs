@@ -1,14 +1,13 @@
 #pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES002
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -208,11 +207,17 @@ public sealed class ParameterProcessor(
                 "Value missing" :
                 "Error initializing parameter";
 
+            // Use warning style for missing parameters to match the notification banner,
+            // and error style for actual initialization errors.
+            var stateStyle = ex is MissingParameterValueException ?
+                KnownResourceStateStyles.Warn :
+                KnownResourceStateStyles.Error;
+
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
-                    State = new(stateText, KnownResourceStateStyles.Error),
+                    State = new(stateText, stateStyle),
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
@@ -229,182 +234,165 @@ public sealed class ParameterProcessor(
     // Internal for testing purposes - allows passing specific parameters to test.
     internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
     {
-        // Load deployment state at the beginning (only in run mode for saving user preference)
-        JsonObject? deploymentState = null;
-        JsonObject? parametersSection = null;
         var stateModified = false;
 
-        if (executionContext.IsRunMode)
         {
-            try
+
+            // This method will continue in a loop until all unresolved parameters are resolved.
+            while (unresolvedParameters.Count > 0)
             {
-                deploymentState = await deploymentStateManager.LoadStateAsync().ConfigureAwait(false);
-                parametersSection = deploymentState?["Parameters"]?.AsObject() ?? [];
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
-                parametersSection = [];
-            }
-        }
+                var showNotification = executionContext.IsRunMode;
+                var showSaveToSecrets = executionContext.IsRunMode;
 
-        // This method will continue in a loop until all unresolved parameters are resolved.
-        while (unresolvedParameters.Count > 0)
-        {
-            var showNotification = executionContext.IsRunMode;
-            var showSaveToSecrets = executionContext.IsRunMode;
+                var proceedToInputs = true;
 
-            var proceedToInputs = true;
-
-            if (showNotification)
-            {
-                // First we show a notification that there are unresolved parameters.
-                var result = await interactionService.PromptNotificationAsync(
-                    InteractionStrings.ParametersBarTitle,
-                    InteractionStrings.ParametersBarMessage,
-                     new NotificationInteractionOptions
-                     {
-                         Intent = MessageIntent.Warning,
-                         PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                     })
-                    .ConfigureAwait(false);
-
-                proceedToInputs = result.Data;
-            }
-
-            if (proceedToInputs)
-            {
-                // Now we build up a new form base on the unresolved parameters.
-                var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
-
-                foreach (var parameter in unresolvedParameters)
+                if (showNotification)
                 {
-                    // Create an input for each unresolved parameter.
-                    var input = parameter.CreateInput();
-                    resourceInputs.Add((parameter, input));
+                    // First we show a notification that there are unresolved parameters.
+                    var result = await interactionService.PromptNotificationAsync(
+                        InteractionStrings.ParametersBarTitle,
+                        InteractionStrings.ParametersBarMessage,
+                         new NotificationInteractionOptions
+                         {
+                             Intent = MessageIntent.Warning,
+                             PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                         })
+                        .ConfigureAwait(false);
+
+                    proceedToInputs = result.Data;
                 }
 
-                var inputs = resourceInputs.Select(i => i.Input).ToList();
-                InteractionInput? saveParameters = null;
-
-                if (showSaveToSecrets)
+                if (proceedToInputs)
                 {
-                    saveParameters = new InteractionInput
+                    // Now we build up a new form base on the unresolved parameters.
+                    var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
+
+                    foreach (var parameter in unresolvedParameters)
                     {
-                        Name = "RememberParameters",
-                        InputType = InputType.Boolean,
-                        Label = InteractionStrings.ParametersInputsRememberLabel
-                    };
-                    inputs.Add(saveParameters);
-                }
+                        // Create an input for each unresolved parameter.
+                        var input = parameter.CreateInput();
+                        resourceInputs.Add((parameter, input));
+                    }
 
-                var message = executionContext.IsPublishMode
-                    ? InteractionStrings.ParametersInputsMessagePublishMode
-                    : InteractionStrings.ParametersInputsMessage;
+                    var inputs = resourceInputs.Select(i => i.Input).ToList();
+                    InteractionInput? saveParameters = null;
 
-                var valuesPrompt = await interactionService.PromptInputsAsync(
-                    InteractionStrings.ParametersInputsTitle,
-                    message,
-                    [.. inputs],
-                    new InputsDialogInteractionOptions
+                    if (showSaveToSecrets)
                     {
-                        PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
-                        ShowDismiss = true,
-                        EnableMessageMarkdown = true,
-                    })
-                    .ConfigureAwait(false);
-
-                if (!valuesPrompt.Canceled)
-                {
-                    // Iterate through the unresolved parameters and set their values based on user input.
-                    for (var i = resourceInputs.Count - 1; i >= 0; i--)
-                    {
-                        var (parameter, input) = (resourceInputs[i].ParameterResource, resourceInputs[i].Input);
-                        var inputValue = input.Value;
-
-                        if (string.IsNullOrEmpty(inputValue))
+                        saveParameters = new InteractionInput
                         {
-                            // If the input value is null, we skip this parameter.
-                            continue;
-                        }
+                            Name = "RememberParameters",
+                            InputType = InputType.Boolean,
+                            Label = InteractionStrings.ParametersInputsRememberLabel
+                        };
+                        inputs.Add(saveParameters);
+                    }
 
-                        parameter.WaitForValueTcs?.TrySetResult(inputValue);
+                    var message = executionContext.IsPublishMode
+                        ? InteractionStrings.ParametersInputsMessagePublishMode
+                        : InteractionStrings.ParametersInputsMessage;
 
-                        // Update the parameter resource state to active with the provided value.
-                        await notificationService.PublishUpdateAsync(parameter, s =>
+                    var valuesPrompt = await interactionService.PromptInputsAsync(
+                        InteractionStrings.ParametersInputsTitle,
+                        message,
+                        [.. inputs],
+                        new InputsDialogInteractionOptions
                         {
-                            return s with
-                            {
-                                Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameter.Secret),
-                                State = KnownResourceStates.Running
-                            };
+                            PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
+                            ShowDismiss = true,
+                            EnableMessageMarkdown = true,
                         })
                         .ConfigureAwait(false);
 
-                        // Log that the parameter has been resolved
-                        loggerService.GetLogger(parameter)
-                            .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
-
-                        // In run mode, save to deployment state if user opted in
-                        if (executionContext.IsRunMode && showSaveToSecrets && saveParameters?.Value is not null)
+                    if (!valuesPrompt.Canceled)
+                    {
+                        // Iterate through the unresolved parameters and set their values based on user input.
+                        for (var i = resourceInputs.Count - 1; i >= 0; i--)
                         {
-                            var shouldSave = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
-                            if (shouldSave)
-                            {
-                                parametersSection![parameter.Name] = JsonValue.Create(inputValue);
-                                stateModified = true;
-                            }
-                        }
+                            var (parameter, input) = (resourceInputs[i].ParameterResource, resourceInputs[i].Input);
+                            var inputValue = input.Value;
 
-                        // Remove the parameter from unresolved parameters list.
-                        unresolvedParameters.RemoveAt(i);
+                            if (string.IsNullOrEmpty(inputValue))
+                            {
+                                // If the input value is null, we skip this parameter.
+                                continue;
+                            }
+
+                            parameter.WaitForValueTcs?.TrySetResult(inputValue);
+
+                            // Update the parameter resource state to active with the provided value.
+                            await notificationService.PublishUpdateAsync(parameter, s =>
+                            {
+                                return s with
+                                {
+                                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameter.Secret),
+                                    State = KnownResourceStates.Running
+                                };
+                            })
+                            .ConfigureAwait(false);
+
+                            // Log that the parameter has been resolved
+                            loggerService.GetLogger(parameter)
+                                .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
+
+                            if (executionContext.IsRunMode && showSaveToSecrets && saveParameters?.Value is not null)
+                            {
+                                var shouldSave = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
+                                if (shouldSave)
+                                {
+                                    try
+                                    {
+                                        var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey).ConfigureAwait(false);
+                                        slot.SetValue(inputValue);
+                                        await deploymentStateManager.SaveSectionAsync(slot).ConfigureAwait(false);
+                                        stateModified = true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
+                                    }
+                                }
+                            }
+
+                            // Remove the parameter from unresolved parameters list.
+                            unresolvedParameters.RemoveAt(i);
+                        }
                     }
                 }
             }
-        }
 
-        // Save deployment state at the end if modified
-        if (stateModified && deploymentState is not null)
-        {
-            try
+            if (stateModified)
             {
-                deploymentState["Parameters"] = parametersSection;
-                await deploymentStateManager.SaveStateAsync(deploymentState).ConfigureAwait(false);
                 logger.LogInformation("Parameter values saved to deployment state.");
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
             }
         }
     }
 
     private async Task SaveParametersToDeploymentStateAsync(IEnumerable<ParameterResource> parameters, CancellationToken cancellationToken)
     {
-        try
+        var savedCount = 0;
+        foreach (var parameter in parameters)
         {
-            var deploymentState = await deploymentStateManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
-            var parametersSection = new JsonObject();
-
-            foreach (var parameter in parameters)
+            try
             {
                 var value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(value))
                 {
-                    parametersSection[parameter.Name] = JsonValue.Create(value);
+                    var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey, cancellationToken).ConfigureAwait(false);
+                    slot.SetValue(value);
+                    await deploymentStateManager.SaveSectionAsync(slot, cancellationToken).ConfigureAwait(false);
+                    savedCount++;
                 }
             }
-
-            if (parametersSection.Count > 0)
+            catch (Exception ex)
             {
-                deploymentState["Parameters"] = parametersSection;
-                await deploymentStateManager.SaveStateAsync(deploymentState, cancellationToken).ConfigureAwait(false);
-                logger.LogInformation("Parameter values saved to deployment state.");
+                logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
             }
         }
-        catch (Exception ex)
+
+        if (savedCount > 0)
         {
-            logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+            logger.LogInformation("{SavedCount} parameter values saved to deployment state.", savedCount);
         }
     }
 }

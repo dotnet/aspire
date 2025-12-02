@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREAZURE001
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -57,10 +58,10 @@ public class AzureBicepResourceTests
             { builder => builder.AddPostgres(resourceName).AsAzurePostgresFlexibleServer() },
             { builder => builder.AddRedis(resourceName).AsAzureRedis() },
             { builder => builder.AddSqlServer(resourceName).AsAzureSqlDatabase() },
+            { builder => builder.AddAzureRedis(resourceName) },
 #pragma warning restore CS0618 // Type or member is obsolete
             { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
-            { builder => builder.AddAzureRedis(resourceName) },
-            { builder => builder.AddAzureRedisEnterprise(resourceName) },
+            { builder => builder.AddAzureManagedRedis(resourceName) },
             { builder => builder.AddAzureSearch(resourceName) },
             { builder => builder.AddAzureServiceBus(resourceName) },
             { builder => builder.AddAzureSignalR(resourceName) },
@@ -211,5 +212,38 @@ public class AzureBicepResourceTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task BicepResourceHasPipelineStepAnnotationWithCorrectConfiguration()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicepResource = builder.AddBicepTemplateString("myresource", "content");
+
+        // Act - Get the annotation
+        var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().FirstOrDefault();
+        
+        // Assert - Annotation exists
+        Assert.NotNull(annotation);
+        
+        // Act - Create the step from the annotation
+        var factoryContext = new Aspire.Hosting.Pipelines.PipelineStepFactoryContext
+        {
+            PipelineContext = null!, // Not needed for this test
+            Resource = bicepResource.Resource
+        };
+        var steps = await annotation.CreateStepsAsync(factoryContext);
+        var step = steps.First();
+
+        // Assert - Step has correct name
+        Assert.Equal("provision-myresource", step.Name);
+        
+        // Assert - Step is configured with RequiredBy relationship to ProvisionInfrastructure
+        // Note: RequiredBy relationships are stored internally and converted to DependsOn during pipeline execution
+        // This test verifies the step is created correctly; the conversion is tested in pipeline tests
+        
+        // Assert - Step depends on CreateProvisioningContext
+        Assert.Contains(AzureEnvironmentResource.CreateProvisioningContextStepName, step.DependsOnSteps);
     }
 }

@@ -1,14 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES002
+
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Azure.Core;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -81,6 +85,7 @@ public class AzureBicepProvisionerTests
 
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
         var services = builder.Services.BuildServiceProvider();
 
         var bicepExecutor = new TestBicepCliExecutor();
@@ -93,7 +98,9 @@ public class AzureBicepProvisionerTests
             services.GetRequiredService<ResourceLoggerService>(),
             bicepExecutor,
             secretClientProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            services.GetRequiredService<IDeploymentStateManager>(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            NullLogger<BicepProvisioner>.Instance);
 
         // Assert
         Assert.NotNull(provisioner);
@@ -208,6 +215,21 @@ public class AzureBicepProvisionerTests
             GetSecretClientCalled = true;
             // Return null - this will fail in actual secret operations but allows testing the call
             return null!;
+        }
+    }
+
+    private sealed class MockDeploymentStateManager : IDeploymentStateManager
+    {
+        public string? StateFilePath => null;
+
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+        }
+
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 }

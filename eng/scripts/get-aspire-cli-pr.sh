@@ -63,7 +63,7 @@ USAGE:
                                 CLI installs to: <install-path>/bin
                                 NuGet hive:      <install-path>/hives/pr-<PR_NUMBER>/packages
     --os OS                     Override OS detection (win, linux, linux-musl, osx)
-    --arch ARCH                 Override architecture detection (x64, x86, arm64)
+    --arch ARCH                 Override architecture detection (x64, arm64)
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
     --skip-extension.           Skip VS Code extension download and installation
     --use-insiders              Install extension to VS Code Insiders instead of VS Code
@@ -272,9 +272,6 @@ get_cli_architecture_from_architecture() {
         amd64|x64)
             printf "x64"
             ;;
-        x86)
-            printf "x86"
-            ;;
         arm64)
             printf "arm64"
             ;;
@@ -295,9 +292,6 @@ detect_architecture() {
             ;;
         aarch64|arm64)
             printf "arm64"
-            ;;
-        i386|i686)
-            printf "x86"
             ;;
         *)
             say_error "Architecture $uname_m not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"

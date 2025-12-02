@@ -3,140 +3,49 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.ApplicationModel.DeployingCallbackAnnotation</Target>
+    <Target>T:Aspire.Hosting.ApplicationModel.DeploymentImageTagCallbackAnnotation</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.ApplicationModel.DeployingContext</Target>
+    <Target>T:Aspire.Hosting.ApplicationModel.DeploymentImageTagCallbackAnnotationContext</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.Publishing.CompletionState</Target>
+    <Target>T:Aspire.Hosting.Publishing.ContainerBuildOptions</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.Publishing.IPublishingActivityReporter</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.Publishing.IPublishingStep</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.Publishing.IPublishingTask</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:Aspire.Hosting.Publishing.PublishingExtensions</Target>
+    <Target>T:Aspire.Hosting.Publishing.IResourceContainerImageBuilder</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.ApplicationModel.PublishingContext.get_ActivityReporter</Target>
+    <Target>M:Aspire.Hosting.ApplicationModel.ResourceExtensions.WithDeploymentImageTag``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{Aspire.Hosting.ApplicationModel.DeploymentImageTagCallbackAnnotationContext,System.String})</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.IInteractionService.PromptInputsAsync(System.String,System.String,System.Collections.Generic.IReadOnlyList{Aspire.Hosting.InteractionInput},Aspire.Hosting.InputsDialogInteractionOptions,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.InputsDialogValidationContext.get_Inputs</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.InteractionInput.set_MaxLength(System.Nullable{System.Int32})</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.InteractionInput.set_Options(System.Collections.Generic.IReadOnlyList{System.Collections.Generic.KeyValuePair{System.String,System.String}})</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.InteractionInput.set_Placeholder(System.String)</Target>
+    <Target>M:Aspire.Hosting.ApplicationModel.ResourceExtensions.WithDeploymentImageTag``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{Aspire.Hosting.ApplicationModel.DeploymentImageTagCallbackAnnotationContext,System.Threading.Tasks.Task{System.String}})</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.IInteractionService.PromptInputsAsync(System.String,System.String,System.Collections.Generic.IReadOnlyList{Aspire.Hosting.InteractionInput},Aspire.Hosting.InputsDialogInteractionOptions,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.PushImageAsync(System.String,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.TagImageAsync(System.String,System.String,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0006</DiagnosticId>
-    <Target>P:Aspire.Hosting.IDistributedApplicationBuilder.Pipeline</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0008</DiagnosticId>
-    <Target>T:Aspire.Hosting.ApplicationModel.ParameterResource</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0008</DiagnosticId>
-    <Target>T:Aspire.Hosting.ConnectionStringResource</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0008</DiagnosticId>
-    <Target>T:Aspire.Hosting.ExternalServiceResource</Target>
+    <Target>P:Aspire.Hosting.IDeveloperCertificateService.UseForServerAuthentication</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

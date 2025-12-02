@@ -18,10 +18,10 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
     {
         // Arrange
         var initContext = new InitContext();
-        
+
         // Act & Assert - No projects selected returns default
         Assert.Equal("net9.0", initContext.RequiredAppHostFramework);
-        
+
         // Set up projects with different TFMs
         initContext.ExecutableProjectsToAddToAppHost = new List<ExecutableProjectInfo>
         {
@@ -29,29 +29,29 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             new() { ProjectFile = new FileInfo("/test/project2.csproj"), TargetFramework = "net9.0" },
             new() { ProjectFile = new FileInfo("/test/project3.csproj"), TargetFramework = "net10.0" }
         };
-        
+
         // Act
         var result = initContext.RequiredAppHostFramework;
-        
+
         // Assert
         Assert.Equal("net10.0", result);
-        
+
         // Test with only lower versions
         initContext.ExecutableProjectsToAddToAppHost = new List<ExecutableProjectInfo>
         {
             new() { ProjectFile = new FileInfo("/test/project1.csproj"), TargetFramework = "net8.0" },
             new() { ProjectFile = new FileInfo("/test/project2.csproj"), TargetFramework = "net9.0" }
         };
-        
+
         result = initContext.RequiredAppHostFramework;
         Assert.Equal("net9.0", result);
-        
+
         // Test with only net8.0
         initContext.ExecutableProjectsToAddToAppHost = new List<ExecutableProjectInfo>
         {
             new() { ProjectFile = new FileInfo("/test/project1.csproj"), TargetFramework = "net8.0" }
         };
-        
+
         result = initContext.RequiredAppHostFramework;
         Assert.Equal("net8.0", result);
     }
@@ -61,50 +61,50 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
     {
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
+
         // Create a solution file to trigger InitializeExistingSolutionAsync path
         var solutionFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Test.sln"));
         File.WriteAllText(solutionFile.FullName, "Fake solution file");
-        
+
         const string testErrorMessage = "Test error from dotnet sln list";
         var standardOutputCallbackInvoked = false;
         var standardErrorCallbackInvoked = false;
-        
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             // Mock the runner to return an error when GetSolutionProjectsAsync is called
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                
+
                 runner.GetSolutionProjectsAsyncCallback = (solutionFile, invocationOptions, cancellationToken) =>
                 {
                     // Verify that the OutputCollector callbacks are wired up
                     Assert.NotNull(invocationOptions.StandardOutputCallback);
                     Assert.NotNull(invocationOptions.StandardErrorCallback);
-                    
+
                     // Simulate calling the callbacks to verify they work
                     invocationOptions.StandardOutputCallback?.Invoke("Some output");
                     standardOutputCallbackInvoked = true;
-                    
+
                     invocationOptions.StandardErrorCallback?.Invoke(testErrorMessage);
                     standardErrorCallbackInvoked = true;
-                    
+
                     // Return a non-zero exit code to trigger the error path
                     return (1, Array.Empty<FileInfo>());
                 };
-                
+
                 return runner;
             };
         });
 
         var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
-        
+
         // Act - Invoke init command
         var parseResult = initCommand.Parse("init");
         var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         // Assert
         Assert.Equal(1, exitCode); // Should return the error exit code
         Assert.True(standardOutputCallbackInvoked, "StandardOutputCallback should have been invoked");
@@ -116,15 +116,15 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
     {
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
+
         // Create a solution file to trigger InitializeExistingSolutionAsync path
         var solutionFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Test.sln"));
         File.WriteAllText(solutionFile.FullName, "Fake solution file");
-        
+
         const string testErrorMessage = "Test error from dotnet new";
         var standardOutputCallbackInvoked = false;
         var standardErrorCallbackInvoked = false;
-        
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             // Mock the runner
@@ -172,7 +172,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
                 var interactionService = new TestConsoleInteractionService();
                 return interactionService;
             };
-            
+
             // Mock packaging service
             options.PackagingServiceFactory = (sp) =>
             {
@@ -182,11 +182,11 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
-        
-        // Act - Invoke init command  
+
+        // Act - Invoke init command
         var parseResult = initCommand.Parse("init");
         var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         // Assert
         Assert.Equal(1, exitCode); // Should return the error exit code
         Assert.True(standardOutputCallbackInvoked, "StandardOutputCallback should have been invoked");
@@ -199,14 +199,11 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var promptedForProjectName = false;
         var promptedForOutputPath = false;
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            // Enable single-file AppHost feature
-            options.EnabledFeatures = [KnownFeatures.SingleFileAppHostEnabled];
-            
             // Set up prompter to track if prompts are called
             options.NewCommandPrompterFactory = (sp) =>
             {
@@ -230,32 +227,32 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
                 return prompter;
             };
-            
+
             // Mock the runner to avoid actual template installation and project creation
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                
+
                 // Mock template installation
                 runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, invocationOptions, cancellationToken) =>
                 {
                     return (ExitCode: 0, TemplateVersion: "10.0.0");
                 };
-                
+
                 // Mock project creation
                 runner.NewProjectAsyncCallback = (templateName, projectName, outputPath, invocationOptions, cancellationToken) =>
                 {
                     // Verify the expected values are being used
                     Assert.Equal(workspace.WorkspaceRoot.Name, projectName);
                     Assert.Equal(workspace.WorkspaceRoot.FullName, Path.GetFullPath(outputPath));
-                    
+
                     // Create a minimal file to simulate successful template creation
                     var appHostFile = Path.Combine(outputPath, "apphost.cs");
                     File.WriteAllText(appHostFile, "// Test apphost file");
-                    
+
                     return 0;
                 };
-                
+
                 // Mock package search for template version selection
                 runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetConfigFile, useCache, invocationOptions, cancellationToken) =>
                 {
@@ -265,13 +262,13 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
                         Source = "nuget",
                         Version = "10.0.0"
                     };
-                    
+
                     return (0, new[] { package });
                 };
-                
+
                 return runner;
             };
-            
+
             // Mock packaging service to return fake channels
             options.PackagingServiceFactory = (sp) =>
             {
@@ -281,17 +278,17 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
-        
+
         // Act - Invoke init command
         var parseResult = initCommand.Parse("init");
         var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         // Assert
         Assert.Equal(0, exitCode);
         Assert.False(promptedForProjectName, "Should not have prompted for project name");
         Assert.False(promptedForOutputPath, "Should not have prompted for output path");
     }
-    
+
     // Test implementation of INewCommandPrompter
     private sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
     {
@@ -326,7 +323,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             };
         }
     }
-    
+
     // Test implementation of IPackagingService
     private sealed class TestPackagingService : IPackagingService
     {
@@ -337,7 +334,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             return Task.FromResult<IEnumerable<PackageChannel>>(new[] { testChannel });
         }
     }
-    
+
     private sealed class FakeNuGetPackageCache : INuGetPackageCache
     {
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
@@ -350,17 +347,17 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             };
             return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>(new[] { package });
         }
-        
+
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
         {
             return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>(Array.Empty<Aspire.Shared.NuGetPackageCli>());
         }
-        
+
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
         {
             return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>(Array.Empty<Aspire.Shared.NuGetPackageCli>());
         }
-        
+
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken)
         {
             return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>(Array.Empty<Aspire.Shared.NuGetPackageCli>());

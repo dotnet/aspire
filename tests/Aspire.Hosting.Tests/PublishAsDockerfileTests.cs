@@ -17,7 +17,7 @@ public class PublishAsDockerfileTests
 
         var path = tempDir.Path;
 
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile();
 
         // There should be an equivalent container resource with the same name
@@ -56,7 +56,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_STRING", "Test"),
                 new DockerBuildArg("SOME_BOOL", true),
@@ -109,7 +109,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_ARG")
             ]);
@@ -155,7 +155,7 @@ public class PublishAsDockerfileTests
 
         var secret = builder.AddParameter("secret", secret: true);
 
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .WithArgs("/usr/foo")
             .PublishAsDockerFile(c =>
             {
@@ -362,7 +362,7 @@ public class PublishAsDockerfileTests
         using var tempDir = CreateDirectoryWithDockerFile();
         var path = tempDir.Path;
 
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile()
             .PublishAsDockerFile(); // Call again - should not throw
 
@@ -380,7 +380,7 @@ public class PublishAsDockerfileTests
         var path = tempDir.Path;
 
         var callbackCount = 0;
-        var frontend = builder.AddNpmApp("frontend", path, "watch")
+        var frontend = builder.AddJavaScriptApp("frontend", path, "watch")
             .PublishAsDockerFile(c =>
             {
                 callbackCount++;

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
@@ -9,6 +10,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Service that provides information about developer certificate trust capabilities.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IDeveloperCertificateService
 {
     /// <summary>
@@ -22,4 +24,15 @@ public interface IDeveloperCertificateService
     /// for accessing host services such as "host.docker.internal" and "host.containers.internal".
     /// </summary>
     bool SupportsContainerTrust { get; }
+
+    /// <summary>
+    /// Indicates whether the default behavior is to attempt to use a developer certificate for server
+    /// authentication (i.e. TLS termination).
+    /// </summary>
+    bool UseForServerAuthentication { get; }
+
+    /// <summary>
+    /// Indicates whether the default behavior is to attempt to trust the developer certificate(s) at runtime.
+    /// </summary>
+    bool TrustCertificate { get; }
 }

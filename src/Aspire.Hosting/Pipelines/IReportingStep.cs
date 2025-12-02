@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IReportingStep : IAsyncDisposable
 {
     /// <summary>
@@ -18,6 +19,14 @@ public interface IReportingStep : IAsyncDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created task.</returns>
     Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Logs a message at the specified level within this step.
+    /// </summary>
+    /// <param name="logLevel">The log level for the message.</param>
+    /// <param name="message">The message to log.</param>
+    /// <param name="enableMarkdown">Whether to enable Markdown formatting for the message.</param>
+    void Log(LogLevel logLevel, string message, bool enableMarkdown);
 
     /// <summary>
     /// Completes the step with the specified completion text and state.

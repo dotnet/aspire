@@ -353,7 +353,7 @@ public class AzureFunctionsTests
 
         await Verify(rolesManifest.ToString(), "json")
               .AppendContentAsFile(rolesBicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public class AzureFunctionsTests
 
         await Verify(rolesManifest.ToString(), "json")
               .AppendContentAsFile(rolesBicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -417,7 +417,7 @@ public class AzureFunctionsTests
               .AppendContentAsFile(rolesBicep, "bicep")
               .AppendContentAsFile(rolesManifest2.ToString(), "json")
               .AppendContentAsFile(rolesBicep2, "bicep");
-              
+
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
@@ -545,14 +545,14 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_AddsDefaultLaunchProfileAnnotation_WhenConfigured()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        
+
         // Set the AppHost default launch profile configuration
         builder.Configuration["AppHost:DefaultLaunchProfileName"] = "TestProfile";
-        
+
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
-        
+
         // Verify that the DefaultLaunchProfileAnnotation is added
         Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
         Assert.Equal("TestProfile", annotation.LaunchProfileName);
@@ -562,14 +562,14 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_AddsDefaultLaunchProfileAnnotation_FromDotnetLaunchProfile()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        
+
         // Set the DOTNET_LAUNCH_PROFILE configuration
         builder.Configuration["DOTNET_LAUNCH_PROFILE"] = "DotnetProfile";
-        
+
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
-        
+
         // Verify that the DefaultLaunchProfileAnnotation is added
         Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
         Assert.Equal("DotnetProfile", annotation.LaunchProfileName);
@@ -579,11 +579,11 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_DoesNotAddLaunchProfileAnnotation_WhenNoConfigurationSet()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        
+
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
-        
+
         // Verify that no DefaultLaunchProfileAnnotation is added when no configuration is set
         Assert.False(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out _));
     }
@@ -592,17 +592,181 @@ public class AzureFunctionsTests
     public void AddAzureFunctionsProject_AppHostConfigurationOverridesDotnetLaunchProfile()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        
+
         // Set both configurations, AppHost should take precedence
         builder.Configuration["AppHost:DefaultLaunchProfileName"] = "AppHostProfile";
         builder.Configuration["DOTNET_LAUNCH_PROFILE"] = "DotnetProfile";
-        
+
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
-        
+
         // Verify that AppHost configuration takes precedence
         Assert.True(functionsResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var annotation));
         Assert.Equal("AppHostProfile", annotation.LaunchProfileName);
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_Works()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a temporary project file
+        var projectPath = Path.Combine(tempDir.Path, "TestFunctions.csproj");
+        File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath);
+
+        // Assert that default storage resource is configured
+        Assert.Contains(builder.Resources, resource =>
+            resource is AzureStorageResource && resource.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        // Assert that custom project resource type is configured
+        Assert.Contains(builder.Resources, resource =>
+            resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
+
+        // Verify that the project metadata annotation is added
+        Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
+        Assert.NotNull(projectMetadata);
+        Assert.Contains("TestFunctions.csproj", projectMetadata.ProjectPath);
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a temporary project file
+        var projectPath = Path.Combine(tempDir.Path, "MyFunctions.csproj");
+        File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        // Use a relative path from the builder's directory
+        var relativePath = Path.GetRelativePath(builder.AppHostDirectory, projectPath);
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", relativePath);
+
+        // Verify that the project metadata annotation is added with normalized path
+        Assert.True(funcApp.Resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata));
+        Assert.NotNull(projectMetadata);
+
+        // The path should be normalized to an absolute path
+        Assert.True(Path.IsPathRooted(projectMetadata.ProjectPath));
+    }
+
+    [Fact]
+    public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a temporary project file
+        var projectPath = Path.Combine(tempDir.Path, "TestFunctions.csproj");
+        File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        builder.AddAzureFunctionsProject("funcapp", projectPath);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+        Assert.True(functionsResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
+
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext);
+        foreach (var envAnnotation in envAnnotations)
+        {
+            await envAnnotation.Callback(context);
+        }
+
+        // Verify common environment variables are set
+        Assert.True(context.EnvironmentVariables.ContainsKey("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"));
+        Assert.True(context.EnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"));
+        Assert.True(context.EnvironmentVariables.ContainsKey("AzureFunctionsJobHost__telemetryMode"));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create temporary project files
+        var projectPath1 = Path.Combine(tempDir.Path, "Functions1.csproj");
+        var projectPath2 = Path.Combine(tempDir.Path, "Functions2.csproj");
+        File.WriteAllText(projectPath1, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        File.WriteAllText(projectPath2, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        builder.AddAzureFunctionsProject("funcapp1", projectPath1);
+        builder.AddAzureFunctionsProject("funcapp2", projectPath2);
+
+        // Assert that only one default storage resource exists and is shared
+        var storageResources = builder.Resources.OfType<AzureStorageResource>()
+            .Where(r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName))
+            .ToList();
+        Assert.Single(storageResources);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a temporary project file
+        var projectPath = Path.Combine(tempDir.Path, "Functions.csproj");
+        File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        var customStorage = builder.AddAzureStorage("my-custom-storage").RunAsEmulator();
+        var funcApp = builder.AddAzureFunctionsProject("funcapp", projectPath)
+            .WithHostStorage(customStorage);
+
+        using var host = builder.Build();
+        await host.StartAsync();
+
+        // Assert that the custom storage is used and default storage is not present
+        var model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.DoesNotContain(model.Resources.OfType<AzureStorageResource>(),
+            r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
+        Assert.Equal("my-custom-storage", storageResource.Name);
+
+        Assert.True(funcApp.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relAnnotations));
+        var rel = Assert.Single(relAnnotations);
+        Assert.Equal("Reference", rel.Type);
+        Assert.Equal(customStorage.Resource, rel.Resource);
+
+        await host.StopAsync();
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a temporary project file
+        var projectPath = Path.Combine(tempDir.Path, "Functions.csproj");
+        File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        builder.AddAzureFunctionsProject("funcapp", projectPath);
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
+
+        // Verify that AzureFunctionsAnnotation is added
+        Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_RegistersFuncCoreToolsInstallationManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        // Verify that FuncCoreToolsInstallationManager is registered as a singleton
+        var descriptor = builder.Services.FirstOrDefault(s => s.ServiceType == typeof(FuncCoreToolsInstallationManager));
+        Assert.NotNull(descriptor);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
     }
 }

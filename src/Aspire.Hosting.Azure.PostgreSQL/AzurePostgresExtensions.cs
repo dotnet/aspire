@@ -142,6 +142,7 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresFlexibleServerResource(name, infrastructure => ConfigurePostgreSqlInfrastructure(infrastructure, builder));
         return builder.AddResource(resource)
+            .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
@@ -338,6 +339,8 @@ public static class AzurePostgresExtensions
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{builder.Resource.Name}");
+        // Set the secret owner to this resource
+        azureResource.ConnectionStringSecretOutput.SecretOwner = azureResource;
 
         // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
         var containerResource = azureResource.InnerResource;

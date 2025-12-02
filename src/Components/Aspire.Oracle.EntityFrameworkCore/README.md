@@ -10,7 +10,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 
 ### Install the package
 
-Install the .NET Aspire Oracle EntityFrameworkCore library with [NuGet](https://www.nuget.org):
+Install the Aspire Oracle EntityFrameworkCore library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Oracle.EntityFrameworkCore
@@ -45,7 +45,7 @@ builder.EnrichOracleDatabaseDbContext<CatalogDbContext>();
 
 ## Configuration
 
-The .NET Aspire Oracle EntityFrameworkCore component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire Oracle EntityFrameworkCore component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -71,7 +71,7 @@ See the [ODP.NET documentation](https://www.oracle.com/database/technologies/app
 
 ### Use configuration providers
 
-The .NET Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OracleEntityFrameworkCoreSettings` from configuration by using the `Aspire:Oracle:EntityFrameworkCore` key. Example `appsettings.json` that configures some of the options:
+The Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OracleEntityFrameworkCoreSettings` from configuration by using the `Aspire:Oracle:EntityFrameworkCore` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
