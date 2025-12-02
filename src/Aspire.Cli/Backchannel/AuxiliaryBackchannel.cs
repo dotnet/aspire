@@ -22,58 +22,26 @@ internal sealed class AuxiliaryBackchannel : IAuxiliaryBackchannel
     }
 
     /// <inheritdoc/>
-    public async Task<AppHostInformation?> GetAppHostInformationAsync(CancellationToken cancellationToken = default)
+    public Task<AppHostInformation?> GetAppHostInformationAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await _rpc.InvokeWithCancellationAsync<AppHostInformation?>("GetAppHostInformationAsync", cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Log or handle the error as needed
-            return null;
-        }
+        return _rpc.InvokeWithCancellationAsync<AppHostInformation?>("GetAppHostInformationAsync", cancellationToken: cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<DashboardMcpConnectionInfo?> GetDashboardMcpConnectionInfoAsync(CancellationToken cancellationToken = default)
+    public Task<DashboardMcpConnectionInfo?> GetDashboardMcpConnectionInfoAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await _rpc.InvokeWithCancellationAsync<DashboardMcpConnectionInfo?>("GetDashboardMcpConnectionInfoAsync", cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Log or handle the error as needed
-            return null;
-        }
+        return _rpc.InvokeWithCancellationAsync<DashboardMcpConnectionInfo?>("GetDashboardMcpConnectionInfoAsync", cancellationToken: cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<TestResults?> GetTestResultsAsync(CancellationToken cancellationToken = default)
+    public Task<TestResults?> GetTestResultsAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await _rpc.InvokeWithCancellationAsync<TestResults?>("GetTestResultsAsync", cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Log or handle the error as needed
-            return null;
-        }
+        return _rpc.InvokeWithCancellationAsync<TestResults?>("GetTestResultsAsync", cancellationToken: cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task StopAppHostAsync(CancellationToken cancellationToken = default)
+    public Task StopAppHostAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await _rpc.InvokeWithCancellationAsync("StopAppHostAsync", cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Log or handle the error as needed
-            // The AppHost may disconnect before responding, which is expected
-        }
+        return _rpc.InvokeWithCancellationAsync("StopAppHostAsync", cancellationToken: cancellationToken);
     }
 }
