@@ -15,36 +15,34 @@ public static class ContainerRegistryResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the container registry resource.</param>
-    /// <param name="endpoint">A <see cref="ParameterResource"/> containing the registry endpoint URL or hostname.</param>
-    /// <param name="repository">An optional <see cref="ParameterResource"/> containing the repository path within the registry.</param>
+    /// <param name="endpoint">An <see cref="IResourceBuilder{ParameterResource}"/> containing the registry endpoint URL or hostname.</param>
+    /// <param name="repository">An optional <see cref="IResourceBuilder{ParameterResource}"/> containing the repository path within the registry.</param>
     /// <returns>An <see cref="IResourceBuilder{ContainerRegistryResource}"/> for the container registry resource.</returns>
     /// <remarks>
-    /// <para>
     /// Use this method when the registry endpoint and repository values need to be provided dynamically
     /// via configuration or user input.
-    /// </para>
     /// </remarks>
     /// <example>
     /// Add a container registry with parameterized values:
     /// <code>
     /// var endpointParameter = builder.AddParameter("registry-endpoint");
     /// var repositoryParameter = builder.AddParameter("registry-repo");
-    /// var registry = builder.AddContainerRegistry("my-registry", endpointParameter.Resource, repositoryParameter.Resource);
+    /// var registry = builder.AddContainerRegistry("my-registry", endpointParameter, repositoryParameter);
     /// </code>
     /// </example>
     public static IResourceBuilder<ContainerRegistryResource> AddContainerRegistry(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
-        ParameterResource endpoint,
-        ParameterResource? repository = null)
+        IResourceBuilder<ParameterResource> endpoint,
+        IResourceBuilder<ParameterResource>? repository = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        var endpointExpression = ReferenceExpression.Create($"{endpoint}");
+        var endpointExpression = ReferenceExpression.Create($"{endpoint.Resource}");
         var repositoryExpression = repository is not null
-            ? ReferenceExpression.Create($"{repository}")
+            ? ReferenceExpression.Create($"{repository.Resource}")
             : null;
 
         var resource = new ContainerRegistryResource(name, endpointExpression, repositoryExpression);
@@ -60,10 +58,8 @@ public static class ContainerRegistryResourceBuilderExtensions
     /// <param name="repository">The optional repository path within the registry (e.g., "myusername" for Docker Hub, "owner/repo" for GHCR).</param>
     /// <returns>An <see cref="IResourceBuilder{ContainerRegistryResource}"/> for the container registry resource.</returns>
     /// <remarks>
-    /// <para>
     /// Use this method when the registry endpoint and repository values are known at design time
     /// and do not need to be parameterized.
-    /// </para>
     /// </remarks>
     /// <example>
     /// Add a Docker Hub container registry:

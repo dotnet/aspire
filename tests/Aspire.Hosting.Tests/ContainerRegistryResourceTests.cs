@@ -47,7 +47,7 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
 
         var endpointParam = builder.AddParameter("registry-endpoint");
         var repositoryParam = builder.AddParameter("registry-repo");
-        var registry = builder.AddContainerRegistry("my-registry", endpointParam.Resource, repositoryParam.Resource);
+        var registry = builder.AddContainerRegistry("my-registry", endpointParam, repositoryParam);
 
         Assert.Equal("my-registry", registry.Resource.Name);
 
@@ -64,7 +64,7 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var endpointParam = builder.AddParameter("registry-endpoint");
-        var registry = builder.AddContainerRegistry("my-registry", endpointParam.Resource);
+        var registry = builder.AddContainerRegistry("my-registry", endpointParam);
 
         Assert.Equal("my-registry", registry.Resource.Name);
 
@@ -120,7 +120,7 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        Assert.Throws<ArgumentNullException>(() => builder.AddContainerRegistry("registry", (ParameterResource)null!));
+        Assert.Throws<ArgumentNullException>(() => builder.AddContainerRegistry("registry", (IResourceBuilder<ParameterResource>)null!));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
         builder.Configuration["Parameters:registry-endpoint"] = "ghcr.io";
 
         var endpointParam = builder.AddParameter("registry-endpoint");
-        var registry = builder.AddContainerRegistry("ghcr", endpointParam.Resource);
+        var registry = builder.AddContainerRegistry("ghcr", endpointParam);
 
         var containerRegistry = registry.Resource as IContainerRegistry;
         Assert.NotNull(containerRegistry);
@@ -205,7 +205,7 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
 
         var endpointParam = builder.AddParameter("registry-endpoint");
         var repositoryParam = builder.AddParameter("registry-repo");
-        var registry = builder.AddContainerRegistry("ghcr", endpointParam.Resource, repositoryParam.Resource);
+        var registry = builder.AddContainerRegistry("ghcr", endpointParam, repositoryParam);
 
         var containerRegistry = registry.Resource as IContainerRegistry;
         Assert.NotNull(containerRegistry);

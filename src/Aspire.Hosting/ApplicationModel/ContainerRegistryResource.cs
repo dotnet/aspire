@@ -8,24 +8,20 @@ namespace Aspire.Hosting.ApplicationModel;
 /// (e.g., Docker Hub, GitHub Container Registry, or private registries) in the application model.
 /// </summary>
 /// <remarks>
-/// <para>
 /// This resource implements <see cref="IContainerRegistry"/> and allows configuration using either
 /// <see cref="ParameterResource"/> values or hard-coded strings, providing flexibility for scenarios
 /// where registry configuration needs to be dynamically provided or statically defined.
-/// </para>
-/// <para>
-/// Use <see cref="ContainerRegistryResourceBuilderExtensions.AddContainerRegistry(IDistributedApplicationBuilder, string, ParameterResource, ParameterResource?)"/>
+/// Use <see cref="ContainerRegistryResourceBuilderExtensions.AddContainerRegistry(IDistributedApplicationBuilder, string, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource}?)"/>
 /// to add a container registry with parameterized values, or
 /// <see cref="ContainerRegistryResourceBuilderExtensions.AddContainerRegistry(IDistributedApplicationBuilder, string, string, string?)"/>
 /// to add a container registry with literal values.
-/// </para>
 /// </remarks>
 /// <example>
 /// Add a container registry with parameterized values:
 /// <code>
 /// var endpointParameter = builder.AddParameter("registry-endpoint");
 /// var repositoryParameter = builder.AddParameter("registry-repo");
-/// var registry = builder.AddContainerRegistry("my-registry", endpointParameter.Resource, repositoryParameter.Resource);
+/// var registry = builder.AddContainerRegistry("my-registry", endpointParameter, repositoryParameter);
 /// </code>
 /// </example>
 /// <example>
