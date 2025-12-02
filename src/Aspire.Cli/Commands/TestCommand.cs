@@ -3,6 +3,9 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
@@ -12,6 +15,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Spectre.Console;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -88,6 +92,30 @@ internal class TestCommand : BaseCommand
 
             InteractionService.DisplaySuccess(TestCommandStrings.AppHostStarted);
 
+            // Connect to the auxiliary backchannel
+            var auxiliaryBackchannel = await ConnectToAuxiliaryBackchannelAsync(effectiveAppHostFile.FullName, cancellationToken);
+
+            // Wait for test results
+            InteractionService.DisplayEmptyLine();
+            var testResults = await InteractionService.ShowStatusAsync("Running tests...", async () =>
+            {
+                return await auxiliaryBackchannel.GetTestResultsAsync(cancellationToken);
+            });
+
+            // Display test results
+            InteractionService.DisplayEmptyLine();
+            if (testResults?.Success == true)
+            {
+                InteractionService.DisplaySuccess(testResults.Message);
+            }
+            else
+            {
+                InteractionService.DisplayError(testResults?.Message ?? "Test execution failed.");
+            }
+
+            // Stop the AppHost
+            await auxiliaryBackchannel.StopAppHostAsync(cancellationToken);
+
             // Wait for the apphost to exit
             return await pendingRun;
         }
@@ -112,5 +140,53 @@ internal class TestCommand : BaseCommand
             InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+    }
+
+    private static async Task<IAuxiliaryBackchannel> ConnectToAuxiliaryBackchannelAsync(string appHostPath, CancellationToken cancellationToken)
+    {
+        var socketPath = GetAuxiliaryBackchannelSocketPath(appHostPath);
+
+        // Wait for the socket to be created (with timeout)
+        var timeout = TimeSpan.FromSeconds(30);
+        var startTime = DateTime.UtcNow;
+
+        while (!File.Exists(socketPath))
+        {
+            if (DateTime.UtcNow - startTime > timeout)
+            {
+                throw new InvalidOperationException($"Auxiliary backchannel socket not found at {socketPath} after waiting {timeout.TotalSeconds} seconds");
+            }
+
+            await Task.Delay(100, cancellationToken);
+        }
+
+        // Give the socket a moment to be ready
+        await Task.Delay(100, cancellationToken);
+
+        // Connect to the Unix socket
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(socketPath);
+
+        await socket.ConnectAsync(endpoint, cancellationToken);
+
+        // Create JSON-RPC connection
+        var stream = new NetworkStream(socket, ownsSocket: true);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
+        rpc.StartListening();
+
+        return new AuxiliaryBackchannel(rpc);
+    }
+
+    private static string GetAuxiliaryBackchannelSocketPath(string appHostPath)
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+
+        // Compute hash from the AppHost path for consistency
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
+        // Use first 16 characters to keep socket path length reasonable
+        var hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+
+        return Path.Combine(backchannelsDir, $"aux.sock.{hash}");
     }
 }
