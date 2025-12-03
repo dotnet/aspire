@@ -136,6 +136,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// <returns>A task that completes when all test resources have reached a completed state.</returns>
     public async Task<TestResults> GetTestResultsAsync(CancellationToken cancellationToken = default)
     {
+        await Task.Delay(15000, cancellationToken).ConfigureAwait(false);
+
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
         if (appModel is null)
         {
@@ -163,7 +165,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         logger.LogInformation("Waiting for {Count} test resource(s) to complete", testResources.Count);
 
-        // Wait for all test resources to reach a completed state
+        // Wait for all test resources to reach a completed state and collect results
         var waitTasks = testResources.Select(async resource =>
         {
             try
@@ -174,12 +176,33 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                     cancellationToken).ConfigureAwait(false);
                 
                 logger.LogInformation("Test resource '{ResourceName}' completed", resource.Name);
-                return (resource.Name, Success: true, Error: (string?)null);
+
+                // Invoke the test results callback if present
+                var callbackAnnotation = resource.Annotations.OfType<TestResultsCallbackAnnotation>().FirstOrDefault();
+                TestResultFileInfo[]? resultFiles = null;
+
+                if (callbackAnnotation is not null)
+                {
+                    var context = new TestResultsCallbackContext(serviceProvider, cancellationToken);
+                    await callbackAnnotation.Callback(context).ConfigureAwait(false);
+
+                    resultFiles = context.ResultFiles
+                        .Select(f => new TestResultFileInfo
+                        {
+                            FilePath = f.File.FullName,
+                            Format = f.Format.ToString()
+                        })
+                        .ToArray();
+
+                    logger.LogInformation("Collected {Count} result file(s) from test resource '{ResourceName}'", resultFiles.Length, resource.Name);
+                }
+
+                return (resource.Name, Success: true, Error: (string?)null, ResultFiles: resultFiles);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error waiting for test resource '{ResourceName}'", resource.Name);
-                return (resource.Name, Success: false, Error: ex.Message);
+                return (resource.Name, Success: false, Error: ex.Message, ResultFiles: (TestResultFileInfo[]?)null);
             }
         });
 
@@ -198,7 +221,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             {
                 ResourceName = r.Name,
                 Success = r.Success,
-                Error = r.Error
+                Error = r.Error,
+                ResultFiles = r.ResultFiles
             }).ToArray()
         };
     }

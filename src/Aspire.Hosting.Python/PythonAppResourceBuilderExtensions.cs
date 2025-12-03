@@ -173,6 +173,36 @@ public static class PythonAppResourceBuilderExtensions
     {
         var resource = AddPythonExecutable(builder, name, appDirectory, "pytest");
         resource.WithAnnotation(new TestResourceAnnotation());
+
+        // Generate a unique file path for pytest report-log output
+        var junitxmlResultFileName = $"{Guid.NewGuid():N}.xml";
+        var junitxmlFilePath = Path.Combine(Path.GetTempPath(), "aspire-test-results", junitxmlResultFileName);
+
+        // Ensure the directory exists
+        Directory.CreateDirectory(Path.GetDirectoryName(junitxmlFilePath)!);
+        // Add the report-log argument to pytest
+        resource.WithArgs(context =>
+        {
+            context.Args.Add($"--junitxml={junitxmlFilePath}");
+        });
+
+        // Add the callback annotation for collecting test results
+        resource.WithAnnotation(new TestResultsCallbackAnnotation(async context =>
+        {
+            // Wait for the test resource to reach a terminal state before collecting results
+            var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
+            await resourceNotificationService.WaitForResourceAsync(
+                name,
+                targetStates: KnownResourceStates.TerminalStates,
+                context.CancellationToken).ConfigureAwait(false);
+
+            var junitxmlFile = new FileInfo(junitxmlFilePath);
+            if (junitxmlFile.Exists)
+            {
+                context.AddResultsFile(junitxmlFile, TestResultFormat.PytestReportLog);
+            }
+        }));
+
         return resource;
     }
 

@@ -328,4 +328,25 @@ internal sealed class TestResourceResult
     /// Gets or sets an error message if the test failed.
     /// </summary>
     public string? Error { get; set; }
+
+    /// <summary>
+    /// Gets or sets the list of test result files produced by the resource.
+    /// </summary>
+    public TestResultFileInfo[]? ResultFiles { get; set; }
+}
+
+/// <summary>
+/// Information about a test result file.
+/// </summary>
+internal sealed class TestResultFileInfo
+{
+    /// <summary>
+    /// Gets or sets the full path to the test result file.
+    /// </summary>
+    public required string FilePath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the format of the test results.
+    /// </summary>
+    public required string Format { get; set; }
 }

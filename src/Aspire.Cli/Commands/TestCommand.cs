@@ -113,6 +113,23 @@ internal class TestCommand : BaseCommand
                 InteractionService.DisplayError(testResults?.Message ?? "Test execution failed.");
             }
 
+            // Display links to test result files
+            if (testResults?.TestResourceResults is not null)
+            {
+                foreach (var resourceResult in testResults.TestResourceResults)
+                {
+                    if (resourceResult.ResultFiles is { Length: > 0 })
+                    {
+                        foreach (var resultFile in resourceResult.ResultFiles)
+                        {
+                            var filePath = resultFile.FilePath;
+                            var fileLink = $"[link=file://{filePath.EscapeMarkup()}]{filePath.EscapeMarkup()}[/]";
+                            InteractionService.DisplayMessage("page_facing_up", $"Test results ({resourceResult.ResourceName}): {fileLink}");
+                        }
+                    }
+                }
+            }
+
             // Stop the AppHost
             await auxiliaryBackchannel.StopAppHostAsync(cancellationToken);
 

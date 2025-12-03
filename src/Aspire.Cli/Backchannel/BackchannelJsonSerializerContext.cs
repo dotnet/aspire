@@ -36,6 +36,8 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(DashboardMcpConnectionInfo))]
 [JsonSerializable(typeof(AppHostInformation))]
 [JsonSerializable(typeof(TestResults))]
+[JsonSerializable(typeof(TestResourceResult))]
+[JsonSerializable(typeof(TestResultFileInfo))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]
