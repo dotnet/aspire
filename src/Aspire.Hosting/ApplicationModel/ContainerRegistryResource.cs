@@ -67,22 +67,8 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
-            var allRegistries = model.Resources.OfType<IContainerRegistry>().ToArray();
-            var hasMultipleRegistries = allRegistries.Length > 1;
-
-            foreach (var resource in model.Resources)
+            foreach (var resource in GetResourcesToPush(model, this))
             {
-                if (!resource.RequiresImageBuildAndPush())
-                {
-                    continue;
-                }
-
-                var targetRegistry = GetTargetRegistryForResource(resource, allRegistries, hasMultipleRegistries);
-                if (targetRegistry is null || !ReferenceEquals(targetRegistry, this))
-                {
-                    continue;
-                }
-
                 var pushStep = new PipelineStep
                 {
                     Name = $"push-{resource.Name}",
@@ -105,22 +91,8 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         // Add pipeline configuration annotation to wire up dependencies between build and push steps
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            var allRegistries = context.Model.Resources.OfType<IContainerRegistry>().ToArray();
-            var hasMultipleRegistries = allRegistries.Length > 1;
-
-            foreach (var resource in context.Model.Resources)
+            foreach (var resource in GetResourcesToPush(context.Model, this))
             {
-                if (!resource.RequiresImageBuildAndPush())
-                {
-                    continue;
-                }
-
-                var targetRegistry = GetTargetRegistryForResource(resource, allRegistries, hasMultipleRegistries);
-                if (targetRegistry is null || !ReferenceEquals(targetRegistry, this))
-                {
-                    continue;
-                }
-
                 var buildSteps = context.GetSteps(resource, WellKnownPipelineTags.BuildCompute);
                 var resourcePushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage)
                     .Where(s => s.Resource == resource);
@@ -137,10 +109,30 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         }));
     }
 
+    private static IEnumerable<IResource> GetResourcesToPush(DistributedApplicationModel model, IContainerRegistry targetRegistry)
+    {
+        var allRegistries = model.Resources.OfType<IContainerRegistry>().ToArray();
+
+        foreach (var resource in model.Resources)
+        {
+            if (!resource.RequiresImageBuildAndPush())
+            {
+                continue;
+            }
+
+            var registry = GetTargetRegistryForResource(resource, allRegistries);
+            if (registry is null || !ReferenceEquals(registry, targetRegistry))
+            {
+                continue;
+            }
+
+            yield return resource;
+        }
+    }
+
     private static IContainerRegistry? GetTargetRegistryForResource(
         IResource resource,
-        IContainerRegistry[] allRegistries,
-        bool hasMultipleRegistries)
+        IContainerRegistry[] allRegistries)
     {
         if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations))
         {
@@ -151,7 +143,7 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
             }
         }
 
-        if (hasMultipleRegistries)
+        if (allRegistries.Length > 1)
         {
             var registryNames = string.Join(", ", allRegistries.Select(r => r is IResource res ? res.Name : r.ToString()));
             throw new InvalidOperationException(
