@@ -205,6 +205,38 @@ public class RoleAssignmentTests()
             s => s.Replace("\\r\\n", "\\n"));
     }
 
+    /// <summary>
+    /// Verifies that the Azure SQL Server deployment script uses AzPowerShellVersion 14.0 or higher.
+    /// This addresses the Bicep linter warning "use-recent-az-powershell-version" which recommends
+    /// version 11.0 or higher to avoid EOL Ubuntu 20.04 LTS. We use 14.0 as the latest supported version.
+    /// See: https://aka.ms/bicep/linter-diagnostics#use-recent-az-powershell-version
+    /// </summary>
+    [Fact]
+    public async Task SqlDeploymentScriptUsesAzPowerShellVersion14OrHigher()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var sql = builder.AddAzureSqlServer("sql")
+            .AddDatabase("db");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(sql);
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-sql");
+        var (_, rolesBicep) = await GetManifestWithBicep(projRoles);
+
+        // Verify that the deployment script uses AzPowerShellVersion 14.0 or higher.
+        // The minimum recommended version is 11.0 (to avoid EOL Ubuntu 20.04 LTS),
+        // but we use 14.0 as the latest supported version.
+        Assert.Contains("azPowerShellVersion: '14.0'", rolesBicep);
+    }
+
     [Fact]
     public Task KustoSupport()
     {
