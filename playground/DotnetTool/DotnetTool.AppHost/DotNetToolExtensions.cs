@@ -1,6 +1,8 @@
 #pragma warning disable IDE0005 // Using directive is unnecessary (needed when file is linked to test project)
+using System.Collections.Immutable;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 #pragma warning restore IDE0005
 
 namespace DotnetTool.AppHost;
@@ -17,48 +19,53 @@ public static class DotNetToolExtensions
         where T : DotnetToolResource
     {
         return builder.AddResource(resource)
-           .WithIconName("Toolbox")
-           .WithCommand("dotnet")
-           .WithArgs(x =>
-           {
-               if (!x.Resource.TryGetLastAnnotation<DotNetToolAnnotation>(out var toolConfig))
-               {
-                   // If the annotation has been removed, don't add any dotnet tool arguments.
-                   return;
-               }
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = "Tool",
+                Properties = []
+            })
+            .WithIconName("Toolbox")
+            .WithCommand("dotnet")
+            .WithArgs(x =>
+            {
+                if (!x.Resource.TryGetLastAnnotation<DotNetToolAnnotation>(out var toolConfig))
+                {
+                    // If the annotation has been removed, don't add any dotnet tool arguments.
+                    return;
+                }
 
-               x.Args.Add("tool");
-               x.Args.Add("exec");
-               x.Args.Add(toolConfig.PackageId);
+                x.Args.Add("tool");
+                x.Args.Add("exec");
+                x.Args.Add(toolConfig.PackageId);
 
-               var sourceArg = toolConfig.IgnoreExistingFeeds ? "--source" : "--add-source";
+                var sourceArg = toolConfig.IgnoreExistingFeeds ? "--source" : "--add-source";
 
-               foreach (var source in toolConfig.Sources)
-               {
-                   x.Args.Add(sourceArg);
-                   x.Args.Add(source);
-               }
+                foreach (var source in toolConfig.Sources)
+                {
+                    x.Args.Add(sourceArg);
+                    x.Args.Add(source);
+                }
 
-               if (toolConfig.IgnoreFailedSources)
-               {
-                   x.Args.Add("--ignore-failed-sources");
-               }
+                if (toolConfig.IgnoreFailedSources)
+                {
+                    x.Args.Add("--ignore-failed-sources");
+                }
 
-               if (toolConfig.Version is not null)
-               {
-                   x.Args.Add("--version");
-                   x.Args.Add(toolConfig.Version);
-               }
-               else if (toolConfig.Prerelease)
-               {
-                   x.Args.Add("--prerelease");
-               }
+                if (toolConfig.Version is not null)
+                {
+                    x.Args.Add("--version");
+                    x.Args.Add(toolConfig.Version);
+                }
+                else if (toolConfig.Prerelease)
+                {
+                    x.Args.Add("--prerelease");
+                }
 
-               x.Args.Add("--verbosity");
-               x.Args.Add("detailed");
-               x.Args.Add("--yes");
-               x.Args.Add("--");
-           });
+                x.Args.Add("--verbosity");
+                x.Args.Add("detailed");
+                x.Args.Add("--yes");
+                x.Args.Add("--");
+            });
     }
 
     public static IResourceBuilder<T> WithPackageId<T>(this IResourceBuilder<T> builder, string packageId)
