@@ -19,6 +19,6 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   parent: keyVault
 }
 
-output name string = redis.name
+output name string = 'existingResourceName'
 
 output hostName string = redis.properties.hostName

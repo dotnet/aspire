@@ -11,6 +11,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
         failoverPriority: 0
       }
     ]
+    capabilities: []
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }
