@@ -47,7 +47,8 @@ public static class DotNetToolExtensions
             .WithIconName("Toolbox")
             .WithCommand("dotnet")
             .WithArgs(BuildToolExecArguments)
-            .OnInitializeResource(StartSourceFixer);
+            .OnInitializeResource(StartSourceFixer)
+            .OnBeforeResourceStarted(BuildToolProperties);
 
         void BuildToolExecArguments(CommandLineArgsCallbackContext x)
         {
@@ -157,6 +158,25 @@ public static class DotNetToolExtensions
             }, ct);
         }
 
+        //TODO: Move to WithConfigurationFinalizer once merged - https://github.com/dotnet/aspire/pull/13200
+        async Task BuildToolProperties(T resource, BeforeResourceStartedEvent evt, CancellationToken ct)
+        {
+            var rns = evt.Services.GetRequiredService<ResourceNotificationService>();
+            var toolConfig = resource.ToolConfiguration;
+            if (toolConfig == null)
+            {
+                return;
+            }
+
+            await rns.PublishUpdateAsync(resource, x => x with
+            {
+                Properties = [
+                        ..x.Properties,
+                        new ResourcePropertySnapshot(KnownProperties.Tool.Package, toolConfig.PackageId),
+                        new ResourcePropertySnapshot(KnownProperties.Tool.Version, toolConfig.Version)
+                        ]
+            }).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
