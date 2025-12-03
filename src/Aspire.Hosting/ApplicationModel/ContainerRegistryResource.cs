@@ -94,8 +94,7 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
             foreach (var resource in GetResourcesToPush(context.Model, this))
             {
                 var buildSteps = context.GetSteps(resource, WellKnownPipelineTags.BuildCompute);
-                var resourcePushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage)
-                    .Where(s => s.Resource == resource);
+                var resourcePushSteps = context.GetSteps(resource, WellKnownPipelineTags.PushContainerImage);
 
                 foreach (var pushStep in resourcePushSteps)
                 {
