@@ -27,6 +27,7 @@ KEEP_ARCHIVE=false
 DRY_RUN=false
 INSTALL_EXTENSION=false
 USE_INSIDERS=false
+SKIP_PATH=false
 DEFAULT_QUALITY="release"
 EXTENSION_ARTIFACT_NAME="aspire-vscode.vsix.zip"
 
@@ -57,6 +58,7 @@ USAGE:
     --arch ARCH                 Architecture (default: auto-detect)
     --install-extension         Install VS Code extension along with the CLI
     --use-insiders              Install extension to VS Code Insiders instead of VS Code (requires --install-extension)
+    --skip-path                 Do not add the install path to PATH environment variable (useful for portable installs)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
     --dry-run                   Show what would be done without actually performing any actions
     -v, --verbose               Enable verbose output
@@ -136,6 +138,10 @@ parse_args() {
                 ;;
             --use-insiders)
                 USE_INSIDERS=true
+                shift
+                ;;
+            --skip-path)
+                SKIP_PATH=true
                 shift
                 ;;
             -k|--keep-archive)
@@ -992,6 +998,12 @@ trap cleanup EXIT
 # Download and install the archive
 if ! download_and_install_archive "$temp_dir"; then
     exit 1
+fi
+
+# Skip PATH configuration if --skip-path is set
+if [[ "$SKIP_PATH" == true ]]; then
+    say_info "Skipping PATH configuration due to --skip-path flag"
+    exit 0
 fi
 
 # Handle GitHub Actions environment
