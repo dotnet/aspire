@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
         <source>Detecting agent environments...</source>
-        <target state="new">Detecting agent environments...</target>
+        <target state="translated">エージェント環境を検出しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
