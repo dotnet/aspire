@@ -152,6 +152,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Action = context => Task.CompletedTask
         });
 
+        // Add a default "Push" meta-step that all push steps should be required by
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.Push,
+            Description = "Aggregation step for all push operations. All push steps should be required by this step.",
+            Action = _ => Task.CompletedTask
+        });
+
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.PushPrereq,
+            Description = "Prerequisite step that runs before any push operations.",
+            Action = _ => Task.CompletedTask,
+        });
+
         // Add a default "Publish" aggregation step that all publish steps should be required by
         _steps.Add(new PipelineStep
         {

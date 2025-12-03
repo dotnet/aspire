@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -328,5 +330,27 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
         IResourceBuilder<ContainerRegistryResource> registry = null!;
 
         Assert.Throws<ArgumentNullException>(() => container.WithContainerRegistry(registry));
+    }
+
+    [Fact]
+    public void ContainerRegistryResourceHasPipelineStepAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+
+        var pipelineStepAnnotation = registry.Resource.Annotations.OfType<PipelineStepAnnotation>().SingleOrDefault();
+        Assert.NotNull(pipelineStepAnnotation);
+    }
+
+    [Fact]
+    public void ContainerRegistryResourceHasPipelineConfigurationAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+
+        var configurationAnnotation = registry.Resource.Annotations.OfType<PipelineConfigurationAnnotation>().SingleOrDefault();
+        Assert.NotNull(configurationAnnotation);
     }
 }

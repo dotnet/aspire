@@ -1,7 +1,13 @@
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -54,6 +60,106 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         _registryName = ReferenceExpression.Create($"{name}");
         _endpoint = endpoint;
         _repository = repository;
+
+        // Add pipeline step annotation to create push steps for resources that reference this registry
+        Annotations.Add(new PipelineStepAnnotation(factoryContext =>
+        {
+            var model = factoryContext.PipelineContext.Model;
+            var steps = new List<PipelineStep>();
+
+            var allRegistries = model.Resources.OfType<IContainerRegistry>().ToArray();
+            var hasMultipleRegistries = allRegistries.Length > 1;
+
+            foreach (var resource in model.Resources)
+            {
+                if (!resource.RequiresImageBuildAndPush())
+                {
+                    continue;
+                }
+
+                var targetRegistry = GetTargetRegistryForResource(resource, allRegistries, hasMultipleRegistries);
+                if (targetRegistry is null || !ReferenceEquals(targetRegistry, this))
+                {
+                    continue;
+                }
+
+                var pushStep = new PipelineStep
+                {
+                    Name = $"push-{resource.Name}",
+                    Action = async ctx =>
+                    {
+                        var containerImageManager = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
+                        await containerImageManager.PushImageAsync(resource, ctx.CancellationToken).ConfigureAwait(false);
+                    },
+                    Tags = [WellKnownPipelineTags.PushContainerImage],
+                    RequiredBySteps = [WellKnownPipelineSteps.Push],
+                    Resource = resource
+                };
+
+                steps.Add(pushStep);
+            }
+
+            return steps;
+        }));
+
+        // Add pipeline configuration annotation to wire up dependencies between build and push steps
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            var allRegistries = context.Model.Resources.OfType<IContainerRegistry>().ToArray();
+            var hasMultipleRegistries = allRegistries.Length > 1;
+
+            foreach (var resource in context.Model.Resources)
+            {
+                if (!resource.RequiresImageBuildAndPush())
+                {
+                    continue;
+                }
+
+                var targetRegistry = GetTargetRegistryForResource(resource, allRegistries, hasMultipleRegistries);
+                if (targetRegistry is null || !ReferenceEquals(targetRegistry, this))
+                {
+                    continue;
+                }
+
+                var buildSteps = context.GetSteps(resource, WellKnownPipelineTags.BuildCompute);
+                var resourcePushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage)
+                    .Where(s => s.Resource == resource);
+
+                foreach (var pushStep in resourcePushSteps)
+                {
+                    foreach (var buildStep in buildSteps)
+                    {
+                        pushStep.DependsOn(buildStep);
+                    }
+                    pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
+                }
+            }
+        }));
+    }
+
+    private static IContainerRegistry? GetTargetRegistryForResource(
+        IResource resource,
+        IContainerRegistry[] allRegistries,
+        bool hasMultipleRegistries)
+    {
+        if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations))
+        {
+            var annotation = registryAnnotations.LastOrDefault();
+            if (annotation is not null)
+            {
+                return annotation.Registry;
+            }
+        }
+
+        if (hasMultipleRegistries)
+        {
+            var registryNames = string.Join(", ", allRegistries.Select(r => r is IResource res ? res.Name : r.ToString()));
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
+                $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+        }
+
+        return allRegistries.Length == 1 ? allRegistries[0] : null;
     }
 
     /// <inheritdoc />
