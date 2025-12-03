@@ -79,8 +79,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("tool", arg),
             arg => Assert.Equal("exec", arg),
             arg => Assert.Equal("dotnet-ef", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -103,8 +101,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("dotnet-ef", arg),
             arg => Assert.Equal("--version", arg),
             arg => Assert.Equal("10.0.0", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -126,8 +122,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("exec", arg),
             arg => Assert.Equal("dotnet-ef", arg),
             arg => Assert.Equal("--prerelease", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -150,8 +144,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("dotnet-ef", arg),
             arg => Assert.Equal("--add-source", arg),
             arg => Assert.Equal("https://custom.nuget.org/v3/index.json", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -177,8 +169,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("https://source1.nuget.org/v3/index.json", arg),
             arg => Assert.Equal("--add-source", arg),
             arg => Assert.Equal("https://source2.nuget.org/v3/index.json", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -202,8 +192,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("dotnet-ef", arg),
             arg => Assert.Equal("--source", arg),
             arg => Assert.Equal("https://custom.nuget.org/v3/index.json", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -225,8 +213,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("exec", arg),
             arg => Assert.Equal("dotnet-ef", arg),
             arg => Assert.Equal("--ignore-failed-sources", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg)
         );
@@ -247,8 +233,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("tool", arg),
             arg => Assert.Equal("exec", arg),
             arg => Assert.Equal("dotnet-ef", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg),
             arg => Assert.Equal("database", arg),
@@ -279,8 +263,6 @@ public class AddDotnetToolTests
             arg => Assert.Equal("--ignore-failed-sources", arg),
             arg => Assert.Equal("--version", arg),
             arg => Assert.Equal("9.0.1", arg),
-            arg => Assert.Equal("--verbosity", arg),
-            arg => Assert.Equal("detailed", arg),
             arg => Assert.Equal("--yes", arg),
             arg => Assert.Equal("--", arg),
             arg => Assert.Equal("database", arg),
@@ -386,8 +368,6 @@ public class AddDotnetToolTests
             "dotnet-ef",
             "--version",
             "10.0.0",
-            "--verbosity",
-            "detailed",
             "--yes",
             "--",
             "--version"

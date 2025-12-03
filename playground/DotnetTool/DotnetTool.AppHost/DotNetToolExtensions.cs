@@ -64,8 +64,6 @@ public static class DotNetToolExtensions
                     x.Args.Add("--prerelease");
                 }
 
-                x.Args.Add("--verbosity");
-                x.Args.Add("detailed");
                 x.Args.Add("--yes");
                 x.Args.Add("--");
             })
