@@ -91,7 +91,7 @@ public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigura
     }
 
     /// <inheritdoc />
-    public async Task<IProcessedResourceExecutionConfiguration> BuildProcessedAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
+    public async Task<(IProcessedResourceExecutionConfiguration, Exception?)> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
         var resourceLogger = _resourceLogger ?? _resource.GetLogger(executionContext.ServiceProvider);
 

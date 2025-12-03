@@ -121,7 +121,7 @@ public sealed class ParameterProcessor(
         var executionConfgiuration = await ResourceExecutionConfigurationBuilder.Create(resource, logger)
             .WithArguments()
             .WithEnvironmentVariables()
-            .BuildProcessedAsync(executionContext, cancellationToken).ConfigureAwait(false);
+            .BuildAsync(executionContext, cancellationToken).ConfigureAwait(false);
 
         foreach (var reference in executionConfgiuration.References)
         {

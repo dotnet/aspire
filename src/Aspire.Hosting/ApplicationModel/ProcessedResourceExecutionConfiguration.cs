@@ -25,7 +25,4 @@ internal class ProcessedResourceExecutionConfiguration : IProcessedResourceExecu
 
     /// <inheritdoc/>
     public required IEnumerable<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; init; }
-
-    /// <inheritdoc/>
-    public required Exception? Exception { get; init; }
 }

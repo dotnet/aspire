@@ -20,6 +20,6 @@ public interface IResourceExecutionConfigurationBuilder
     /// </summary>
     /// <param name="executionContext">The distributed application execution context.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The resource configuration.</returns>
-    Task<IProcessedResourceExecutionConfiguration> BuildProcessedAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default);
+    /// <returns>A tuple of the resource configuration and any exceptions that occurred while processing it.</returns>
+    Task<(IProcessedResourceExecutionConfiguration, Exception?)> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default);
 }

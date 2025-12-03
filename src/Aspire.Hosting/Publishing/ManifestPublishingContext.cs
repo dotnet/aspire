@@ -528,13 +528,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var executionConfiguration, var exception) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
             .WithEnvironmentVariables()
-            .BuildProcessedAsync(ExecutionContext, CancellationToken).ConfigureAwait(false);
+            .BuildAsync(ExecutionContext, CancellationToken).ConfigureAwait(false);
 
-        if (executionConfiguration.Exception is not null)
+        if (exception is not null)
         {
-            ExceptionDispatchInfo.Throw(executionConfiguration.Exception);
+            ExceptionDispatchInfo.Throw(exception);
         }
 
         if (!executionConfiguration.EnvironmentVariablesWithUnprocessed.Any())
@@ -565,13 +565,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
-        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var executionConfiguration, var exception) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
             .WithArguments()
-            .BuildProcessedAsync(ExecutionContext, CancellationToken).ConfigureAwait(false);
+            .BuildAsync(ExecutionContext, CancellationToken).ConfigureAwait(false);
 
-        if (executionConfiguration.Exception is not null)
+        if (exception is not null)
         {
-            ExceptionDispatchInfo.Throw(executionConfiguration.Exception);
+            ExceptionDispatchInfo.Throw(exception);
         }
 
         if (!executionConfiguration.ArgumentsWithUnprocessed.Any())

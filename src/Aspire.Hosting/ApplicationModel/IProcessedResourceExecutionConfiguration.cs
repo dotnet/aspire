@@ -37,10 +37,4 @@ public interface IProcessedResourceExecutionConfiguration
     /// Gets additional configuration data associated with the resource configuration.
     /// </summary>
     IEnumerable<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; }
-
-    /// <summary>
-    /// Gets the exception that occurred while gathering the resource configuration, if any.
-    /// If multiple exceptions occurred, they are aggregated into an AggregateException.
-    /// </summary>
-    Exception? Exception { get; }
 }

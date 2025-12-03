@@ -36,9 +36,9 @@ internal static class MauiEnvironmentHelper
         var environmentVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var encodedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, logger)
+        (var executionConfiguration, _) = await ResourceExecutionConfigurationBuilder.Create(resource, logger)
             .WithEnvironmentVariables()
-            .BuildProcessedAsync(executionContext, cancellationToken).ConfigureAwait(false);
+            .BuildAsync(executionContext, cancellationToken).ConfigureAwait(false);
 
         // Normalize all the environment variables for the resource
         foreach (var envVar in executionConfiguration.EnvironmentVariables)
@@ -219,9 +219,9 @@ internal static class MauiEnvironmentHelper
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, logger)
+        (var executionConfiguration, _) = await ResourceExecutionConfigurationBuilder.Create(resource, logger)
             .WithEnvironmentVariables()
-            .BuildProcessedAsync(executionContext, cancellationToken).ConfigureAwait(false);
+            .BuildAsync(executionContext, cancellationToken).ConfigureAwait(false);
 
         // If no environment variables, return null
         if (!executionConfiguration.EnvironmentVariables.Any())

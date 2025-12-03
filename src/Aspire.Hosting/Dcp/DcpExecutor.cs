@@ -1598,7 +1598,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
-            var configuration = await ResourceExecutionConfigurationBuilder.Create(er.ModelResource)
+            (var configuration, var configException) = await ResourceExecutionConfigurationBuilder.Create(er.ModelResource)
                 .WithArguments()
                 .WithEnvironmentVariables()
                 .WithCertificateTrust(scope =>
@@ -1626,7 +1626,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     KeyPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.key")}"),
                     PfxPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.pfx")}"),
                 })
-                .BuildProcessedAsync(_executionContext, cancellationToken).ConfigureAwait(false);
+                .BuildAsync(_executionContext, cancellationToken).ConfigureAwait(false);
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ExecutablePemCertificates? pemCertificates = null;
@@ -1697,7 +1697,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
 
-            if (configuration.Exception is not null)
+            if (configException is not null)
             {
                 throw new FailedToApplyEnvironmentException();
             }
@@ -1933,7 +1933,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
 
-            var configuration = await ResourceExecutionConfigurationBuilder.Create(cr.ModelResource)
+            (var configuration, var configException) = await ResourceExecutionConfigurationBuilder.Create(cr.ModelResource)
                 .WithArguments()
                 .WithEnvironmentVariables()
                 .WithCertificateTrust(scope =>
@@ -1958,7 +1958,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     KeyPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.key"),
                     PfxPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.pfx"),
                 })
-                .BuildProcessedAsync(_executionContext, cancellationToken).ConfigureAwait(false);
+                .BuildAsync(_executionContext, cancellationToken).ConfigureAwait(false);
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ContainerPemCertificates? pemCertificates = null;
@@ -2082,7 +2082,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 spec.Command = containerResource.Entrypoint;
             }
 
-            if (failedToApplyRunArgs || configuration.Exception is not null)
+            if (failedToApplyRunArgs || configException is not null)
             {
                 throw new FailedToApplyEnvironmentException();
             }

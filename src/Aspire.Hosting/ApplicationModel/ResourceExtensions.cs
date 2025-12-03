@@ -192,9 +192,9 @@ public static class ResourceExtensions
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var executionConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var executionConfiguration, _) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
             .WithEnvironmentVariables()
-            .BuildProcessedAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
+            .BuildAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
 
         return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
@@ -236,9 +236,9 @@ public static class ResourceExtensions
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var argumentConfiguration = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var argumentConfiguration, _) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
             .WithArguments()
-            .BuildProcessedAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
+            .BuildAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
 
         return argumentConfiguration.Arguments.Select(a => a.Value).ToArray();
     }
