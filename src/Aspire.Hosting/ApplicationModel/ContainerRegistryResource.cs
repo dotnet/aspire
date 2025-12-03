@@ -120,34 +120,26 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
                 continue;
             }
 
-            var registry = GetTargetRegistryForResource(resource, allRegistries);
-            if (registry is null || !ReferenceEquals(registry, targetRegistry))
+            // Check if resource has an explicit ContainerRegistryReferenceAnnotation
+            if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations) &&
+                registryAnnotations.Any())
             {
-                continue;
+                // Resource has explicit annotation - only include if it matches this registry
+                var annotation = registryAnnotations.Last();
+                if (ReferenceEquals(annotation.Registry, targetRegistry))
+                {
+                    yield return resource;
+                }
             }
-
-            yield return resource;
-        }
-    }
-
-    private static IContainerRegistry? GetTargetRegistryForResource(
-        IResource resource,
-        IContainerRegistry[] allRegistries)
-    {
-        // Get the registry from the ContainerRegistryReferenceAnnotation
-        // The PushPrereq step ensures all resources have this annotation when needed
-        if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations))
-        {
-            var annotation = registryAnnotations.LastOrDefault();
-            if (annotation is not null)
+            else if (allRegistries.Length == 1 && ReferenceEquals(allRegistries[0], targetRegistry))
             {
-                return annotation.Registry;
+                // No explicit annotation but single registry exists - include for this registry
+                // The PushPrereq step will add the annotation at runtime
+                yield return resource;
             }
+            // If multiple registries exist and no annotation, the resource won't be included
+            // The PushPrereq step will throw an error at runtime requiring explicit WithContainerRegistry call
         }
-
-        // Fallback for cases where PushPrereq hasn't run yet (during step creation)
-        // Return single registry if only one exists, null otherwise
-        return allRegistries.Length == 1 ? allRegistries[0] : null;
     }
 
     /// <inheritdoc />
