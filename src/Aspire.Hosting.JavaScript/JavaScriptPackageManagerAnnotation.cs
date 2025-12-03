@@ -43,7 +43,6 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
 
     /// <summary>
     /// Gets or sets a callback to initialize the Docker build stage before installing packages.
-    /// This can be used to add package manager-specific setup commands to the Dockerfile.
     /// </summary>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public Action<DockerfileStage>? InitializeDockerBuildStage { get; init; }
