@@ -4,11 +4,6 @@
       "Framework": {
         "longName": "framework"
       },
-      "XUnitVersion": {
-        "shortName": "",
-        "longName": "xunit-version",
-        "defaultValue": "v2"
-      },
       "appHostHttpPort": {
         "isHidden": true
       },
@@ -33,10 +28,10 @@
       "appHostResourceHttpsPort": {
         "isHidden": true
       },
-      "apiServiceHttpPort": {
+      "serverHttpPort": {
         "isHidden": true
       },
-      "apiServiceHttpsPort": {
+      "serverHttpsPort": {
         "isHidden": true
       },
       "NoHttps": {
@@ -47,17 +42,12 @@
         "longName": "use-redis-cache",
         "shortName": ""
       },
-      "TestFx": {
-        "longName": "test-framework",
-        "shortName": "t"
-      },
       "LocalhostTld": {
         "longName": "localhost-tld",
         "shortName": ""
       }
     },
     "usageExamples": [
-      "--use-redis-cache",
-      "--test-framework MSTest"
+      "--use-redis-cache"
     ]
   }
