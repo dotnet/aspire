@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.DotnetTool.Tests;
 
+#pragma warning disable ASPIREDOTNETTOOL // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 public class AddDotnetToolTests
 {
     [Fact]
