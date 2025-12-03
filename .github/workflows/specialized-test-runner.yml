@@ -108,7 +108,7 @@ jobs:
       fail-fast: false
       matrix:
         tests: ${{ fromJson(needs.generate_tests_matrix.outputs.runsheet) }}
-    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.result == 'success' && (needs.build_packages.result == 'success' || needs.build_packages.result == 'skipped') }}
+    if: ${{ github.repository_owner == 'dotnet' && !cancelled() && !failure() }}
     uses: ./.github/workflows/run-tests.yml
     with:
       testShortName: ${{ matrix.tests.project }}
@@ -184,7 +184,19 @@ jobs:
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
         # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
-        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
+        # Note: build_packages being skipped is expected when requiresNugets is false, so we check it separately
+        if: >-
+          ${{
+            always() && (
+              needs.generate_tests_matrix.result == 'failure' ||
+              needs.generate_tests_matrix.result == 'cancelled' ||
+              needs.run_tests.result == 'failure' ||
+              needs.run_tests.result == 'cancelled' ||
+              needs.run_tests.result == 'skipped' ||
+              (needs.build_packages.result == 'failure') ||
+              (needs.build_packages.result == 'cancelled')
+            )
+          }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1
