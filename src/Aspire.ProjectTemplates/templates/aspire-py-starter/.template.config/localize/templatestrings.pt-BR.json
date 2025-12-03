@@ -3,7 +3,7 @@
   "name": "Aplicativo inicial Python do Aspire",
   "description": "Um modelo de projeto para criar um aplicativo Aspire com um serviço de API de back-end do Python e um front-end do JavaScript usando Vite e React.",
   "symbols/UseRedisCache/displayName": "_Usar o Redis para cache (requer um tempo de execução de contêiner compatível)",
-  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/aspire/containers for more details.",
+  "symbols/UseRedisCache/description": "Configura se o aplicativo deve usar Redis para cache. Requer um runtime de contêiner com suporte para execução local; confira https://aka.ms/aspire/containers para obter mais detalhes.",
   "symbols/appHostHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP launchSettings.json do projeto AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP OTLP launchSettings.json do projeto AppHost.",
   "symbols/appHostMcpHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP do MCP launchSettings.json do projeto AppHost.",
