@@ -134,6 +134,8 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         IResource resource,
         IContainerRegistry[] allRegistries)
     {
+        // Get the registry from the ContainerRegistryReferenceAnnotation
+        // The PushPrereq step ensures all resources have this annotation when needed
         if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations))
         {
             var annotation = registryAnnotations.LastOrDefault();
@@ -143,14 +145,8 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
             }
         }
 
-        if (allRegistries.Length > 1)
-        {
-            var registryNames = string.Join(", ", allRegistries.Select(r => r is IResource res ? res.Name : r.ToString()));
-            throw new InvalidOperationException(
-                $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
-                $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
-        }
-
+        // Fallback for cases where PushPrereq hasn't run yet (during step creation)
+        // Return single registry if only one exists, null otherwise
         return allRegistries.Length == 1 ? allRegistries[0] : null;
     }
 

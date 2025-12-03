@@ -164,7 +164,44 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             Name = WellKnownPipelineSteps.PushPrereq,
             Description = "Prerequisite step that runs before any push operations.",
-            Action = _ => Task.CompletedTask,
+            Action = context =>
+            {
+                // Add ContainerRegistryReferenceAnnotation to resources that don't already have one
+                // so the remote image tag can be computed correctly during push
+                var allRegistries = context.Model.Resources.OfType<IContainerRegistry>().ToArray();
+
+                foreach (var resource in context.Model.Resources)
+                {
+                    if (!resource.RequiresImageBuildAndPush())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource already has a ContainerRegistryReferenceAnnotation
+                    if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var annotations) &&
+                        annotations.Any())
+                    {
+                        continue;
+                    }
+
+                    // When multiple registries exist, require explicit WithContainerRegistry call
+                    if (allRegistries.Length > 1)
+                    {
+                        var registryNames = string.Join(", ", allRegistries.Select(r => r is IResource res ? res.Name : r.ToString()));
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
+                            $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+                    }
+
+                    // Single registry - automatically add the annotation
+                    if (allRegistries.Length == 1)
+                    {
+                        resource.Annotations.Add(new ContainerRegistryReferenceAnnotation(allRegistries[0]));
+                    }
+                }
+
+                return Task.CompletedTask;
+            },
         });
 
         // Add a default "Publish" aggregation step that all publish steps should be required by
