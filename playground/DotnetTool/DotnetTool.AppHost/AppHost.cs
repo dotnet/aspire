@@ -76,6 +76,13 @@ builder.AddDotnetTool("offlinePrerelease", "dotnet-ef")
     .WithPackageIgnoreExistingFeeds()
     .WithPackageIgnoreFailedSources();
 
+var secret = builder.AddParameter("secret", "Shhhhhhh", secret: true);
+
+// Secrets
+builder.AddDotnetTool("secretArg", "dotnet-ef")
+    .WithArgs("--help")
+    .WithArgs(secret);
+
 // Some issues only show up when installing for first time, rather than using existing downloaded versions
 // Use a specific NUGET_PACKAGES path for these playground tools, so we can easily reset them
 builder.Eventing.Subscribe<BeforeStartEvent>(async (evt, _) =>

@@ -21,14 +21,11 @@ public class DotnetToolResource : ExecutableResource
         Annotations.Add(new DotNetToolAnnotation { PackageId = packageId });
     }
 
-    internal DotNetToolAnnotation ToolConfiguration
+    internal DotNetToolAnnotation? ToolConfiguration
     {
         get
         {
-            if (!this.TryGetLastAnnotation<DotNetToolAnnotation>(out var toolConfig))
-            {
-                throw new InvalidOperationException("DotNetToolAnnotation is missing");
-            }
+            this.TryGetLastAnnotation<DotNetToolAnnotation>(out var toolConfig);
             return toolConfig;
         }
     }
