@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -9,6 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <remarks>This class is used to define and manage resources for .NET CLI tools. It associates a tool's name and
 /// command with its package ID, and ensures that the required metadata is properly annotated.</remarks>
+[Experimental("ASPIREDOTNETTOOL", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class DotnetToolResource : ExecutableResource
 {
     /// <summary>

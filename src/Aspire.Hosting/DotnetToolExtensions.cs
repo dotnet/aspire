@@ -2,15 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
-using Aspire.Dashboard.Model;
 
 namespace Aspire.Hosting;
 
 /// <summary>
 /// Provides extension methods for adding Dotnet Tool resources to the application model.
 /// </summary>
+[Experimental("ASPIREDOTNETTOOL", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class DotNetToolExtensions
 {
     private const string ArgumentSeperator = "--";
