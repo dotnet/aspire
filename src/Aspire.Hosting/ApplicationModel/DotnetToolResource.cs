@@ -1,8 +1,7 @@
-#pragma warning disable IDE0005 // Using directive is unnecessary (needed when file is linked to test project)
-using Aspire.Hosting.ApplicationModel;
-#pragma warning restore IDE0005
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
-namespace DotnetTool.AppHost;
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Represents a .NET tool resource that encapsulates metadata about a .NET CLI tool, including its name, package ID,
@@ -12,20 +11,23 @@ namespace DotnetTool.AppHost;
 /// command with its package ID, and ensures that the required metadata is properly annotated.</remarks>
 public class DotnetToolResource : ExecutableResource
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DotnetToolResource"/> class.
+    /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="packageId">The package id of the tool</param>
-    public DotnetToolResource(string name, string packageId) 
+    /// <param name="packageId">The package id of the tool.</param>
+    public DotnetToolResource(string name, string packageId)
         : base(name, "dotnet", ".")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId, nameof(packageId));
-        Annotations.Add(new DotNetToolAnnotation { PackageId = packageId });
+        Annotations.Add(new DotnetToolAnnotation { PackageId = packageId });
     }
 
-    internal DotNetToolAnnotation? ToolConfiguration
+    internal DotnetToolAnnotation? ToolConfiguration
     {
         get
         {
-            this.TryGetLastAnnotation<DotNetToolAnnotation>(out var toolConfig);
+            this.TryGetLastAnnotation<DotnetToolAnnotation>(out var toolConfig);
             return toolConfig;
         }
     }

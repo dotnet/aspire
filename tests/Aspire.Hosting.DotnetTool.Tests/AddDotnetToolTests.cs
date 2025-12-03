@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using DotnetTool.AppHost;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.DotnetTool.Tests;
@@ -27,7 +26,7 @@ public class AddDotnetToolTests
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef");
         
-        var annotation = Assert.Single(tool.Resource.Annotations.OfType<DotNetToolAnnotation>());
+        var annotation = Assert.Single(tool.Resource.Annotations.OfType<DotnetToolAnnotation>());
         Assert.Equal("dotnet-ef", annotation.PackageId);
     }
 
@@ -277,7 +276,7 @@ public class AddDotnetToolTests
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
             .WithPackageVersion("10.0.*");
 
-        var annotation = tool.Resource.Annotations.OfType<DotNetToolAnnotation>().Single();
+        var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.Equal("10.0.*", annotation.Version);
     }
 
@@ -288,7 +287,7 @@ public class AddDotnetToolTests
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
             .WithPackagePrerelease();
 
-        var annotation = tool.Resource.Annotations.OfType<DotNetToolAnnotation>().Single();
+        var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.True(annotation.Prerelease);
     }
 
@@ -299,7 +298,7 @@ public class AddDotnetToolTests
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
             .WithPackageSource("https://custom.nuget.org/v3/index.json");
 
-        var annotation = tool.Resource.Annotations.OfType<DotNetToolAnnotation>().Single();
+        var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.Single(annotation.Sources);
         Assert.Equal("https://custom.nuget.org/v3/index.json", annotation.Sources[0]);
     }
@@ -311,7 +310,7 @@ public class AddDotnetToolTests
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
             .WithPackageIgnoreExistingFeeds();
 
-        var annotation = tool.Resource.Annotations.OfType<DotNetToolAnnotation>().Single();
+        var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.True(annotation.IgnoreExistingFeeds);
     }
 
@@ -322,7 +321,7 @@ public class AddDotnetToolTests
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
             .WithPackageIgnoreFailedSources();
 
-        var annotation = tool.Resource.Annotations.OfType<DotNetToolAnnotation>().Single();
+        var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.True(annotation.IgnoreFailedSources);
     }
 
@@ -333,7 +332,7 @@ public class AddDotnetToolTests
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef");
 
         // Remove the annotation to simulate it being removed
-        var annotation = tool.Resource.Annotations.OfType<DotNetToolAnnotation>().Single();
+        var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         tool.Resource.Annotations.Remove(annotation);
 
         using var app = builder.Build();

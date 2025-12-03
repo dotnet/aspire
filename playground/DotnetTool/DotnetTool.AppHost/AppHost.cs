@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-using DotnetTool.AppHost;
 using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -46,7 +45,7 @@ var substituted = builder.AddDotnetTool("substituted", "dotnet-ef")
     .WithCommand("calc")
     .WithIconName("Calculator")
     .WithExplicitStart();
-foreach(var toolAnnotation in substituted.Resource.Annotations.OfType<DotNetToolAnnotation>().ToList())
+foreach(var toolAnnotation in substituted.Resource.Annotations.OfType<DotnetToolAnnotation>().ToList())
 {
     substituted.Resource.Annotations.Remove(toolAnnotation);
 }
