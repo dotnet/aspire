@@ -42,7 +42,7 @@ public sealed class CertificateAuthorityCollectionAnnotation : IResourceAnnotati
 {
     /// <summary>
     /// Creates a new <see cref="CertificateAuthorityCollectionAnnotation"/> instance from one or more merged <see cref="CertificateAuthorityCollectionAnnotation"/> instances.
-    /// Certificate authority collections from all provided instances will be combined into the new instance, while the last vlaues for <see cref="TrustDeveloperCertificates"/>
+    /// Certificate authority collections from all provided instances will be combined into the new instance, while the last values for <see cref="TrustDeveloperCertificates"/>
     /// and <see cref="Scope"/> will be used, with null values being ignored (previous value if any will be retained).
     /// </summary>
     /// <param name="other">The other <see cref="CertificateAuthorityCollectionAnnotation"/>s that will be merged to create the new instance.</param>
