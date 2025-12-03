@@ -2095,6 +2095,106 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.True(paramResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
     }
 
+    [Fact]
+    public async Task PipelineStep_WithDescription_IsAccessible()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+        
+        var pipeline = new DistributedApplicationPipeline();
+        var testDescription = "This is a test step that validates description functionality";
+        
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "test-step-with-description",
+            Description = testDescription,
+            Action = _ => Task.CompletedTask
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        await pipeline.ExecuteAsync(context).DefaultTimeout();
+
+        // Assert - We can access the description through pipeline configuration
+        PipelineStep? capturedStep = null;
+        pipeline.AddPipelineConfiguration(configContext =>
+        {
+            capturedStep = configContext.Steps.FirstOrDefault(s => s.Name == "test-step-with-description");
+            return Task.CompletedTask;
+        });
+
+        await pipeline.ExecuteAsync(context).DefaultTimeout();
+
+        Assert.NotNull(capturedStep);
+        Assert.Equal(testDescription, capturedStep.Description);
+    }
+
+    [Fact]
+    public void WellKnownPipelineSteps_HaveDescriptions()
+    {
+        // Arrange
+        var pipeline = new DistributedApplicationPipeline();
+
+        // Act - Get the well-known steps
+        PipelineStep? deployStep = null;
+        PipelineStep? processParametersStep = null;
+        PipelineStep? deployPrereqStep = null;
+        PipelineStep? buildStep = null;
+        PipelineStep? buildPrereqStep = null;
+        PipelineStep? publishStep = null;
+        PipelineStep? publishPrereqStep = null;
+        PipelineStep? diagnosticsStep = null;
+
+        pipeline.AddPipelineConfiguration(configContext =>
+        {
+            deployStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.Deploy);
+            processParametersStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.ProcessParameters);
+            deployPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.DeployPrereq);
+            buildStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.Build);
+            buildPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.BuildPrereq);
+            publishStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.Publish);
+            publishPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
+            diagnosticsStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.Diagnostics);
+            return Task.CompletedTask;
+        });
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: null).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+        var context = CreateDeployingContext(builder.Build());
+
+        // Execute to trigger configuration callbacks
+        var _ = pipeline.ExecuteAsync(context).DefaultTimeout();
+
+        // Assert - All well-known steps should have descriptions
+        Assert.NotNull(deployStep);
+        Assert.False(string.IsNullOrWhiteSpace(deployStep.Description), "Deploy step should have a description");
+
+        Assert.NotNull(processParametersStep);
+        Assert.False(string.IsNullOrWhiteSpace(processParametersStep.Description), "ProcessParameters step should have a description");
+
+        Assert.NotNull(deployPrereqStep);
+        Assert.False(string.IsNullOrWhiteSpace(deployPrereqStep.Description), "DeployPrereq step should have a description");
+
+        Assert.NotNull(buildStep);
+        Assert.False(string.IsNullOrWhiteSpace(buildStep.Description), "Build step should have a description");
+
+        Assert.NotNull(buildPrereqStep);
+        Assert.False(string.IsNullOrWhiteSpace(buildPrereqStep.Description), "BuildPrereq step should have a description");
+
+        Assert.NotNull(publishStep);
+        Assert.False(string.IsNullOrWhiteSpace(publishStep.Description), "Publish step should have a description");
+
+        Assert.NotNull(publishPrereqStep);
+        Assert.False(string.IsNullOrWhiteSpace(publishPrereqStep.Description), "PublishPrereq step should have a description");
+
+        Assert.NotNull(diagnosticsStep);
+        Assert.False(string.IsNullOrWhiteSpace(diagnosticsStep.Description), "Diagnostics step should have a description");
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }
