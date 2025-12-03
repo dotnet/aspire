@@ -146,9 +146,9 @@ public static class DotNetToolExtensions
                                 Properties = x.Properties
                                         .Replace(existingPathProp, existingPathProp with { Value = expectedPath })
                                         .Replace(argsSensitivityProperty, argsSensitivityProperty with { Value = trimmedSensitivity })
-                                        //TODO: This could be overly sensitive if any of the `dotnet tool exec` args are sensitive
-                                        // But I don't see how else to get se
-                                        // I also don't see how you could mark a sens
+                                        //TODO: This could be overly agressive if any of the `dotnet tool exec` args are sensitive but no others are
+                                        // But I don't see how else to get argument sensitivity.
+                                        // I also don't see how you could end up with a sensitive argument specifically to `dotnet tool exec`, and not the tool itself
                                         .Replace(argsProperty, argsProperty with { Value = trimmedArgs })
                             };
                         }).ConfigureAwait(false);
@@ -172,8 +172,9 @@ public static class DotNetToolExtensions
             {
                 Properties = [
                         ..x.Properties,
-                        new ResourcePropertySnapshot(KnownProperties.Tool.Package, toolConfig.PackageId),
-                        new ResourcePropertySnapshot(KnownProperties.Tool.Version, toolConfig.Version)
+                        new (KnownProperties.Executable.Path, toolConfig.PackageId),
+                        new (KnownProperties.Tool.Package, toolConfig.PackageId),
+                        new (KnownProperties.Tool.Version, toolConfig.Version)
                         ]
             }).ConfigureAwait(false);
         }
@@ -221,7 +222,7 @@ public static class DotNetToolExtensions
     }
 
     /// <summary>
-    /// Adds a package source to 
+    /// Adds a package source to get a tool from
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -235,7 +236,7 @@ public static class DotNetToolExtensions
     }
 
     /// <summary>
-    /// 
+    /// Only use the specified package sources, rather than using them in addition to the existing sources.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -248,7 +249,7 @@ public static class DotNetToolExtensions
     }
 
     /// <summary>
-    /// 
+    /// Treat package source failures as warnings.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
