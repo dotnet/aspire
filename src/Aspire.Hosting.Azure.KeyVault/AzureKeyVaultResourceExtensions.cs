@@ -177,6 +177,10 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="name">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="parameterResource">The parameter resource containing the secret value.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The secret name will also be used as the resource name, normalized to conform to Aspire resource naming rules.
+    /// For example, consecutive hyphens will be replaced with a single hyphen.
+    /// </remarks>
     public static IResourceBuilder<AzureKeyVaultSecretResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string name, IResourceBuilder<ParameterResource> parameterResource)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -194,6 +198,10 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="name">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="parameterResource">The parameter resource containing the secret value.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The secret name will also be used as the resource name, normalized to conform to Aspire resource naming rules.
+    /// For example, consecutive hyphens will be replaced with a single hyphen.
+    /// </remarks>
     public static IResourceBuilder<AzureKeyVaultSecretResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string name, ParameterResource parameterResource)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -216,6 +224,10 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="name">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="value">The reference expression containing the secret value.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The secret name will also be used as the resource name, normalized to conform to Aspire resource naming rules.
+    /// For example, consecutive hyphens will be replaced with a single hyphen.
+    /// </remarks>
     public static IResourceBuilder<AzureKeyVaultSecretResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string name, ReferenceExpression value)
     {
         ArgumentNullException.ThrowIfNull(builder);
