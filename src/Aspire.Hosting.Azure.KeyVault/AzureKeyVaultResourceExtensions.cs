@@ -182,7 +182,9 @@ public static partial class AzureKeyVaultResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(parameterResource);
 
-        return builder.AddSecret(name, name, parameterResource.Resource);
+        // Normalize the resource name to conform to resource naming rules
+        var resourceName = NormalizeResourceName(name);
+        return builder.AddSecret(resourceName, name, parameterResource.Resource);
     }
 
     /// <summary>
@@ -199,7 +201,9 @@ public static partial class AzureKeyVaultResourceExtensions
 
         ValidateSecretName(name);
 
-        var secret = new AzureKeyVaultSecretResource(name, name, builder.Resource, parameterResource);
+        // Normalize the resource name to conform to resource naming rules
+        var resourceName = NormalizeResourceName(name);
+        var secret = new AzureKeyVaultSecretResource(resourceName, name, builder.Resource, parameterResource);
         builder.Resource.Secrets.Add(secret);
 
         return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
@@ -219,7 +223,9 @@ public static partial class AzureKeyVaultResourceExtensions
 
         ValidateSecretName(name);
 
-        var secret = new AzureKeyVaultSecretResource(name, name, builder.Resource, value);
+        // Normalize the resource name to conform to resource naming rules
+        var resourceName = NormalizeResourceName(name);
+        var secret = new AzureKeyVaultSecretResource(resourceName, name, builder.Resource, value);
         builder.Resource.Secrets.Add(secret);
 
         return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
@@ -295,6 +301,43 @@ public static partial class AzureKeyVaultResourceExtensions
         {
             throw new ArgumentException("Secret name can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-).", nameof(secretName));
         }
+    }
+
+    /// <summary>
+    /// Normalizes a secret name to be a valid Aspire resource name.
+    /// Resource names must:
+    /// - Start with an ASCII letter
+    /// - Contain only ASCII letters, digits, and hyphens
+    /// - Not end with a hyphen
+    /// - Not contain consecutive hyphens
+    /// - Be between 1 and 64 characters long
+    /// </summary>
+    private static string NormalizeResourceName(string secretName)
+    {
+        if (string.IsNullOrWhiteSpace(secretName))
+        {
+            throw new ArgumentException("Secret name cannot be empty.", nameof(secretName));
+        }
+
+        // Remove leading and trailing hyphens first
+        var normalized = secretName.Trim('-');
+        
+        // Replace consecutive hyphens with a single hyphen to comply with resource naming rules
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "-+", "-");
+
+        // Ensure it starts with a letter (prefix with 's' for 'secret' if it doesn't)
+        if (normalized.Length > 0 && !char.IsAsciiLetter(normalized[0]))
+        {
+            normalized = "s-" + normalized;
+        }
+
+        // Truncate to 64 characters if needed
+        if (normalized.Length > 64)
+        {
+            normalized = normalized.Substring(0, 64).TrimEnd('-');
+        }
+
+        return normalized;
     }
 
     [GeneratedRegex("^[a-zA-Z0-9-]+$")]

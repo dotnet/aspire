@@ -341,6 +341,50 @@ public class AzureKeyVaultTests
         Assert.Contains("cannot be longer than 127 characters", exception.Message);
     }
 
+    [Theory]
+    [InlineData("MySection--MySecret", "MySection-MySecret")]
+    [InlineData("my-secret", "my-secret")]
+    [InlineData("123-test", "s-123-test")]
+    [InlineData("-leading-dash", "leading-dash")]
+    [InlineData("trailing-dash-", "trailing-dash")]
+    public void AddSecret_NormalizesResourceName_WhenNotExplicitlyProvided(string secretName, string expectedResourceName)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        // Act - Use the overload without explicit resource name
+        var secretResource = kv.AddSecret(secretName, secretParam);
+
+        // Assert - The resource name should be normalized
+        Assert.Equal(expectedResourceName, secretResource.Resource.Name);
+        // The secret name should remain unchanged
+        Assert.Equal(secretName, secretResource.Resource.SecretName);
+    }
+
+    [Fact]
+    public async Task AddSecret_WithHierarchicalSecretName_GeneratesCorrectBicep()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var testParam = builder.AddParameter("TestParam", secret: true);
+        var kv = builder.AddAzureKeyVault("key-vault");
+        
+        // Act - Add a secret with double dashes (hierarchical configuration style)
+        kv.AddSecret("MySection--MySecret", testParam);
+
+        // Assert - Should generate valid Bicep without errors
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
+
+        // Verify the Bicep contains the secret with the correct secret name
+        Assert.Contains("MySection--MySecret", bicep);
+        
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseTextForParameters("secretName=MySection--MySecret");
+    }
+
     [Fact]
     public void AddAsExistingResource_ShouldBeIdempotent_ForAzureKeyVaultResource()
     {
