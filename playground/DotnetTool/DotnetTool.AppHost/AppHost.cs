@@ -80,7 +80,7 @@ var secret = builder.AddParameter("secret", "Shhhhhhh", secret: true);
 
 // Secrets
 builder.AddDotnetTool("secretArg", "dotnet-ef")
-    .WithArgs("--help")
+    .WithArgs("--version")
     .WithArgs(secret);
 
 // Some issues only show up when installing for first time, rather than using existing downloaded versions
