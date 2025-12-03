@@ -334,11 +334,41 @@ public static partial class AzureKeyVaultResourceExtensions
         // Remove leading and trailing hyphens first
         var normalized = secretName.Trim('-');
         
-        // Replace consecutive hyphens with a single hyphen to comply with resource naming rules
-        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "-+", "-");
+        // Validate that we have something left after trimming
+        if (string.IsNullOrEmpty(normalized))
+        {
+            // Secret name was only hyphens, use a default prefix
+            normalized = "secret";
+        }
+        else
+        {
+            // Replace consecutive hyphens with a single hyphen to comply with resource naming rules
+            // Using a simple loop approach for efficiency
+            var result = new System.Text.StringBuilder(normalized.Length);
+            var lastWasHyphen = false;
+            
+            foreach (var c in normalized)
+            {
+                if (c == '-')
+                {
+                    if (!lastWasHyphen)
+                    {
+                        result.Append(c);
+                        lastWasHyphen = true;
+                    }
+                }
+                else
+                {
+                    result.Append(c);
+                    lastWasHyphen = false;
+                }
+            }
+            
+            normalized = result.ToString();
+        }
 
         // Ensure it starts with a letter (prefix with 's' for 'secret' if it doesn't)
-        if (normalized.Length > 0 && !char.IsAsciiLetter(normalized[0]))
+        if (!char.IsAsciiLetter(normalized[0]))
         {
             normalized = "s-" + normalized;
         }
