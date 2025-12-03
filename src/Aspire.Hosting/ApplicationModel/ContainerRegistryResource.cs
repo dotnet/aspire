@@ -111,8 +111,6 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
 
     private static IEnumerable<IResource> GetResourcesToPush(DistributedApplicationModel model, IContainerRegistry targetRegistry)
     {
-        var allRegistries = model.Resources.OfType<IContainerRegistry>().ToArray();
-
         foreach (var resource in model.Resources)
         {
             if (!resource.RequiresImageBuildAndPush())
@@ -120,25 +118,16 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
                 continue;
             }
 
-            // Check if resource has an explicit ContainerRegistryReferenceAnnotation
+            // Check if resource has a ContainerRegistryReferenceAnnotation matching this registry
             if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations) &&
                 registryAnnotations.Any())
             {
-                // Resource has explicit annotation - only include if it matches this registry
                 var annotation = registryAnnotations.Last();
                 if (ReferenceEquals(annotation.Registry, targetRegistry))
                 {
                     yield return resource;
                 }
             }
-            else if (allRegistries.Length == 1 && ReferenceEquals(allRegistries[0], targetRegistry))
-            {
-                // No explicit annotation but single registry exists - include for this registry
-                // The PushPrereq step will add the annotation at runtime
-                yield return resource;
-            }
-            // If multiple registries exist and no annotation, the resource won't be included
-            // The PushPrereq step will throw an error at runtime requiring explicit WithContainerRegistry call
         }
     }
 

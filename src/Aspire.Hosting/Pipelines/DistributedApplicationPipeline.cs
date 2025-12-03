@@ -153,12 +153,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         });
 
         // Add a default "Push" meta-step that all push steps should be required by
-        _steps.Add(new PipelineStep
+        // Push unconditionally depends on PushPrereq to ensure annotations are set up
+        var pushStep = new PipelineStep
         {
             Name = WellKnownPipelineSteps.Push,
             Description = "Aggregation step for all push operations. All push steps should be required by this step.",
             Action = _ => Task.CompletedTask
-        });
+        };
+        pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
+        _steps.Add(pushStep);
 
         _steps.Add(new PipelineStep
         {
