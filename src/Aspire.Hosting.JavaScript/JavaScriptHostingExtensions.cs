@@ -645,30 +645,20 @@ public static class JavaScriptHostingExtensions
             var installerName = $"{resource.Resource.Name}-installer";
             resource.ApplicationBuilder.TryCreateResourceBuilder<JavaScriptInstallerResource>(installerName, out var existingResource);
 
-            if (!install)
+            if (existingResource is not null)
             {
-                if (existingResource != null)
+                // Installer already exists, update its configuration based on install parameter
+                if (!install)
                 {
-                    // Remove existing installer resource if install is false
-                    resource.ApplicationBuilder.Resources.Remove(existingResource.Resource);
+                    // Remove wait annotation if install is false
                     resource.Resource.Annotations.OfType<WaitAnnotation>()
                         .Where(w => w.Resource == existingResource.Resource)
                         .ToList()
                         .ForEach(w => resource.Resource.Annotations.Remove(w));
-                    resource.Resource.Annotations.OfType<JavaScriptPackageInstallerAnnotation>()
-                        .ToList()
-                        .ForEach(a => resource.Resource.Annotations.Remove(a));
-                }
-                else
-                {
-                    // No installer needed
-                }
-                return;
-            }
 
-            if (existingResource is not null)
-            {
-                // Installer already exists
+                    // Add WithExplicitStart to the existing installer
+                    existingResource.WithExplicitStart();
+                }
                 return;
             }
 
@@ -695,8 +685,17 @@ public static class JavaScriptHostingExtensions
                 return Task.CompletedTask;
             });
 
-            // Make the parent resource wait for the installer to complete
-            resource.WaitForCompletion(installerBuilder);
+            if (install)
+            {
+                // Make the parent resource wait for the installer to complete
+                resource.WaitForCompletion(installerBuilder);
+            }
+            else
+            {
+                // Add WithExplicitStart when install is false
+                // Note: No need to remove wait annotations here since WaitForCompletion was never called
+                installerBuilder.WithExplicitStart();
+            }
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }
