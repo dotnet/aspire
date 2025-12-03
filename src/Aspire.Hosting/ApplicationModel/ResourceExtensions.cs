@@ -154,6 +154,41 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets a <see cref="IResourceExecutionConfigurationBuilder"/> for the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to generate configuration for</param>
+    /// <returns>A <see cref="IResourceExecutionConfigurationBuilder"/> instance for the given resource.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method is useful for building resource execution configurations (command line arguments and environment variables)
+    /// in a fluent manner. Individual configuration sources can be added to the builder before finalizing the configuration to
+    /// allow only supported configuration sources to be applied in a given execution context (run vs. publish, etc).
+    /// </para>
+    /// <para>
+    /// In particular, this is used to allow certificate-related features to contribute to the final config, but only in execution
+    /// contexts where they're supported.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var resolvedConfiguration = await myResource.ExecutionConfigurationBuilder()
+    ///     .WithArguments()
+    ///     .WithEnvironmentVariables()
+    ///     .BuildAsync(executionContext, resourceLogger: null, cancellationToken: cancellationToken)
+    ///     .ConfigureAwait(false);
+    ///
+    /// foreach (var argument in resolveConfiguration.Arguments)
+    /// {
+    ///     Console.WriteLine($"Argument: {argument.Value}");
+    /// }
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceExecutionConfigurationBuilder ExecutionConfigurationBuilder(this IResource resource)
+    {
+        return ResourceExecutionConfigurationBuilder.Create(resource);
+    }
+
+    /// <summary>
     /// Get the environment variables from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the environment variables from.</param>
@@ -192,9 +227,9 @@ public static class ResourceExtensions
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        (var executionConfiguration, _) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
             .WithEnvironmentVariables()
-            .BuildAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
+            .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
         return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
@@ -232,13 +267,13 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        (var argumentConfiguration, _) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var argumentConfiguration, _) = await resource.ExecutionConfigurationBuilder()
             .WithArguments()
-            .BuildAsync(new(applicationOperation), CancellationToken.None).ConfigureAwait(false);
+            .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
         return argumentConfiguration.Arguments.Select(a => a.Value).ToArray();
     }
@@ -252,7 +287,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the retrieval of argument values.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A list of unprocessed argument values.</returns>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask<List<object>> GatherArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -287,7 +322,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask ProcessGatheredArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -327,7 +362,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -350,7 +385,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the gathering process.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A dictionary of unprocessed environment variable values.</returns>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask<Dictionary<string, object>> GatherEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -384,7 +419,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask ProcessGatheredEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -420,7 +455,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,

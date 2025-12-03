@@ -35,21 +35,14 @@ namespace Aspire.Hosting.ApplicationModel;
 ///     .BuildAsync(executionContext).ConfigureAwait(false);
 /// </code>
 /// </example>
-public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigurationBuilder
+internal class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigurationBuilder
 {
     private readonly IResource _resource;
-    private readonly ILogger? _resourceLogger;
     private readonly List<IResourceExecutionConfigurationGatherer> _gatherers = new();
 
     private ResourceExecutionConfigurationBuilder(IResource resource)
-        : this(resource, null)
-    {
-    }
-
-    private ResourceExecutionConfigurationBuilder(IResource resource, ILogger? resourceLogger)
     {
         _resource = resource;
-        _resourceLogger = resourceLogger;
     }
 
     /// <summary>
@@ -57,29 +50,13 @@ public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigura
     /// </summary>
     /// <param name="resource">The resource to build the configuration for.</param>
     /// <returns>A new <see cref="IResourceExecutionConfigurationBuilder"/>.</returns>
+    /// <remarks>
+    /// Use the ExecutionConfigurationBuilder extension method on <see cref="IResource"/> instead of creating a
+    /// builder directly.
+    /// </remarks>
     public static IResourceExecutionConfigurationBuilder Create(IResource resource)
     {
         return new ResourceExecutionConfigurationBuilder(resource);
-    }
-
-    /// <summary>
-    /// Creates a new instance of <see cref="IResourceExecutionConfigurationBuilder"/>.
-    /// </summary>
-    /// <param name="resource">The resource to build the configuration for.</param>
-    /// <param name="resourceLogger">The logger to use for the resource. If <c>null</c>, a resource logger will be created.</param>
-    /// <returns>A new <see cref="IResourceExecutionConfigurationBuilder"/>.</returns>
-    /// <example>
-    /// <code>
-    /// var resolvedConfiguration = await ResourceExecutionConfigurationBuilder
-    ///     .Create(myResource);
-    ///     .WithArguments()
-    ///     .WithEnvironmentVariables()
-    ///     .BuildAsync(executionContext).ConfigureAwait(false);
-    /// </code>
-    /// </example>
-    public static IResourceExecutionConfigurationBuilder Create(IResource resource, ILogger? resourceLogger)
-    {
-        return new ResourceExecutionConfigurationBuilder(resource, resourceLogger);
     }
 
     /// <inheritdoc />
@@ -91,9 +68,9 @@ public class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigura
     }
 
     /// <inheritdoc />
-    public async Task<(IProcessedResourceExecutionConfiguration, Exception?)> BuildAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
+    public async Task<(IProcessedResourceExecutionConfiguration, Exception?)> BuildAsync(DistributedApplicationExecutionContext executionContext, ILogger? resourceLogger = null, CancellationToken cancellationToken = default)
     {
-        var resourceLogger = _resourceLogger ?? _resource.GetLogger(executionContext.ServiceProvider);
+        resourceLogger ??= _resource.GetLogger(executionContext.ServiceProvider);
 
         var context = new ResourceExecutionConfigurationGathererContext();
 

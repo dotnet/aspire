@@ -528,9 +528,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        (var executionConfiguration, var exception) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
             .WithEnvironmentVariables()
-            .BuildAsync(ExecutionContext, CancellationToken).ConfigureAwait(false);
+            .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
+            .ConfigureAwait(false);
 
         if (exception is not null)
         {
@@ -565,9 +566,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
-        (var executionConfiguration, var exception) = await ResourceExecutionConfigurationBuilder.Create(resource, NullLogger.Instance)
+        (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
             .WithArguments()
-            .BuildAsync(ExecutionContext, CancellationToken).ConfigureAwait(false);
+            .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
+            .ConfigureAwait(false);
 
         if (exception is not null)
         {

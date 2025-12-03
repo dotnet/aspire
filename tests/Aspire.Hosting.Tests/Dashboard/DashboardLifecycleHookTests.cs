@@ -145,9 +145,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
         var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
 
-        (var dashboardEnvironment, _) = await ResourceExecutionConfigurationBuilder.Create(dashboardResource, new FakeLogger())
+        (var dashboardEnvironment, _) = await dashboardResource.ExecutionConfigurationBuilder()
             .WithEnvironmentVariables()
-            .BuildAsync(context, CancellationToken.None).DefaultTimeout();
+            .BuildAsync(context, new FakeLogger(), CancellationToken.None)
+            .DefaultTimeout();
 
         var environmentVariables = dashboardEnvironment.EnvironmentVariables.ToDictionary();
 
