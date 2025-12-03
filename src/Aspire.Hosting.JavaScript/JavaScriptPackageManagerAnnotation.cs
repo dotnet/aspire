@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// DockerfileStage is experimental - this suppression is needed to use it in the InitializeDockerBuildStage callback
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.JavaScript;
 
@@ -38,4 +42,10 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     /// Gets the file patterns for package dependency files.
     /// </summary>
     public List<CopyFilePattern> PackageFilesPatterns { get; } = [];
+
+    /// <summary>
+    /// Gets or sets a callback to initialize the Docker build stage before installing packages.
+    /// This can be used to add package manager-specific setup commands to the Dockerfile.
+    /// </summary>
+    public Action<DockerfileStage>? InitializeDockerBuildStage { get; init; }
 }

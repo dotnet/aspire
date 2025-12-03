@@ -109,6 +109,11 @@ public static class JavaScriptHostingExtensions
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
+                        // Initialize the Docker build stage with package manager-specific setup commands.
+                        // This allows package managers to add prerequisite commands (e.g., enabling pnpm via corepack)
+                        // before package installation and build steps.
+                        packageManager.InitializeDockerBuildStage?.Invoke(builderStage);
+
                         var copiedAllSource = false;
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
@@ -271,12 +276,6 @@ public static class JavaScriptHostingExtensions
 
     private static void AddInstallCommand(this DockerfileStage builderStage, JavaScriptPackageManagerAnnotation packageManager, JavaScriptInstallCommandAnnotation installCommand)
     {
-        // pnpm is not included in the Node.js Docker image by default, so we need to enable it via corepack
-        if (packageManager.ExecutableName == "pnpm")
-        {
-            builderStage.Run("corepack enable pnpm");
-        }
-
         // Use BuildKit cache mount for package manager cache if available
         var installCmd = $"{packageManager.ExecutableName} {string.Join(' ', installCommand.Args)}";
         if (!string.IsNullOrEmpty(packageManager.CacheMount))
@@ -339,6 +338,10 @@ public static class JavaScriptHostingExtensions
                         var dockerBuilder = dockerfileContext.Builder
                             .From(baseImage)
                             .WorkDir("/app");
+
+                        // Initialize the Docker build stage with package manager-specific setup commands
+                        // for the default JavaScript app builder (used by Vite and other build-less apps).
+                        packageManager.InitializeDockerBuildStage?.Invoke(dockerBuilder);
 
                         var copiedAllSource = false;
 
@@ -594,7 +597,9 @@ public static class JavaScriptHostingExtensions
             {
                 PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
                 // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
-                CommandSeparator = null
+                CommandSeparator = null,
+                // pnpm is not included in the Node.js Docker image by default, so we need to enable it via corepack
+                InitializeDockerBuildStage = stage => stage.Run("corepack enable pnpm")
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
