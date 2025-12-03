@@ -5,7 +5,7 @@ PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 This diagnostic output shows the complete pipeline dependency graph structure.
 Use this to understand step relationships and troubleshoot execution issues.
 
-Total steps defined: 33
+Total steps defined: 35
 
 Analysis for full pipeline execution (showing all steps and their relationships)
 
@@ -47,6 +47,8 @@ Steps with no dependencies run first, followed by steps that depend on them.
  31. publish-azure634f9
  32. publish
  33. publish-manifest
+ 34. push-prereq
+ 35. push
 
 DETAILED STEP ANALYSIS
 ======================
@@ -213,11 +215,17 @@ Step: publish-prereq
     Description: Prerequisite step that runs before any publish operations.
     Dependencies: ✓ process-parameters
 
+Step: push
+    Dependencies: ✓ push-prereq
+
 Step: push-api-service
     Description: Pushes the container image for api-service to Azure Container Registry.
     Dependencies: ✓ build-api-service, ✓ login-to-acr-aas-env, ✓ provision-aas-env
     Resource: api-service-website (AzureAppServiceWebSiteResource)
     Tags: push-container-image
+
+Step: push-prereq
+    Dependencies: none
 
 Step: push-python-app
     Description: Pushes the container image for python-app to Azure Container Registry.
@@ -563,6 +571,13 @@ If targeting 'publish-prereq':
     [0] process-parameters
     [1] publish-prereq
 
+If targeting 'push':
+  Direct dependencies: push-prereq
+  Total steps: 2
+  Execution order:
+    [0] push-prereq
+    [1] push
+
 If targeting 'push-api-service':
   Direct dependencies: build-api-service, login-to-acr-aas-env, provision-aas-env
   Total steps: 9
@@ -574,6 +589,12 @@ If targeting 'push-api-service':
     [4] provision-aas-env
     [5] login-to-acr-aas-env
     [6] push-api-service
+
+If targeting 'push-prereq':
+  Direct dependencies: none
+  Total steps: 1
+  Execution order:
+    [0] push-prereq
 
 If targeting 'push-python-app':
   Direct dependencies: build-python-app, login-to-acr-aca-env, provision-aca-env
