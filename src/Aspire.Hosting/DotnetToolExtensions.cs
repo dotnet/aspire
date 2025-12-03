@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 /// Provides extension methods for adding Dotnet Tool resources to the application model.
 /// </summary>
 [Experimental("ASPIREDOTNETTOOL", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class DotNetToolExtensions
+public static class DotnetToolExtensions
 {
     private const string ArgumentSeperator = "--";
 

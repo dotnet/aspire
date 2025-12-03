@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public class DotnetToolAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// he NuGet package ID of the .NET tool to execute. You can optionally specify a version using the <c>@</c> syntax, for example <c>dotnetsay@2.1</c>.
+    /// The NuGet package ID of the .NET tool to execute. You can optionally specify a version using the <c>@</c> syntax, for example <c>dotnetsay@2.1</c>.
     /// </summary>
     public required string PackageId { get; set; }
 
