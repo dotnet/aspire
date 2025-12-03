@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Host de Aplicativo de Arquivo Único Aspire",
-  "description": "A minimal Aspire AppHost for single-file scenarios (.NET 10+).",
+  "description": "Um AppHost Aspire mínimo para cenários de arquivo único (.NET 10+).",
   "symbols/Framework/choices/net10.0/description": "Net10.0 de destino",
   "symbols/appHostHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP launchSettings.json do projeto AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP OTLP launchSettings.json do projeto AppHost.",
