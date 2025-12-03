@@ -1001,31 +1001,30 @@ if ! download_and_install_archive "$temp_dir"; then
 fi
 
 # Skip PATH configuration if --skip-path is set
-if [[ "$SKIP_PATH" == true ]]; then
-    say_info "Skipping PATH configuration due to --skip-path flag"
-    exit 0
-fi
-
-# Handle GitHub Actions environment
-if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
-    if [[ -n "${GITHUB_PATH:-}" ]]; then
-        if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
-        else
-            echo "$INSTALL_PATH" >> "$GITHUB_PATH"
-            say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+if [[ "$SKIP_PATH" != true ]]; then
+    # Handle GitHub Actions environment
+    if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
+        if [[ -n "${GITHUB_PATH:-}" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
+            else
+                echo "$INSTALL_PATH" >> "$GITHUB_PATH"
+                say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+            fi
         fi
     fi
-fi
 
-# Add to shell profile for persistent PATH
-add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
+    # Add to shell profile for persistent PATH
+    add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
 
-# Add to current session PATH, if the path is not already in PATH
-if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
-    else
-        export PATH="$INSTALL_PATH:$PATH"
+    # Add to current session PATH, if the path is not already in PATH
+    if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
+        else
+            export PATH="$INSTALL_PATH:$PATH"
+        fi
     fi
+else
+    say_info "Skipping PATH configuration due to --skip-path flag"
 fi
