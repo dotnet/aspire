@@ -12,6 +12,11 @@
         <target state="translated">AppHost et les paramètres par défaut du service</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireJsFrontendStarter_Description">
+        <source>React (Vite) &amp; Minimal API starter</source>
+        <target state="new">React (Vite) &amp; Minimal API starter</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
         <target state="translated">MSTest</target>
