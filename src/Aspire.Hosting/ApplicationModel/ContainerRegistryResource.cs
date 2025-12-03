@@ -61,13 +61,13 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         _endpoint = endpoint;
         _repository = repository;
 
-        // Add pipeline step annotation to create push steps for resources that reference this registry
+        // Add pipeline step annotation to create push steps for resources that require image build and push
         Annotations.Add(new PipelineStepAnnotation(factoryContext =>
         {
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
-            foreach (var resource in GetResourcesToPush(model, this))
+            foreach (var resource in GetResourcesToPush(model))
             {
                 var pushStep = new PipelineStep
                 {
@@ -91,7 +91,7 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         // Add pipeline configuration annotation to wire up dependencies between build and push steps
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            foreach (var resource in GetResourcesToPush(context.Model, this))
+            foreach (var resource in GetResourcesToPush(context.Model))
             {
                 var buildSteps = context.GetSteps(resource, WellKnownPipelineTags.BuildCompute);
                 var resourcePushSteps = context.GetSteps(resource, WellKnownPipelineTags.PushContainerImage);
@@ -108,7 +108,7 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         }));
     }
 
-    private static IEnumerable<IResource> GetResourcesToPush(DistributedApplicationModel model, IContainerRegistry targetRegistry)
+    private static IEnumerable<IResource> GetResourcesToPush(DistributedApplicationModel model)
     {
         foreach (var resource in model.Resources)
         {
@@ -117,16 +117,7 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
                 continue;
             }
 
-            // Check if resource has a ContainerRegistryReferenceAnnotation matching this registry
-            if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var registryAnnotations) &&
-                registryAnnotations.Any())
-            {
-                var annotation = registryAnnotations.Last();
-                if (ReferenceEquals(annotation.Registry, targetRegistry))
-                {
-                    yield return resource;
-                }
-            }
+            yield return resource;
         }
     }
 
