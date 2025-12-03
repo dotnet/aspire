@@ -1422,12 +1422,14 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         await pipeline.ExecuteAsync(context).DefaultTimeout();
 
         Assert.True(callbackExecuted);
-        Assert.Equal(10, capturedSteps.Count); // Updated to account for all default steps including process-parameters
+        Assert.Equal(12, capturedSteps.Count); // Updated to account for all default steps including process-parameters, push, push-prereq
         Assert.Contains(capturedSteps, s => s.Name == "deploy");
         Assert.Contains(capturedSteps, s => s.Name == "process-parameters");
         Assert.Contains(capturedSteps, s => s.Name == "deploy-prereq");
         Assert.Contains(capturedSteps, s => s.Name == "build");
         Assert.Contains(capturedSteps, s => s.Name == "build-prereq");
+        Assert.Contains(capturedSteps, s => s.Name == "push");
+        Assert.Contains(capturedSteps, s => s.Name == "push-prereq");
         Assert.Contains(capturedSteps, s => s.Name == "publish");
         Assert.Contains(capturedSteps, s => s.Name == "publish-prereq");
         Assert.Contains(capturedSteps, s => s.Name == "diagnostics");
