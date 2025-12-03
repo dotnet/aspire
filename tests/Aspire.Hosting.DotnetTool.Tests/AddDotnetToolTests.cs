@@ -16,7 +16,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef");
-        
+
         Assert.Equal("mytool", tool.Resource.Name);
         Assert.IsType<DotnetToolResource>(tool.Resource);
     }
@@ -26,7 +26,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef");
-        
+
         var annotation = Assert.Single(tool.Resource.Annotations.OfType<DotnetToolAnnotation>());
         Assert.Equal("dotnet-ef", annotation.PackageId);
     }
@@ -35,7 +35,7 @@ public class AddDotnetToolTests
     public void AddDotnetToolThrowsWhenPackageIdIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
-        
+
         Assert.Throws<ArgumentNullException>(() => builder.AddDotnetTool("mytool", null!));
     }
 
@@ -43,7 +43,7 @@ public class AddDotnetToolTests
     public void AddDotnetToolThrowsWhenPackageIdIsEmpty()
     {
         var builder = DistributedApplication.CreateBuilder();
-        
+
         Assert.Throws<ArgumentException>(() => builder.AddDotnetTool("mytool", ""));
     }
 
@@ -51,7 +51,7 @@ public class AddDotnetToolTests
     public void AddDotnetToolThrowsWhenPackageIdIsWhitespace()
     {
         var builder = DistributedApplication.CreateBuilder();
-        
+
         Assert.Throws<ArgumentException>(() => builder.AddDotnetTool("mytool", "   "));
     }
 
@@ -60,7 +60,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef");
-        
+
         var annotation = Assert.Single(tool.Resource.Annotations.OfType<ResourceIconAnnotation>());
         Assert.Equal("Toolbox", annotation.IconName);
     }
