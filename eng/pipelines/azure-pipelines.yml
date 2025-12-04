@@ -94,6 +94,10 @@ extends:
       autoEnablePREfastWithNewRuleset: false
       autoEnableRoslynWithNewRuleset: false
     sdl:
+      componentgovernance:
+        # Exclude .packages folder from CG scanning. This folder contains older versions of our own
+        # packages restored for API compatibility validation, which may have since-fixed vulnerabilities.
+        ignoreDirectories: $(Build.SourcesDirectory)/.packages
       policheck:
         enabled: true
         exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
