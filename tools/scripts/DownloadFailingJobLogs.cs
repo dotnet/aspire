@@ -15,33 +15,54 @@ var repo = "dotnet/aspire";
 
 Console.WriteLine($"Finding failed jobs for run {runId}...");
 
-// Get all jobs for the run
-var getJobsProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-{
-    FileName = "gh",
-    Arguments = $"api repos/{repo}/actions/runs/{runId}/jobs --paginate",
-    RedirectStandardOutput = true,
-    UseShellExecute = false
-});
-
-var jobsJson = await getJobsProcess!.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-await getJobsProcess.WaitForExitAsync().ConfigureAwait(false);
-
-if (getJobsProcess.ExitCode != 0)
-{
-    Console.WriteLine($"Error getting jobs: exit code {getJobsProcess.ExitCode}");
-    return;
-}
-
-// Parse jobs - gh --paginate returns multiple JSON objects concatenated
+// Get all jobs for the run (manual pagination through all pages)
 var jobs = new List<JsonElement>();
-var reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(jobsJson));
-while (JsonDocument.TryParseValue(ref reader, out var doc))
+int jobsPage = 1;
+bool hasMoreJobPages = true;
+
+while (hasMoreJobPages)
 {
-    if (doc != null && doc.RootElement.TryGetProperty("jobs", out var jobsArray))
+    var getJobsProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
     {
-        jobs.AddRange(jobsArray.EnumerateArray());
+        FileName = "gh",
+        Arguments = $"api repos/{repo}/actions/runs/{runId}/jobs?page={jobsPage}&per_page=100",
+        RedirectStandardOutput = true,
+        UseShellExecute = false
+    });
+
+    var jobsJson = await getJobsProcess!.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+    await getJobsProcess.WaitForExitAsync().ConfigureAwait(false);
+
+    if (getJobsProcess.ExitCode != 0)
+    {
+        Console.WriteLine($"Error getting jobs page {jobsPage}: exit code {getJobsProcess.ExitCode}");
+        return;
     }
+
+    var jobsDoc = JsonDocument.Parse(jobsJson);
+    if (jobsDoc.RootElement.TryGetProperty("jobs", out var jobsArray))
+    {
+        var jobsOnPage = jobsArray.GetArrayLength();
+        if (jobsOnPage == 0)
+        {
+            hasMoreJobPages = false;
+            break;
+        }
+
+        jobs.AddRange(jobsArray.EnumerateArray());
+
+        // If we got fewer than 100 jobs, this is the last page
+        if (jobsOnPage < 100)
+        {
+            hasMoreJobPages = false;
+        }
+    }
+    else
+    {
+        hasMoreJobPages = false;
+    }
+
+    jobsPage++;
 }
 
 Console.WriteLine($"Found {jobs.Count} total jobs");
