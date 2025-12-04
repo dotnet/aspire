@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -18,22 +17,18 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string McpConfigFileName = ".mcp.json";
     private const string AspireServerName = "aspire";
 
-    private readonly IGitRepository _gitRepository;
     private readonly IClaudeCodeCliRunner _claudeCodeCliRunner;
     private readonly ILogger<ClaudeCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ClaudeCodeAgentEnvironmentScanner"/>.
     /// </summary>
-    /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
     /// <param name="claudeCodeCliRunner">The Claude Code CLI runner for checking if Claude Code is installed.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public ClaudeCodeAgentEnvironmentScanner(IGitRepository gitRepository, IClaudeCodeCliRunner claudeCodeCliRunner, ILogger<ClaudeCodeAgentEnvironmentScanner> logger)
+    public ClaudeCodeAgentEnvironmentScanner(IClaudeCodeCliRunner claudeCodeCliRunner, ILogger<ClaudeCodeAgentEnvironmentScanner> logger)
     {
-        ArgumentNullException.ThrowIfNull(gitRepository);
         ArgumentNullException.ThrowIfNull(claudeCodeCliRunner);
         ArgumentNullException.ThrowIfNull(logger);
-        _gitRepository = gitRepository;
         _claudeCodeCliRunner = claudeCodeCliRunner;
         _logger = logger;
     }
@@ -42,47 +37,35 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting Claude Code environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        
-        // Get the git root to use as a boundary for searching
-        _logger.LogDebug("Finding git repository root...");
-        var gitRoot = await _gitRepository.GetRootAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogDebug("Git root: {GitRoot}", gitRoot?.FullName ?? "(none)");
+        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
 
         // Find the .claude folder to determine if Claude Code is being used in this project
         _logger.LogDebug("Searching for .claude folder...");
-        var claudeCodeFolder = FindClaudeCodeFolder(context.WorkingDirectory, gitRoot);
+        var claudeCodeFolder = FindClaudeCodeFolder(context.WorkingDirectory, context.RepositoryRoot);
 
-        // Determine the repo root - use git root, or infer from .claude folder location, or fall back to working directory
-        DirectoryInfo? repoRoot = gitRoot;
-        if (repoRoot is null && claudeCodeFolder is not null)
+        if (claudeCodeFolder is not null)
         {
-            // .claude folder's parent is the repo root
-            repoRoot = claudeCodeFolder.Parent;
-            _logger.LogDebug("Inferred repo root from .claude folder parent: {RepoRoot}", repoRoot?.FullName ?? "(none)");
-        }
-
-        if (claudeCodeFolder is not null || repoRoot is not null)
-        {
-            var targetRepoRoot = repoRoot ?? context.WorkingDirectory;
-            _logger.LogDebug("Found .claude folder or repo root at: {RepoRoot}", targetRepoRoot.FullName);
+            // If .claude folder is found, override the workspace root with its parent directory
+            var workspaceRoot = claudeCodeFolder.Parent ?? context.RepositoryRoot;
+            _logger.LogDebug("Inferred workspace root from .claude folder parent: {WorkspaceRoot}", workspaceRoot.FullName);
 
             // Check if the aspire server is already configured in .mcp.json
             _logger.LogDebug("Checking if Aspire MCP server is already configured in .mcp.json...");
-            if (HasAspireServerConfigured(targetRepoRoot))
+            if (HasAspireServerConfigured(workspaceRoot))
             {
                 _logger.LogDebug("Aspire MCP server is already configured - skipping");
                 // Already configured, no need to offer an applicator
                 return;
             }
 
-            // Found a .claude folder or git repo - add an applicator to configure MCP
-            _logger.LogDebug("Adding Claude Code applicator for .mcp.json at: {RepoRoot}", targetRepoRoot.FullName);
-            context.AddApplicator(CreateApplicator(targetRepoRoot));
+            // Found a .claude folder - add an applicator to configure MCP
+            _logger.LogDebug("Adding Claude Code applicator for .mcp.json at: {WorkspaceRoot}", workspaceRoot.FullName);
+            context.AddApplicator(CreateApplicator(workspaceRoot));
         }
         else
         {
-            // No .claude folder or git repo found - check if Claude Code CLI is installed
-            _logger.LogDebug("No .claude folder or git repo found, checking for Claude Code CLI installation...");
+            // No .claude folder found - check if Claude Code CLI is installed
+            _logger.LogDebug("No .claude folder found, checking for Claude Code CLI installation...");
             var claudeCodeVersion = await _claudeCodeCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
 
             if (claudeCodeVersion is not null)
@@ -90,16 +73,16 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Found Claude Code CLI version: {Version}", claudeCodeVersion);
                 
                 // Check if the aspire server is already configured in .mcp.json
-                if (HasAspireServerConfigured(context.WorkingDirectory))
+                if (HasAspireServerConfigured(context.RepositoryRoot))
                 {
                     _logger.LogDebug("Aspire MCP server is already configured - skipping");
                     // Already configured, no need to offer an applicator
                     return;
                 }
 
-                // Claude Code is installed - offer to create config at working directory
-                _logger.LogDebug("Adding Claude Code applicator for .mcp.json at working directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-                context.AddApplicator(CreateApplicator(context.WorkingDirectory));
+                // Claude Code is installed - offer to create config at workspace root
+                _logger.LogDebug("Adding Claude Code applicator for .mcp.json at workspace root: {WorkspaceRoot}", context.RepositoryRoot.FullName);
+                context.AddApplicator(CreateApplicator(context.RepositoryRoot));
             }
             else
             {
@@ -110,12 +93,12 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
     /// <summary>
     /// Walks up the directory tree to find a .claude folder.
-    /// Stops if we go above the git root (if provided).
+    /// Stops if we go above the workspace root.
     /// Ignores the .claude folder in the user's home directory.
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
-    /// <param name="gitRoot">The git repository root, or null if not in a git repository.</param>
-    private static DirectoryInfo? FindClaudeCodeFolder(DirectoryInfo startDirectory, DirectoryInfo? gitRoot)
+    /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
+    private static DirectoryInfo? FindClaudeCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
     {
         var currentDirectory = startDirectory;
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -130,9 +113,9 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 return new DirectoryInfo(claudeCodePath);
             }
 
-            // Stop if we've reached the git root without finding .claude
-            // (don't search above the repository boundary)
-            if (gitRoot is not null && string.Equals(currentDirectory.FullName, gitRoot.FullName, StringComparison.OrdinalIgnoreCase))
+            // Stop if we've reached the workspace root without finding .claude
+            // (don't search above the workspace boundary)
+            if (string.Equals(currentDirectory.FullName, repositoryRoot.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
