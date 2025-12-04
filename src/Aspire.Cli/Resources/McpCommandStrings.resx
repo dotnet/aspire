@@ -81,4 +81,13 @@
   <data name="InitCommand_DetectingAgentEnvironments" xml:space="preserve">
     <value>Detecting agent environments...</value>
   </data>
+  <data name="InitCommand_WorkspaceRootPrompt" xml:space="preserve">
+    <value>Enter the path to the root of your workspace:</value>
+  </data>
+  <data name="InitCommand_WorkspaceRootRequired" xml:space="preserve">
+    <value>Workspace root path is required.</value>
+  </data>
+  <data name="InitCommand_WorkspaceRootNotFound" xml:space="preserve">
+    <value>Directory not found: {0}</value>
+  </data>
 </root>

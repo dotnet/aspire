@@ -117,31 +117,16 @@ public sealed class ParameterProcessor(
 
     private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
     {
-        // Process environment variables
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        // Process the resource's execution configuration to find referenced parameters
+        (var executionConfgiuration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithArguments()
+            .WithEnvironmentVariables()
+            .BuildAsync(executionContext, logger, cancellationToken).ConfigureAwait(false);
 
-        // Process command line arguments
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, expression, ex, _) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        foreach (var reference in executionConfgiuration.References)
+        {
+            TryAddDependentParameters(reference, referencedParameters, currentDependencySet);
+        }
     }
 
     private static void TryAddDependentParameters(object? value, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet)

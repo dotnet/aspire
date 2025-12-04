@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 
 namespace Aspire.Hosting.JavaScript.Tests;
 
@@ -71,5 +73,97 @@ public class AddJavaScriptAppTests
         var dockerfileContents = File.ReadAllText(dockerfilePath);
 
         await Verify(dockerfileContents);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [OuterloopTest("Builds a Docker image to verify the generated pnpm Dockerfile works")]
+    public async Task VerifyPnpmDockerfileBuildSucceeds()
+    {
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        // Create app directory
+        var appDir = Path.Combine(tempDir.Path, "pnpm-app");
+        Directory.CreateDirectory(appDir);
+
+        // Create a minimal package.json with no dependencies
+        var packageJson = """
+            {
+              "name": "pnpm-test-app",
+              "version": "1.0.0",
+              "scripts": {
+                "build": "echo 'build completed'"
+              }
+            }
+            """;
+        await File.WriteAllTextAsync(Path.Combine(appDir, "package.json"), packageJson);
+
+        var pnpmApp = builder.AddJavaScriptApp("pnpm-app", appDir)
+            .WithPnpm()
+            .WithBuildScript("build");
+
+        await ManifestUtils.GetManifest(pnpmApp.Resource, tempDir.Path);
+
+        var dockerfilePath = Path.Combine(tempDir.Path, "pnpm-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+
+        // Read the generated Dockerfile and verify it contains the corepack enable pnpm command
+        var dockerfileContent = await File.ReadAllTextAsync(dockerfilePath);
+        Assert.Contains("corepack enable pnpm", dockerfileContent);
+
+        // Modify the Dockerfile to add NODE_TLS_REJECT_UNAUTHORIZED=0 for test environments
+        // that may have corporate proxies with self-signed certificates
+        var modifiedDockerfile = dockerfileContent.Replace(
+            "WORKDIR /app",
+            "WORKDIR /app\nENV NODE_TLS_REJECT_UNAUTHORIZED=0");
+        var dockerfileInContext = Path.Combine(appDir, "Dockerfile");
+        await File.WriteAllTextAsync(dockerfileInContext, modifiedDockerfile);
+
+        // Build the Docker image using docker build with host network for registry access
+        var imageName = $"aspire-pnpm-test-{Guid.NewGuid():N}";
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = "docker",
+            Arguments = $"build --network=host -t {imageName} -f Dockerfile .",
+            WorkingDirectory = appDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(processStartInfo);
+        Assert.NotNull(process);
+
+        var stdout = await process.StandardOutput.ReadToEndAsync();
+        var stderr = await process.StandardError.ReadToEndAsync();
+
+        await process.WaitForExitAsync();
+
+        // Clean up the image regardless of success/failure
+        try
+        {
+            using var cleanupProcess = Process.Start(new ProcessStartInfo
+            {
+                FileName = "docker",
+                Arguments = $"rmi {imageName}",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+            if (cleanupProcess != null)
+            {
+                await cleanupProcess.WaitForExitAsync();
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
+
+        // Assert the build succeeded
+        Assert.True(process.ExitCode == 0, $"Docker build failed with exit code {process.ExitCode}.\nStdout: {stdout}\nStderr: {stderr}");
     }
 }

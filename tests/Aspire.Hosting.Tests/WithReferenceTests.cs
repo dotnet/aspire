@@ -88,7 +88,7 @@ public class WithReferenceTests
                 break;
         }
     }
-    
+
     [Fact]
     public async Task ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
     {
@@ -214,10 +214,13 @@ public class WithReferenceTests
         var projectB = builder.AddProject<ProjectB>("projectb").WithReference(resource, optional: false);
 
         // Call environment variable callbacks.
-        await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var aggregate = await Assert.ThrowsAsync<AggregateException>(async () =>
         {
             await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         }).DefaultTimeout();
+
+        var inner = Assert.IsType<DistributedApplicationException>(aggregate.InnerException);
+        Assert.Equal("The connection string for the resource 'resource' is not available.", inner.Message);
     }
 
     [Fact]
@@ -247,12 +250,13 @@ public class WithReferenceTests
                               .WithReference(missingResource);
 
         // Call environment variable callbacks.
-        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () =>
+        var aggregate = await Assert.ThrowsAsync<AggregateException>(async () =>
         {
-            var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+            await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         }).DefaultTimeout();
 
-        Assert.Equal("Connection string parameter resource could not be used because connection string 'missingresource' is missing.", exception.Message);
+        var inner = Assert.IsType<MissingParameterValueException>(aggregate.InnerException);
+        Assert.Equal("Connection string parameter resource could not be used because connection string 'missingresource' is missing.", inner.Message);
     }
 
     [Fact]

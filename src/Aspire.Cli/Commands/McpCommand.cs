@@ -6,6 +6,7 @@ using System.CommandLine.Help;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -23,7 +24,8 @@ internal sealed class McpCommand : BaseCommand
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
         ILoggerFactory loggerFactory,
         ILogger<McpStartCommand> logger,
-        IAgentEnvironmentDetector agentEnvironmentDetector)
+        IAgentEnvironmentDetector agentEnvironmentDetector,
+        IGitRepository gitRepository)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -31,7 +33,7 @@ internal sealed class McpCommand : BaseCommand
         var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger);
         Subcommands.Add(startCommand);
 
-        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector);
+        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository);
         Subcommands.Add(initCommand);
     }
 

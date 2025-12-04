@@ -36,30 +36,24 @@ internal static class MauiEnvironmentHelper
         var environmentVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var encodedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Collect all environment variables from the resource
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, processed, ex) =>
+        (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithEnvironmentVariables()
+            .BuildAsync(executionContext, logger, cancellationToken)
+            .ConfigureAwait(false);
+
+        // Normalize all the environment variables for the resource
+        foreach (var envVar in executionConfiguration.EnvironmentVariables)
+        {
+            var normalizedKey = envVar.Key.ToUpperInvariant();
+            var encodedValue = EncodeSemicolons(envVar.Value, out var wasEncoded);
+
+            environmentVariables[normalizedKey] = encodedValue;
+
+            if (wasEncoded)
             {
-                if (ex is not null || string.IsNullOrEmpty(key) || processed is not string value)
-                {
-                    return;
-                }
-
-                // Android environment variables must be uppercase to be properly read by the runtime
-                var normalizedKey = key.ToUpperInvariant();
-                var encodedValue = EncodeSemicolons(value, out var wasEncoded);
-
-                environmentVariables[normalizedKey] = encodedValue;
-
-                if (wasEncoded)
-                {
-                    encodedKeys.Add(normalizedKey);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken
-        ).ConfigureAwait(false);
+                encodedKeys.Add(normalizedKey);
+            }
+        }
 
         // If no environment variables, return null
         if (environmentVariables.Count == 0)
@@ -226,26 +220,13 @@ internal static class MauiEnvironmentHelper
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        var environmentVariables = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        // Collect all environment variables from the resource
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (ex is not null || string.IsNullOrEmpty(key) || processed is not string value)
-                {
-                    return;
-                }
-
-                environmentVariables[key] = value;
-            },
-            logger,
-            cancellationToken: cancellationToken
-        ).ConfigureAwait(false);
+        (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithEnvironmentVariables()
+            .BuildAsync(executionContext, logger, cancellationToken)
+            .ConfigureAwait(false);
 
         // If no environment variables, return null
-        if (environmentVariables.Count == 0)
+        if (!executionConfiguration.EnvironmentVariables.Any())
         {
             return null;
         }
@@ -262,7 +243,7 @@ internal static class MauiEnvironmentHelper
         var targetsFilePath = Path.Combine(tempDirectory, $"{sanitizedName}-{uniqueId}.targets");
 
         // Generate the targets file content
-        var targetsContent = GenerateiOSTargetsFileContent(environmentVariables);
+        var targetsContent = GenerateiOSTargetsFileContent(executionConfiguration.EnvironmentVariables.ToDictionary());
 
         // Write the file
         await File.WriteAllTextAsync(targetsFilePath, targetsContent, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
@@ -287,17 +268,17 @@ internal static class MauiEnvironmentHelper
         // Create an ItemGroup to add environment variables using MlaunchEnvironmentVariables
         // iOS apps need environment variables passed to mlaunch as KEY=VALUE pairs
         var itemGroup = new XElement("ItemGroup");
-        
+
         foreach (var (key, value) in environmentVariables.OrderBy(kvp => kvp.Key, StringComparer.Ordinal))
         {
             // Encode semicolons as %3B to prevent MSBuild from treating them as item separators
             var encodedValue = value.Replace(";", "%3B", StringComparison.Ordinal);
-            
+
             // Add as MlaunchEnvironmentVariables item with Include="KEY=VALUE"
-            itemGroup.Add(new XElement("MlaunchEnvironmentVariables", 
+            itemGroup.Add(new XElement("MlaunchEnvironmentVariables",
                 new XAttribute("Include", $"{key}={encodedValue}")));
         }
-        
+
         projectElement.Add(itemGroup);
 
         // Add a diagnostic message target to show what's being forwarded
