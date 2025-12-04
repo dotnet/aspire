@@ -38,6 +38,30 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     {
         _logger.LogDebug("Starting GitHub Copilot CLI environment scan");
         
+        // Check if we're running in a VSCode terminal
+        // VSCode sets VSCODE_IPC_HOOK when running a terminal
+        var isVSCode = !string.IsNullOrEmpty(context.ExecutionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK"));
+        
+        if (isVSCode)
+        {
+            _logger.LogDebug("Detected VSCode terminal environment. Assuming GitHub Copilot CLI is available to avoid potential hangs from interactive installation prompts.");
+            
+            // Check if the aspire server is already configured in the global config
+            _logger.LogDebug("Checking if Aspire MCP server is already configured in Copilot CLI global config...");
+            if (HasAspireServerConfigured())
+            {
+                _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI - skipping");
+                // Already configured, no need to offer an applicator
+                return;
+            }
+            
+            // In VSCode, assume Copilot CLI is available and offer to configure
+            // The user will be prompted to install it when they try to use it if not already installed
+            _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
+            context.AddApplicator(CreateApplicator());
+            return;
+        }
+        
         // Check if Copilot CLI is installed
         _logger.LogDebug("Checking for GitHub Copilot CLI installation...");
         var copilotVersion = await _copilotCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);

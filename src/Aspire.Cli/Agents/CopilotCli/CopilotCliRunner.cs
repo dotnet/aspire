@@ -10,24 +10,13 @@ namespace Aspire.Cli.Agents.CopilotCli;
 /// <summary>
 /// Runs GitHub Copilot CLI commands.
 /// </summary>
-/// <param name="executionContext">The CLI execution context for accessing environment variables.</param>
 /// <param name="logger">The logger for diagnostic output.</param>
-internal sealed class CopilotCliRunner(CliExecutionContext executionContext, ILogger<CopilotCliRunner> logger) : ICopilotCliRunner
+internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopilotCliRunner
 {
     /// <inheritdoc />
     public async Task<SemVersion?> GetVersionAsync(CancellationToken cancellationToken)
     {
         logger.LogDebug("Checking for GitHub Copilot CLI installation");
-
-        // Check if we're running in a VSCode terminal
-        if (IsRunningInVSCode())
-        {
-            logger.LogDebug("Detected VSCode terminal environment. Assuming GitHub Copilot CLI is available to avoid potential hangs from interactive installation prompts.");
-            // Return a dummy version to indicate Copilot is assumed to be available
-            // The user will be prompted to configure it, and if they don't have it installed,
-            // they'll be prompted to install it when they try to use it
-            return new SemVersion(1, 0, 0);
-        }
 
         var executablePath = PathLookupHelper.FindFullPathFromPath("copilot");
         if (executablePath is null)
@@ -98,15 +87,5 @@ internal sealed class CopilotCliRunner(CliExecutionContext executionContext, ILo
             logger.LogDebug(ex, "GitHub Copilot CLI is not installed or not found in PATH");
             return null;
         }
-    }
-
-    /// <summary>
-    /// Checks if the current process is running in a VSCode terminal.
-    /// </summary>
-    /// <returns>True if running in VSCode, false otherwise.</returns>
-    private bool IsRunningInVSCode()
-    {
-        // VSCode sets VSCODE_IPC_HOOK when running a terminal
-        return !string.IsNullOrEmpty(executionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK"));
     }
 }

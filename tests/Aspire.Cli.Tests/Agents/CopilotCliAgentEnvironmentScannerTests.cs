@@ -163,6 +163,51 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         Assert.Empty(context.Applicators);
     }
 
+    [Fact]
+    public async Task ScanAsync_WhenInVSCode_ReturnsApplicatorWithoutCallingRunner()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var copilotCliRunner = new FakeCopilotCliRunner(null); // Return null to verify it's not called
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContextWithVSCode(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None);
+
+        Assert.Single(context.Applicators);
+        Assert.Contains("GitHub Copilot CLI", context.Applicators[0].Description);
+        Assert.False(copilotCliRunner.WasCalled); // Verify GetVersionAsync was not called
+    }
+
+    [Fact]
+    public async Task ScanAsync_WhenInVSCodeAndAlreadyConfigured_ReturnsNoApplicator()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var copilotFolder = workspace.CreateDirectory(".copilot");
+        
+        // Create an existing mcp-config.json with aspire already configured
+        var existingConfig = new JsonObject
+        {
+            ["mcpServers"] = new JsonObject
+            {
+                ["aspire"] = new JsonObject
+                {
+                    ["command"] = "aspire"
+                }
+            }
+        };
+        var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
+        await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
+
+        var copilotCliRunner = new FakeCopilotCliRunner(null);
+        var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
+        var context = CreateScanContextWithVSCode(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None);
+
+        Assert.Empty(context.Applicators);
+        Assert.False(copilotCliRunner.WasCalled); // Verify GetVersionAsync was not called
+    }
+
     private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory)
     {
         var executionContext = new CliExecutionContext(
@@ -181,12 +226,40 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         };
     }
 
+    private static AgentEnvironmentScanContext CreateScanContextWithVSCode(DirectoryInfo workingDirectory)
+    {
+        var environmentVariables = new Dictionary<string, string?>
+        {
+            ["VSCODE_IPC_HOOK"] = "test-value"
+        };
+        
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workingDirectory,
+            hivesDirectory: workingDirectory,
+            cacheDirectory: workingDirectory,
+            sdksDirectory: workingDirectory,
+            debugMode: false,
+            environmentVariables: environmentVariables);
+
+        return new AgentEnvironmentScanContext
+        {
+            WorkingDirectory = workingDirectory,
+            ExecutionContext = executionContext
+        };
+    }
+
     /// <summary>
     /// A fake implementation of <see cref="ICopilotCliRunner"/> for testing.
     /// </summary>
     private sealed class FakeCopilotCliRunner(SemVersion? version) : ICopilotCliRunner
     {
-        public Task<SemVersion?> GetVersionAsync(CancellationToken cancellationToken) => Task.FromResult(version);
+        public bool WasCalled { get; private set; }
+
+        public Task<SemVersion?> GetVersionAsync(CancellationToken cancellationToken)
+        {
+            WasCalled = true;
+            return Task.FromResult(version);
+        }
     }
 
     /// <summary>
@@ -208,6 +281,22 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
         {
+            // Check if we're running in a VSCode terminal
+            var isVSCode = !string.IsNullOrEmpty(context.ExecutionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK"));
+            
+            if (isVSCode)
+            {
+                // In VSCode, skip the version check and check if already configured
+                if (HasAspireServerConfigured())
+                {
+                    return;
+                }
+                
+                // Assume Copilot CLI is available and offer to configure
+                context.AddApplicator(CreateApplicator());
+                return;
+            }
+            
             var copilotVersion = await _copilotCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
 
             if (copilotVersion is null)
