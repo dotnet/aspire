@@ -434,15 +434,4 @@ internal sealed class AppHostConnection
     /// Gets the timestamp when this connection was established.
     /// </summary>
     public DateTimeOffset ConnectedAt { get; }
-
-    /// <summary>
-    /// Gets documentation for a specific resource in the AppHost.
-    /// </summary>
-    /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The documentation text for the resource, or null if the resource doesn't exist.</returns>
-    public async Task<string?> GetResourceDocsAsync(string resourceName, CancellationToken cancellationToken = default)
-    {
-        return await Rpc.InvokeWithCancellationAsync<string?>("GetResourceDocsAsync", [resourceName], cancellationToken).ConfigureAwait(false);
-    }
 }

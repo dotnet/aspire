@@ -52,7 +52,7 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
 {
     public override string Name => "list_integrations";
 
-    public override string Description => "List available Aspire hosting integrations. These are NuGet packages that can be added to an Aspire AppHost project to integrate with various services like databases, message brokers, and cloud services. Use 'aspire add <integration-name>' to add an integration to your AppHost project. This tool does not require a running AppHost.";
+    public override string Description => "List available Aspire hosting integrations. These are NuGet packages that can be added to an Aspire AppHost project to integrate with various services like databases, message brokers, and cloud services. Use 'aspire add <integration-name>' to add an integration to your AppHost project. Use the 'get_integration_docs' tool to get detailed documentation for a specific integration. This tool does not require a running AppHost.";
 
     public override JsonElement GetInputSchema()
     {
