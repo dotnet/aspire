@@ -67,20 +67,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(identity);
 
-            ContainerRegistryService? containerRegistry = null;
-            if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+            if (!resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) || registryReferenceAnnotation.Registry is not AzureProvisioningResource registry)
             {
-                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
-            }
-            else
-            {
-                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{prefix}_acr"))
-                {
-                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                    Tags = tags
-                };
+                throw new InvalidOperationException($"Container registry reference annotation not found on environment '{resource.Name}'. This should have been added automatically.");
             }
 
+            var containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             infra.Add(containerRegistry);
 
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
@@ -206,6 +198,15 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 });
             }
         });
+
+        if (!resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))
+        {
+            var registryName = $"{resource.Name}-acr";
+            var registryBuilder = builder.AddAzureContainerRegistry(registryName);
+
+            var appServiceEnvBuilder = builder.CreateResourceBuilder(resource);
+            appServiceEnvBuilder.WithAzureContainerRegistry(registryBuilder);
+        }
 
         if (!builder.ExecutionContext.IsPublishMode)
         {

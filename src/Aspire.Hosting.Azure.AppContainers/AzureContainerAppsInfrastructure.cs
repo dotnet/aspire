@@ -40,12 +40,18 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, options.Value, cancellationToken).ConfigureAwait(false);
 
+                IContainerRegistry? registry = null;
+                if (environment.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryAnnotation))
+                {
+                    registry = registryAnnotation.Registry;
+                }
+
                 // Capture information about the container registry used by the
                 // container app environment in the deployment target information
                 // associated with each compute resource that needs an image
                 r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
                 {
-                    ContainerRegistry = environment,
+                    ContainerRegistry = registry,
                     ComputeEnvironment = environment
                 });
             }

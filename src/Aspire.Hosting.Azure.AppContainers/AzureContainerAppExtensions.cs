@@ -89,19 +89,12 @@ public static class AzureContainerAppExtensions
 
             infra.Add(identity);
 
-            ContainerRegistryService? containerRegistry = null;
-            if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+            if (!appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) || registryReferenceAnnotation.Registry is not AzureProvisioningResource registry)
             {
-                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
+                throw new InvalidOperationException($"Container registry reference annotation not found on environment '{appEnvResource.Name}'. This should have been added automatically.");
             }
-            else
-            {
-                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_acr"))
-                {
-                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                    Tags = tags
-                };
-            }
+
+            var containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             infra.Add(containerRegistry);
 
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
@@ -322,6 +315,15 @@ public static class AzureContainerAppExtensions
                 Value = containerAppEnvironment.DefaultDomain
             });
         });
+
+        if (!containerAppEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))
+        {
+            var registryName = $"{containerAppEnvResource.Name}-acr";
+            var registryBuilder = builder.AddAzureContainerRegistry(registryName);
+
+            var appEnvBuilder = builder.CreateResourceBuilder(containerAppEnvResource);
+            appEnvBuilder.WithAzureContainerRegistry(registryBuilder);
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {

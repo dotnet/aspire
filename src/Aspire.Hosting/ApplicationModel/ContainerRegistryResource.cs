@@ -1,13 +1,7 @@
-#pragma warning disable ASPIREPIPELINES001
-#pragma warning disable ASPIREPIPELINES003
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -60,65 +54,6 @@ public class ContainerRegistryResource : Resource, IContainerRegistry
         _registryName = ReferenceExpression.Create($"{name}");
         _endpoint = endpoint;
         _repository = repository;
-
-        // Add pipeline step annotation to create push steps for resources that require image build and push
-        Annotations.Add(new PipelineStepAnnotation(factoryContext =>
-        {
-            var model = factoryContext.PipelineContext.Model;
-            var steps = new List<PipelineStep>();
-
-            foreach (var resource in GetResourcesToPush(model))
-            {
-                var pushStep = new PipelineStep
-                {
-                    Name = $"push-{resource.Name}",
-                    Action = async ctx =>
-                    {
-                        var containerImageManager = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
-                        await containerImageManager.PushImageAsync(resource, ctx.CancellationToken).ConfigureAwait(false);
-                    },
-                    Tags = [WellKnownPipelineTags.PushContainerImage],
-                    RequiredBySteps = [WellKnownPipelineSteps.Push],
-                    Resource = resource
-                };
-
-                steps.Add(pushStep);
-            }
-
-            return steps;
-        }));
-
-        // Add pipeline configuration annotation to wire up dependencies between build and push steps
-        Annotations.Add(new PipelineConfigurationAnnotation(context =>
-        {
-            foreach (var resource in GetResourcesToPush(context.Model))
-            {
-                var buildSteps = context.GetSteps(resource, WellKnownPipelineTags.BuildCompute);
-                var resourcePushSteps = context.GetSteps(resource, WellKnownPipelineTags.PushContainerImage);
-
-                foreach (var pushStep in resourcePushSteps)
-                {
-                    foreach (var buildStep in buildSteps)
-                    {
-                        pushStep.DependsOn(buildStep);
-                    }
-                    pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
-                }
-            }
-        }));
-    }
-
-    private static IEnumerable<IResource> GetResourcesToPush(DistributedApplicationModel model)
-    {
-        foreach (var resource in model.Resources)
-        {
-            if (!resource.RequiresImageBuildAndPush())
-            {
-                continue;
-            }
-
-            yield return resource;
-        }
     }
 
     /// <inheritdoc />

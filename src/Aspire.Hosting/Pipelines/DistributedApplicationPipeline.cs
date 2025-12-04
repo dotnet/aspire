@@ -187,6 +187,13 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         continue;
                     }
 
+                    // Skip if resource has a deployment target with a ContainerRegistry set
+                    var deploymentTargetAnnotation = resource.GetDeploymentTargetAnnotation();
+                    if (deploymentTargetAnnotation?.ContainerRegistry is not null)
+                    {
+                        continue;
+                    }
+
                     // When multiple registries exist, require explicit WithContainerRegistry call
                     if (allRegistries.Length > 1)
                     {

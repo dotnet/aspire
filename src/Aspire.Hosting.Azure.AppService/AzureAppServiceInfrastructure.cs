@@ -48,9 +48,15 @@ internal sealed class AzureAppServiceInfrastructure(
 
                 var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
+                IContainerRegistry? registry = null;
+                if (appServiceEnvironment.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryAnnotation))
+                {
+                    registry = registryAnnotation.Registry;
+                }
+
                 resource.Annotations.Add(new DeploymentTargetAnnotation(website)
                 {
-                    ContainerRegistry = appServiceEnvironment,
+                    ContainerRegistry = registry,
                     ComputeEnvironment = appServiceEnvironment
                 });
             }

@@ -23,39 +23,75 @@ namespace Aspire.Hosting;
 public static class ContainerResourceBuilderExtensions
 {
     /// <summary>
-    /// Ensures that a container resource has a PipelineStepAnnotation for building if it has a DockerfileBuildAnnotation.
+    /// Ensures that a container resource has PipelineStepAnnotations for building and pushing.
     /// </summary>
     /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    internal static IResourceBuilder<T> EnsureBuildPipelineStepAnnotation<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    internal static IResourceBuilder<T> EnsureBuildAndPushPipelineAnnotations<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
-        // Use replace semantics to ensure we only have one PipelineStepAnnotation for building
-        return builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
+        builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
         {
-            if (!builder.Resource.RequiresImageBuild() || builder.Resource.IsExcludedFromPublish())
+            var steps = new List<PipelineStep>();
+
+            if (builder.Resource.IsExcludedFromPublish())
             {
-                return [];
+                return steps;
             }
 
-            var buildStep = new PipelineStep
+            if (builder.Resource.RequiresImageBuild())
             {
-                Name = $"build-{builder.Resource.Name}",
-                Description = $"Builds the container image for the {builder.Resource.Name} container.",
-                Action = async ctx =>
+                var buildStep = new PipelineStep
                 {
-                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
+                    Name = $"build-{builder.Resource.Name}",
+                    Action = async ctx =>
+                    {
+                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
+                        await containerImageBuilder.BuildImageAsync(
+                            builder.Resource,
+                            ctx.CancellationToken).ConfigureAwait(false);
+                    },
+                    Tags = [WellKnownPipelineTags.BuildCompute],
+                    RequiredBySteps = [WellKnownPipelineSteps.Build],
+                    DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq],
+                    Resource = builder.Resource
+                };
+                steps.Add(buildStep);
+            }
 
-                    await containerImageBuilder.BuildImageAsync(
-                        builder.Resource,
-                        ctx.CancellationToken).ConfigureAwait(false);
-                },
-                Tags = [WellKnownPipelineTags.BuildCompute],
-                RequiredBySteps = [WellKnownPipelineSteps.Build],
-                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq]
-            };
+            if (builder.Resource.RequiresImageBuildAndPush())
+            {
+                var pushStep = new PipelineStep
+                {
+                    Name = $"push-{builder.Resource.Name}",
+                    Action = async ctx =>
+                    {
+                        var containerImageManager = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
+                        await containerImageManager.PushImageAsync(builder.Resource, ctx.CancellationToken).ConfigureAwait(false);
+                    },
+                    Tags = [WellKnownPipelineTags.PushContainerImage],
+                    RequiredBySteps = [WellKnownPipelineSteps.Push],
+                    Resource = builder.Resource
+                };
+                steps.Add(pushStep);
+            }
 
-            return [buildStep];
+            return steps;
         }), ResourceAnnotationMutationBehavior.Replace);
+
+        return builder.WithAnnotation(new PipelineConfigurationAnnotation(context =>
+        {
+            var buildSteps = context.GetSteps(builder.Resource, WellKnownPipelineTags.BuildCompute);
+            var pushSteps = context.GetSteps(builder.Resource, WellKnownPipelineTags.PushContainerImage);
+
+            foreach (var pushStep in pushSteps)
+            {
+                foreach (var buildStep in buildSteps)
+                {
+                    pushStep.DependsOn(buildStep);
+                }
+                pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
+            }
+        }), ResourceAnnotationMutationBehavior.Append);
     }
 
     /// <summary>
@@ -577,7 +613,7 @@ public static class ContainerResourceBuilderExtensions
             annotation.ImageTag = imageTag;
             return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                           .WithAnnotation(defaultContainerBuildOptions)
-                          .EnsureBuildPipelineStepAnnotation();
+                          .EnsureBuildAndPushPipelineAnnotations();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
@@ -585,7 +621,7 @@ public static class ContainerResourceBuilderExtensions
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag(imageTag)
-                      .EnsureBuildPipelineStepAnnotation();
+                      .EnsureBuildAndPushPipelineAnnotations();
     }
 
     /// <summary>
@@ -717,7 +753,7 @@ public static class ContainerResourceBuilderExtensions
             annotation.ImageTag = imageTag;
             return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                           .WithAnnotation(defaultContainerBuildOptions, ResourceAnnotationMutationBehavior.Append)
-                          .EnsureBuildPipelineStepAnnotation();
+                          .EnsureBuildAndPushPipelineAnnotations();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
@@ -725,7 +761,7 @@ public static class ContainerResourceBuilderExtensions
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag(imageTag)
-                      .EnsureBuildPipelineStepAnnotation();
+                      .EnsureBuildAndPushPipelineAnnotations();
     }
 
     /// <summary>

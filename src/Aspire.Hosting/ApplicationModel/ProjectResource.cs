@@ -44,10 +44,35 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 Action = BuildProjectImage,
                 Tags = [WellKnownPipelineTags.BuildCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Build],
-                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq]
+                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq],
+                Resource = this
             };
 
             return [buildStep];
+        }));
+
+        // Add pipeline step annotation to create a push step for this project
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
+        {
+            if (!this.RequiresImageBuildAndPush() || factoryContext.Resource.IsExcludedFromPublish())
+            {
+                return [];
+            }
+
+            var pushStep = new PipelineStep
+            {
+                Name = $"push-{name}",
+                Action = async ctx =>
+                {
+                    var containerImageManager = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
+                    await containerImageManager.PushImageAsync(this, ctx.CancellationToken).ConfigureAwait(false);
+                },
+                Tags = [WellKnownPipelineTags.PushContainerImage],
+                RequiredBySteps = [WellKnownPipelineSteps.Push],
+                Resource = this
+            };
+
+            return [pushStep];
         }));
 
         // Add default container build options annotation
@@ -69,6 +94,19 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 {
                     buildSteps.DependsOn(context.GetSteps(containerFile.Source, WellKnownPipelineTags.BuildCompute));
                 }
+            }
+
+            // Wire up dependencies for push steps
+            var projectBuildSteps = context.GetSteps(this, WellKnownPipelineTags.BuildCompute);
+            var pushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage);
+
+            foreach (var pushStep in pushSteps)
+            {
+                foreach (var buildStep in projectBuildSteps)
+                {
+                    pushStep.DependsOn(buildStep);
+                }
+                pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
             }
         }));
     }
