@@ -2506,6 +2506,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     },
                     cancellationToken).ConfigureAwait(false);
 
+                if (entries?.Any() != true)
+                {
+                    continue;
+                }
+
                 createFiles.Add(new ContainerCreateFileSystem
                 {
                     Destination = a.DestinationPath,
