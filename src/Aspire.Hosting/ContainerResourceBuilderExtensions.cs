@@ -564,6 +564,7 @@ public static class ContainerResourceBuilderExtensions
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
             }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
@@ -702,6 +703,7 @@ public static class ContainerResourceBuilderExtensions
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
             }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
