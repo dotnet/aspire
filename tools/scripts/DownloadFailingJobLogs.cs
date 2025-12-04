@@ -41,7 +41,10 @@ while (hasMoreJobPages)
             hasMoreJobPages = false;
         }
 
-        jobs.AddRange(jobsArray.EnumerateArray());
+        foreach (var job in jobsArray.EnumerateArray())
+        {
+            jobs.Add(job.Clone());
+        }
 
         // If we got fewer than 100 jobs, this is the last page
         if (jobsOnPage < 100)
