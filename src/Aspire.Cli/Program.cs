@@ -4,10 +4,16 @@
 using System.CommandLine;
 using System.Globalization;
 using System.Text;
+using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.ClaudeCode;
+using Aspire.Cli.Agents.CopilotCli;
+using Aspire.Cli.Agents.OpenCode;
+using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -57,6 +63,9 @@ public class Program
         // Check for --non-interactive flag early
         var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
 
+        // Check if running MCP start command - all logs should go to stderr to keep stdout clean for MCP protocol
+        var isMcpStartCommand = args?.Length >= 2 && args[0] == "mcp" && args[1] == "start";
+
         var settings = new HostApplicationBuilderSettings
         {
             Configuration = new ConfigurationManager()
@@ -101,12 +110,29 @@ public class Program
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
 
-        if (debugMode)
+        if (debugMode && !isMcpStartCommand)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
             builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
             // Use custom Spectre Console logger for clean debug output instead of built-in console logger
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SpectreConsoleLoggerProvider>());
+        }
+
+        // For MCP start command, configure console logger to route all logs to stderr
+        // This keeps stdout clean for MCP protocol JSON-RPC messages
+        if (isMcpStartCommand)
+        {
+            if (debugMode)
+            {
+                builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
+                builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle                
+            }
+
+            builder.Logging.AddConsole(consoleLogOptions =>
+            {
+                // Configure all logs to go to stderr
+                consoleLogOptions.LogToStandardErrorThreshold = LogLevel.Trace;
+            });
         }
 
         // Shared services.
@@ -136,10 +162,33 @@ public class Program
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddSingleton<NuGetPackagePrefetcher>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        builder.Services.AddSingleton<AuxiliaryBackchannelMonitor>();
+        builder.Services.AddSingleton<IAuxiliaryBackchannelMonitor>(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+
+        // Git repository operations.
+        builder.Services.AddSingleton<IGitRepository, GitRepository>();
+
+        // OpenCode CLI operations.
+        builder.Services.AddSingleton<IOpenCodeCliRunner, OpenCodeCliRunner>();
+
+        // Claude Code CLI operations.
+        builder.Services.AddSingleton<IClaudeCodeCliRunner, ClaudeCodeCliRunner>();
+
+        // VS Code CLI operations.
+        builder.Services.AddSingleton<IVsCodeCliRunner, VsCodeCliRunner>();
+        builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
+
+        // Agent environment detection.
+        builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, CopilotCliAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>());
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();

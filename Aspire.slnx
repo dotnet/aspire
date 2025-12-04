@@ -70,6 +70,7 @@
     <Project Path="src/Aspire.Hosting.Redis/Aspire.Hosting.Redis.csproj" />
     <Project Path="src/Aspire.Hosting.Seq/Aspire.Hosting.Seq.csproj" />
     <Project Path="src/Aspire.Hosting.SqlServer/Aspire.Hosting.SqlServer.csproj" />
+    <Project Path="src/Aspire.Hosting.Tasks/Aspire.Hosting.Tasks.csproj" />
     <Project Path="src/Aspire.Hosting.Valkey/Aspire.Hosting.Valkey.csproj" />
     <Project Path="src/Aspire.Hosting.Yarp/Aspire.Hosting.Yarp.csproj" />
     <Project Path="src/Aspire.Hosting/Aspire.Hosting.csproj" />

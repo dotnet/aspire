@@ -25,7 +25,7 @@ namespace Aspire.Hosting.Docker;
 /// </remarks>
 internal sealed class DockerComposePublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    IResourceContainerImageBuilder imageBuilder,
+    IResourceContainerImageManager imageBuilder,
     string outputPath,
     ILogger logger,
     IReportingStep reportingStep,
@@ -36,7 +36,7 @@ internal sealed class DockerComposePublishingContext(
         UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
-    public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
+    public readonly IResourceContainerImageManager ImageBuilder = imageBuilder;
     public readonly string OutputPath = outputPath;
 
     internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)

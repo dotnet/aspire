@@ -41,7 +41,7 @@ public static class YarpResourceExtensions
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
                       .WithOtlpExporter()
-                      .WithCertificateKeyPairConfiguration(ctx =>
+                      .WithServerAuthenticationCertificateConfiguration(ctx =>
                       {
                           ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
                           ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
@@ -60,15 +60,15 @@ public static class YarpResourceExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.DefaultTlsTerminationEnabled)
+                    if (developerCertificateService.UseForServerAuthentication)
                     {
                         // If no specific certificate is configured
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }

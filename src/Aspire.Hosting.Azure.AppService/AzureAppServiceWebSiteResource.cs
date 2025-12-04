@@ -50,7 +50,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     Name = $"push-{targetResource.Name}",
                     Action = async ctx =>
                     {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                         await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
                             registry,
@@ -86,7 +86,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
-                Tags = ["print-summary"]
+                Tags = ["print-summary"],
+                RequiredBySteps = [WellKnownPipelineSteps.Deploy]
             };
 
             var deployStep = new PipelineStep

@@ -75,6 +75,11 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
         TrustCertificate = configuration.GetBool(KnownConfigNames.TrustDeveloperCertificate) ??
             options.TrustDeveloperCertificate ??
             true;
+
+        // By default, only use for server authentication if trust is also enabled (and a developer certificate with a private key is available)
+        UseForServerAuthentication = (configuration.GetBool(KnownConfigNames.UseDeveloperCertificateForServerAuthentication) ??
+            options.UseDeveloperCertificateForServerAuthentication ??
+            true ) && TrustCertificate && _supportsTlsTermination.Value;
     }
 
     /// <inheritdoc />
@@ -86,5 +91,6 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool TrustCertificate { get; }
 
-    public bool DefaultTlsTerminationEnabled => _supportsTlsTermination.Value && TrustCertificate;
+    /// <inheritdoc />
+    public bool UseForServerAuthentication { get; }
 }

@@ -50,7 +50,7 @@ public class AzureContainerAppResource : AzureProvisioningResource
                     Name = $"push-{targetResource.Name}",
                     Action = async ctx =>
                     {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                         await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
                             registry,

@@ -22,16 +22,16 @@ Steps with no dependencies run first, followed by steps that depend on them.
   6. validate-azure-login
   7. create-provisioning-context
   8. provision-api-identity
-  9. provision-kv
- 10. provision-api-roles-kv
- 11. provision-env
- 12. login-to-acr-env
- 13. push-api
- 14. provision-api-website
- 15. provision-azure-bicep-resources
- 16. print-dashboard-url-env
- 17. deploy
- 18. print-api-summary
+  9. provision-env
+ 10. provision-kv
+ 11. login-to-acr-env
+ 12. push-api
+ 13. provision-api-website
+ 14. print-api-summary
+ 15. provision-api-roles-kv
+ 16. provision-azure-bicep-resources
+ 17. print-dashboard-url-env
+ 18. deploy
  19. deploy-api
  20. diagnostics
  21. publish-prereq
@@ -60,7 +60,7 @@ Step: create-provisioning-context
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: deploy
-    Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
+    Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ print-api-summary, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
 
 Step: deploy-api
     Dependencies: ✓ print-api-summary
@@ -188,8 +188,8 @@ If targeting 'create-provisioning-context':
     [3] create-provisioning-context
 
 If targeting 'deploy':
-  Direct dependencies: build-api, create-provisioning-context, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
-  Total steps: 16
+  Direct dependencies: build-api, create-provisioning-context, print-api-summary, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
+  Total steps: 17
   Execution order:
     [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
@@ -199,7 +199,7 @@ If targeting 'deploy':
     [5] login-to-acr-env | provision-api-roles-kv (parallel)
     [6] push-api
     [7] provision-api-website
-    [8] provision-azure-bicep-resources
+    [8] print-api-summary | provision-azure-bicep-resources (parallel)
     [9] print-dashboard-url-env
     [10] deploy
 

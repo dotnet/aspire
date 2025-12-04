@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE002
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -447,6 +449,79 @@ public static class ResourceExtensions
         await ProcessGatheredEnvironmentVariableValuesAsync(resource, executionContext, config, processValue, logger, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Processes all container build options callback annotations on a resource by invoking them in order.
+    /// </summary>
+    /// <param name="resource">The resource to process container build options for.</param>
+    /// <param name="serviceProvider">The service provider for dependency injection.</param>
+    /// <param name="logger">The logger used to log any information or errors during processing.</param>
+    /// <param name="executionContext">The optional execution context.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A context object containing the accumulated container build options from all callbacks.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static async ValueTask<ContainerBuildOptionsCallbackContext> ProcessContainerBuildOptionsCallbackAsync(
+        this IResource resource,
+        IServiceProvider serviceProvider,
+        ILogger logger,
+        DistributedApplicationExecutionContext? executionContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = new ContainerBuildOptionsCallbackContext(
+            resource,
+            serviceProvider,
+            logger,
+            cancellationToken,
+            executionContext);
+
+        if (resource.TryGetAnnotationsOfType<ContainerBuildOptionsCallbackAnnotation>(out var annotations))
+        {
+            foreach (var annotation in annotations)
+            {
+                await annotation.Callback(context).ConfigureAwait(false);
+            }
+        }
+
+        return context;
+    }
+
+    /// <summary>
+    /// Configures container build options for a compute resource using a callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithContainerBuildOptions<T>(
+        this IResourceBuilder<T> builder,
+        Action<ContainerBuildOptionsCallbackContext> callback)
+        where T : IResource, IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Append);
+    }
+
+    /// <summary>
+    /// Configures container build options for a compute resource using an async callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">An async callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithContainerBuildOptions<T>(
+        this IResourceBuilder<T> builder,
+        Func<ContainerBuildOptionsCallbackContext, Task> callback)
+        where T : IResource, IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Append);
+    }
+
     internal static NetworkIdentifier GetDefaultResourceNetwork(this IResource resource)
     {
         return resource.IsContainer() ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
@@ -485,12 +560,7 @@ public static class ResourceExtensions
         /// <summary>
         /// The server authentication certificate for the resource, if any.
         /// </summary>
-        public X509Certificate2? ServerAuthCertificate { get; init; }
-
-        /// <summary>
-        /// The password for the server authentication certificate, if any.
-        /// </summary>
-        public string? ServerAuthPassword { get; init; }
+        public ServerAuthenticationCertificateConfigurationDetails? ServerAuthenticationCertificateConfiguration { get; init; }
 
         /// <summary>
         /// Any exception that occurred during the configuration processing.
@@ -547,11 +617,10 @@ public static class ResourceExtensions
                 cancellationToken).ConfigureAwait(false);
         }
 
-        X509Certificate2? serverAuthCertificate = null;
-        string? serverAuthPassword = null;
+        ServerAuthenticationCertificateConfigurationDetails? serverAuthCertificateConfiguration = null;
         if (withServerAuthCertificateConfig)
         {
-            (args, envVars, serverAuthCertificate, serverAuthPassword) = await resource.GatherServerAuthCertificateConfigAsync(
+            (args, envVars, serverAuthCertificateConfiguration) = await resource.GatherServerAuthCertificateConfigAsync(
                 executionContext,
                 args,
                 envVars,
@@ -616,8 +685,7 @@ public static class ResourceExtensions
             EnvironmentVariables = resolvedEnvVars,
             CertificateTrustScope = certificateTrustScope,
             TrustedCertificates = trustedCertificates!,
-            ServerAuthCertificate = serverAuthCertificate,
-            ServerAuthPassword = serverAuthPassword,
+            ServerAuthenticationCertificateConfiguration = serverAuthCertificateConfiguration,
             Exception = exception,
         };
     }
@@ -752,6 +820,32 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Holds the details of server authentication certificate configuration.
+    /// </summary>
+    internal sealed class ServerAuthenticationCertificateConfigurationDetails
+    {
+        /// <summary>
+        /// The server authentication certificate for the resource, if any.
+        /// </summary>
+        public required X509Certificate2 Certificate { get; init; }
+
+        /// <summary>
+        /// Indicates whether the resource references a PEM key for server authentication.
+        /// </summary>
+        public required ReferenceExpression KeyPathReference { get; set; }
+
+        /// <summary>
+        /// Indicates whether the resource references a PFX file for server authentication.
+        /// </summary>
+        public required ReferenceExpression PfxReference { get; set; }
+
+        /// <summary>
+        /// The passphrase for the server authentication certificate, if any.
+        /// </summary>
+        public string? Password { get; init; }
+    }
+
+    /// <summary>
     /// Gathers server authentication certificate configuration for the specified resource within the given execution context.
     /// </summary>
     /// <param name="resource">The resource for which to gather server authentication certificate configuration.</param>
@@ -760,8 +854,8 @@ public static class ResourceExtensions
     /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
     /// <param name="certificateConfigContextFactory">A factory function to create the context for building server authentication certificate configuration; provides the paths for the certificate, key, and PFX files.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>The resulting command line arguments, environment variables, and optionally the certificate and passphrase for server auth.</returns>
-    internal static async ValueTask<(List<object> arguments, Dictionary<string, object> environmentVariables, X509Certificate2? serverAuthCertificate, string? passphrase)> GatherServerAuthCertificateConfigAsync(
+    /// <returns>The resulting command line arguments, environment variables, and optionally the specific server authentication certificate configuration details.</returns>
+    internal static async ValueTask<(List<object> arguments, Dictionary<string, object> environmentVariables, ServerAuthenticationCertificateConfigurationDetails? details)> GatherServerAuthCertificateConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         List<object> arguments,
@@ -769,8 +863,8 @@ public static class ResourceExtensions
         Func<X509Certificate2, ServerAuthCertificateConfigBuilderContext> certificateConfigContextFactory,
         CancellationToken cancellationToken = default)
     {
-        var effectiveAnnotation = new CertificateKeyPairAnnotation();
-        if (resource.TryGetLastAnnotation<CertificateKeyPairAnnotation>(out var annotation))
+        var effectiveAnnotation = new ServerAuthenticationCertificateAnnotation();
+        if (resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
         {
             effectiveAnnotation = annotation;
         }
@@ -778,14 +872,14 @@ public static class ResourceExtensions
         if (effectiveAnnotation is null)
         {
             // Should never happen
-            return (arguments, environmentVariables, null, null);
+            return (arguments, environmentVariables, null);
         }
 
         X509Certificate2? certificate = effectiveAnnotation.Certificate;
         if (certificate is null)
         {
             var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.DefaultTlsTerminationEnabled))
+            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication))
             {
                 certificate = developerCertificateService.Certificates.FirstOrDefault();
             }
@@ -794,12 +888,12 @@ public static class ResourceExtensions
         if (certificate is null)
         {
             // No certificate to configure, do nothing
-            return (arguments, environmentVariables, null, null);
+            return (arguments, environmentVariables, null);
         }
 
         var configBuilderContext = certificateConfigContextFactory(certificate);
 
-        var context = new CertificateKeyPairConfigurationCallbackAnnotationContext
+        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = executionContext,
             Resource = resource,
@@ -812,14 +906,23 @@ public static class ResourceExtensions
             CancellationToken = cancellationToken,
         };
 
-        foreach (var callback in resource.TryGetAnnotationsOfType<CertificateKeyPairConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<CertificateKeyPairConfigurationCallbackAnnotation>())
+        foreach (var callback in resource.TryGetAnnotationsOfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<ServerAuthenticationCertificateConfigurationCallbackAnnotation>())
         {
             await callback.Callback(context).ConfigureAwait(false);
         }
 
         string? password = effectiveAnnotation.Password is not null ? await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false) : null;
 
-        return (arguments, environmentVariables, certificate, password);
+        return (
+            arguments,
+            environmentVariables,
+            new ServerAuthenticationCertificateConfigurationDetails()
+            {
+                Certificate = certificate,
+                Password = password,
+                KeyPathReference = context.KeyPath,
+                PfxReference = context.PfxPath,
+            });
     }
 
     internal static async ValueTask<ResolvedValue?> ResolveValueAsync(
@@ -1036,6 +1139,91 @@ public static class ResourceExtensions
         {
             return new EndpointReference(resource, endpoint, contextNetworkID);
         }
+    }
+
+    /// <summary>
+    /// Resolves endpoint port configuration for the specified resource.
+    /// Computes target ports and exposed ports based on resource type, endpoint configuration,
+    /// and whether the endpoint is considered a default HTTP endpoint.
+    /// </summary>
+    /// <param name="resource">The resource containing endpoints to resolve.</param>
+    /// <param name="portAllocator">Optional port allocator. If null, uses default allocation starting from port 8000.</param>
+    /// <returns>A read-only list of resolved endpoints with computed port values.</returns>
+    public static IReadOnlyList<ResolvedEndpoint> ResolveEndpoints(this IResource resource, IPortAllocator? portAllocator = null)
+    {
+        if (!resource.TryGetEndpoints(out var endpoints))
+        {
+            return [];
+        }
+
+        portAllocator ??= new PortAllocator();
+        var httpSchemesEncountered = new HashSet<string>();
+        var result = new List<ResolvedEndpoint>();
+
+        foreach (var endpoint in endpoints)
+        {
+            // Compute target port based on resource type and endpoint configuration
+            ResolvedPort targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
+            {
+                // The port was explicitly specified so use it
+                (_, _, int target, _) => ResolvedPort.Explicit(target),
+
+                // Container resources get their default listening port from the exposed port (implicit)
+                (ContainerResource, _, null, int port) => ResolvedPort.Implicit(port),
+
+                // Check whether the project views this endpoint as Default (for its scheme).
+                // If so, we don't specify the target port, as it will get one from the deployment tool.
+                (ProjectResource, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => ResolvedPort.None(),
+
+                // Allocate a dynamic port
+                _ => ResolvedPort.Allocated(portAllocator.AllocatePort())
+            };
+
+            // Track HTTP schemes encountered for ProjectResources
+            if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
+            {
+                httpSchemesEncountered.Add(endpoint.UriScheme);
+            }
+
+            // Compute exposed port (host port)
+            ResolvedPort exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort.Value) switch
+            {
+                // Port set explicitly, use it
+                (_, int port, _) => ResolvedPort.Explicit(port),
+
+                // We have a target port, infer the exposedPort from it
+                (_, null, int targetPortValue) => ResolvedPort.Implicit(targetPortValue),
+
+                // Let the tool infer the default http and https ports
+                ("http", null, null) => ResolvedPort.None(),
+                ("https", null, null) => ResolvedPort.None(),
+
+                // Other schemes just allocate a port
+                _ => ResolvedPort.Allocated(portAllocator.AllocatePort())
+            };
+
+            // Track used ports to avoid collisions when allocating
+            if (exposedPort.Value is int ep)
+            {
+                portAllocator.AddUsedPort(ep);
+            }
+
+            if (targetPort.Value is int tp)
+            {
+                portAllocator.AddUsedPort(tp);
+            }
+
+            result.Add(new ResolvedEndpoint
+            {
+                Endpoint = endpoint,
+                TargetPort = targetPort,
+                ExposedPort = exposedPort
+            });
+        }
+
+        return result;
+
+        static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
     }
 
     /// <summary>
@@ -1279,34 +1467,80 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Processes image push options callbacks for the specified resource.
     /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, string> callback) where T : class, IResource
+    /// <param name="resource">The resource to process image push options for.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>The resolved image push options.</returns>
+    internal static async Task<ContainerImagePushOptions> ProcessImagePushOptionsCallbackAsync(
+        this IResource resource,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
+        var options = new ContainerImagePushOptions
+        {
+            RemoteImageName = resource.Name.ToLowerInvariant(),
+            RemoteImageTag = "latest"
+        };
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        var context = new ContainerImagePushOptionsCallbackContext
+        {
+            Resource = resource,
+            CancellationToken = cancellationToken,
+            Options = options
+        };
+
+        var callbacks = resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>();
+
+        foreach (var callback in callbacks)
+        {
+            await callback.Callback(context).ConfigureAwait(false);
+        }
+
+        return options;
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Gets the container registry associated with the specified resource.
     /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback) where T : class, IResource
+    /// <param name="resource">The resource to get the container registry for.</param>
+    /// <returns>The container registry associated with the resource.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
+    /// <remarks>
+    /// This method first checks for a container registry in the <see cref="DeploymentTargetAnnotation"/>.
+    /// If not found, it falls back to the <see cref="ContainerRegistryReferenceAnnotation"/>.
+    /// </remarks>
+    internal static IContainerRegistry GetContainerRegistry(this IResource resource)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
+        // Try to get the container registry from DeploymentTargetAnnotation first
+        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
+        if (deploymentTarget?.ContainerRegistry is not null)
+        {
+            return deploymentTarget.ContainerRegistry;
+        }
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        // Fall back to ContainerRegistryReferenceAnnotation
+        var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault()
+            ?? throw new InvalidOperationException($"Resource '{resource.Name}' does not have a container registry reference.");
+        return registryAnnotation.Registry;
+    }
+
+    /// <summary>
+    /// Gets the full remote image name for the specified resource, including registry endpoint and tag.
+    /// </summary>
+    /// <param name="resource">The resource to get the remote image name for.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>The fully qualified remote image name.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
+    /// <remarks>
+    /// This method processes any image push options callbacks on the resource and combines the result
+    /// with the container registry to produce the full remote image name.
+    /// </remarks>
+    internal static async Task<string> GetFullRemoteImageNameAsync(
+        this IResource resource,
+        CancellationToken cancellationToken)
+    {
+        var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(cancellationToken).ConfigureAwait(false);
+        var registry = resource.GetContainerRegistry();
+        return await pushOptions.GetFullRemoteImageNameAsync(registry, cancellationToken).ConfigureAwait(false);
     }
 }

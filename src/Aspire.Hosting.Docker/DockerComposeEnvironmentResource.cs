@@ -51,7 +51,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
-    internal PortAllocator PortAllocator { get; } = new();
+    internal IPortAllocator PortAllocator { get; } = new PortAllocator();
 
     /// <param name="name">The name of the Docker Compose environment.</param>
     public DockerComposeEnvironmentResource(string name) : base(name)
@@ -183,7 +183,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PipelineStepContext context)
     {
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
-        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageManager>();
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
             context.ExecutionContext,
