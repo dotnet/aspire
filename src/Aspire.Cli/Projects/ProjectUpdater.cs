@@ -236,7 +236,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var latestPackage = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             var packages = await context.Channel.GetPackagesAsync(packageId, context.AppHostProjectFile.Directory!, cancellationToken);
-            var latestPackage = packages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer).FirstOrDefault();
+            // Filter out packages with invalid semantic versions and find the latest valid one
+            var latestPackage = packages
+                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                .FirstOrDefault();
             return latestPackage;
         });
 
@@ -250,20 +254,23 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
         var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
+        var sdkVersion = sdkVersionElement.GetString();
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (!string.IsNullOrEmpty(sdkVersion) && IsValidSemanticVersion(sdkVersion) && sdkVersion == latestSdkPackage?.Version)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
         }
 
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersion ?? "unknown", latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
             "Aspire.AppHost.Sdk",
-            sdkVersionElement.GetString() ?? "unknown",
+            sdkVersion ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
@@ -439,7 +446,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     {
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (packageVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(packageVersion) && packageVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -467,7 +476,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (currentVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(currentVersion) && currentVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -580,15 +591,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static bool IsValidSemanticVersion(string version)
     {
-        try
-        {
-            SemVersion.Parse(version);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return SemVersion.TryParse(version, SemVersionStyles.Strict, out _);
     }
 
     private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
@@ -887,7 +890,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
+        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
     }
 }
 
