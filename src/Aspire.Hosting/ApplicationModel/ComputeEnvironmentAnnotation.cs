@@ -3,7 +3,14 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal sealed class ComputeEnvironmentAnnotation(IComputeEnvironmentResource computeEnvironment) : IResourceAnnotation
+/// <summary>
+/// Annotation that specifies which compute environment a resource should be deployed to.
+/// </summary>
+/// <param name="computeEnvironment">The compute environment that the resource should be deployed to.</param>
+public sealed class ComputeEnvironmentAnnotation(IComputeEnvironmentResource computeEnvironment) : IResourceAnnotation
 {
+    /// <summary>
+    /// Gets the compute environment that the resource should be deployed to.
+    /// </summary>
     public IComputeEnvironmentResource ComputeEnvironment { get; } = computeEnvironment;
 }
