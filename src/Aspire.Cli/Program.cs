@@ -209,6 +209,7 @@ public class Program
         builder.Services.AddTransient<McpCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
+        builder.Services.AddTransient<PolyglotCommand>();
 
         var app = builder.Build();
         return app;

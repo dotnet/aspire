@@ -1,0 +1,18 @@
+{
+  "name": "aspire-host",
+  "type": "module",
+  "scripts": {
+    "start": "aspire polyglot run",
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "deasync": "^0.1.30",
+    "vscode-jsonrpc": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/deasync": "^0.1.5",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.8.2"
+  }
+}

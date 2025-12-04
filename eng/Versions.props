@@ -124,6 +124,7 @@
     <MicrosoftExtensionsHttpVersion>9.0.11</MicrosoftExtensionsHttpVersion>
     <SystemFormatsAsn1Version>9.0.11</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.11</SystemTextJsonVersion>
+    <SystemReflectionMetadataVersion>9.0.11</SystemReflectionMetadataVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
   <PropertyGroup Label="LTS">

@@ -70,38 +70,11 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Start the MCP (Model Context Protocol) server..
-        /// </summary>
-        internal static string StartCommand_Description {
-            get {
-                return ResourceManager.GetString("StartCommand_Description", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments..
-        /// </summary>
-        internal static string InitCommand_Description {
-            get {
-                return ResourceManager.GetString("InitCommand_Description", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Select agent environments to configure:.
         /// </summary>
         internal static string InitCommand_AgentConfigurationSelectPrompt {
             get {
                 return ResourceManager.GetString("InitCommand_AgentConfigurationSelectPrompt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No agent environments were detected..
-        /// </summary>
-        internal static string InitCommand_NoAgentEnvironmentsDetected {
-            get {
-                return ResourceManager.GetString("InitCommand_NoAgentEnvironmentsDetected", resourceCulture);
             }
         }
         
@@ -115,11 +88,38 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments..
+        /// </summary>
+        internal static string InitCommand_Description {
+            get {
+                return ResourceManager.GetString("InitCommand_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Detecting agent environments....
         /// </summary>
         internal static string InitCommand_DetectingAgentEnvironments {
             get {
                 return ResourceManager.GetString("InitCommand_DetectingAgentEnvironments", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No agent environments were detected..
+        /// </summary>
+        internal static string InitCommand_NoAgentEnvironmentsDetected {
+            get {
+                return ResourceManager.GetString("InitCommand_NoAgentEnvironmentsDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start the MCP (Model Context Protocol) server..
+        /// </summary>
+        internal static string StartCommand_Description {
+            get {
+                return ResourceManager.GetString("StartCommand_Description", resourceCulture);
             }
         }
     }

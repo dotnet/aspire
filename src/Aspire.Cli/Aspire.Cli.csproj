@@ -38,6 +38,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
+    <Compile Remove="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
+    <Compile Remove="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
+    <Compile Remove="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
+    <Compile Remove="Rosetta\Shared\RemoteAppHost\Program.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Rosetta\Shared\python\remote_app_host_client.py" />
+    <None Remove="Rosetta\Shared\typescript\package.json" />
+    <None Remove="Rosetta\Shared\typescript\RemoteAppHostClient.ts" />
+    <None Remove="Rosetta\Shared\typescript\types.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Spectre.Console" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
@@ -47,6 +62,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
     <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="System.Reflection.Metadata" />
   </ItemGroup>
 
   <ItemGroup>
@@ -58,6 +74,21 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\Program.cs" />
+
+    <EmbeddedResource Include="Rosetta\Shared\python\remote_app_host_client.py" />
+
+    <EmbeddedResource Include="Rosetta\Shared\typescript\package.json" />
+
+    <EmbeddedResource Include="Rosetta\Shared\typescript\RemoteAppHostClient.ts" />
+    <EmbeddedResource Include="Rosetta\Shared\typescript\types.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -74,6 +105,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>InteractionServiceStrings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\PolyglotCommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PolyglotCommandStrings.resx</DependentUpon>
     </Compile>
     <Compile Update="Resources\TemplatingStrings.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -143,6 +179,10 @@
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>InteractionServiceStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\PolyglotCommandStrings.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>PolyglotCommandStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\TemplatingStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>

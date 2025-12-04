@@ -32,6 +32,7 @@ internal sealed class RootCommand : BaseRootCommand
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
+        PolyglotCommand polyglotCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -49,6 +50,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
         ArgumentNullException.ThrowIfNull(mcpCommand);
+        ArgumentNullException.ThrowIfNull(polyglotCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -110,6 +112,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
+        Subcommands.Add(polyglotCommand);
         Subcommands.Add(extensionInternalCommand);
         Subcommands.Add(mcpCommand);
 
