@@ -19,11 +19,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
-        var context = new AgentEnvironmentScanContext 
-        { 
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot
-        };
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
@@ -37,11 +33,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(null);
         var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
-        var context = new AgentEnvironmentScanContext 
-        { 
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot
-        };
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
@@ -59,11 +51,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         // Create a scanner that writes to a known test location
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
-        var context = new AgentEnvironmentScanContext 
-        { 
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot
-        };
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
         
@@ -129,11 +117,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
-        var context = new AgentEnvironmentScanContext 
-        { 
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot
-        };
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
         await context.Applicators[0].ApplyAsync(CancellationToken.None);
@@ -172,15 +156,29 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
-        var context = new AgentEnvironmentScanContext 
-        { 
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot
-        };
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
         Assert.Empty(context.Applicators);
+    }
+
+    private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory)
+    {
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workingDirectory,
+            hivesDirectory: workingDirectory,
+            cacheDirectory: workingDirectory,
+            sdksDirectory: workingDirectory,
+            debugMode: false,
+            environmentVariables: null);
+
+        return new AgentEnvironmentScanContext
+        {
+            WorkingDirectory = workingDirectory,
+            RepositoryRoot = workingDirectory,
+            ExecutionContext = executionContext
+        };
     }
 
     /// <summary>

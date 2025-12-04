@@ -10,8 +10,9 @@ namespace Aspire.Cli.Agents.CopilotCli;
 /// <summary>
 /// Runs GitHub Copilot CLI commands.
 /// </summary>
+/// <param name="executionContext">The CLI execution context for accessing environment variables.</param>
 /// <param name="logger">The logger for diagnostic output.</param>
-internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopilotCliRunner
+internal sealed class CopilotCliRunner(CliExecutionContext executionContext, ILogger<CopilotCliRunner> logger) : ICopilotCliRunner
 {
     /// <inheritdoc />
     public async Task<SemVersion?> GetVersionAsync(CancellationToken cancellationToken)
@@ -103,17 +104,9 @@ internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopi
     /// Checks if the current process is running in a VSCode terminal.
     /// </summary>
     /// <returns>True if running in VSCode, false otherwise.</returns>
-    private static bool IsRunningInVSCode()
+    private bool IsRunningInVSCode()
     {
-        // VSCode sets various environment variables when running a terminal
-        // Check for any of these to detect if we're in a VSCode terminal
-        return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_INJECTION")) ||
-               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_IPC_HOOK")) ||
-               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_ASKPASS_NODE")) ||
-               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_ASKPASS_EXTRA_ARGS")) ||
-               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_ASKPASS_MAIN")) ||
-               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSCODE_GIT_IPC_HANDLE")) ||
-               !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TERM_PROGRAM")) && 
-                   Environment.GetEnvironmentVariable("TERM_PROGRAM") == "vscode";
+        // VSCode sets VSCODE_IPC_HOOK when running a terminal
+        return !string.IsNullOrEmpty(executionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK"));
     }
 }

@@ -6,7 +6,7 @@ namespace Aspire.Cli.Agents;
 /// <summary>
 /// Detects agent environments by running all registered scanners.
 /// </summary>
-internal sealed class AgentEnvironmentDetector(IEnumerable<IAgentEnvironmentScanner> scanners) : IAgentEnvironmentDetector
+internal sealed class AgentEnvironmentDetector(IEnumerable<IAgentEnvironmentScanner> scanners, CliExecutionContext executionContext) : IAgentEnvironmentDetector
 {
     /// <inheritdoc />
     public async Task<AgentEnvironmentApplicator[]> DetectAsync(DirectoryInfo workingDirectory, DirectoryInfo repositoryRoot, CancellationToken cancellationToken)
@@ -14,7 +14,8 @@ internal sealed class AgentEnvironmentDetector(IEnumerable<IAgentEnvironmentScan
         var context = new AgentEnvironmentScanContext
         {
             WorkingDirectory = workingDirectory,
-            RepositoryRoot = repositoryRoot
+            RepositoryRoot = repositoryRoot,
+            ExecutionContext = executionContext
         };
 
         foreach (var scanner in scanners)
