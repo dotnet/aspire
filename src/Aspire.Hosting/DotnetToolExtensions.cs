@@ -163,7 +163,6 @@ public static class DotnetToolExtensions
             {
                 Properties = [
                         ..x.Properties,
-                        new (KnownProperties.Executable.Path, toolConfig.PackageId),
                         new (KnownProperties.Tool.Package, toolConfig.PackageId),
                         new (KnownProperties.Tool.Version, toolConfig.Version)
                         ]
@@ -200,7 +199,7 @@ public static class DotnetToolExtensions
     }
 
     /// <summary>
-    /// Configures the resource builder to mark the associated .NET tool package as a prerelease version.
+    /// Allow prerelease versions of the tool to be used
     /// </summary>
     /// <typeparam name="T">The type of resource being built. Must inherit from DotnetToolResource.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
