@@ -119,8 +119,8 @@ public sealed class ParameterProcessor(
     {
         // Process the resource's execution configuration to find referenced parameters
         (var executionConfgiuration, _) = await resource.ExecutionConfigurationBuilder()
-            .WithArguments()
-            .WithEnvironmentVariables()
+            .WithArgumentsConfig()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(executionContext, logger, cancellationToken).ConfigureAwait(false);
 
         foreach (var reference in executionConfgiuration.References)

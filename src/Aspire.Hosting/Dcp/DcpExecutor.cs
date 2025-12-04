@@ -1599,9 +1599,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
             (var configuration, var configException) = await er.ModelResource.ExecutionConfigurationBuilder()
-                .WithArguments()
-                .WithEnvironmentVariables()
-                .WithCertificateTrust(scope =>
+                .WithArgumentsConfig()
+                .WithEnvironmentVariablesConfig()
+                .WithCertificateTrustConfig(scope =>
                 {
                     var dirs = new List<string> { certificatesOutputPath };
                     if (scope == CertificateTrustScope.Append)
@@ -1620,7 +1620,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(Path.PathSeparator, dirs)}"),
                     };
                 })
-                .WithServerAuthenticationCertificate(cert => new()
+                .WithHttpsCertificateConfig(cert => new()
                 {
                     CertificatePath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.crt")}"),
                     KeyPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.key")}"),
@@ -1651,11 +1651,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             exe.Spec.PemCertificates = pemCertificates;
 
-            if (configuration.TryGetAdditionalData<ServerAuthenticationCertificateExecutionConfigurationData>(out var serverAuthenticationCertificateConfiguration))
+            if (configuration.TryGetAdditionalData<HttpsCertificateExecutionConfigurationData>(out var tlsCertificateConfiguration))
             {
-                var thumbprint = serverAuthenticationCertificateConfiguration.Certificate.Thumbprint;
-                var publicCetificatePem = serverAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
-                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(serverAuthenticationCertificateConfiguration, cancellationToken).ConfigureAwait(false);
+                var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+                var publicCetificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
+                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
 
                 if (OperatingSystem.IsWindows())
                 {
@@ -1944,9 +1944,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
 
             (var configuration, var configException) = await cr.ModelResource.ExecutionConfigurationBuilder()
-                .WithArguments()
-                .WithEnvironmentVariables()
-                .WithCertificateTrust(scope =>
+                .WithArgumentsConfig()
+                .WithEnvironmentVariablesConfig()
+                .WithCertificateTrustConfig(scope =>
                 {
                     var dirs = new List<string> { certificatesDestination + "/certs" };
                     if (scope == CertificateTrustScope.Append)
@@ -1962,7 +1962,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
                     };
                 })
-                .WithServerAuthenticationCertificate(cert => new()
+                .WithHttpsCertificateConfig(cert => new()
                 {
                     CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.crt"),
                     KeyPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.key"),
@@ -2009,15 +2009,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 CertificateTrustBundlePath = $"{certificatesDestination}/cert.pem",
             };
 
-            if (configuration.TryGetAdditionalData<ServerAuthenticationCertificateExecutionConfigurationData>(out var serverAuthenticationCertificateConfiguration))
+            if (configuration.TryGetAdditionalData<HttpsCertificateExecutionConfigurationData>(out var tlsCertificateConfiguration))
             {
-                var thumbprint = serverAuthenticationCertificateConfiguration.Certificate.Thumbprint;
-                buildCreateFilesContext.ServerAuthenticationCertificateContext = new ContainerFileSystemCallbackServerAuthenticationCertificateContext
+                var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+                buildCreateFilesContext.HttpsCertificateContext = new ContainerFileSystemCallbackHttpsCertificateContext
                 {
                     CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{thumbprint}.crt"),
-                    KeyPath = serverAuthenticationCertificateConfiguration.KeyPathReference,
-                    PfxPath = serverAuthenticationCertificateConfiguration.PfxPathReference,
-                    Password = serverAuthenticationCertificateConfiguration.Password,
+                    KeyPath = tlsCertificateConfiguration.KeyPathReference,
+                    PfxPath = tlsCertificateConfiguration.PfxPathReference,
+                    Password = tlsCertificateConfiguration.Password,
                 };
             }
 
@@ -2026,11 +2026,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 buildCreateFilesContext,
                 cancellationToken).ConfigureAwait(false);
 
-            if (serverAuthenticationCertificateConfiguration is not null)
+            if (tlsCertificateConfiguration is not null)
             {
-                var thumbprint = serverAuthenticationCertificateConfiguration.Certificate.Thumbprint;
-                var publicCertificatePem = serverAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
-                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(serverAuthenticationCertificateConfiguration, cancellationToken).ConfigureAwait(false);
+                var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+                var publicCertificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
+                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
                 var certificateFiles = new List<ContainerFileSystemEntry>()
             {
                 new ContainerFileSystemEntry
@@ -2495,7 +2495,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         public CertificateTrustScope CertificateTrustScope { get; init; }
         public string? CertificateTrustBundlePath { get; set; }
         public string? CertificateTrustDirectoriesPath { get; set; }
-        public ContainerFileSystemCallbackServerAuthenticationCertificateContext? ServerAuthenticationCertificateContext { get; set; }
+        public ContainerFileSystemCallbackHttpsCertificateContext? HttpsCertificateContext { get; set; }
     }
 
     private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(BuildCreateFilesContext context, CancellationToken cancellationToken)
@@ -2511,7 +2511,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     {
                         Model = context.Resource,
                         ServiceProvider = _executionContext.ServiceProvider,
-                        ServerAuthenticationCertificateContext = context.ServerAuthenticationCertificateContext,
+                        HttpsCertificateContext = context.HttpsCertificateContext,
                     },
                     cancellationToken).ConfigureAwait(false);
 
@@ -2568,7 +2568,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
     /// <returns>A tuple containing the PEM-encoded key and PFX bytes, if appropriate for the configuration.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(ServerAuthenticationCertificateExecutionConfigurationData configuration, CancellationToken cancellationToken)
+    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(HttpsCertificateExecutionConfigurationData configuration, CancellationToken cancellationToken)
     {
         var certificate = configuration.Certificate;
         var lookup = certificate.Thumbprint;

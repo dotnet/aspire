@@ -529,7 +529,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
         (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
             .ConfigureAwait(false);
 
@@ -567,7 +567,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
         (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
-            .WithArguments()
+            .WithArgumentsConfig()
             .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
             .ConfigureAwait(false);
 

@@ -10,17 +10,17 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A gatherer that configures server authentication certificate configuration for a resource.
+/// A gatherer that collects the required configuration to apply HTTPS/TLS server authentication to a resource.
 /// </summary>
-internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
+internal class HttpsCertificateExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
 {
-    private readonly Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> _configContextFactory;
+    private readonly Func<X509Certificate2, HttpsCertificateExecutionConfigurationContext> _configContextFactory;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ServerAuthenticationCertificateExecutionConfigurationGatherer"/>.
+    /// Initializes a new instance of <see cref="HttpsCertificateExecutionConfigurationGatherer"/>.
     /// </summary>
     /// <param name="configContextFactory">A factory for configuring server authentication certificate configuration properties.</param>
-    public ServerAuthenticationCertificateExecutionConfigurationGatherer(Func<X509Certificate2, ServerAuthenticationCertificateExecutionConfigurationContext> configContextFactory)
+    public HttpsCertificateExecutionConfigurationGatherer(Func<X509Certificate2, HttpsCertificateExecutionConfigurationContext> configContextFactory)
     {
         _configContextFactory = configContextFactory;
     }
@@ -28,8 +28,8 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        var effectiveAnnotation = new ServerAuthenticationCertificateAnnotation();
-        if (resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+        var effectiveAnnotation = new HttpsCertificateAnnotation();
+        if (resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
         {
             effectiveAnnotation = annotation;
         }
@@ -38,7 +38,7 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
         if (certificate is null)
         {
             var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication))
+            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps))
             {
                 certificate = developerCertificateService.Certificates.FirstOrDefault();
             }
@@ -51,7 +51,7 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
 
         var configurationContext = _configContextFactory(certificate);
 
-        var additionalData = new ServerAuthenticationCertificateExecutionConfigurationData
+        var additionalData = new HttpsCertificateExecutionConfigurationData
         {
             Certificate = certificate,
             KeyPathReference = configurationContext.KeyPath,
@@ -60,7 +60,7 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
         };
         context.AddAdditionalData(additionalData);
 
-        var callbackContext = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
+        var callbackContext = new HttpsCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = executionContext,
             Resource = resource,
@@ -74,7 +74,7 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
             CancellationToken = cancellationToken,
         };
 
-        foreach (var callback in resource.TryGetAnnotationsOfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<ServerAuthenticationCertificateConfigurationCallbackAnnotation>())
+        foreach (var callback in resource.TryGetAnnotationsOfType<HttpsCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<HttpsCertificateConfigurationCallbackAnnotation>())
         {
             await callback.Callback(callbackContext).ConfigureAwait(false);
         }
@@ -83,9 +83,9 @@ internal class ServerAuthenticationCertificateExecutionConfigurationGatherer : I
 }
 
 /// <summary>
-/// Metadata for server authentication certificate configuration.
+/// Metadata for HTTPS/TLS server certificate configuration.
 /// </summary>
-public class ServerAuthenticationCertificateExecutionConfigurationData : IResourceExecutionConfigurationData
+public class HttpsCertificateExecutionConfigurationData : IResourceExecutionConfigurationData
 {
     private ReferenceExpression? _keyPathReference;
     private TrackedReference? _trackedKeyPathReference;
@@ -170,7 +170,7 @@ public class ServerAuthenticationCertificateExecutionConfigurationData : IResour
 /// <summary>
 /// Configuration context for server authentication certificate configuration.
 /// </summary>
-public class ServerAuthenticationCertificateExecutionConfigurationContext
+public class HttpsCertificateExecutionConfigurationContext
 {
     /// <summary>
     /// Expression that will resolve to the path of the server authentication certificate in PEM format.

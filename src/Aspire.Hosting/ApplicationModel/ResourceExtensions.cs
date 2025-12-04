@@ -228,7 +228,7 @@ public static class ResourceExtensions
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
         (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
         return executionConfiguration.EnvironmentVariables.ToDictionary();
@@ -272,7 +272,7 @@ public static class ResourceExtensions
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
         (var argumentConfiguration, _) = await resource.ExecutionConfigurationBuilder()
-            .WithArguments()
+            .WithArgumentsConfig()
             .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
         return argumentConfiguration.Arguments.Select(a => a.Value).ToArray();

@@ -2417,7 +2417,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Indicates that a resource should use a developer certificate key pair for HTTPS endpoints at run time.
+    /// Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time.
     /// Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used
     /// when running in local development scenarios; in publish mode resources will use their default certificate configuration.
     /// </summary>
@@ -2429,17 +2429,17 @@ public static class ResourceBuilderExtensions
     /// <example>
     /// <code lang="csharp">
     /// builder.AddContainer("my-service", "my-image")
-    ///     .WithServerAuthenticationDeveloperCertificate()
+    ///     .WithHttpsDeveloperCertificate()
     /// </code>
     /// </example>
     /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationDeveloperCertificate<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
+    public static IResourceBuilder<TResource> WithHttpsDeveloperCertificate<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             UseDeveloperCertificate = true,
             Password = password?.Resource,
@@ -2449,21 +2449,21 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ServerAuthenticationCertificateAnnotation"/> to the resource annotations to associate a certificate key pair with the resource.
-    /// This is used to configure the certificate presented by the resource for HTTPS endpoints.
+    /// Adds a <see cref="HttpsCertificateAnnotation"/> to the resource annotations to associate an X.509 certificate key pair with the resource.
+    /// This is used to configure the certificate presented by the resource for HTTPS/TLS endpoints.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS endpoints on the resource.</param>
+    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS/TLS endpoints on the resource.</param>
     /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
+    public static IResourceBuilder<TResource> WithHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             Certificate = certificate,
             Password = password?.Resource,
@@ -2473,18 +2473,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Disable server authentication certificate configuration for the resource. No TLS termination configuration will be applied.
+    /// Disable HTTPS/TLS server certificate configuration for the resource. No HTTPS/TLS termination configuration will be applied.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithoutServerAuthenticationCertificate<TResource>(this IResourceBuilder<TResource> builder)
+    public static IResourceBuilder<TResource> WithoutHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             Certificate = null,
             UseDeveloperCertificate = false,
@@ -2494,20 +2494,20 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback that allows configuring the resource to use a TLS certificate key pair.
+    /// Adds a callback that allows configuring the resource to use a specific HTTPS/TLS certificate key pair for server authentication.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to configure the resource to use a certificate key pair.</param>
     /// <returns>The updated resource builder.</returns>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<ServerAuthenticationCertificateConfigurationCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithHttpsCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<HttpsCertificateConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        var annotation = new ServerAuthenticationCertificateConfigurationCallbackAnnotation(callback);
+        var annotation = new HttpsCertificateConfigurationCallbackAnnotation(callback);
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }

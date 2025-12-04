@@ -17,7 +17,7 @@ public sealed class ArgumentEvaluator
             });
 
         (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
-            .WithArguments()
+            .WithArgumentsConfig()
             .BuildAsync(executionContext, NullLogger.Instance, CancellationToken.None)
             .ConfigureAwait(false);
 

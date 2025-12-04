@@ -37,7 +37,7 @@ internal static class MauiEnvironmentHelper
         var encodedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(executionContext, logger, cancellationToken)
             .ConfigureAwait(false);
 
@@ -221,7 +221,7 @@ internal static class MauiEnvironmentHelper
         CancellationToken cancellationToken)
     {
         (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(executionContext, logger, cancellationToken)
             .ConfigureAwait(false);
 

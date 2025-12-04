@@ -1,0 +1,8 @@
+README.md
+api.py
+pyproject.toml
+module_only.egg-info/PKG-INFO
+module_only.egg-info/SOURCES.txt
+module_only.egg-info/dependency_links.txt
+module_only.egg-info/requires.txt
+module_only.egg-info/top_level.txt
