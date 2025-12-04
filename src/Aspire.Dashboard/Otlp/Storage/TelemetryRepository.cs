@@ -28,6 +28,7 @@ public sealed class TelemetryRepository : IDisposable
     private readonly PauseManager _pauseManager;
     private readonly IOutgoingPeerResolver[] _outgoingPeerResolvers;
     private readonly ILogger _logger;
+    private readonly Dashboard.Storage.ITelemetryStorage? _telemetryStorage;
 
     private readonly object _lock = new();
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
@@ -63,7 +64,7 @@ public sealed class TelemetryRepository : IDisposable
     internal List<OtlpSpanLink> SpanLinks => _spanLinks;
     internal List<Subscription> TracesSubscriptions => _tracesSubscriptions;
 
-    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions, PauseManager pauseManager, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, Dashboard.Storage.ITelemetryStorage? telemetryStorage = null)
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
         _otlpContext = new OtlpContext
@@ -73,6 +74,7 @@ public sealed class TelemetryRepository : IDisposable
         };
         _pauseManager = pauseManager;
         _outgoingPeerResolvers = outgoingPeerResolvers.ToArray();
+        _telemetryStorage = telemetryStorage;
         _logs = new(_otlpContext.Options.MaxLogCount);
         _traces = new(_otlpContext.Options.MaxTraceCount);
         _traces.ItemRemovedForCapacity += TracesItemRemovedForCapacity;
@@ -80,6 +82,12 @@ public sealed class TelemetryRepository : IDisposable
         foreach (var outgoingPeerResolver in _outgoingPeerResolvers)
         {
             _peerResolverSubscriptions.Add(outgoingPeerResolver.OnPeerChanges(OnPeerChanged));
+        }
+
+        // Log whether external storage is being used
+        if (_telemetryStorage != null)
+        {
+            _logger.LogInformation("TelemetryRepository initialized with external storage provider");
         }
     }
 
@@ -246,6 +254,19 @@ public sealed class TelemetryRepository : IDisposable
         else
         {
             _logger.LogTrace("New resource added: {ResourceKey}", key);
+            
+            // Persist new resource to external storage if configured (synchronously)
+            if (_telemetryStorage != null)
+            {
+                try
+                {
+                    _telemetryStorage.AddOrUpdateResourceAsync(resource).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist resource to external storage");
+                }
+            }
         }
         return (Resource: resource, IsNew: newResource);
     }
@@ -391,6 +412,21 @@ public sealed class TelemetryRepository : IDisposable
                     }
                 }
             }
+
+            // Persist to external storage if configured (synchronously for source of truth)
+            if (_telemetryStorage != null && context.SuccessCount > 0)
+            {
+                try
+                {
+                    // Use synchronous wait to ensure data is persisted before releasing lock
+                    var logsToStore = _logs.TakeLast(context.SuccessCount).ToList();
+                    _telemetryStorage.AddLogsAsync(logsToStore).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist logs to external storage");
+                }
+            }
         }
         finally
         {
@@ -398,8 +434,28 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
+    public async Task<PagedResult<OtlpLogEntry>> GetLogsAsync(GetLogsContext context)
     {
+        // Use external storage as source of truth if configured
+        if (_telemetryStorage != null)
+        {
+            try
+            {
+                var result = await _telemetryStorage.GetLogsAsync(context).ConfigureAwait(false);
+                
+                // If we got results from storage, return them
+                if (result.TotalItemCount > 0 || context.StartIndex > 0)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to query logs from external storage, falling back to in-memory");
+            }
+        }
+
+        // Fallback to in-memory storage (or default when no external storage)
         List<OtlpResource>? resources = null;
         if (context.ResourceKey is { } key)
         {
@@ -510,8 +566,28 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public GetTracesResponse GetTraces(GetTracesRequest context)
+    public async Task<GetTracesResponse> GetTracesAsync(GetTracesRequest context)
     {
+        // Use external storage as source of truth if configured
+        if (_telemetryStorage != null)
+        {
+            try
+            {
+                var result = await _telemetryStorage.GetTracesAsync(context).ConfigureAwait(false);
+                
+                // If we got results from storage, return them
+                if (result.PagedResult.TotalItemCount > 0 || context.StartIndex > 0)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to query traces from external storage, falling back to in-memory");
+            }
+        }
+
+        // Fallback to in-memory storage (or default when no external storage)
         List<OtlpResource>? resources = null;
         if (context.ResourceKey is { } key)
         {
@@ -1099,6 +1175,21 @@ public sealed class TelemetryRepository : IDisposable
                 foreach (var (_, updatedTrace) in updatedTraces)
                 {
                     CalculateTraceUninstrumentedPeers(updatedTrace);
+                }
+            }
+
+            // Persist to external storage if configured (synchronously for source of truth)
+            if (_telemetryStorage != null && context.SuccessCount > 0)
+            {
+                try
+                {
+                    // Get the most recently added/updated traces
+                    var tracesToPersist = _traces.TakeLast(Math.Min(context.SuccessCount, _traces.Count)).ToList();
+                    _telemetryStorage.AddTracesAsync(tracesToPersist).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist traces to external storage");
                 }
             }
         }
