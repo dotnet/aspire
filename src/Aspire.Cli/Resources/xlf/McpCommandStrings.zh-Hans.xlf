@@ -32,6 +32,21 @@
         <target state="translated">未检测到智能体环境。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootNotFound">
+        <source>Directory not found: {0}</source>
+        <target state="new">Directory not found: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootPrompt">
+        <source>Enter the path to the root of your workspace:</source>
+        <target state="new">Enter the path to the root of your workspace:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootRequired">
+        <source>Workspace root path is required.</source>
+        <target state="new">Workspace root path is required.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="translated">启动 MCP (模型上下文协议)服务器。</target>
