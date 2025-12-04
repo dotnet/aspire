@@ -198,40 +198,23 @@ public class AzureAppServiceEnvironmentResource :
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
 
-    private IContainerRegistry? GetAssociatedRegistry()
+    private IAzureContainerRegistry GetAssociatedRegistry()
     {
-        return this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation)
-            ? annotation.Registry
-            : null;
+        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation) &&
+            annotation.Registry is IAzureContainerRegistry registry)
+        {
+            return registry;
+        }
+
+        throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
     }
 
     // Implement IAzureContainerRegistry interface by delegating to the associated registry
-    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId
-    {
-        get
-        {
-            var registry = GetAssociatedRegistry() as IAzureContainerRegistry;
-            return registry?.ManagedIdentityId ?? throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
-        }
-    }
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => GetAssociatedRegistry().ManagedIdentityId;
 
-    ReferenceExpression IContainerRegistry.Name
-    {
-        get
-        {
-            var registry = GetAssociatedRegistry();
-            return registry?.Name ?? throw new InvalidOperationException($"No container registry associated with environment '{Name}'");
-        }
-    }
+    ReferenceExpression IContainerRegistry.Name => GetAssociatedRegistry().Name;
 
-    ReferenceExpression IContainerRegistry.Endpoint
-    {
-        get
-        {
-            var registry = GetAssociatedRegistry();
-            return registry?.Endpoint ?? throw new InvalidOperationException($"No container registry associated with environment '{Name}'");
-        }
-    }
+    ReferenceExpression IContainerRegistry.Endpoint => GetAssociatedRegistry().Endpoint;
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
